@@ -42,7 +42,7 @@ server_ip() {
 }
 
 ssh_target() {
-  echo "${SSH_USER}@$(server_ip)"
+  echo "${SSH_USER}@${SSH_HOST:-$(server_ip)}"
 }
 
 ssh_args() {
@@ -74,4 +74,3 @@ remote_scp() {
     scp -o StrictHostKeyChecking=accept-new "$src" "$target:$dest"
   fi
 }
-

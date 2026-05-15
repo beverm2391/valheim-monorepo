@@ -45,6 +45,10 @@ VALHEIM_WORLD_NAME=MyWorld
 VALHEIM_PASSWORD=change-me-min-5-chars
 ```
 
+After adding private networking such as Tailscale, set `SSH_HOST` to the
+private IP or hostname. The Valheim server itself can still use the public IP
+for player traffic.
+
 Create the VM and firewall:
 
 ```bash
