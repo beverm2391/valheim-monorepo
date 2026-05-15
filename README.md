@@ -107,6 +107,13 @@ Follow logs:
 scripts/logs.sh
 ```
 
+## Using An AI Agent
+
+If you want an AI coding agent to walk you through setup, give it this repo and
+paste in [`AGENT_SETUP.md`](AGENT_SETUP.md). That file tells the agent what to
+ask you, which scripts to run, how to verify the server, and which files must
+not be committed.
+
 ## Connecting From Valheim
 
 Use Valheim's normal Join Game flow.
@@ -271,4 +278,3 @@ destroying the VM.
 - It does not make the server ephemeral or scale-to-zero.
 
 The goal is a small, durable, understandable dedicated server.
-
