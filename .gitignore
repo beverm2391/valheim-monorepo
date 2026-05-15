@@ -1,8 +1,8 @@
 .DS_Store
 .env
 server.env
+r2.env
 *.log
 tmp/
 worlds/
 backups/
-

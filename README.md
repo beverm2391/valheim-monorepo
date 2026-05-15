@@ -14,6 +14,7 @@ providers can be added later.
 - Runs Valheim with systemd.
 - Uploads an existing world save.
 - Keeps Valheim's native world backups and adds nightly tarball backups.
+- Optionally uploads nightly backups to Cloudflare R2.
 
 It does not include Valheim binaries, world files, passwords, or cloud tokens.
 
@@ -121,6 +122,39 @@ Download those archives with:
 
 ```bash
 scripts/download-backups.sh
+```
+
+## R2 Backups
+
+For off-box backups, create an R2 bucket and S3-compatible credentials, then
+configure `r2.env` locally before running `scripts/install-server.sh` again:
+
+```bash
+cp examples/r2.env.example r2.env
+```
+
+Required values:
+
+```text
+VALHEIM_R2_ACCOUNT_ID=
+VALHEIM_R2_BUCKET=valheim-backups
+VALHEIM_R2_ACCESS_KEY_ID=
+VALHEIM_R2_SECRET_ACCESS_KEY=
+VALHEIM_R2_PREFIX=benheim
+```
+
+The installer copies `r2.env` to `/etc/valheim/r2.env` with restricted
+permissions and uses `rclone` for the upload. The nightly backup timer uploads
+tarballs to:
+
+```text
+s3://<bucket>/<prefix>/worlds-YYYYMMDDTHHMMSSZ.tar.gz
+```
+
+Run a manual backup/upload:
+
+```bash
+ssh root@<server> 'valheim-backup-and-upload'
 ```
 
 ## Updating Valheim
