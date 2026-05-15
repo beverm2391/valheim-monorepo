@@ -1,29 +1,60 @@
 # valheim-server
 
-Run a small Valheim dedicated server on a plain cloud VM.
+Run a Valheim dedicated server on a small cloud VM.
 
-The first provider is Hetzner Cloud because Valheim wants boring VM networking:
-a stable public IP, UDP ports, persistent disk, and a normal Linux service. The
-scripts keep the machine lifecycle separate from the game installer so other
-providers can be added later.
+This repo is for the common friend-group case: you already have a Valheim world,
+you want it online all the time, and you do not want to keep your gaming PC
+running under your desk. It provisions a normal Linux VM, installs the official
+Valheim Dedicated Server with SteamCMD, runs it as a systemd service, and backs
+up the world files.
 
-## What this does
+Hetzner Cloud is the first provider because Valheim dedicated servers want
+simple infrastructure: a stable public IP, UDP ports, persistent disk, and a
+boring Linux service. The provider scripts are separate from the installer so
+other clouds can be added later.
 
-- Creates a Hetzner Cloud VM and firewall.
-- Installs the Valheim Dedicated Server through SteamCMD.
-- Runs Valheim with systemd.
-- Uploads an existing world save.
-- Keeps Valheim's native world backups and adds nightly tarball backups.
-- Optionally uploads nightly backups to Cloudflare R2.
+## What You Get
 
-It does not include Valheim binaries, world files, passwords, or cloud tokens.
+- A Hetzner Cloud VM and firewall.
+- The official Valheim Dedicated Server installed through SteamCMD.
+- A `valheim.service` systemd service that starts on boot and restarts on crash.
+- Scripts to upload an existing world save.
+- Local nightly backups on the VM.
+- Optional Cloudflare R2 uploads for off-box backups.
+- No bundled game files, world saves, passwords, or cloud credentials.
+
+## How It Works
+
+There are three layers:
+
+- `providers/hetzner/` creates or deletes the cloud machine and firewall.
+- `scripts/install-server.sh` installs SteamCMD, Valheim, systemd units, and backup tools.
+- `scripts/upload-world.sh` copies your `.db` / `.fwl` world files onto the server.
+
+The active world lives on the server at:
+
+```text
+/var/lib/valheim/worlds_local/
+```
+
+Nightly backups archive that folder to:
+
+```text
+/var/backups/valheim/
+```
+
+If R2 is configured, the same tarball is uploaded off-box.
 
 ## Requirements
 
-- `hcloud` authenticated with a Hetzner Cloud project.
+- `hcloud`, authenticated with a Hetzner Cloud project.
 - An SSH key already added to Hetzner Cloud.
 - `ssh`, `scp`, and `rsync`.
 - A Valheim world pair: `WorldName.db` and `WorldName.fwl`.
+
+For a small friend server, a `cpx21` in the nearest region is a good starting
+point. You can try a smaller box later, but 4 GB RAM keeps the first setup
+boring.
 
 ## Quick Start
 
@@ -46,17 +77,13 @@ VALHEIM_WORLD_NAME=MyWorld
 VALHEIM_PASSWORD=change-me-min-5-chars
 ```
 
-After adding private networking such as Tailscale, set `SSH_HOST` to the
-private IP or hostname. The Valheim server itself can still use the public IP
-for player traffic.
-
 Create the VM and firewall:
 
 ```bash
 providers/hetzner/create.sh
 ```
 
-Install Valheim:
+Install the server:
 
 ```bash
 scripts/install-server.sh
@@ -80,16 +107,21 @@ Follow logs:
 scripts/logs.sh
 ```
 
-## Connecting
+## Connecting From Valheim
 
-In Valheim, use the normal Join Game flow. You can join through the server list
-when public listing works, or direct-connect to the Hetzner server IP on the
-configured port.
+Use Valheim's normal Join Game flow.
+
+If the server appears in the community list, join it there. If not, direct
+connect to the server's public IP and port:
+
+```text
+<server-ip>:2456
+```
 
 The default Valheim port is `2456`. The Hetzner firewall opens UDP
 `2456-2458`.
 
-## Existing Worlds
+## Moving an Existing World
 
 Valheim worlds are stored as matching `.db` and `.fwl` files. The world name in
 `server.env` must match the filenames without the extension.
@@ -97,9 +129,9 @@ Valheim worlds are stored as matching `.db` and `.fwl` files. The world name in
 For example:
 
 ```text
-VALHEIM_WORLD_NAME=first
-first.db
-first.fwl
+VALHEIM_WORLD_NAME=MyWorld
+MyWorld.db
+MyWorld.fwl
 ```
 
 On macOS with Steam Cloud, worlds are commonly under:
@@ -108,26 +140,60 @@ On macOS with Steam Cloud, worlds are commonly under:
 ~/Library/Application Support/Steam/userdata/<steam-id>/892970/remote/worlds/
 ```
 
-## Backups
+After you upload a world and play on the server, the server copy becomes the
+source of truth. Your old local save will not stay in sync automatically.
 
-Valheim creates its own world backups beside the active world files. This repo
-also installs a systemd timer that archives the server's `worlds_local` folder
-nightly to:
+## Private Admin Access
+
+The Valheim server should stay publicly reachable for players, but SSH does not
+have to be public.
+
+If you add private networking such as Tailscale, set `SSH_HOST` in `server.env`
+to the private IP or hostname:
 
 ```text
-/var/backups/valheim/
+SSH_HOST=100.x.y.z
 ```
 
-Download those archives with:
+The scripts will use that host for SSH while players continue to use the public
+Valheim IP.
+
+## Backups
+
+Valheim creates its own backup files beside the active world files. This repo
+also installs a systemd timer that archives the full `worlds_local` folder
+nightly.
+
+That means each backup includes:
+
+```text
+MyWorld.db
+MyWorld.fwl
+MyWorld_backup_auto-*.db
+MyWorld_backup_auto-*.fwl
+```
+
+Local backups live on the VM:
+
+```text
+/var/backups/valheim/worlds-YYYYMMDDTHHMMSSZ.tar.gz
+```
+
+Download them to your machine:
 
 ```bash
 scripts/download-backups.sh
 ```
 
-## R2 Backups
+Local VM backups protect against bad saves. Off-box backups protect against
+losing the VM.
 
-For off-box backups, create an R2 bucket and S3-compatible credentials, then
-configure `r2.env` locally before running `scripts/install-server.sh` again:
+## Cloudflare R2 Backups
+
+R2 backups are optional but recommended for worlds you care about.
+
+Create an R2 bucket and S3-compatible credentials, then configure `r2.env`
+locally:
 
 ```bash
 cp examples/r2.env.example r2.env
@@ -140,32 +206,44 @@ VALHEIM_R2_ACCOUNT_ID=
 VALHEIM_R2_BUCKET=valheim-backups
 VALHEIM_R2_ACCESS_KEY_ID=
 VALHEIM_R2_SECRET_ACCESS_KEY=
-VALHEIM_R2_PREFIX=benheim
+VALHEIM_R2_PREFIX=my-server
+```
+
+Run the installer again:
+
+```bash
+scripts/install-server.sh
 ```
 
 The installer copies `r2.env` to `/etc/valheim/r2.env` with restricted
-permissions and uses `rclone` for the upload. The nightly backup timer uploads
-tarballs to:
+permissions. The nightly backup timer uploads tarballs to:
 
 ```text
 s3://<bucket>/<prefix>/worlds-YYYYMMDDTHHMMSSZ.tar.gz
 ```
 
-Run a manual backup/upload:
+Run a manual backup and upload:
 
 ```bash
 ssh root@<server> 'valheim-backup-and-upload'
 ```
 
+The uploader uses `rclone` and skips bucket checks so scoped R2 object tokens do
+not need bucket-management permission.
+
 ## Updating Valheim
 
-SSH to the server and run:
+When your client updates and the server needs to match, SSH to the server and
+run:
 
 ```bash
 sudo systemctl stop valheim
 sudo valheim-update
 sudo systemctl start valheim
 ```
+
+Automatic updates are intentionally not enabled. Surprise restarts during a
+session are worse than a manual update before game night.
 
 ## Destroying the Server
 
@@ -181,12 +259,16 @@ Then delete the Hetzner server:
 providers/hetzner/destroy.sh
 ```
 
-## Provider Model
+If you use R2 backups, confirm the latest archive is present off-box before
+destroying the VM.
 
-The intended boundary is:
+## What This Does Not Do
 
-- Provider scripts create, destroy, and expose a reachable machine.
-- Install scripts configure SteamCMD, Valheim, systemd, and backups.
-- World scripts upload, download, and restore save files.
+- It does not copy or redistribute Valheim binaries.
+- It does not manage mods.
+- It does not provide a web dashboard.
+- It does not automatically update Valheim.
+- It does not make the server ephemeral or scale-to-zero.
 
-That keeps durable game hosting separate from any particular cloud backend.
+The goal is a small, durable, understandable dedicated server.
+
