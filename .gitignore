@@ -1,0 +1,8 @@
+.DS_Store
+.env
+server.env
+*.log
+tmp/
+worlds/
+backups/
+
