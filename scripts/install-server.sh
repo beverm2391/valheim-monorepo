@@ -138,6 +138,7 @@ rclone copyto "$backup_path" ":s3:${VALHEIM_R2_BUCKET}/${key}" \
   --s3-secret-access-key "$VALHEIM_R2_SECRET_ACCESS_KEY" \
   --s3-endpoint "$endpoint" \
   --s3-region auto \
+  --s3-no-check-bucket \
   --stats-one-line \
   --stats 0
 
