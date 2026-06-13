@@ -6,9 +6,9 @@ The dedicated server stays vanilla. Install this only on the player's machine.
 
 ## Features
 
-Planned v0.1 features:
+v0.1 features:
 
-- Stack split dialog autofocus and `Enter` confirm.
+- Stack split dialog numeric typing reset and `Enter` confirm.
 - `Left Shift` + repair click repairs all eligible gear at the current station.
 - `Left Shift` + hammer repair repairs nearby damaged build pieces.
 
@@ -40,3 +40,10 @@ The installer copies `BenheimQoL.dll` into:
 ```text
 <Valheim>/BepInEx/plugins/BenheimQoL/
 ```
+
+Launch Valheim through your BepInEx-enabled launcher after installing. In-game,
+test with:
+
+- Split a stack, type a number, then press `Enter`.
+- Hold `Left Shift` while pressing the station repair button.
+- Hold `Left Shift` while repairing a damaged build piece with the hammer.

@@ -19,8 +19,8 @@ requirements. The dedicated server remains vanilla.
 
 When the split-stack dialog opens:
 
-- The numeric amount field is focused immediately.
-- The current amount is selected so typing replaces it.
+- Numeric typing is primed immediately.
+- The first number typed after opening replaces the previous typed amount.
 - `Enter` confirms the split.
 - Existing cancel behavior remains unchanged.
 

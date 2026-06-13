@@ -1,4 +1,5 @@
 using BepInEx;
+using BepInEx.Logging;
 using HarmonyLib;
 
 namespace BenheimQoL;
@@ -10,10 +11,13 @@ public sealed class Plugin : BaseUnityPlugin
     public const string PluginName = "BenheimQoL";
     public const string PluginVersion = "0.1.0";
 
+    internal static ManualLogSource Log { get; private set; } = null!;
+
     private Harmony? harmony;
 
     private void Awake()
     {
+        Log = Logger;
         harmony = new Harmony(PluginGuid);
         harmony.PatchAll();
         Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
