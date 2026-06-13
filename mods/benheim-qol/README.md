@@ -11,6 +11,10 @@ v0.1 features:
 - Stack split dialog numeric typing reset and `Enter` confirm.
 - `Left Shift` + repair click repairs all eligible gear at the current station.
 - `Left Shift` + hammer repair repairs nearby damaged build pieces.
+- Slightly extended interaction range for normal use targets.
+- `Tab` cycles known loaded portal tags while editing a portal tag.
+- Portal travel keeps the target-area readiness check but shortens the minimum
+  distant-teleport wait.
 
 See [`PRODUCT.md`](PRODUCT.md) for the product contract and manual acceptance
 checks.
@@ -47,3 +51,6 @@ test with:
 - Split a stack, type a number, then press `Enter`.
 - Hold `Left Shift` while pressing the station repair button.
 - Hold `Left Shift` while repairing a damaged build piece with the hammer.
+- Stand a little farther from a station or cauldron and interact normally.
+- Edit a portal tag, type a prefix, then press `Tab`.
+- Travel through a portal and compare the wait to vanilla.

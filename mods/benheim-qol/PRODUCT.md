@@ -43,22 +43,37 @@ With the hammer in repair mode:
 - The feature should use the longest range that still feels like the player's
   current building station area, not the entire loaded world.
 
+### Extended Interaction Range
+
+Crafting stations, cauldrons, portals, and other normal interact targets can be
+used from a slightly longer range.
+
+### Portal Tag Autocomplete
+
+When editing a portal tag:
+
+- `Tab` cycles through matching known portal tags.
+- Matching uses the text already typed as a prefix.
+- If there are no prefix matches, `Tab` cycles through known loaded tags.
+
+### Faster Portal Transition
+
+Portal travel keeps Valheim's target-area readiness check, but shortens the
+minimum distant-teleport wait from vanilla's long cinematic pause.
+
 ## Later
 
 ### Station Range Assist
 
-Increase interaction range for crafting stations and cauldrons if Valheim treats
-that range as a client-side targeting check.
+Tune interaction range after manual testing.
 
 ### Portal Tag Autocomplete
 
-When editing a portal tag, show known/recent tags and allow keyboard selection.
+Improve beyond loaded-tag `Tab` cycling if the simple helper feels useful.
 
 ### Faster Portal Transition
 
-Investigate whether portal travel has an artificial delay beyond real loading
-and network synchronization. Only shorten artificial waiting; do not skip real
-load/sync safety.
+Tune the shortened minimum delay after testing.
 
 ### Food And Rested HUD
 
@@ -74,4 +89,7 @@ Manual testing happens in local Valheim with BepInEx:
 4. `Left Shift` + repair click repairs all eligible gear at the station.
 5. Normal hammer repair still repairs one build piece.
 6. `Left Shift` + hammer repair fixes damaged nearby build pieces.
-7. Joining a vanilla dedicated server still works.
+7. Interacting with stations/cauldrons works from a little farther away.
+8. Portal edit `Tab` cycles known loaded tags.
+9. Portal transition is faster without loading into an unready area.
+10. Joining a vanilla dedicated server still works.
