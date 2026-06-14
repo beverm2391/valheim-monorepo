@@ -49,7 +49,9 @@ With the hammer in repair mode:
 ### Extended Interaction Range
 
 Crafting stations, cauldrons, portals, and other normal interact targets can be
-used from a slightly longer range.
+used from a slightly longer range. Crafting stations also get their own use
+distance increased so food crafting/crafting UI checks are not limited by
+vanilla's shorter station distance.
 
 ### Portal Tag Autocomplete
 
@@ -58,6 +60,8 @@ When editing a portal tag:
 - `Tab` cycles through matching known portal tags.
 - Matching uses the text already typed as a prefix.
 - If there are no prefix matches, `Tab` cycles through known loaded tags.
+- Seen or typed tags are remembered in a local BepInEx config file for future
+  autocomplete attempts.
 
 ### Faster Portal Transition
 
@@ -93,7 +97,8 @@ Manual testing happens in local Valheim with BepInEx:
 5. `Left Shift` + repair click repairs all eligible gear at the station.
 6. Normal hammer repair still repairs one build piece.
 7. `Left Shift` + hammer repair fixes damaged nearby build pieces.
-8. Interacting with stations/cauldrons works from a little farther away.
-9. Portal edit `Tab` cycles known loaded tags.
+8. Interacting with stations/cauldrons and opening food crafting works from a
+   little farther away.
+9. Portal edit `Tab` cycles loaded or remembered tags.
 10. Portal transition is faster without loading into an unready area.
 11. Joining a vanilla dedicated server still works.

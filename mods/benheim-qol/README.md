@@ -12,8 +12,8 @@ v0.1 features:
   container-aware `Enter` transfer.
 - `Left Shift` + repair click repairs all eligible gear at the current station.
 - `Left Shift` + hammer repair repairs nearby damaged build pieces.
-- Slightly extended interaction range for normal use targets.
-- `Tab` cycles known loaded portal tags while editing a portal tag.
+- Slightly extended interaction and crafting-station use range.
+- `Tab` cycles loaded or remembered portal tags while editing a portal tag.
 - Portal travel keeps the target-area readiness check but shortens the minimum
   distant-teleport wait.
 
@@ -54,6 +54,7 @@ test with:
   the other side.
 - Hold `Left Shift` while pressing the station repair button.
 - Hold `Left Shift` while repairing a damaged build piece with the hammer.
-- Stand a little farther from a station or cauldron and interact normally.
-- Edit a portal tag, type a prefix, then press `Tab`.
+- Stand a little farther from a station or cauldron and open/use it normally.
+- Edit a portal tag, type a prefix, then press `Tab`. Tags you see or type are
+  remembered locally for future suggestions.
 - Travel through a portal and compare the wait to vanilla.
