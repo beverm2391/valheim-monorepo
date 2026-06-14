@@ -55,7 +55,7 @@ internal static class ShortcutOverlay
         float width = Mathf.Min(560f, Screen.width - 40f);
         Rect rect = new Rect(20f, 20f, width, 430f);
         GUILayout.BeginArea(rect, GUI.skin.window);
-        GUILayout.Label("BenheimQoL Shortcuts", titleStyle);
+        GUILayout.Label($"BenheimQoL v{Plugin.PluginVersion} Shortcuts", titleStyle);
         GUILayout.Space(8f);
 
         GUILayout.Label("Keys", sectionStyle);

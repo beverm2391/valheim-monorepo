@@ -18,7 +18,8 @@ v0.1 features:
   distant-teleport wait.
 - Pickaxes skill scales mining damage, crit chance, and high-skill AOE mining
   without adding bonus drops.
-- `F8` toggles an in-game shortcuts panel for the whole mod.
+- `F8` toggles an in-game shortcuts panel for the whole mod, including the
+  loaded plugin version.
 - `Left Alt` + inventory click, or hover + `P`, pockets or unpockets an item
   type.
 - `Left Alt` + `P` quick-stacks matching non-pocketed inventory items into

@@ -101,6 +101,8 @@ The mod has one discoverability key:
 
 - `F8` toggles a client-side BenheimQoL shortcuts panel.
 - The panel lists active shortcuts and passive features.
+- The panel shows the loaded plugin version so relaunch/install checks are
+  obvious.
 - The panel does not require server support or store world data.
 
 ## Later
