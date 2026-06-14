@@ -18,7 +18,8 @@ v0.1 features:
   distant-teleport wait.
 - Pickaxes skill scales mining damage, crit chance, and high-skill AOE mining
   without adding bonus drops.
-- `Left Alt` + inventory click pockets or unpockets an item type.
+- `Left Alt` + inventory click, or hover + `P`, pockets or unpockets an item
+  type.
 - `Left Alt` + `Q` quick-stacks matching non-pocketed inventory items into
   nearby containers that already contain those items.
 
@@ -65,8 +66,10 @@ test with:
 - Travel through a portal and compare the wait to vanilla.
 - Mine rocks at different Pickaxes skill levels and watch for faster breakage,
   occasional high-skill crits, and high-skill AOE hits.
-- Open inventory and `Left Alt` + click an item. A small `P` marker should
-  appear on matching item types. `Left Alt` + click it again to unpocket.
+- Open inventory and hover an item, then press `P`. A small `P` marker should
+  appear on matching item types. Press `P` again while hovering it to unpocket.
+  `Left Alt` + click should toggle the same thing when the platform reports the
+  Alt key correctly.
 - Put wood/resin/etc. into nearby chests, carry matching items, and press
   `Left Alt` + `Q`. Equipped items, hotbar items, and pocketed item types should
   stay in your inventory.

@@ -11,6 +11,9 @@ internal static class InputState
 
     internal static bool IsAltHeld()
     {
-        return Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+        return Input.GetKey(KeyCode.LeftAlt)
+            || Input.GetKey(KeyCode.RightAlt)
+            || ZInput.GetKey(KeyCode.LeftAlt)
+            || ZInput.GetKey(KeyCode.RightAlt);
     }
 }

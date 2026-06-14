@@ -12,6 +12,9 @@ internal static class PocketAndQuickStackPatch
     private static readonly FieldInfo CurrentContainerField =
         AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
 
+    private static readonly FieldInfo PlayerGridField =
+        AccessTools.Field(typeof(InventoryGui), "m_playerGrid");
+
     [HarmonyPatch(typeof(InventoryGui), "OnSelectedItem")]
     private static class TogglePocketPatch
     {
@@ -44,9 +47,7 @@ internal static class PocketAndQuickStackPatch
     {
         private static void Postfix(InventoryGui __instance)
         {
-            if (!InputState.IsAltHeld()
-                || !Input.GetKeyDown(KeyCode.Q)
-                || TextInput.IsVisible()
+            if (TextInput.IsVisible()
                 || Console.IsVisible()
                 || Player.m_localPlayer == null)
             {
@@ -55,13 +56,39 @@ internal static class PocketAndQuickStackPatch
 
             try
             {
-                Container? currentContainer = (Container?)CurrentContainerField.GetValue(__instance);
-                QuickStack.Run(Player.m_localPlayer, __instance, currentContainer);
+                if (Input.GetKeyDown(KeyCode.P))
+                {
+                    InventoryGrid playerGrid = (InventoryGrid)PlayerGridField.GetValue(__instance);
+                    ItemDrop.ItemData hoveredItem = playerGrid.GetItem(new Vector2i((int)ZInput.mousePosition.x, (int)ZInput.mousePosition.y));
+                    ToggleHoveredItem(playerGrid, hoveredItem);
+                }
+
+                if (InputState.IsAltHeld() && Input.GetKeyDown(KeyCode.Q))
+                {
+                    Container? currentContainer = (Container?)CurrentContainerField.GetValue(__instance);
+                    QuickStack.Run(Player.m_localPlayer, __instance, currentContainer);
+                }
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogWarning($"Quick stack failed: {ex.Message}");
+                Plugin.Log.LogWarning($"Pocket/quick stack hotkey failed: {ex.Message}");
             }
+        }
+
+        private static void ToggleHoveredItem(InventoryGrid playerGrid, ItemDrop.ItemData item)
+        {
+            if (item == null || playerGrid.GetInventory() != Player.m_localPlayer.GetInventory())
+            {
+                return;
+            }
+
+            if (!PocketItems.Toggle(item, out bool pocketed))
+            {
+                return;
+            }
+
+            string verb = pocketed ? "Pocketed" : "Unpocketed";
+            Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, $"{verb} {PocketItems.GetDisplayName(item)}");
         }
     }
 
@@ -114,6 +141,13 @@ internal static class PocketAndQuickStackPatch
             rect.sizeDelta = new Vector2(20f, 18f);
 
             TMP_Text text = markerObject.AddComponent<TextMeshProUGUI>();
+            TMP_Text? template = GetTemplateText(inventoryElement);
+            if (template != null)
+            {
+                text.font = template.font;
+                text.fontMaterial = template.fontMaterial;
+            }
+
             text.text = "P";
             text.fontSize = 14f;
             text.fontStyle = FontStyles.Bold;
@@ -121,6 +155,18 @@ internal static class PocketAndQuickStackPatch
             text.color = new Color(1f, 0.86f, 0.25f, 1f);
             text.raycastTarget = false;
             return text;
+        }
+
+        private static TMP_Text? GetTemplateText(GameObject inventoryElement)
+        {
+            Transform binding = inventoryElement.transform.Find("binding");
+            if (binding)
+            {
+                return binding.GetComponent<TMP_Text>();
+            }
+
+            Transform amount = inventoryElement.transform.Find("amount");
+            return amount ? amount.GetComponent<TMP_Text>() : null;
         }
     }
 }
