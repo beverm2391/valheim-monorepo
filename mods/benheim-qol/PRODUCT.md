@@ -21,7 +21,10 @@ When the split-stack dialog opens:
 
 - Numeric typing is primed immediately.
 - The first number typed after opening replaces the previous typed amount.
+- `Backspace` or `Delete` clears the typed amount back to `1`.
 - `Enter` confirms the split.
+- If a container is open, `Enter` moves the split amount to the opposite
+  inventory instead of leaving the split stack on the cursor.
 - Existing cancel behavior remains unchanged.
 
 ### Shift-Click Repair All Gear
@@ -84,12 +87,13 @@ Discuss mechanics and desired decisions before adding UI. Avoid HUD clutter.
 Manual testing happens in local Valheim with BepInEx:
 
 1. BepInEx log shows `BenheimQoL` loaded.
-2. Split-stack dialog focuses the amount field and accepts `Enter`.
-3. Normal repair click still repairs one item.
-4. `Left Shift` + repair click repairs all eligible gear at the station.
-5. Normal hammer repair still repairs one build piece.
-6. `Left Shift` + hammer repair fixes damaged nearby build pieces.
-7. Interacting with stations/cauldrons works from a little farther away.
-8. Portal edit `Tab` cycles known loaded tags.
-9. Portal transition is faster without loading into an unready area.
-10. Joining a vanilla dedicated server still works.
+2. Split-stack dialog accepts typing, `Backspace`/`Delete`, and `Enter`.
+3. With a container open, split `Enter` moves the amount to the opposite side.
+4. Normal repair click still repairs one item.
+5. `Left Shift` + repair click repairs all eligible gear at the station.
+6. Normal hammer repair still repairs one build piece.
+7. `Left Shift` + hammer repair fixes damaged nearby build pieces.
+8. Interacting with stations/cauldrons works from a little farther away.
+9. Portal edit `Tab` cycles known loaded tags.
+10. Portal transition is faster without loading into an unready area.
+11. Joining a vanilla dedicated server still works.

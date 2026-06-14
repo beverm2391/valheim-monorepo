@@ -8,7 +8,8 @@ The dedicated server stays vanilla. Install this only on the player's machine.
 
 v0.1 features:
 
-- Stack split dialog numeric typing reset and `Enter` confirm.
+- Stack split dialog numeric typing reset, `Backspace`/`Delete` clear, and
+  container-aware `Enter` transfer.
 - `Left Shift` + repair click repairs all eligible gear at the current station.
 - `Left Shift` + hammer repair repairs nearby damaged build pieces.
 - Slightly extended interaction range for normal use targets.
@@ -48,7 +49,9 @@ The installer copies `BenheimQoL.dll` into:
 Launch Valheim through your BepInEx-enabled launcher after installing. In-game,
 test with:
 
-- Split a stack, type a number, then press `Enter`.
+- Split a stack, type a number, press `Backspace` or `Delete`, then type again.
+- With a container open, split a stack and press `Enter` to move that amount to
+  the other side.
 - Hold `Left Shift` while pressing the station repair button.
 - Hold `Left Shift` while repairing a damaged build piece with the hammer.
 - Stand a little farther from a station or cauldron and interact normally.
