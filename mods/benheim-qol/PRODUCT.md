@@ -78,6 +78,22 @@ Mining gets skill-based quality-of-life progression without extra drops:
 - AOE mining applies reduced pickaxe damage to nearby mine rocks without
   multiplying drops directly.
 
+### Pocket Items And Quick Stack
+
+Inventory cleanup uses one player-facing concept: pocketed items stay with you.
+
+- Equipped gear is always pocketed.
+- Hotbar/top-row items are always pocketed.
+- `Left Alt` + inventory click toggles manual pocketing for that item type.
+- Manually pocketed item types show a small `P` marker in the player inventory.
+- The pocket list is local BepInEx config and persists between launches.
+- `Left Alt` + `Q` quick-stacks matching non-pocketed inventory items into
+  nearby accessible containers.
+- Quick stack only deposits into containers that already contain the item and
+  have room for more of it.
+- Quick stack does not add custom item data or require the server to install the
+  mod.
+
 ## Later
 
 ### Station Range Assist
@@ -113,4 +129,9 @@ Manual testing happens in local Valheim with BepInEx:
 10. Portal transition is faster without loading into an unready area.
 11. Mining feels faster as Pickaxes skill rises.
 12. At higher Pickaxes skill, mining can crit and damage nearby mine rocks.
-13. Joining a vanilla dedicated server still works.
+13. `Left Alt` + inventory click pockets/unpockets an item type and shows or
+    hides the `P` marker.
+14. `Left Alt` + `Q` moves matching non-pocketed items into nearby containers.
+15. Equipped items, hotbar items, and manually pocketed item types stay in the
+    player inventory during quick stack.
+16. Joining a vanilla dedicated server still works.

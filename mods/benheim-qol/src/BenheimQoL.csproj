@@ -28,6 +28,10 @@
       <HintPath>$(ValheimManagedDir)/assembly_guiutils.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="assembly_utils">
+      <HintPath>$(ValheimManagedDir)/assembly_utils.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="gui_framework">
       <HintPath>$(ValheimManagedDir)/gui_framework.dll</HintPath>
       <Private>false</Private>
