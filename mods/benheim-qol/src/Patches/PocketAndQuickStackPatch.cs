@@ -15,6 +15,9 @@ internal static class PocketAndQuickStackPatch
     private static readonly FieldInfo PlayerGridField =
         AccessTools.Field(typeof(InventoryGui), "m_playerGrid");
 
+    private static readonly FieldInfo AnimatorField =
+        AccessTools.Field(typeof(InventoryGui), "m_animator");
+
     [HarmonyPatch(typeof(InventoryGui), "OnSelectedItem")]
     private static class TogglePocketPatch
     {
@@ -47,7 +50,8 @@ internal static class PocketAndQuickStackPatch
     {
         private static void Postfix(InventoryGui __instance)
         {
-            if (TextInput.IsVisible()
+            if (!IsInventoryVisible(__instance)
+                || TextInput.IsVisible()
                 || Console.IsVisible()
                 || Player.m_localPlayer == null)
             {
@@ -56,23 +60,30 @@ internal static class PocketAndQuickStackPatch
 
             try
             {
-                if (Input.GetKeyDown(KeyCode.P))
+                if (InputState.IsAltHeld() && InputState.IsKeyDown(KeyCode.P))
+                {
+                    Container? currentContainer = (Container?)CurrentContainerField.GetValue(__instance);
+                    QuickStack.Run(Player.m_localPlayer, __instance, currentContainer);
+                    return;
+                }
+
+                if (InputState.IsKeyDown(KeyCode.P))
                 {
                     InventoryGrid playerGrid = (InventoryGrid)PlayerGridField.GetValue(__instance);
                     ItemDrop.ItemData hoveredItem = playerGrid.GetItem(new Vector2i((int)ZInput.mousePosition.x, (int)ZInput.mousePosition.y));
                     ToggleHoveredItem(playerGrid, hoveredItem);
-                }
-
-                if (InputState.IsAltHeld() && Input.GetKeyDown(KeyCode.Q))
-                {
-                    Container? currentContainer = (Container?)CurrentContainerField.GetValue(__instance);
-                    QuickStack.Run(Player.m_localPlayer, __instance, currentContainer);
                 }
             }
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"Pocket/quick stack hotkey failed: {ex.Message}");
             }
+        }
+
+        private static bool IsInventoryVisible(InventoryGui inventoryGui)
+        {
+            Animator? animator = (Animator?)AnimatorField.GetValue(inventoryGui);
+            return animator != null && animator.GetBool("visible");
         }
 
         private static void ToggleHoveredItem(InventoryGrid playerGrid, ItemDrop.ItemData item)

@@ -16,4 +16,9 @@ internal static class InputState
             || ZInput.GetKey(KeyCode.LeftAlt)
             || ZInput.GetKey(KeyCode.RightAlt);
     }
+
+    internal static bool IsKeyDown(KeyCode key)
+    {
+        return Input.GetKeyDown(key) || ZInput.GetKeyDown(key);
+    }
 }

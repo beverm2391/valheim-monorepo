@@ -88,7 +88,7 @@ Inventory cleanup uses one player-facing concept: pocketed items stay with you.
   that item type.
 - Manually pocketed item types show a small `P` marker in the player inventory.
 - The pocket list is local BepInEx config and persists between launches.
-- `Left Alt` + `Q` quick-stacks matching non-pocketed inventory items into
+- `Left Alt` + `P` quick-stacks matching non-pocketed inventory items into
   nearby accessible containers.
 - Quick stack only deposits into containers that already contain the item and
   have room for more of it.
@@ -133,7 +133,7 @@ Manual testing happens in local Valheim with BepInEx:
 13. Hover + `P` pockets/unpockets an item type and shows or hides the `P`
     marker. `Left Alt` + inventory click should do the same when the platform
     reports the Alt key correctly.
-14. `Left Alt` + `Q` moves matching non-pocketed items into nearby containers.
+14. `Left Alt` + `P` moves matching non-pocketed items into nearby containers.
 15. Equipped items, hotbar items, and manually pocketed item types stay in the
     player inventory during quick stack.
 16. Joining a vanilla dedicated server still works.

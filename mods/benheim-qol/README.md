@@ -20,7 +20,7 @@ v0.1 features:
   without adding bonus drops.
 - `Left Alt` + inventory click, or hover + `P`, pockets or unpockets an item
   type.
-- `Left Alt` + `Q` quick-stacks matching non-pocketed inventory items into
+- `Left Alt` + `P` quick-stacks matching non-pocketed inventory items into
   nearby containers that already contain those items.
 
 See [`PRODUCT.md`](PRODUCT.md) for the product contract and manual acceptance
@@ -71,5 +71,5 @@ test with:
   `Left Alt` + click should toggle the same thing when the platform reports the
   Alt key correctly.
 - Put wood/resin/etc. into nearby chests, carry matching items, and press
-  `Left Alt` + `Q`. Equipped items, hotbar items, and pocketed item types should
+  `Left Alt` + `P`. Equipped items, hotbar items, and pocketed item types should
   stay in your inventory.
