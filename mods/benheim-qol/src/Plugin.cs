@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using UnityEngine;
 
 namespace BenheimQoL;
 
@@ -21,6 +22,16 @@ public sealed class Plugin : BaseUnityPlugin
         harmony = new Harmony(PluginGuid);
         harmony.PatchAll();
         Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
+    }
+
+    private void Update()
+    {
+        ShortcutOverlay.Update();
+    }
+
+    private void OnGUI()
+    {
+        ShortcutOverlay.Draw();
     }
 
     private void OnDestroy()

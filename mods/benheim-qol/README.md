@@ -18,6 +18,7 @@ v0.1 features:
   distant-teleport wait.
 - Pickaxes skill scales mining damage, crit chance, and high-skill AOE mining
   without adding bonus drops.
+- `F8` toggles an in-game shortcuts panel for the whole mod.
 - `Left Alt` + inventory click, or hover + `P`, pockets or unpockets an item
   type.
 - `Left Alt` + `P` quick-stacks matching non-pocketed inventory items into
@@ -55,6 +56,7 @@ The installer copies `BenheimQoL.dll` into:
 Launch Valheim through your BepInEx-enabled launcher after installing. In-game,
 test with:
 
+- Press `F8` to show or hide the BenheimQoL shortcuts panel.
 - Split a stack, type a number, press `Backspace` or `Delete`, then type again.
 - With a container open, split a stack and press `Enter` to move that amount to
   the other side.

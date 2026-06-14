@@ -95,6 +95,14 @@ Inventory cleanup uses one player-facing concept: pocketed items stay with you.
 - Quick stack does not add custom item data or require the server to install the
   mod.
 
+### Shortcuts Panel
+
+The mod has one discoverability key:
+
+- `F8` toggles a client-side BenheimQoL shortcuts panel.
+- The panel lists active shortcuts and passive features.
+- The panel does not require server support or store world data.
+
 ## Later
 
 ### Station Range Assist
@@ -130,10 +138,11 @@ Manual testing happens in local Valheim with BepInEx:
 10. Portal transition is faster without loading into an unready area.
 11. Mining feels faster as Pickaxes skill rises.
 12. At higher Pickaxes skill, mining can crit and damage nearby mine rocks.
-13. Hover + `P` pockets/unpockets an item type and shows or hides the `P`
+13. `F8` shows and hides the BenheimQoL shortcuts panel.
+14. Hover + `P` pockets/unpockets an item type and shows or hides the `P`
     marker. `Left Alt` + inventory click should do the same when the platform
     reports the Alt key correctly.
-14. `Left Alt` + `P` moves matching non-pocketed items into nearby containers.
-15. Equipped items, hotbar items, and manually pocketed item types stay in the
+15. `Left Alt` + `P` moves matching non-pocketed items into nearby containers.
+16. Equipped items, hotbar items, and manually pocketed item types stay in the
     player inventory during quick stack.
-16. Joining a vanilla dedicated server still works.
+17. Joining a vanilla dedicated server still works.
