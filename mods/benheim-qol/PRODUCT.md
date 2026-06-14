@@ -68,6 +68,16 @@ When editing a portal tag:
 Portal travel keeps Valheim's target-area readiness check, but shortens the
 minimum distant-teleport wait from vanilla's long cinematic pause.
 
+### Pickaxes Progression
+
+Mining gets skill-based quality-of-life progression without extra drops:
+
+- Pickaxe damage scales gently with Pickaxes skill.
+- Mining crit chance unlocks after Pickaxes 25 and scales up from there.
+- AOE mining unlocks after Pickaxes 50 and scales in radius up to Pickaxes 100.
+- AOE mining applies reduced pickaxe damage to nearby mine rocks without
+  multiplying drops directly.
+
 ## Later
 
 ### Station Range Assist
@@ -101,4 +111,6 @@ Manual testing happens in local Valheim with BepInEx:
    little farther away.
 9. Portal edit `Tab` cycles loaded or remembered tags.
 10. Portal transition is faster without loading into an unready area.
-11. Joining a vanilla dedicated server still works.
+11. Mining feels faster as Pickaxes skill rises.
+12. At higher Pickaxes skill, mining can crit and damage nearby mine rocks.
+13. Joining a vanilla dedicated server still works.

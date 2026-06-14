@@ -16,6 +16,8 @@ v0.1 features:
 - `Tab` cycles loaded or remembered portal tags while editing a portal tag.
 - Portal travel keeps the target-area readiness check but shortens the minimum
   distant-teleport wait.
+- Pickaxes skill scales mining damage, crit chance, and high-skill AOE mining
+  without adding bonus drops.
 
 See [`PRODUCT.md`](PRODUCT.md) for the product contract and manual acceptance
 checks.
@@ -58,3 +60,5 @@ test with:
 - Edit a portal tag, type a prefix, then press `Tab`. Tags you see or type are
   remembered locally for future suggestions.
 - Travel through a portal and compare the wait to vanilla.
+- Mine rocks at different Pickaxes skill levels and watch for faster breakage,
+  occasional high-skill crits, and high-skill AOE hits.
