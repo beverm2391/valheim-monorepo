@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
@@ -13,16 +14,20 @@ internal static class MiningProgressionPatch
     private const float MaxCritChance = 0.15f;
     private const float CritMultiplier = 2f;
     private const float AoeUnlockLevel = 50f;
+    private const float MinAoeChance = 0.3f;
+    private const float MaxAoeChance = 0.85f;
     private const float MaxAoeRadius = 3f;
     private const float AoeDamageMultiplier = 0.5f;
-    private const int MaxAoeTargets = 12;
+    private const int MaxAoeColliders = 24;
+    private const int AoeHitsPerInterval = 8;
+    private const float AoeSafetyResetSeconds = 10f;
 
     private static readonly Collider[] AoeColliders = new Collider[64];
-    private static readonly HashSet<Component> SeenAoeTargets = new HashSet<Component>();
-    private static readonly List<AoeTarget> AoeTargets = new List<AoeTarget>(MaxAoeTargets);
-    private static readonly int AoeMask = LayerMask.GetMask("piece", "Default", "static_solid", "Default_small", "terrain");
+    private static readonly List<Collider> AoeTargetColliders = new List<Collider>(MaxAoeColliders);
+    private static readonly int AoeMask = LayerMask.GetMask("static_solid", "Default_small", "Default");
 
-    private static bool applyingAoe;
+    private static bool aoeRunning;
+    private static float aoeStartedAt;
 
     [HarmonyPatch(typeof(MineRock), "Damage")]
     private static class MineRockDamagePatch
@@ -54,7 +59,7 @@ internal static class MiningProgressionPatch
 
     private static void EnhancePrimaryHit(HitData hit)
     {
-        if (applyingAoe || !IsPickaxeHit(hit))
+        if (aoeRunning || !IsLocalPickaxeHit(hit))
         {
             return;
         }
@@ -64,6 +69,7 @@ internal static class MiningProgressionPatch
         if (RollCrit(skillFactor))
         {
             multiplier *= CritMultiplier;
+            DamageText.instance?.ShowText(DamageText.TextType.Bonus, hit.m_point, "CRIT", player: true);
         }
 
         hit.m_damage.Modify(multiplier);
@@ -71,8 +77,18 @@ internal static class MiningProgressionPatch
 
     private static void TryApplyAoe(Component primaryTarget, HitData hit)
     {
-        if (applyingAoe || !IsPickaxeHit(hit))
+        if (!IsLocalPickaxeHit(hit))
         {
+            return;
+        }
+
+        if (aoeRunning)
+        {
+            if (aoeStartedAt + AoeSafetyResetSeconds < Time.realtimeSinceStartup)
+            {
+                ResetAoeState();
+            }
+
             return;
         }
 
@@ -83,6 +99,12 @@ internal static class MiningProgressionPatch
         }
 
         float unlockedFactor = Mathf.InverseLerp(AoeUnlockLevel / 100f, 1f, skillFactor);
+        float chance = Mathf.Lerp(MinAoeChance, MaxAoeChance, unlockedFactor);
+        if (UnityEngine.Random.value > chance)
+        {
+            return;
+        }
+
         float radius = Mathf.Lerp(1.25f, MaxAoeRadius, unlockedFactor);
         int colliderCount = Physics.OverlapSphereNonAlloc(hit.m_point, radius, AoeColliders, AoeMask);
         if (colliderCount == 0)
@@ -90,72 +112,88 @@ internal static class MiningProgressionPatch
             return;
         }
 
-        SeenAoeTargets.Clear();
-        AoeTargets.Clear();
-        Transform primaryRoot = primaryTarget.transform.root;
-        for (int i = 0; i < colliderCount && AoeTargets.Count < MaxAoeTargets; i++)
+        AoeTargetColliders.Clear();
+        for (int i = 0; i < colliderCount && AoeTargetColliders.Count < MaxAoeColliders; i++)
         {
             Collider collider = AoeColliders[i];
-            if (!collider || collider.transform.root == primaryRoot)
+            if (!collider || collider == hit.m_hitCollider || !BelongsToTarget(primaryTarget, collider))
             {
                 continue;
             }
 
-            MineRock mineRock = collider.GetComponentInParent<MineRock>();
-            if (mineRock && SeenAoeTargets.Add(mineRock))
-            {
-                AoeTargets.Add(new AoeTarget(mineRock, collider));
-                continue;
-            }
-
-            MineRock5 mineRock5 = collider.GetComponentInParent<MineRock5>();
-            if (mineRock5 && SeenAoeTargets.Add(mineRock5))
-            {
-                AoeTargets.Add(new AoeTarget(mineRock5, collider));
-            }
+            AoeTargetColliders.Add(collider);
         }
 
-        if (AoeTargets.Count == 0)
+        if (AoeTargetColliders.Count == 0 || Player.m_localPlayer == null)
         {
             return;
         }
 
         HitData aoeHit = hit.Clone();
         aoeHit.m_damage.Modify(AoeDamageMultiplier);
-        aoeHit.m_radius = 0.35f;
+        aoeHit.m_radius = 0f;
 
-        applyingAoe = true;
+        aoeRunning = true;
+        aoeStartedAt = Time.realtimeSinceStartup;
+        DamageText.instance?.ShowText(DamageText.TextType.Bonus, hit.m_point + Vector3.up * 0.25f, "AOE", player: true);
+        Player.m_localPlayer.StartCoroutine(ApplyAoeDamage(primaryTarget, AoeTargetColliders.ToArray(), aoeHit));
+    }
+
+    private static IEnumerator ApplyAoeDamage(Component primaryTarget, Collider[] targetColliders, HitData aoeHit)
+    {
+        int iterations = 0;
         try
         {
-            foreach (AoeTarget target in AoeTargets)
+            for (int i = 0; i < targetColliders.Length; i++)
             {
-                aoeHit.m_hitCollider = target.Collider;
-                aoeHit.m_point = target.Collider.bounds.center;
-                if (target.Component is MineRock mineRock)
+                Collider collider = targetColliders[i];
+                if (!collider)
+                {
+                    continue;
+                }
+
+                iterations++;
+                if (iterations % AoeHitsPerInterval == 0)
+                {
+                    yield return new WaitForFixedUpdate();
+                }
+
+                aoeHit.m_hitCollider = collider;
+                aoeHit.m_point = collider.bounds.center;
+                if (primaryTarget is MineRock mineRock && collider.GetComponentInParent<MineRock>() == mineRock)
                 {
                     mineRock.Damage(aoeHit);
                 }
-                else if (target.Component is MineRock5 mineRock5)
+                else if (primaryTarget is MineRock5 mineRock5 && collider.GetComponentInParent<MineRock5>() == mineRock5)
                 {
                     mineRock5.Damage(aoeHit);
                 }
             }
         }
-        catch (Exception ex)
-        {
-            Plugin.Log.LogWarning($"Mining AOE failed: {ex.Message}");
-        }
         finally
         {
-            applyingAoe = false;
-            SeenAoeTargets.Clear();
-            AoeTargets.Clear();
+            ResetAoeState();
         }
     }
 
-    private static bool IsPickaxeHit(HitData hit)
+    private static bool BelongsToTarget(Component primaryTarget, Collider collider)
     {
-        return hit != null && hit.m_damage.m_pickaxe > 0f && hit.CheckToolTier(0, alwaysAllowTierZero: true);
+        if (primaryTarget is MineRock mineRock)
+        {
+            return collider.GetComponentInParent<MineRock>() == mineRock;
+        }
+
+        return primaryTarget is MineRock5 mineRock5 && collider.GetComponentInParent<MineRock5>() == mineRock5;
+    }
+
+    private static bool IsLocalPickaxeHit(HitData hit)
+    {
+        Player player = Player.m_localPlayer;
+        return hit != null
+            && player != null
+            && hit.m_damage.m_pickaxe > 0f
+            && hit.m_attacker == player.GetZDOID()
+            && hit.CheckToolTier(0, alwaysAllowTierZero: true);
     }
 
     private static float GetPickaxeSkillFactor(HitData hit)
@@ -180,16 +218,10 @@ internal static class MiningProgressionPatch
         return UnityEngine.Random.value < MaxCritChance * unlockedFactor;
     }
 
-    private readonly struct AoeTarget
+    private static void ResetAoeState()
     {
-        internal AoeTarget(Component component, Collider collider)
-        {
-            Component = component;
-            Collider = collider;
-        }
-
-        internal Component Component { get; }
-
-        internal Collider Collider { get; }
+        aoeRunning = false;
+        aoeStartedAt = 0f;
+        AoeTargetColliders.Clear();
     }
 }
