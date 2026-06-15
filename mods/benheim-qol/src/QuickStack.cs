@@ -19,15 +19,27 @@ internal static class QuickStack
 
         Dictionary<string, int> movedByName = new Dictionary<string, int>();
         int movedStacks = 0;
+        int skippedPocketed = 0;
+        int skippedNoMatchingContainer = 0;
+        int skippedFull = 0;
+        int skippedClaimFailed = 0;
 
         List<ItemDrop.ItemData> items = new List<ItemDrop.ItemData>(playerInventory.GetAllItemsInGridOrder());
         foreach (ItemDrop.ItemData item in items)
         {
-            if (item == null || item.m_stack <= 0 || PocketItems.IsPocketed(player, item))
+            if (item == null || item.m_stack <= 0)
             {
                 continue;
             }
 
+            if (PocketItems.IsPocketed(player, item))
+            {
+                skippedPocketed++;
+                continue;
+            }
+
+            bool foundMatchingContainer = false;
+            bool foundRoom = false;
             foreach (Container container in containers)
             {
                 if (item.m_stack <= 0)
@@ -36,13 +48,21 @@ internal static class QuickStack
                 }
 
                 Inventory targetInventory = container.GetInventory();
-                if (!targetInventory.ContainsItemByName(item.m_shared.m_name) || !targetInventory.CanAddItem(item, 1))
+                if (!targetInventory.ContainsItemByName(item.m_shared.m_name))
                 {
                     continue;
                 }
 
+                foundMatchingContainer = true;
+                if (!targetInventory.CanAddItem(item, 1))
+                {
+                    continue;
+                }
+
+                foundRoom = true;
                 if (!NearbyContainerIndex.TryClaim(container))
                 {
+                    skippedClaimFailed++;
                     continue;
                 }
 
@@ -55,16 +75,64 @@ internal static class QuickStack
                 movedStacks++;
                 AddMoved(movedByName, PocketItems.GetDisplayName(item), moved);
             }
+
+            if (item.m_stack <= 0)
+            {
+                continue;
+            }
+
+            if (!foundMatchingContainer)
+            {
+                skippedNoMatchingContainer++;
+            }
+            else if (!foundRoom)
+            {
+                skippedFull++;
+            }
         }
 
         if (movedStacks == 0)
         {
-            player.Message(MessageHud.MessageType.TopLeft, "Nothing to quick stack");
+            player.Message(
+                MessageHud.MessageType.TopLeft,
+                BuildNothingMovedMessage(containers.Count, skippedPocketed, skippedNoMatchingContainer, skippedFull, skippedClaimFailed));
             return;
         }
 
         inventoryGui.m_moveItemEffects.Create(inventoryGui.transform.position, Quaternion.identity);
         player.Message(MessageHud.MessageType.TopLeft, $"Quick stacked {TotalMoved(movedByName)} items");
+    }
+
+    private static string BuildNothingMovedMessage(
+        int containerCount,
+        int skippedPocketed,
+        int skippedNoMatchingContainer,
+        int skippedFull,
+        int skippedClaimFailed)
+    {
+        List<string> reasons = new List<string>();
+        if (skippedPocketed > 0)
+        {
+            reasons.Add($"{skippedPocketed} pocketed/hotbar");
+        }
+
+        if (skippedNoMatchingContainer > 0)
+        {
+            reasons.Add($"{skippedNoMatchingContainer} no matching chest");
+        }
+
+        if (skippedFull > 0)
+        {
+            reasons.Add($"{skippedFull} chest full");
+        }
+
+        if (skippedClaimFailed > 0)
+        {
+            reasons.Add($"{skippedClaimFailed} chest busy");
+        }
+
+        string reasonText = reasons.Count > 0 ? string.Join(", ", reasons) : "no eligible items";
+        return $"Nothing moved ({containerCount} chests; {reasonText})";
     }
 
     private static int MoveAsMuchAsPossible(Inventory sourceInventory, Inventory targetInventory, ItemDrop.ItemData item)

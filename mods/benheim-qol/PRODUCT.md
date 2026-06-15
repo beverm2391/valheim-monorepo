@@ -92,6 +92,9 @@ Inventory cleanup uses one player-facing concept: pocketed items stay with you.
   nearby accessible containers.
 - Quick stack only deposits into containers that already contain the item and
   have room for more of it.
+- If quick stack finds containers but moves nothing, it reports the likely
+  reason, such as pocketed/hotbar items, no matching chest, full chest, or busy
+  chest.
 - Quick stack does not add custom item data or require the server to install the
   mod.
 
