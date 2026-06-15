@@ -19,15 +19,14 @@ v0.1 features:
 - Pickaxes skill scales mining damage, crit chance, and high-skill AOE mining
   without adding bonus drops.
 - `F8` toggles a readable in-game shortcuts panel for the whole mod, including
-  the
-  loaded plugin version.
+  the loaded plugin version.
 - `Left Alt` + inventory click, or hover + `P`, pockets or unpockets an item
   type.
 - `Left Alt` + `P` quick-stacks matching non-pocketed inventory items into
   nearby containers that already contain those items.
 
-See [`PRODUCT.md`](PRODUCT.md) for the product contract and manual acceptance
-checks.
+See [`PRODUCT.md`](PRODUCT.md) for the canonical product reference, full feature
+contract, troubleshooting notes, and manual test plan.
 
 ## Build
 
