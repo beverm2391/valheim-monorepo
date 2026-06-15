@@ -6,7 +6,10 @@ internal static class InputState
 {
     internal static bool IsShiftHeld()
     {
-        return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        return Input.GetKey(KeyCode.LeftShift)
+            || Input.GetKey(KeyCode.RightShift)
+            || ZInput.GetKey(KeyCode.LeftShift)
+            || ZInput.GetKey(KeyCode.RightShift);
     }
 
     internal static bool IsAltHeld()

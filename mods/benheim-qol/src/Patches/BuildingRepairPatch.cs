@@ -102,7 +102,7 @@ internal static class BuildingRepairPatch
 
         if (repaired == 0)
         {
-            player.Message(MessageHud.MessageType.TopLeft, anchor.m_name + " $msg_doesnotneedrepair");
+            player.Message(MessageHud.MessageType.TopLeft, $"No damaged build pieces within {RepairRadius:0}m");
             return;
         }
 
