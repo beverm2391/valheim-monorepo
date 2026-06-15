@@ -29,6 +29,8 @@ internal static class ShortcutOverlay
     private static GUIStyle? keyStyle;
     private static GUIStyle? bodyStyle;
     private static GUIStyle? sectionStyle;
+    private static GUIStyle? panelStyle;
+    private static Texture2D? panelBackground;
 
     internal static void Update()
     {
@@ -52,29 +54,31 @@ internal static class ShortcutOverlay
 
         EnsureStyles();
 
-        float width = Mathf.Min(560f, Screen.width - 40f);
-        Rect rect = new Rect(20f, 20f, width, 430f);
-        GUILayout.BeginArea(rect, GUI.skin.window);
+        float width = Mathf.Min(720f, Screen.width - 80f);
+        float height = Mathf.Min(560f, Screen.height - 140f);
+        Rect rect = new Rect(32f, 96f, width, height);
+        GUILayout.BeginArea(rect, panelStyle);
         GUILayout.Label($"BenheimQoL v{Plugin.PluginVersion} Shortcuts", titleStyle);
-        GUILayout.Space(8f);
+        GUILayout.Space(14f);
 
         GUILayout.Label("Keys", sectionStyle);
         foreach ((string key, string action) in Shortcuts)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label(key, keyStyle, GUILayout.Width(190f));
+            GUILayout.Label(key, keyStyle, GUILayout.Width(240f));
             GUILayout.Label(action, bodyStyle);
             GUILayout.EndHorizontal();
+            GUILayout.Space(3f);
         }
 
-        GUILayout.Space(10f);
+        GUILayout.Space(14f);
         GUILayout.Label("Passive", sectionStyle);
         foreach (string feature in PassiveFeatures)
         {
             GUILayout.Label("- " + feature, bodyStyle);
         }
 
-        GUILayout.Space(8f);
+        GUILayout.Space(12f);
         GUILayout.Label("Press F8 to hide.", bodyStyle);
         GUILayout.EndArea();
     }
@@ -86,30 +90,40 @@ internal static class ShortcutOverlay
             return;
         }
 
+        panelBackground = new Texture2D(1, 1);
+        panelBackground.SetPixel(0, 0, new Color(0.03f, 0.04f, 0.05f, 0.92f));
+        panelBackground.Apply();
+
+        panelStyle = new GUIStyle(GUI.skin.box)
+        {
+            padding = new RectOffset(22, 22, 18, 18),
+            normal = { background = panelBackground },
+        };
+
         titleStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 20,
+            fontSize = 24,
             fontStyle = FontStyle.Bold,
             normal = { textColor = Color.white },
         };
 
         sectionStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 15,
+            fontSize = 17,
             fontStyle = FontStyle.Bold,
             normal = { textColor = new Color(1f, 0.86f, 0.25f, 1f) },
         };
 
         keyStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 13,
+            fontSize = 15,
             fontStyle = FontStyle.Bold,
             normal = { textColor = new Color(0.75f, 0.9f, 1f, 1f) },
         };
 
         bodyStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 13,
+            fontSize = 15,
             wordWrap = true,
             normal = { textColor = Color.white },
         };

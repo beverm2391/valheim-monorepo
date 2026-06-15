@@ -103,6 +103,7 @@ The mod has one discoverability key:
 - The panel lists active shortcuts and passive features.
 - The panel shows the loaded plugin version so relaunch/install checks are
   obvious.
+- The panel should be readable over gameplay and avoid the hotbar/minimap.
 - The panel does not require server support or store world data.
 
 ## Later
