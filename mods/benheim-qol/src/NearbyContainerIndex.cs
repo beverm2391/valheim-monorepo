@@ -8,10 +8,7 @@ namespace BenheimQoL;
 
 internal static class NearbyContainerIndex
 {
-    private const int MaxColliders = 96;
-
-    private static readonly Collider[] ColliderBuffer = new Collider[MaxColliders];
-    private static readonly List<Container> Containers = new List<Container>(MaxColliders);
+    private static readonly List<Container> Containers = new List<Container>();
     private static readonly HashSet<Container> SeenContainers = new HashSet<Container>();
 
     private static readonly MethodInfo CheckAccessMethod =
@@ -30,22 +27,12 @@ internal static class NearbyContainerIndex
             AddContainer(currentContainer);
         }
 
-        int count = Physics.OverlapSphereNonAlloc(
-            player.transform.position,
-            radius,
-            ColliderBuffer,
-            LayerMask.GetMask("piece", "piece_nonsolid", "Default", "Default_small", "vehicle"));
-
-        for (int i = 0; i < count; i++)
+        float radiusSquared = radius * radius;
+        foreach (Container container in UnityEngine.Object.FindObjectsByType<Container>(FindObjectsSortMode.None))
         {
-            Collider collider = ColliderBuffer[i];
-            if (!collider)
-            {
-                continue;
-            }
-
-            Container container = collider.GetComponentInParent<Container>();
-            if (!container || !CanUseContainer(container, currentContainer))
+            if (!container
+                || Vector3.SqrMagnitude(container.transform.position - player.transform.position) > radiusSquared
+                || !CanUseContainer(container, currentContainer))
             {
                 continue;
             }
