@@ -30,10 +30,14 @@ load_config() {
 }
 
 hcloud_cmd() {
-  if [[ -n "${HCLOUD_CONTEXT:-}" ]]; then
+  local token="${HCLOUD_TOKEN:-${HETZNER_TOKEN:-}}"
+  if [[ -n "$token" ]]; then
+    HCLOUD_TOKEN="$token" hcloud "$@"
+  elif [[ -n "${HCLOUD_CONTEXT:-}" ]]; then
     hcloud --context "$HCLOUD_CONTEXT" "$@"
   else
-    hcloud "$@"
+    echo "Missing Hetzner auth. Set HETZNER_TOKEN/HCLOUD_TOKEN in server.env." >&2
+    exit 1
   fi
 }
 
