@@ -17,6 +17,10 @@ mods unless a user explicitly changes that product direction.
   files as local-only operator data.
 - Keep docs generic enough for other people to use the repo.
 - Prefer small, explicit scripts over hidden local machine assumptions.
+- Do not rely on ambient `hcloud` context. Valheim provider scripts should get
+  Hetzner auth from ignored `server.env` via `HETZNER_TOKEN`/`HCLOUD_TOKEN`, or
+  an explicit repo-owned `HCLOUD_CONTEXT` only when the operator intentionally
+  configured one.
 
 ## Server Work
 
