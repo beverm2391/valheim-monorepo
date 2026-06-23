@@ -13,7 +13,7 @@ internal static class MiningProgressionPatch
     private const float CritUnlockLevel = 25f;
     private const float MaxCritChance = 0.15f;
     private const float CritMultiplier = 2f;
-    private const float AoeUnlockLevel = 50f;
+    private const float AoeUnlockLevel = 25f;
     private const float MinAoeChance = 0.3f;
     private const float MaxAoeChance = 0.85f;
     private const float MaxAoeRadius = 3f;

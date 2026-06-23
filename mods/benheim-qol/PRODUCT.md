@@ -9,7 +9,7 @@ a feature is added, removed, renamed, or materially changes behavior.
 
 ## Current Version
 
-Current mod version: `0.1.5`
+Current mod version: `0.1.6`
 
 The loaded version is visible in-game through the shortcuts panel:
 
@@ -127,7 +127,7 @@ Mining gets skill-based quality-of-life progression without extra drops.
 
 - Pickaxe damage scales gently with Pickaxes skill.
 - Mining crit chance unlocks after Pickaxes 25 and scales from there.
-- AOE mining unlocks after Pickaxes 50 and scales in radius up to Pickaxes 100.
+- AOE mining unlocks after Pickaxes 25 and scales in radius up to Pickaxes 100.
 - AOE mining applies reduced pickaxe damage to nearby mine-rock hit areas.
 - The feature does not directly multiply drops or add bonus loot.
 

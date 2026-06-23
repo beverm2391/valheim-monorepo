@@ -16,7 +16,7 @@ v0.1 features:
 - `Tab` cycles loaded or remembered portal tags while editing a portal tag.
 - Portal travel keeps the target-area readiness check but shortens the minimum
   distant-teleport wait.
-- Pickaxes skill scales mining damage, crit chance, and high-skill AOE mining
+- Pickaxes skill scales mining damage, crit chance, and level-25 AOE mining
   without adding bonus drops.
 - `F8` toggles a readable in-game shortcuts panel for the whole mod, including
   the loaded plugin version.
@@ -68,7 +68,7 @@ test with:
   remembered locally for future suggestions.
 - Travel through a portal and compare the wait to vanilla.
 - Mine rocks at different Pickaxes skill levels and watch for faster breakage,
-  occasional high-skill crits, and high-skill AOE hits.
+  occasional crits, and AOE hits after Pickaxes 25.
 - Open inventory and hover an item, then press `P`. A small `P` marker should
   appear on matching item types. Press `P` again while hovering it to unpocket.
   `Left Alt` + click should toggle the same thing when the platform reports the
