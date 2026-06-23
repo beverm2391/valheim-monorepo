@@ -9,7 +9,7 @@ a feature is added, removed, renamed, or materially changes behavior.
 
 ## Current Version
 
-Current mod version: `0.1.6`
+Current mod version: `0.1.7`
 
 The loaded version is visible in-game through the shortcuts panel:
 
