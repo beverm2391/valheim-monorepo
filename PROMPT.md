@@ -1,13 +1,15 @@
 # valheim-server Agent Context
 
-This repo has two related jobs:
+This repo has three related jobs:
 
-- Provision and operate a vanilla Valheim dedicated server on a cloud VM.
+- Provision and operate a Valheim dedicated server on a cloud VM.
+- Support selected server-side mods that remain compatible with vanilla clients.
 - Build optional client-only quality-of-life mods under `mods/`.
 
 Keep those boundaries clear. Server work should not assume client mods are
-installed. Client mod work should not require the dedicated server to install
-mods unless a user explicitly changes that product direction.
+installed. Client mod work should not depend on server mods unless that product
+direction changes explicitly. Read root `PRODUCT.md` for the overall server and
+mod promise before changing compatibility boundaries.
 
 ## Public Repo Rules
 
@@ -33,8 +35,8 @@ Valheim Dedicated Server, manages systemd units, and backs up world files.
 - Keep provider lifecycle, server installation, world upload/download, and
   backup logic separate.
 - Before destructive server operations, download or verify backups first.
-- Preserve the vanilla server assumption unless the user explicitly requests
-  server-side mods.
+- Preserve vanilla-client compatibility for server-side mods unless the user
+  explicitly changes that product promise.
 
 Useful scripts:
 
@@ -53,9 +55,17 @@ BenheimQoL lives under:
 mods/benheim-qol/
 ```
 
-`mods/benheim-qol/PRODUCT.md` is the canonical product reference for the mod.
-Update it whenever a feature, shortcut, version, acceptance expectation,
-troubleshooting note, or roadmap item changes.
+`mods/benheim-qol/PRODUCT.md` owns the mod's product promise and detailed
+user-visible behavior. Update it whenever a feature, shortcut, acceptance
+expectation, or roadmap item changes.
+
+Update root `PRODUCT.md` when a mod's role, runtime placement, client
+requirement, or compatibility promise changes. Do not duplicate each mod's
+detailed behavior there.
+
+Manual test plans are task-scoped process artifacts, not canonical product
+context. Derive the relevant checklist from the changed behavior, use it for the
+current development pass, and do not accumulate it in `PRODUCT.md`.
 
 Build and local install:
 
@@ -83,6 +93,7 @@ Client mod rules:
 ## Documentation
 
 - `README.md` is the public entrypoint.
+- `PRODUCT.md` owns the overall server and mod product promise.
 - `AGENT_SETUP.md` is for an AI agent helping a human set up a server.
 - `PROMPT.md` is the repo-wide development context for agents.
 - `AGENTS.md` should point at `PROMPT.md` so both conventions stay in sync.

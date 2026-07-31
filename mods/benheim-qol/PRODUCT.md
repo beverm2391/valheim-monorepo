@@ -7,19 +7,6 @@ server requirements. Dedicated servers can remain vanilla.
 This document is the canonical product reference for BenheimQoL. Update it when
 a feature is added, removed, renamed, or materially changes behavior.
 
-## Current Version
-
-Current mod version: `0.1.7`
-
-The loaded version is visible in-game through the shortcuts panel:
-
-```text
-F8
-```
-
-If the panel shows an older version, quit Valheim completely and relaunch through
-the BepInEx-enabled launcher after reinstalling the DLL.
-
 ## Product Rules
 
 - Client-only by default. Servers do not install this mod.
@@ -158,64 +145,6 @@ Quick stack stows non-pocketed inventory items into nearby matching containers.
 - It does not invent container categories or move items into empty chests.
 - If nothing moves, the message should explain why, such as pocketed/hotbar,
   no matching chest, full chest, or busy chest.
-
-## Manual Test Plan
-
-Run this after installing a new DLL and relaunching Valheim through the
-BepInEx-enabled launcher.
-
-| Area | Test | Expected result |
-| --- | --- | --- |
-| Load | Open BepInEx log or press `F8`. | `BenheimQoL` loads and the panel shows the current version. |
-| Shortcuts panel | Press `F8` twice. | Panel appears and disappears; text is readable over gameplay. |
-| Split stack | Open split dialog, type, delete, type again, press `Enter`. | Amount resets cleanly and confirms. |
-| Split transfer | Open a container, split from either side, press `Enter`. | Split amount moves to the opposite inventory if space exists. |
-| Gear repair | At a valid station, normal repair click. | Vanilla one-item repair still works. |
-| Gear repair all | At a valid station, `Left Shift` + repair click. | All eligible repairable gear is repaired. |
-| Building repair | Hammer repair click without Shift. | Vanilla one-piece repair still works. |
-| Building mass repair | Damage nearby pieces, then `Left Shift` + hammer repair click. | Nearby damaged pieces repair; if none are damaged, mod says none were found nearby. |
-| Interaction range | Stand a little farther from station/cauldron and use it. | Station opens/works from the extended range. |
-| Portal autocomplete | Edit portal tag, type prefix, press `Tab`. | Known/remembered tags cycle. |
-| Portal transition | Travel through a portal. | Transition is faster, but still waits for destination readiness. |
-| Mining progression | Mine at different Pickaxes skill levels. | Higher skill feels faster; high skill can crit/AOE. |
-| Pocket item | Hover inventory item, press `P`. | `P` marker appears/disappears and status message confirms. |
-| Quick stack happy path | Put resin in a nearby chest, carry resin in a non-hotbar slot, press `Left Alt` + `P`. | Resin moves into the matching chest. |
-| Quick stack protected path | Put a matching item in hotbar or pocket it, then quick stack. | Item stays with player; no-op reason mentions pocketed/hotbar if nothing moves. |
-| Vanilla server | Join a vanilla dedicated server. | Connection works without server-side mod install. |
-
-## Troubleshooting
-
-### New Version Does Not Appear
-
-- Quit Valheim completely.
-- Re-run the local install script.
-- Relaunch through the BepInEx-enabled launcher.
-- Press `F8` and confirm the displayed version.
-
-### Quick Stack Finds Nothing
-
-- Make sure Valheim was relaunched into the latest version.
-- Stand near the containers.
-- Make sure the destination chest already contains that item.
-- Make sure the item you want to move is not equipped, in the hotbar/top row, or
-  manually pocketed.
-- Read the no-op message; it should name the likely reason.
-
-### Shift Shortcuts Fall Through To Vanilla
-
-- Confirm the overlay shows the latest version.
-- Try left Shift specifically.
-- If the vanilla message appears instead of a BenheimQoL message, the patch may
-  not be catching that input path yet.
-
-### Steam Cloud Character Save Warning
-
-This is outside BenheimQoL but important during testing:
-
-- Do not immediately relaunch into a cloud conflict.
-- Snapshot local character files first.
-- Prefer local/upload-local when the local character is known good.
-- Avoid choosing download-cloud unless the cloud copy has been inspected.
 
 ## Later
 

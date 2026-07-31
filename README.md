@@ -13,6 +13,9 @@ simple infrastructure: a stable public IP, UDP ports, persistent disk, and a
 boring Linux service. The provider scripts are separate from the installer so
 other clouds can be added later.
 
+The server and optional mod product direction is tracked in
+[`PRODUCT.md`](PRODUCT.md).
+
 ## What You Get
 
 - A Hetzner Cloud VM and firewall.
