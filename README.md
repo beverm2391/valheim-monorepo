@@ -21,7 +21,7 @@ The server and optional mod product direction is tracked in
 - A Hetzner Cloud VM and firewall.
 - The official Valheim Dedicated Server installed through SteamCMD.
 - A `valheim.service` systemd service that starts on boot and restarts on crash.
-- Scripts to upload an existing world save.
+- Scripts to upload an existing legacy world save or restore a complete backup.
 - Local nightly backups on the VM.
 - Optional Cloudflare R2 uploads for off-box backups.
 - No bundled game files, world saves, passwords, or cloud credentials.
@@ -32,7 +32,8 @@ There are three layers:
 
 - `providers/hetzner/` creates or deletes the cloud machine and firewall.
 - `scripts/install-server.sh` installs SteamCMD, Valheim, systemd units, and backup tools.
-- `scripts/upload-world.sh` copies your `.db` / `.fwl` world files onto the server.
+- `scripts/upload-world.sh` copies an initial legacy `.db` / `.fwl` world pair.
+- `scripts/restore-world-archive.sh` replaces the complete world storage tree from a backup.
 
 The active world lives on the server at:
 
@@ -53,7 +54,8 @@ If R2 is configured, the same tarball is uploaded off-box.
 - `hcloud`, authenticated with a Hetzner Cloud project.
 - An SSH key already added to Hetzner Cloud.
 - `ssh`, `scp`, and `rsync`.
-- A Valheim world pair: `WorldName.db` and `WorldName.fwl`.
+- A Valheim world pair for initial legacy import, or a full `worlds_local`
+  backup archive for restore.
 
 For a small friend server, a `cpx21` in the nearest region is a good starting
 point. You can try a smaller box later, but 4 GB RAM keeps the first setup
@@ -170,11 +172,13 @@ Valheim IP.
 
 ## Backups
 
-Valheim creates its own backup files beside the active world files. This repo
-also installs a systemd timer that archives the full `worlds_local` folder
-nightly.
+Valheim creates its own backups inside its world storage. This repo also
+installs a systemd timer that archives the full `worlds_local` folder nightly.
+The repo archive preserves the entire directory rather than selecting known
+extensions, so the same backup path covers legacy `.db` / `.fwl` saves and
+directory-based chunked saves.
 
-That means each backup includes:
+For a legacy world, that means each backup includes files such as:
 
 ```text
 MyWorld.db
@@ -193,6 +197,34 @@ Download them to your machine:
 
 ```bash
 scripts/download-backups.sh
+```
+
+Inspect a downloaded archive before using it:
+
+```bash
+scripts/inspect-world-archive.sh backups/worlds-YYYYMMDDTHHMMSSZ.tar.gz
+```
+
+The inspector validates the archive paths, reports its checksum and storage
+shape, and hashes recognizable metadata files. It treats directory names as
+evidence rather than a schema because Valheim's chunked layout may still
+change.
+
+To restore the complete archive to the configured server:
+
+```bash
+scripts/restore-world-archive.sh backups/worlds-YYYYMMDDTHHMMSSZ.tar.gz
+```
+
+Restore stops `valheim.service`, verifies the uploaded archive checksum,
+extracts into a staging directory, and moves the old `worlds_local` directory
+to a timestamped `.quarantine-*` path before installing the replacement. It
+does not merge files and leaves Valheim stopped so you can review the printed
+storage and Steam build metadata. Start it only after that output looks right:
+
+```bash
+scripts/restart.sh
+scripts/status.sh
 ```
 
 Local VM backups protect against bad saves. Off-box backups protect against

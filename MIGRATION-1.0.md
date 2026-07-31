@@ -79,7 +79,8 @@ is required to keep the server playable.
 
 - [ ] Verify the most recent nightly backup exists locally and in R2.
 - [ ] Run one cold backup while the server is stopped, then restart the server.
-- [ ] Verify the cold archive contains the active `.db` and `.fwl` pair.
+- [ ] Inspect the cold archive and verify it contains the complete active world
+      storage.
 - [ ] Verify each player can launch vanilla Valheim without removing mods.
 - [ ] Have every player complete the character backup procedure below.
 - [ ] Confirm the ignored temporary environment still targets a distinct VM.
@@ -188,17 +189,17 @@ scripts/install-server.sh
 scripts/status.sh
 ```
 
-Extract a downloaded world archive into ignored temporary state, then upload
-the active `.db` and `.fwl` pair:
+Inspect a downloaded full-directory archive, then restore that exact storage
+tree. The restore stops Valheim, verifies the uploaded archive checksum,
+quarantines any existing `worlds_local` directory, and leaves the service
+stopped after reporting the storage shape and installed Steam build:
 
 ```bash
-mkdir -p tmp/migration-1.0/world
-tar -xzf backups/<world-archive>.tar.gz -C tmp/migration-1.0/world
-scripts/upload-world.sh \
-  tmp/migration-1.0/world/<world>.db \
-  tmp/migration-1.0/world/<world>.fwl
+scripts/inspect-world-archive.sh backups/<world-archive>.tar.gz
+scripts/restore-world-archive.sh backups/<world-archive>.tar.gz
+scripts/restart.sh
+scripts/status.sh
 ```
-
 Join the temporary server, verify the expected world, disconnect, and destroy
 the migration VM. Read the resolved server name before confirming deletion:
 
@@ -268,11 +269,12 @@ BASH
 scripts/download-backups.sh
 ```
 
-Verify both final archives downloaded, then list them and confirm the active
-`.db` and `.fwl` pair are present:
+Verify both final archives downloaded, then inspect the world archive and list
+the server archive. The world inspector reports legacy or directory-based
+storage without assuming either one:
 
 ```bash
-tar -tzf backups/<final-world-archive>.tar.gz
+scripts/inspect-world-archive.sh backups/<final-world-archive>.tar.gz
 tar -tzf backups/<server-pre-1.0-archive>.tar.gz | head
 ```
 
@@ -325,13 +327,12 @@ missing, saves repeatedly error, clients cannot remain connected, or state does
 not survive a restart. Do not rollback for a single broken mod because no mods
 should be active yet.
 
-1. Stop `valheim.service`.
-2. Move the migrated world files to a dated quarantine directory. Do not delete
-   them and do not overwrite the pre-1.0 archive.
-3. Restore the final pre-1.0 world archive into `worlds_local`.
-4. Replace `/opt/valheim/server` from the `server-pre-1.0` archive.
-5. Confirm ownership remains `valheim:valheim`.
-6. Start the old vanilla server only if clients can also run the matching old
+1. Inspect the final pre-1.0 world archive again.
+2. Run `scripts/restore-world-archive.sh` with that archive. It stops the
+   service and quarantines the migrated storage without merging it.
+3. Replace `/opt/valheim/server` from the `server-pre-1.0` archive.
+4. Confirm ownership remains `valheim:valheim`.
+5. Start the old vanilla server only if clients can also run the matching old
    game version. Otherwise leave the service stopped and wait for a game hotfix
    or a deliberate client downgrade.
 
