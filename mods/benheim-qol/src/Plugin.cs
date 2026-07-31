@@ -1,5 +1,6 @@
 using BepInEx;
 using BepInEx.Logging;
+using BenheimQoL.Shortcuts;
 using HarmonyLib;
 using UnityEngine;
 

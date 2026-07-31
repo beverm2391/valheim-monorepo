@@ -3,10 +3,9 @@ using HarmonyLib;
 using TMPro;
 using UnityEngine;
 
-namespace BenheimQoL.Patches;
+namespace BenheimQoL.Adrenaline;
 
-[HarmonyPatch(typeof(Hud), "UpdateAdrenaline")]
-internal static class AdrenalineHudPatch
+internal static class AdrenalineHud
 {
     private const int DecayEstimateSteps = 48;
     private const float MinimumDecayRate = 0.001f;
@@ -16,9 +15,9 @@ internal static class AdrenalineHudPatch
 
     private static TMP_Text? decayLabel;
 
-    private static void Postfix(Hud __instance, Player player)
+    internal static void Update(Hud hud, Player player)
     {
-        EnsureLabel(__instance);
+        EnsureLabel(hud);
         if (!decayLabel)
         {
             return;

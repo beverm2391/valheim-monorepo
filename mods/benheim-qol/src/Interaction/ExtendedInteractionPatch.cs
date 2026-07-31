@@ -1,6 +1,6 @@
 using HarmonyLib;
 
-namespace BenheimQoL.Patches;
+namespace BenheimQoL.Interaction;
 
 [HarmonyPatch(typeof(Player), "Awake")]
 internal static class ExtendedInteractionPatch

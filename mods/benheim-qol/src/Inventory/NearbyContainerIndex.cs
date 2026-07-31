@@ -4,7 +4,7 @@ using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
-namespace BenheimQoL;
+namespace BenheimQoL.InventoryFeature;
 
 internal static class NearbyContainerIndex
 {

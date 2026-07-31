@@ -1,6 +1,6 @@
 using HarmonyLib;
 
-namespace BenheimQoL.Patches;
+namespace BenheimQoL.Interaction;
 
 [HarmonyPatch(typeof(CraftingStation), "Start")]
 internal static class CraftingStationRangePatch

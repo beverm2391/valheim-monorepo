@@ -1,13 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using HarmonyLib;
 using UnityEngine;
 
-namespace BenheimQoL.Patches;
+namespace BenheimQoL.Mining;
 
-[HarmonyPatch]
-internal static class MiningProgressionPatch
+internal static class MiningProgression
 {
     private const float MaxPrimaryDamageBonus = 0.75f;
     private const float CritUnlockLevel = 25f;
@@ -29,35 +27,7 @@ internal static class MiningProgressionPatch
     private static bool aoeRunning;
     private static float aoeStartedAt;
 
-    [HarmonyPatch(typeof(MineRock), "Damage")]
-    private static class MineRockDamagePatch
-    {
-        private static void Prefix(MineRock __instance, HitData hit)
-        {
-            EnhancePrimaryHit(hit);
-        }
-
-        private static void Postfix(MineRock __instance, HitData hit)
-        {
-            TryApplyAoe(__instance, hit);
-        }
-    }
-
-    [HarmonyPatch(typeof(MineRock5), "Damage")]
-    private static class MineRock5DamagePatch
-    {
-        private static void Prefix(MineRock5 __instance, HitData hit)
-        {
-            EnhancePrimaryHit(hit);
-        }
-
-        private static void Postfix(MineRock5 __instance, HitData hit)
-        {
-            TryApplyAoe(__instance, hit);
-        }
-    }
-
-    private static void EnhancePrimaryHit(HitData hit)
+    internal static void EnhancePrimaryHit(HitData hit)
     {
         if (aoeRunning || !IsLocalPickaxeHit(hit))
         {
@@ -75,7 +45,7 @@ internal static class MiningProgressionPatch
         hit.m_damage.Modify(multiplier);
     }
 
-    private static void TryApplyAoe(Component primaryTarget, HitData hit)
+    internal static void TryApplyAoe(Component primaryTarget, HitData hit)
     {
         if (!IsLocalPickaxeHit(hit))
         {

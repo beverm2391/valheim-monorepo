@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace BenheimQoL;
+namespace BenheimQoL.Shortcuts;
 
 internal static class ShortcutOverlay
 {

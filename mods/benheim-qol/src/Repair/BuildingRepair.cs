@@ -1,13 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
-namespace BenheimQoL.Patches;
+namespace BenheimQoL.Repair;
 
-[HarmonyPatch(typeof(Player), "Repair")]
-internal static class BuildingRepairPatch
+internal static class BuildingRepair
 {
     private const float RepairRadius = 20f;
     private const int MaxPiecesPerClick = 80;
@@ -26,27 +24,7 @@ internal static class BuildingRepairPatch
     private static readonly FieldInfo ZanimField =
         AccessTools.Field(typeof(Character), "m_zanim") ?? AccessTools.Field(typeof(Player), "m_zanim");
 
-    private static bool Prefix(Player __instance, ItemDrop.ItemData toolItem)
-    {
-        if (!InputState.IsShiftHeld())
-        {
-            return true;
-        }
-
-        try
-        {
-            RepairNearbyPieces(__instance, toolItem);
-        }
-        catch (Exception ex)
-        {
-            Plugin.Log.LogWarning($"Mass building repair failed; falling back to vanilla repair: {ex.Message}");
-            return true;
-        }
-
-        return false;
-    }
-
-    private static void RepairNearbyPieces(Player player, ItemDrop.ItemData toolItem)
+    internal static void RepairNearbyPieces(Player player, ItemDrop.ItemData toolItem)
     {
         if (!player.InPlaceMode())
         {

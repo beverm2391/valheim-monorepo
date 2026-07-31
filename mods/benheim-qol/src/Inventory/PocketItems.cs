@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using BepInEx;
 
-namespace BenheimQoL;
+namespace BenheimQoL.InventoryFeature;
 
 internal static class PocketItems
 {

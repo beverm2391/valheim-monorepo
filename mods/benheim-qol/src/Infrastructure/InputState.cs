@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace BenheimQoL;
+namespace BenheimQoL.Infrastructure;
 
 internal static class InputState
 {

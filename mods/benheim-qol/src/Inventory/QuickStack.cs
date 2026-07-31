@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace BenheimQoL;
+namespace BenheimQoL.InventoryFeature;
 
 internal static class QuickStack
 {
