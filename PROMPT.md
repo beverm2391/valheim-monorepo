@@ -45,7 +45,26 @@ scripts/status.sh
 scripts/logs.sh
 scripts/restart.sh
 scripts/download-backups.sh
+scripts/apply-server-config.sh
+scripts/install-server-mods.sh
+scripts/set-server-mods.sh disable
 ```
+
+`server/valheim-start` owns the vanilla and modded launch paths.
+`VALHEIM_MODDED=0` is the recovery path: it bypasses BepInEx without deleting
+installed mod files or configuration. `scripts/install-server-mods.sh` owns the
+pinned package versions and checksums, stages downloads before downtime, takes
+a stopped-server backup, and falls back to the vanilla path if installation
+fails. Keep new server mods removable without changing the world save.
+
+`scripts/apply-server-config.sh` owns routine deployment of the launcher and
+`server.env`. It takes a stopped-server backup and restores the previous files
+if deployment fails. Native world settings belong in the launcher environment,
+not in a replacement mod; `VALHEIM_PORTALS=casual` enables Valheim's own
+metal-through-portals rule.
+
+Mark a server-mod gate complete in `PRODUCT.md` only after every named condition
+passes. Record one-time rollout evidence in `MIGRATION-1.0.md`.
 
 ## Valheim 1.0 Migration
 

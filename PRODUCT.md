@@ -20,13 +20,14 @@ installing anything.
 - Mod infrastructure is part of server operations. Players should not need to
   understand BepInEx, Jotunn, systemd, or deployment mechanics to play.
 
-## Mod Breakdown
+## Gameplay Breakdown
 
-| Mod | Product role | Runs on | Required for friends |
+| Feature | Product role | Runs on | Required for friends |
 | --- | --- | --- | --- |
 | BenheimQoL | First-party quality-of-life behavior such as inventory, repair, portal, and mining improvements. | Client | No |
 | MassFarming | Third-party batch planting and harvesting. | Client | No |
 | Eternal Fire | Third-party persistent fuel for fires, torches, hearths, braziers, and similar pieces. | Server | No |
+| Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 
 BepInEx is the plugin loader used where mods run. Jotunn is a shared Valheim mod
 library required by Eternal Fire. They are runtime dependencies, not separate
@@ -50,9 +51,14 @@ installing or removing it does not corrupt shared world or character data.
 
 - Complete the temporary [Valheim 1.0 migration](MIGRATION-1.0.md): prove the
   existing world on vanilla 1.0, then restore or defer each mod deliberately.
-- Prove the first server-side mod deployment with Eternal Fire, including a
-  pre-deploy backup, vanilla-client join, visible persistent fire behavior, and
-  a quick rollback path.
+- Finish proving the deployed Eternal Fire stack. Vanilla-player fire behavior
+  and restart/rejoin persistence remain unproven. See `MIGRATION-1.0.md` for
+  rollout evidence.
+- Prove the native metal-portal rule by carrying a normally restricted item
+  through a portal with a vanilla client.
+- Decide whether faster sailing justifies client installs on both Mac and
+  Windows. Every candidate examined so far requires a client install, so no
+  server-only ship mod was deployed.
 - Stabilize BenheimQoL's current behavior before expanding its feature set.
 - Decide whether craft-from-nearby-containers belongs in BenheimQoL without
   removing the resource-budgeting information players use to make decisions.

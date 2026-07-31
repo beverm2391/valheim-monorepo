@@ -110,9 +110,10 @@ files, not this table, own exact versions.
 
 | Component | Runs on | September 9 disposition | 1.0 re-enable gate | Decision |
 | --- | --- | --- | --- | --- |
-| BepInEx | Server | Disabled | Server starts cleanly under the 1.0-compatible loader. | Pending |
-| Jotunn | Server | Disabled | Upstream supports 1.0 and server logs show a clean load. | Pending |
-| Eternal Fire | Server | Disabled | Vanilla clients see persistent fires and can reconnect after a restart. | Pending deployment |
+| BepInEx | Server | Disabled | Server starts cleanly under the 1.0-compatible loader. | Deployed pre-1.0; 1.0 re-enable proof pending |
+| Jotunn | Server | Disabled | Upstream supports 1.0 and server logs show a clean load. | Deployed pre-1.0; 1.0 re-enable proof pending |
+| Eternal Fire | Server | Disabled | Vanilla clients see persistent fires and can reconnect after a restart. | Deployed pre-1.0; stopped-server R2 backup succeeded; systemd logged BepInEx, Jotunn, and Eternal Fire loads and `Game server connected`; vanilla-player fire and restart/rejoin proof pending |
+| Metal portals | Server, native | Reapply after vanilla proof | Restricted items pass through portals for vanilla clients after restart. | `portals=casual` deployed and logged pre-1.0; player metal traversal pending |
 | BepInEx | Clients | Use vanilla launch | Mac and Windows clients launch and join with the compatible loader. | Pending |
 | MassFarming | Clients | Disabled | Planting and harvesting work without inventory, networking, or save errors. | Pending |
 | BenheimQoL | Clients | Disabled | The current product behavior passes a focused 1.0 test pass. | Pending |

@@ -8,18 +8,12 @@ root="$(repo_root)"
 tmp_env="$(mktemp)"
 trap 'rm -f "$tmp_env"' EXIT
 
-cat > "$tmp_env" <<EOF
-VALHEIM_SERVER_NAME=${VALHEIM_SERVER_NAME}
-VALHEIM_WORLD_NAME=${VALHEIM_WORLD_NAME}
-VALHEIM_PASSWORD=${VALHEIM_PASSWORD}
-VALHEIM_PORT=${VALHEIM_PORT}
-VALHEIM_PUBLIC=${VALHEIM_PUBLIC:-1}
-VALHEIM_CROSSPLAY=${VALHEIM_CROSSPLAY:-0}
-VALHEIM_BACKUP_PREFIX=${VALHEIM_BACKUP_PREFIX:-valheim}
-EOF
+render_server_env "$tmp_env"
 
 remote_ssh "mkdir -p /tmp/valheim-server"
 remote_scp "$root/systemd/valheim.service" "/tmp/valheim-server/valheim.service"
+remote_scp "$root/server/valheim-start" "/tmp/valheim-server/valheim-start"
+remote_scp "$root/server/wait-for-valheim" "/tmp/valheim-server/wait-for-valheim"
 remote_scp "$tmp_env" "/tmp/valheim-server/server.env"
 if [[ -f "$root/r2.env" ]]; then
   remote_scp "$root/r2.env" "/tmp/valheim-server/r2.env"
@@ -52,37 +46,8 @@ if [[ -f /tmp/valheim-server/r2.env ]]; then
   install -m 0640 -o root -g valheim /tmp/valheim-server/r2.env /etc/valheim/r2.env
 fi
 install -m 0644 /tmp/valheim-server/valheim.service /etc/systemd/system/valheim.service
-
-cat > /usr/local/bin/valheim-start <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-: "${VALHEIM_SERVER_NAME:?missing VALHEIM_SERVER_NAME}"
-: "${VALHEIM_WORLD_NAME:?missing VALHEIM_WORLD_NAME}"
-: "${VALHEIM_PASSWORD:?missing VALHEIM_PASSWORD}"
-: "${VALHEIM_PORT:=2456}"
-: "${VALHEIM_PUBLIC:=1}"
-: "${VALHEIM_CROSSPLAY:=0}"
-
-args=(
-  -name "$VALHEIM_SERVER_NAME"
-  -port "$VALHEIM_PORT"
-  -world "$VALHEIM_WORLD_NAME"
-  -password "$VALHEIM_PASSWORD"
-  -public "$VALHEIM_PUBLIC"
-  -savedir /var/lib/valheim
-)
-
-if [[ "$VALHEIM_CROSSPLAY" == "1" ]]; then
-  args+=(-crossplay)
-fi
-
-export LD_LIBRARY_PATH="./linux64:${LD_LIBRARY_PATH:-}"
-export SteamAppId=892970
-
-exec /opt/valheim/server/valheim_server.x86_64 "${args[@]}"
-EOF
-chmod 0755 /usr/local/bin/valheim-start
+install -m 0755 /tmp/valheim-server/valheim-start /usr/local/bin/valheim-start
+install -m 0755 /tmp/valheim-server/wait-for-valheim /usr/local/bin/valheim-wait-ready
 
 cat > /usr/local/bin/valheim-update <<'EOF'
 #!/usr/bin/env bash

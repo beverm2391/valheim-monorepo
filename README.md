@@ -24,6 +24,7 @@ The server and optional mod product direction is tracked in
 - Scripts to upload an existing legacy world save or restore a complete backup.
 - Local nightly backups on the VM.
 - Optional Cloudflare R2 uploads for off-box backups.
+- Optional pinned server mods with a vanilla-client compatibility requirement.
 - No bundled game files, world saves, passwords, or cloud credentials.
 
 ## How It Works
@@ -111,6 +112,16 @@ Follow logs:
 ```bash
 scripts/logs.sh
 ```
+
+Apply later launcher or server-setting changes without rerunning provisioning:
+
+```bash
+scripts/apply-server-config.sh
+```
+
+This stops Valheim, takes a backup, installs the repo launcher and local
+`server.env`, then restarts the service. A failed deployment restores the
+previous launcher and environment.
 
 ## Using An AI Agent
 
@@ -291,6 +302,61 @@ sudo systemctl start valheim
 Automatic updates are intentionally not enabled. Surprise restarts during a
 session are worse than a manual update before game night.
 
+## Server Mods
+
+The server can run a small, pinned mod stack. Server mods must remain
+compatible with vanilla clients. The current stack is:
+
+- BepInEx, the plugin loader.
+- Jotunn, the library required by Eternal Fire.
+- Eternal Fire, intended to keep ordinary fires, torches, hearths, braziers,
+  and the stone oven fueled without changing industrial processor fuel costs.
+
+Install or refresh the pinned stack:
+
+```bash
+scripts/install-server-mods.sh
+```
+
+The installer verifies package checksums, stages the downloads before downtime,
+stops Valheim, takes a stopped-server backup, uploads it when R2 is configured,
+installs the files, and starts the modded launch path. Package versions and
+checksums are pinned in the script.
+
+Bypass BepInEx and restart immediately on the vanilla launch path:
+
+```bash
+scripts/set-server-mods.sh disable
+```
+
+Re-enable the installed stack:
+
+```bash
+scripts/set-server-mods.sh enable
+```
+
+Disabling the stack leaves its files and configuration in place and restarts
+Valheim without BepInEx.
+
+## Metal Portals
+
+Valheim has a native dedicated-server rule for carrying normally restricted
+items through portals, so this behavior does not require a mod. Set:
+
+```text
+VALHEIM_PORTALS=casual
+```
+
+Then run:
+
+```bash
+scripts/apply-server-config.sh
+```
+
+The launcher validates this setting and passes Valheim's official
+`-modifier portals casual` argument. Leave `VALHEIM_PORTALS` empty to avoid
+setting a portal modifier from the command line.
+
 ## Destroying the Server
 
 Download backups first:
@@ -311,7 +377,7 @@ destroying the VM.
 ## What This Does Not Do
 
 - It does not copy or redistribute Valheim binaries.
-- It does not manage mods.
+- It does not manage arbitrary modpacks or client installations.
 - It does not provide a web dashboard.
 - It does not automatically update Valheim.
 - It does not make the server ephemeral or scale-to-zero.
