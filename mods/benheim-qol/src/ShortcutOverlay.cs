@@ -22,6 +22,7 @@ internal static class ShortcutOverlay
         "Longer station/interact range",
         "Faster portal transition after the target area is ready",
         "Pickaxes skill increases mining damage, crits, and AOE after level 25",
+        "Perfect parries and dodges show adrenaline gained and current progress",
     };
 
     private static bool visible;

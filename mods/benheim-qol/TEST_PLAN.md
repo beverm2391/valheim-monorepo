@@ -1,4 +1,4 @@
-# BenheimQoL 0.1.7 Stabilization Pass
+# BenheimQoL 0.1.8 Stabilization Pass
 
 This is the one-time checklist for the current stabilization pass. It is not a
 product contract or a permanent source of truth. Product behavior remains owned
@@ -11,7 +11,7 @@ message.
 
 | Area | Action | Expected result |
 | --- | --- | --- |
-| Load | Open the `F8` panel. | BenheimQoL loads and the panel shows version `0.1.7`. |
+| Load | Open the `F8` panel. | BenheimQoL loads and the panel shows version `0.1.8`. |
 | Shortcuts panel | Press `F8` twice. | The panel appears and disappears; text is readable over gameplay. |
 | Split stack | Open the split dialog, type a number, delete it, type again, and press `Enter`. | The amount resets cleanly and confirms. |
 | Split transfer | Open a container, split from either side, and press `Enter`. | The split amount moves to the opposite inventory when space exists. |
@@ -23,6 +23,8 @@ message.
 | Portal autocomplete | Edit a portal tag, type a prefix, and press `Tab`. | Known or remembered matching tags cycle. |
 | Portal transition | Travel through a portal. | The transition is faster but still waits for destination readiness. |
 | Mining progression | Mine after Pickaxes 25. | Higher skill improves mining and nearby hit areas receive visible AOE damage. |
+| Perfect parry feedback | With an adrenaline trinket equipped, successfully parry an enemy, then hold an ordinary block. | The parry shows `PARRY`, its adrenaline award, and meter progress; the ordinary block does not. |
+| Perfect dodge feedback | With an adrenaline trinket equipped, perfect-dodge an incoming attack, then perform an ordinary roll. | The perfect dodge shows `PERFECT DODGE`, its adrenaline award, and meter progress; the ordinary roll does not. |
 | Pocket item | Hover a player-inventory item and press `P`. | Its item type gains or loses the `P` marker and the status message agrees. |
 | Quick stack | Put resin in a nearby chest, carry resin outside the hotbar, and press `Left Alt` + `P`. | Resin moves into the matching chest. |
 | Quick stack protection | Put a matching item in the hotbar or pocket it, then quick stack. | The item stays with the player and any no-op message explains why. |

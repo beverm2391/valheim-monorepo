@@ -118,6 +118,21 @@ Mining gets skill-based quality-of-life progression without extra drops.
 - AOE mining applies reduced pickaxe damage to nearby mine-rock hit areas.
 - The feature does not directly multiply drops or add bonus loot.
 
+### Adrenaline Feedback
+
+When the player has an adrenaline meter, successful perfect defensive actions
+show a local yellow popup.
+
+- A successful perfect parry shows a yellow `PARRY` popup.
+- A successful perfect dodge shows a yellow `PERFECT DODGE` popup.
+- The popup includes the adrenaline awarded after Valheim's active world and
+  status-effect multipliers, plus the resulting meter total and maximum.
+- When the equipped adrenaline trinket activates, the popup says `ACTIVATED`
+  instead of showing the reset meter value.
+- Ordinary blocks and ordinary rolls do not show these popups.
+- The feature only reports adrenaline Valheim actually awards. It does not
+  change gain amounts, decay, timing windows, or any other balance.
+
 ### Pocket Items
 
 Inventory cleanup uses one player-facing concept: pocketed items stay with you.
