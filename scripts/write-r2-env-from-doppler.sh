@@ -3,6 +3,8 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out="$root/r2.env"
+doppler_project="${DOPPLER_PROJECT:-valheim}"
+doppler_config="${DOPPLER_CONFIG:-prd}"
 
 required=(
   VALHEIM_R2_ACCOUNT_ID
@@ -15,7 +17,7 @@ tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 
 for key in "${required[@]}"; do
-  value="$(doppler secrets get "$key" --plain -p main-v1 -c prd)"
+  value="$(doppler secrets get "$key" --plain -p "$doppler_project" -c "$doppler_config")"
   if [[ -z "$value" ]]; then
     echo "Missing Doppler secret: $key" >&2
     exit 1
@@ -28,4 +30,3 @@ printf 'VALHEIM_R2_PREFIX=%q\n' "$prefix" >> "$tmp"
 
 install -m 0600 "$tmp" "$out"
 echo "Wrote $out"
-
