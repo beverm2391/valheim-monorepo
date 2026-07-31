@@ -120,18 +120,24 @@ Mining gets skill-based quality-of-life progression without extra drops.
 
 ### Adrenaline Feedback
 
-When the player has an adrenaline meter, successful perfect defensive actions
-show a local yellow popup.
+When the player has an adrenaline meter, the mod clarifies successful perfect
+defensive actions and the meter's decay timing.
 
-- A successful perfect parry shows a yellow `PARRY` popup.
-- A successful perfect dodge shows a yellow `PERFECT DODGE` popup.
-- The popup includes the adrenaline awarded after Valheim's active world and
-  status-effect multipliers, plus the resulting meter total and maximum.
-- When the equipped adrenaline trinket activates, the popup says `ACTIVATED`
-  instead of showing the reset meter value.
+- A successful perfect parry shows a yellow `Perfect parry +N` popup above the
+  player.
+- A successful perfect dodge shows a yellow `Perfect dodge +N` popup above the
+  player.
+- `N` is the adrenaline awarded after Valheim's active world and status-effect
+  multipliers.
 - Ordinary blocks and ordinary rolls do not show these popups.
-- The feature only reports adrenaline Valheim actually awards. It does not
-  change gain amounts, decay, timing windows, or any other balance.
+- A small left-aligned line directly under the native adrenaline meter shows
+  `Decay <time>s` while waiting for decay to begin.
+- Once decay begins, the line changes to `Decaying <time>s`. The countdown
+  estimates time to zero from Valheim's live decay curve.
+- The line is hidden when the player has no adrenaline.
+- Native adrenaline values and full-meter effects remain unchanged.
+- The popups only report adrenaline Valheim actually awards. The feature does
+  not change gain amounts, decay, timing windows, or any other balance.
 
 ### Pocket Items
 

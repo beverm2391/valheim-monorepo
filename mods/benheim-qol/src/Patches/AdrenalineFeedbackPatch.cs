@@ -44,7 +44,7 @@ internal static class PerfectParryContextPatch
             blockTimer >= 0f &&
             blockTimer < 0.25f)
         {
-            AdrenalineFeedback.Begin("PARRY");
+            AdrenalineFeedback.Begin("Perfect parry");
         }
     }
 
@@ -66,7 +66,7 @@ internal static class PerfectDodgeContextPatch
         bool alreadyAwarded = (bool)BeenHitWhileDodgingField.GetValue(__instance);
         if (__instance == Player.m_localPlayer && !alreadyAwarded)
         {
-            AdrenalineFeedback.Begin("PERFECT DODGE");
+            AdrenalineFeedback.Begin("Perfect dodge");
         }
     }
 
@@ -82,18 +82,14 @@ internal static class AdrenalineAwardFeedbackPatch
 {
     private sealed class FeedbackState
     {
-        internal FeedbackState(string source, float award, float before, float maximum)
+        internal FeedbackState(string source, float award)
         {
             Source = source;
             Award = award;
-            Before = before;
-            Maximum = maximum;
         }
 
         internal string Source { get; }
         internal float Award { get; }
-        internal float Before { get; }
-        internal float Maximum { get; }
     }
 
     private static void Prefix(Player __instance, float v, out FeedbackState? __state)
@@ -116,7 +112,7 @@ internal static class AdrenalineAwardFeedbackPatch
         float award = v * Game.m_adrenalineRate;
         award *= __instance.m_adrenalineGainMultiplier.Evaluate(fill);
         __instance.GetSEMan().ModifyAdrenaline(award, ref award);
-        __state = new FeedbackState(source, award, before, maximum);
+        __state = new FeedbackState(source, award);
     }
 
     private static void Postfix(Player __instance, FeedbackState? __state)
@@ -126,13 +122,7 @@ internal static class AdrenalineAwardFeedbackPatch
             return;
         }
 
-        float after = __instance.GetAdrenaline();
-        bool activated = __state.Before + __state.Award >= __state.Maximum &&
-            after < __state.Maximum;
-        string result = activated
-            ? "ACTIVATED"
-            : $"{after:0.#}/{__state.Maximum:0.#}";
-        string text = $"{__state.Source} +{__state.Award:0.#} | {result}";
+        string text = $"{__state.Source} +{__state.Award:0.#}";
         DamageText.instance?.ShowText(
             DamageText.TextType.Bonus,
             __instance.transform.position + Vector3.up * 1.75f,
