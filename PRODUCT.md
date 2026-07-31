@@ -28,6 +28,7 @@ installing anything.
 | MassFarming | Third-party batch planting and harvesting. | Client | No |
 | Eternal Fire | Third-party persistent fuel for fires, torches, hearths, braziers, and similar pieces. | Server | No |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
+| Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
 BepInEx is the plugin loader used where mods run. Jotunn is a shared Valheim mod
 library required by Eternal Fire. They are runtime dependencies, not separate

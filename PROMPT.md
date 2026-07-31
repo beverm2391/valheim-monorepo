@@ -61,7 +61,8 @@ fails. Keep new server mods removable without changing the world save.
 `server.env`. It takes a stopped-server backup and restores the previous files
 if deployment fails. Native world settings belong in the launcher environment,
 not in a replacement mod; `VALHEIM_PORTALS=casual` enables Valheim's own
-metal-through-portals rule.
+metal-through-portals rule. `VALHEIM_SKILL_GAIN_RATE` controls skill gain.
+`VALHEIM_SKILL_REDUCTION_RATE` controls skill loss on death for every player.
 
 Mark a server-mod gate complete in `PRODUCT.md` only after every named condition
 passes. Record one-time rollout evidence in `MIGRATION-1.0.md`.

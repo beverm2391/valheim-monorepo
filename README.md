@@ -357,6 +357,25 @@ The launcher validates this setting and passes Valheim's official
 `-modifier portals casual` argument. Leave `VALHEIM_PORTALS` empty to avoid
 setting a portal modifier from the command line.
 
+## Skill Progression
+
+Valheim can scale skill gain and death loss for the whole world without a mod.
+Both settings are percentages of the normal rate, where `100` keeps vanilla
+behavior. For example:
+
+```text
+VALHEIM_SKILL_GAIN_RATE=150
+VALHEIM_SKILL_REDUCTION_RATE=20
+```
+
+This increases skill gain to 1.5 times the normal rate. Valheim normally removes
+5% of every skill on death. Setting the reduction rate to `20` applies 20% of
+that penalty, resulting in a 1% loss. The normal 10-minute protection after a
+death still applies.
+
+Run `scripts/apply-server-config.sh` after changing either value. Leave a value
+empty to avoid setting that native world key from the command line.
+
 ## Destroying the Server
 
 Download backups first:

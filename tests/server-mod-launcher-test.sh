@@ -83,6 +83,21 @@ env "${common_env[@]}" VALHEIM_MODDED=0 VALHEIM_PORTALS=casual \
 assert_contains "casual portal rules use Valheim's native modifier" \
   "<-modifier> <portals> <casual>" "$test_root/portals.out"
 
+env "${common_env[@]}" VALHEIM_MODDED=0 \
+  VALHEIM_SKILL_GAIN_RATE=150 VALHEIM_SKILL_REDUCTION_RATE=20 \
+  "$launcher" > "$test_root/skill-rates.out"
+assert_contains "skill gain uses Valheim's native scalar key" \
+  "<-setkey> <skillgainrate 150>" "$test_root/skill-rates.out"
+assert_contains "death skill loss uses Valheim's native scalar key" \
+  "<-setkey> <skillreductionrate 20>" "$test_root/skill-rates.out"
+
+if env "${common_env[@]}" VALHEIM_MODDED=0 VALHEIM_SKILL_GAIN_RATE=fast \
+  "$launcher" > "$test_root/invalid-skill-rate.out" 2>&1; then
+  fail "invalid skill rates are rejected"
+fi
+assert_contains "invalid skill rates explain accepted values" \
+  "expected a non-negative percentage or empty" "$test_root/invalid-skill-rate.out"
+
 if env "${common_env[@]}" VALHEIM_MODDED=0 VALHEIM_PORTALS=invalid \
   "$launcher" > "$test_root/invalid-portals.out" 2>&1; then
   fail "invalid portal rules are rejected"
