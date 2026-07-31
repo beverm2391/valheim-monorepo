@@ -48,6 +48,8 @@ installing or removing it does not corrupt shared world or character data.
 
 ## Open Gates
 
+- Complete the temporary [Valheim 1.0 migration](MIGRATION-1.0.md): prove the
+  existing world on vanilla 1.0, then restore or defer each mod deliberately.
 - Prove the first server-side mod deployment with Eternal Fire, including a
   pre-deploy backup, vanilla-client join, visible persistent fire behavior, and
   a quick rollback path.

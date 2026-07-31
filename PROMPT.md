@@ -47,6 +47,17 @@ scripts/restart.sh
 scripts/download-backups.sh
 ```
 
+## Valheim 1.0 Migration
+
+Until the migration is closed and archived, `MIGRATION-1.0.md` is the canonical
+one-time runbook for the September 9, 2026 upgrade. Update it when migration
+decisions, gates, commands, or proof change. Do not duplicate its process in
+`PRODUCT.md` or treat it as permanent server doctrine.
+
+Migration work must preserve a vanilla launch path, prove the world on a
+temporary server before production, back up server world and client characters,
+and restore mods only after vanilla 1.0 is stable.
+
 ## BenheimQoL Mod Work
 
 BenheimQoL lives under:
@@ -94,6 +105,7 @@ Client mod rules:
 
 - `README.md` is the public entrypoint.
 - `PRODUCT.md` owns the overall server and mod product promise.
+- `MIGRATION-1.0.md` temporarily owns the 1.0 cutover and mod-recovery process.
 - `AGENT_SETUP.md` is for an AI agent helping a human set up a server.
 - `PROMPT.md` is the repo-wide development context for agents.
 - `AGENTS.md` should point at `PROMPT.md` so both conventions stay in sync.

@@ -243,6 +243,10 @@ not need bucket-management permission.
 
 ## Updating Valheim
 
+For the September 9, 2026 Valheim 1.0 upgrade, follow the temporary
+[`MIGRATION-1.0.md`](MIGRATION-1.0.md) runbook instead of the ordinary update
+sequence below.
+
 When your client updates and the server needs to match, SSH to the server and
 run:
 
