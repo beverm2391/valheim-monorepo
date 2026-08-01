@@ -80,7 +80,7 @@ internal static class QuickStack
             Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_eligible_containers");
             player.Message(
                 MessageHud.MessageType.TopLeft,
-                BuildNothingMovedMessage(
+                QuickStackMessages.NothingMoved(
                     containers.Count,
                     eligibility.SkippedPocketed,
                     eligibility.SkippedNoMatchingContainer,
@@ -282,39 +282,7 @@ internal static class QuickStack
 
         operation.Player.Message(
             MessageHud.MessageType.TopLeft,
-            BuildNothingMovedMessage(operation.Containers.Count, 0, 0, 0, operation.BusyContainers));
-    }
-
-    private static string BuildNothingMovedMessage(
-        int containerCount,
-        int skippedPocketed,
-        int skippedNoMatchingContainer,
-        int skippedFull,
-        int skippedBusy)
-    {
-        List<string> reasons = new List<string>();
-        if (skippedPocketed > 0)
-        {
-            reasons.Add($"{skippedPocketed} pocketed/hotbar");
-        }
-
-        if (skippedNoMatchingContainer > 0)
-        {
-            reasons.Add($"{skippedNoMatchingContainer} no matching chest");
-        }
-
-        if (skippedFull > 0)
-        {
-            reasons.Add($"{skippedFull} chest full");
-        }
-
-        if (skippedBusy > 0)
-        {
-            reasons.Add($"{skippedBusy} chest busy");
-        }
-
-        string reasonText = reasons.Count > 0 ? string.Join(", ", reasons) : "no eligible items";
-        return $"Nothing moved ({containerCount} chests; {reasonText})";
+            QuickStackMessages.NothingMoved(operation.Containers.Count, 0, 0, 0, operation.BusyContainers));
     }
 
     private static int MoveAsMuchAsPossible(Inventory sourceInventory, Inventory targetInventory, ItemDrop.ItemData item)
