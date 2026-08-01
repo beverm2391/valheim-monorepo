@@ -1,3 +1,4 @@
+using BenheimQoL.InventoryFeature;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
 
@@ -10,7 +11,7 @@ internal static class ShortcutOverlay
         ("F8", "Show or hide this BenheimQoL shortcuts panel"),
         ("Inventory: hover + P", "Pocket or unpocket this item type"),
         ("Inventory: Left Alt + click", "Pocket or unpocket this item type"),
-        ("Inventory: Left Alt + P", "Quick stack matching non-pocketed items"),
+        ("Left Shift + P", $"Put matching non-pocketed items into accessible chests within {QuickStack.Radius:0.#} m"),
         ("Split stack: Backspace/Delete", "Clear split amount back to 1"),
         ("Split stack: Enter", "Confirm split; with a container open, move it across"),
         ("Station repair: Left Shift + click", "Repair all eligible gear"),

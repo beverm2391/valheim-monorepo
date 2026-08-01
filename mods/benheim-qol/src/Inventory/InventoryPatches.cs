@@ -8,9 +8,6 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static class InventoryPatches
 {
-    private static readonly FieldInfo CurrentContainerField =
-        AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
-
     private static readonly FieldInfo PlayerGridField =
         AccessTools.Field(typeof(InventoryGui), "m_playerGrid");
 
@@ -46,14 +43,9 @@ internal static class InventoryPatches
 
             try
             {
-                if (InputState.IsAltHeld() && InputState.IsKeyDown(KeyCode.P))
-                {
-                    Container? currentContainer = (Container?)CurrentContainerField.GetValue(__instance);
-                    QuickStack.Run(Player.m_localPlayer, __instance, currentContainer);
-                    return;
-                }
-
-                if (InputState.IsKeyDown(KeyCode.P))
+                if (!InputState.IsAltHeld()
+                    && !InputState.IsShiftHeld()
+                    && InputState.IsKeyDown(KeyCode.P))
                 {
                     InventoryGrid playerGrid = (InventoryGrid)PlayerGridField.GetValue(__instance);
                     ItemDrop.ItemData hoveredItem = playerGrid.GetItem(

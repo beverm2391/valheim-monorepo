@@ -61,7 +61,7 @@ internal static class AdrenalineHud
         decayLabel.name = "BenheimQoL_AdrenalineDecay";
         decayLabel.alignment = TextAlignmentOptions.TopLeft;
         decayLabel.fontStyle = FontStyles.Normal;
-        decayLabel.fontSize *= 0.72f;
+        decayLabel.fontSize *= 0.95f;
         decayLabel.enableAutoSizing = false;
         decayLabel.raycastTarget = false;
 
@@ -69,8 +69,8 @@ internal static class AdrenalineHud
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.zero;
         rect.pivot = new Vector2(0f, 1f);
-        rect.anchoredPosition = new Vector2(8f, -4f);
-        rect.sizeDelta = new Vector2(280f, 36f);
+        rect.anchoredPosition = new Vector2(0f, -18f);
+        rect.sizeDelta = new Vector2(320f, 44f);
         Diagnostics.Event("Adrenaline", "decay_label_created");
     }
 

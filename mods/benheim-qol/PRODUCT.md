@@ -26,7 +26,7 @@ This file owns the overall product promise. Each feature module has a
 | [Interaction](src/Interaction/PRODUCT.md) | Less fussy interaction and station range. |
 | [Portals](src/Portals/PRODUCT.md) | Portal tag autocomplete and faster transitions. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
-| [Adrenaline](src/Adrenaline/PRODUCT.md) | Perfect-defense feedback and decay timing. |
+| [Adrenaline](src/Adrenaline/PRODUCT.md) | Perfect parry and dodge feedback, plus adrenaline decay timing. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 
 `Infrastructure` contains shared implementation support and has no independent
@@ -34,8 +34,8 @@ player-facing promise.
 
 ## Current Behavior
 
-BenheimQoL `0.1.11` builds, installs, and loads successfully as one client-only
-DLL. Each feature module records the behavior confirmed in gameplay.
+BenheimQoL `0.1.12` is the current client-only test build. Each feature module
+records the behavior confirmed in gameplay.
 
 ## In Development
 

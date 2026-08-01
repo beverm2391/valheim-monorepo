@@ -6,12 +6,13 @@ balance.
 
 ## Current Behavior
 
-No adrenaline feature has been confirmed in gameplay yet.
+- Perfect parries and perfect dodges show yellow `+N` feedback above the player.
+- Valheim's adrenaline meter shows a countdown before and during decay.
 
 ## In Development
 
-- Perfect parries and perfect dodges show yellow `+N` feedback above the player.
+- Confirm in gameplay that the decay countdown appears below the meter at its
+  new size.
 - Ordinary blocks and rolls show no adrenaline feedback.
-- Valheim's adrenaline meter shows a small countdown before and during decay.
-- The countdown disappears at zero and leaves Valheim's full-meter effect
-  unchanged.
+- Confirm that the countdown disappears at zero and leaves Valheim's full-meter
+  effect unchanged.

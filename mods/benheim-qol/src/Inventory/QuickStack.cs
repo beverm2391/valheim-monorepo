@@ -6,7 +6,7 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static class QuickStack
 {
-    private const float Radius = 10f;
+    internal const float Radius = 30f;
     private const float ResponseTimeoutSeconds = 5f;
 
     private static Operation? activeOperation;
@@ -118,7 +118,10 @@ internal static class QuickStack
             $"container=\"{container.gameObject.name}\" granted={Diagnostics.Bool(granted)}");
         if (granted)
         {
-            operation.MovedItems += MoveEligibleItems(operation.Player, container.GetInventory());
+            operation.MovedItems += MoveEligibleItems(
+                operation.Player,
+                container.GetInventory(),
+                operation.Summary);
         }
         else
         {
@@ -240,7 +243,10 @@ internal static class QuickStack
         Finish(operation);
     }
 
-    private static int MoveEligibleItems(Player player, Inventory targetInventory)
+    private static int MoveEligibleItems(
+        Player player,
+        Inventory targetInventory,
+        QuickStackSummary summary)
     {
         Inventory playerInventory = player.GetInventory();
         int movedItems = 0;
@@ -257,6 +263,8 @@ internal static class QuickStack
 
             int moved = MoveAsMuchAsPossible(playerInventory, targetInventory, item);
             movedItems += moved;
+            summary.Add(item, moved);
+
             Diagnostics.Event(
                 "Inventory",
                 "quick_stack_item",
@@ -276,7 +284,9 @@ internal static class QuickStack
         if (operation.MovedItems > 0)
         {
             operation.InventoryGui.m_moveItemEffects.Create(operation.InventoryGui.transform.position, Quaternion.identity);
-            operation.Player.Message(MessageHud.MessageType.TopLeft, $"Quick stacked {operation.MovedItems} items");
+            operation.Player.Message(
+                MessageHud.MessageType.TopLeft,
+                operation.Summary.Format());
             return;
         }
 
@@ -370,5 +380,6 @@ internal static class QuickStack
         internal float RequestStartedAt { get; set; }
         internal int MovedItems { get; set; }
         internal int BusyContainers { get; set; }
+        internal QuickStackSummary Summary { get; } = new QuickStackSummary();
     }
 }
