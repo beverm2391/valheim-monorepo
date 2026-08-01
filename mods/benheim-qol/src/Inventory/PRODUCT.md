@@ -20,6 +20,12 @@ The Inventory module makes routine item movement faster.
 
 - Show one result line for each destination chest. Sort the items on each line
   by moved quantity, from highest to lowest.
+- Show `Pocketed` or `Unpocketed` above the player. Keep the item marker and
+  detailed message.
+- When Put Away moves no items because stacks are protected, show the number of
+  protected stacks first.
+- A `P` means protected. Show it in gold for manually pocketed items and cyan
+  for equipped or hotbar items.
 - Confirm that equipped items and hotbar items stay with the player during quick
   stack.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing for that

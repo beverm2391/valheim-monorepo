@@ -8,6 +8,9 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static class PocketMarker
 {
+    internal static readonly Color ManualColor = new Color(1f, 0.86f, 0.25f, 1f);
+    internal static readonly Color AutomaticColor = new Color(0.35f, 0.84f, 1f, 1f);
+
     private static readonly FieldInfo ElementsField =
         AccessTools.Field(typeof(InventoryGrid), "m_elements");
 
@@ -19,7 +22,8 @@ internal static class PocketMarker
 
     internal static void Refresh(InventoryGrid inventoryGrid, Inventory inventory)
     {
-        if (Player.m_localPlayer == null || inventory != Player.m_localPlayer.GetInventory())
+        Player player = Player.m_localPlayer;
+        if (!player || inventory != player.GetInventory())
         {
             return;
         }
@@ -31,7 +35,13 @@ internal static class PocketMarker
             GameObject go = (GameObject)ElementGameObjectField.GetValue(element);
             TMP_Text marker = GetOrCreate(go);
             ItemDrop.ItemData item = inventory.GetItemAt(position.x, position.y);
-            marker.gameObject.SetActive(item != null && PocketItems.IsManuallyPocketed(item));
+            bool manuallyProtected = item != null && PocketItems.IsManuallyPocketed(item);
+            bool automaticallyProtected = item != null && PocketItems.IsAutomaticallyProtected(player, item);
+            marker.gameObject.SetActive(manuallyProtected || automaticallyProtected);
+            if (manuallyProtected || automaticallyProtected)
+            {
+                marker.color = manuallyProtected ? ManualColor : AutomaticColor;
+            }
         }
     }
 
@@ -65,7 +75,7 @@ internal static class PocketMarker
         text.fontSize = 14f;
         text.fontStyle = FontStyles.Bold;
         text.alignment = TextAlignmentOptions.TopLeft;
-        text.color = new Color(1f, 0.86f, 0.25f, 1f);
+        text.color = Color.white;
         text.raycastTarget = false;
         return text;
     }

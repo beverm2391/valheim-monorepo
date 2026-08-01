@@ -15,10 +15,16 @@ internal static class PocketItems
     internal static bool IsPocketed(Player player, ItemDrop.ItemData item)
     {
         return item != null
+            && (IsAutomaticallyProtected(player, item)
+                || IsManuallyPocketed(item));
+    }
+
+    internal static bool IsAutomaticallyProtected(Player player, ItemDrop.ItemData item)
+    {
+        return item != null
             && (item.m_equipped
                 || player.IsItemEquiped(item)
-                || IsHotbarItem(item)
-                || IsManuallyPocketed(item));
+                || IsHotbarItem(item));
     }
 
     internal static bool IsManuallyPocketed(ItemDrop.ItemData item)

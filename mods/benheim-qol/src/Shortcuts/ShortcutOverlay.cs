@@ -6,32 +6,63 @@ namespace BenheimQoL.Shortcuts;
 
 internal static class ShortcutOverlay
 {
-    private static readonly (string Key, string Action)[] Shortcuts =
+    private static readonly Section[] Sections =
     {
-        ("F8", "Show or hide this BenheimQoL shortcuts panel"),
-        ("Inventory: hover + P", "Pocket or unpocket this item type"),
-        ("Inventory: Left Alt + click", "Pocket or unpocket this item type"),
-        ("Left Shift + P", $"Put matching non-pocketed items into accessible chests within {QuickStack.Radius:0.#} m"),
-        ("Split stack: Backspace/Delete", "Clear split amount back to 1"),
-        ("Split stack: Enter", "Confirm split; with a container open, move it across"),
-        ("Station repair: Left Shift + click", "Repair all eligible gear"),
-        ("Hammer repair: Left Shift + click", "Repair nearby damaged buildings and structures"),
-        ("Farming: Left Shift + interact", $"Harvest matching crops, pickups, or beehives within {Farming.FarmingSettings.HarvestRadius:0.#} m"),
-        ("Farming: Left Shift + plant", $"Plant a centered {Farming.FarmingSettings.GridWidth}x{Farming.FarmingSettings.GridLength} grid"),
+        new Section(
+            "Inventory",
+            new Color(1f, 0.82f, 0.28f, 1f),
+            new[]
+            {
+                new Entry("Gold P", "Manually pocketed; persists when moved", PocketMarker.ManualColor),
+                new Entry("Cyan P", "Equipped or in the hotbar; protected automatically", PocketMarker.AutomaticColor),
+                new Entry("Hover + P", "Pocket or unpocket this item type"),
+                new Entry("Left Alt + click", "Pocket or unpocket this item type"),
+                new Entry("Left Shift + P", $"Put matching items away within {QuickStack.Radius:0.#} m"),
+                new Entry("Backspace/Delete", "Reset the split amount to 1"),
+                new Entry("Enter", "Confirm a split; move it across an open container"),
+            },
+            "Put Away moves only unprotected items. A chest must already contain the item and have room."),
+        new Section(
+            "Build & Repair",
+            new Color(1f, 0.58f, 0.36f, 1f),
+            new[]
+            {
+                new Entry("Shift + station click", "Repair all eligible gear"),
+                new Entry("Shift + hammer click", "Repair nearby damaged pieces"),
+            },
+            "Stations, cauldrons, and nearby objects have a longer interaction range."),
+        new Section(
+            "Farming",
+            new Color(0.48f, 0.88f, 0.45f, 1f),
+            new[]
+            {
+                new Entry("Left Shift + interact", $"Harvest matching targets within {Farming.FarmingSettings.HarvestRadius:0.#} m"),
+                new Entry("Left Shift + plant", $"Plant a centered {Farming.FarmingSettings.GridWidth}x{Farming.FarmingSettings.GridLength} grid"),
+            },
+            "Normal resource, stamina, spacing, and cultivated-ground rules still apply."),
+        new Section(
+            "Travel",
+            new Color(0.42f, 0.84f, 1f, 1f),
+            new Entry[0],
+            "Portal transitions finish sooner after the destination is ready."),
+        new Section(
+            "Combat & Skills",
+            new Color(1f, 0.46f, 0.5f, 1f),
+            new Entry[0],
+            "Pickaxes skill improves mining damage, crits, and AOE after level 25. " +
+            "Perfect defenses show adrenaline gains, and the meter shows decay timing."),
     };
 
-    private static readonly string[] PassiveFeatures =
-    {
-        "Longer station/interact range",
-        "Faster portal transition after the target area is ready",
-        "Pickaxes skill increases mining damage, crits, and AOE after level 25",
-        "Perfect parries/dodges show gains; the adrenaline meter shows decay timing",
-    };
+    private static readonly string Title = $"BenheimQoL v{Plugin.PluginVersion}";
+    private static readonly Rect PreloadRect = new Rect(0f, 0f, 1000f, 100f);
 
     private static bool visible;
+    private static bool preloaded;
+    private static Vector2 scrollPosition;
     private static GUIStyle? titleStyle;
     private static GUIStyle? keyStyle;
     private static GUIStyle? bodyStyle;
+    private static GUIStyle? noteStyle;
     private static GUIStyle? sectionStyle;
     private static GUIStyle? panelStyle;
     private static Texture2D? panelBackground;
@@ -52,40 +83,73 @@ internal static class ShortcutOverlay
 
     internal static void Draw()
     {
+        EnsureStyles();
+        PreloadTextOnce();
         if (!visible)
         {
             return;
         }
 
-        EnsureStyles();
-
-        float width = Mathf.Min(940f, Screen.width - 80f);
-        float height = Screen.height - 220f;
+        float width = Mathf.Max(320f, Mathf.Min(980f, Screen.width - 64f));
+        float height = Mathf.Max(320f, Screen.height - 220f);
         Rect rect = new Rect(32f, 180f, width, height);
         GUILayout.BeginArea(rect, panelStyle);
-        GUILayout.Label($"BenheimQoL v{Plugin.PluginVersion} Shortcuts", titleStyle);
-        GUILayout.Space(14f);
-
-        GUILayout.Label("Keys", sectionStyle);
-        foreach ((string key, string action) in Shortcuts)
-        {
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(key, keyStyle, GUILayout.Width(380f));
-            GUILayout.Label(action, bodyStyle);
-            GUILayout.EndHorizontal();
-            GUILayout.Space(5f);
-        }
-
-        GUILayout.Space(14f);
-        GUILayout.Label("Passive", sectionStyle);
-        foreach (string feature in PassiveFeatures)
-        {
-            GUILayout.Label("- " + feature, bodyStyle);
-        }
-
+        GUILayout.Label(Title, titleStyle);
         GUILayout.Space(12f);
-        GUILayout.Label("Press F8 to hide.", bodyStyle);
+
+        scrollPosition = GUILayout.BeginScrollView(
+            scrollPosition,
+            alwaysShowHorizontal: false,
+            alwaysShowVertical: false);
+        foreach (Section section in Sections)
+        {
+            sectionStyle!.normal.textColor = section.Accent;
+            keyStyle!.normal.textColor = section.Accent;
+            GUILayout.Label(section.Name, sectionStyle);
+            foreach (Entry entry in section.Entries)
+            {
+                keyStyle!.normal.textColor = entry.Accent ?? section.Accent;
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(entry.Key, keyStyle, GUILayout.Width(360f));
+                GUILayout.Label(entry.Action, bodyStyle);
+                GUILayout.EndHorizontal();
+                GUILayout.Space(3f);
+            }
+
+            GUILayout.Label(section.Note, noteStyle);
+            GUILayout.Space(10f);
+        }
+        GUILayout.EndScrollView();
+
+        GUILayout.Label("F8  Close", noteStyle);
         GUILayout.EndArea();
+    }
+
+    private static void PreloadTextOnce()
+    {
+        if (preloaded || Event.current.type != EventType.Repaint)
+        {
+            return;
+        }
+
+        Color previousColor = GUI.color;
+        GUI.color = new Color(1f, 1f, 1f, 0.001f);
+        GUI.Label(PreloadRect, Title, titleStyle);
+        foreach (Section section in Sections)
+        {
+            GUI.Label(PreloadRect, section.Name, sectionStyle);
+            foreach (Entry entry in section.Entries)
+            {
+                GUI.Label(PreloadRect, entry.Key, keyStyle);
+                GUI.Label(PreloadRect, entry.Action, bodyStyle);
+            }
+
+            GUI.Label(PreloadRect, section.Note, noteStyle);
+        }
+
+        GUI.color = previousColor;
+        preloaded = true;
+        Diagnostics.Event("Shortcuts", "panel_preloaded", $"sections={Sections.Length}");
     }
 
     private static void EnsureStyles()
@@ -96,7 +160,7 @@ internal static class ShortcutOverlay
         }
 
         panelBackground = new Texture2D(1, 1);
-        panelBackground.SetPixel(0, 0, new Color(0.03f, 0.04f, 0.05f, 0.92f));
+        panelBackground.SetPixel(0, 0, new Color(0.03f, 0.04f, 0.05f, 0.94f));
         panelBackground.Apply();
 
         panelStyle = new GUIStyle(GUI.skin.box)
@@ -107,7 +171,7 @@ internal static class ShortcutOverlay
 
         titleStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 44,
+            fontSize = 42,
             fontStyle = FontStyle.Bold,
             normal = { textColor = Color.white },
         };
@@ -116,21 +180,56 @@ internal static class ShortcutOverlay
         {
             fontSize = 30,
             fontStyle = FontStyle.Bold,
-            normal = { textColor = new Color(1f, 0.86f, 0.25f, 1f) },
         };
 
         keyStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 28,
+            fontSize = 26,
             fontStyle = FontStyle.Bold,
-            normal = { textColor = new Color(0.75f, 0.9f, 1f, 1f) },
         };
 
         bodyStyle = new GUIStyle(GUI.skin.label)
         {
-            fontSize = 28,
+            fontSize = 26,
             wordWrap = true,
             normal = { textColor = Color.white },
         };
+
+        noteStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 23,
+            wordWrap = true,
+            normal = { textColor = new Color(0.82f, 0.84f, 0.86f, 1f) },
+        };
+    }
+
+    private readonly struct Entry
+    {
+        internal Entry(string key, string action, Color? accent = null)
+        {
+            Key = key;
+            Action = action;
+            Accent = accent;
+        }
+
+        internal string Key { get; }
+        internal string Action { get; }
+        internal Color? Accent { get; }
+    }
+
+    private sealed class Section
+    {
+        internal Section(string name, Color accent, Entry[] entries, string note)
+        {
+            Name = name;
+            Accent = accent;
+            Entries = entries;
+            Note = note;
+        }
+
+        internal string Name { get; }
+        internal Color Accent { get; }
+        internal Entry[] Entries { get; }
+        internal string Note { get; }
     }
 }

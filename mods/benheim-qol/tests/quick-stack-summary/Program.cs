@@ -21,5 +21,27 @@ if (!string.Equals(expected, actual, StringComparison.Ordinal))
     return 1;
 }
 
-Console.WriteLine("quick-stack summary grouping checks passed");
+Expect(
+    "Kept 1 protected stack",
+    QuickStackMessages.ProtectedWorldText(1),
+    "singular protected world text");
+Expect(
+    "Kept 3 protected stacks",
+    QuickStackMessages.ProtectedWorldText(3),
+    "plural protected world text");
+Expect(
+    "Kept 3 protected stacks (5 chests checked; 2 without a matching chest)",
+    QuickStackMessages.NothingMoved(5, 3, 2, 0, 0),
+    "protected no-move summary");
+
+Console.WriteLine("quick-stack grouping and protected-message checks passed");
 return 0;
+
+static void Expect(string expectedValue, string actualValue, string scenario)
+{
+    if (!string.Equals(expectedValue, actualValue, StringComparison.Ordinal))
+    {
+        throw new InvalidOperationException(
+            $"{scenario}: expected '{expectedValue}', got '{actualValue}'");
+    }
+}

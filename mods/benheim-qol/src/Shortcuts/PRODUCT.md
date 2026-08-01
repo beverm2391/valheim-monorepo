@@ -13,4 +13,10 @@ BenheimQoL's controls and passive features.
 
 ## In Development
 
-- No changes are currently in development.
+- Preload the panel before the first `F8` press.
+- Group features under five color-coded headings: Inventory, Build & Repair,
+  Farming, Travel, and Combat.
+- Explain which items Put Away always protects and which nearby chests can
+  receive items.
+- Explain that a gold `P` means manually pocketed. Explain that a cyan `P`
+  means equipped or in the hotbar.

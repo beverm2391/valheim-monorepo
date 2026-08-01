@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/Inventory/QuickStackMessages.cs" Link="QuickStackMessages.cs" />
     <Compile Include="../../src/Inventory/QuickStackSummary.cs" Link="QuickStackSummary.cs" />
   </ItemGroup>
 </Project>

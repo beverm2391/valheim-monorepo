@@ -30,7 +30,9 @@ internal static class PocketItemController
             "pocket_toggled",
             $"item={item.m_shared.m_name} pocketed={Diagnostics.Bool(pocketed)}");
         string verb = pocketed ? "Pocketed" : "Unpocketed";
-        player.Message(MessageHud.MessageType.TopLeft, $"{verb} {PocketItems.GetDisplayName(item)}");
+        string message = $"{verb} {PocketItems.GetDisplayName(item)}";
+        player.Message(MessageHud.MessageType.TopLeft, message);
+        InventoryFeedback.ShowAbovePlayer(player, message);
         return true;
     }
 }

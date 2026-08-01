@@ -78,6 +78,13 @@ internal static class QuickStack
         if (eligibility.Containers.Count == 0)
         {
             Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_eligible_containers");
+            if (eligibility.SkippedPocketed > 0)
+            {
+                InventoryFeedback.ShowAbovePlayer(
+                    player,
+                    QuickStackMessages.ProtectedWorldText(eligibility.SkippedPocketed));
+            }
+
             player.Message(
                 MessageHud.MessageType.TopLeft,
                 QuickStackMessages.NothingMoved(
