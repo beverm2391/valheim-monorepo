@@ -6,7 +6,6 @@ internal static class QuickStackMessages
 {
     internal static string NothingMoved(
         int containerCount,
-        int skippedPocketed,
         int skippedNoMatchingContainer,
         int skippedFull,
         int skippedBusy)
@@ -27,20 +26,7 @@ internal static class QuickStackMessages
             reasons.Add($"{skippedBusy} busy chests");
         }
 
-        if (skippedPocketed > 0)
-        {
-            string details = reasons.Count > 0
-                ? $"; {string.Join(", ", reasons)}"
-                : string.Empty;
-            return $"{ProtectedWorldText(skippedPocketed)} ({containerCount} chests checked{details})";
-        }
-
         string reasonText = reasons.Count > 0 ? string.Join(", ", reasons) : "no eligible items";
         return $"Nothing moved ({containerCount} chests; {reasonText})";
-    }
-
-    internal static string ProtectedWorldText(int count)
-    {
-        return count == 1 ? "Kept 1 protected stack" : $"Kept {count} protected stacks";
     }
 }

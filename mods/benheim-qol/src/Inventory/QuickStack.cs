@@ -78,18 +78,10 @@ internal static class QuickStack
         if (eligibility.Containers.Count == 0)
         {
             Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_eligible_containers");
-            if (eligibility.SkippedPocketed > 0)
-            {
-                InventoryFeedback.ShowAbovePlayer(
-                    player,
-                    QuickStackMessages.ProtectedWorldText(eligibility.SkippedPocketed));
-            }
-
             player.Message(
                 MessageHud.MessageType.TopLeft,
                 QuickStackMessages.NothingMoved(
                     containers.Count,
-                    eligibility.SkippedPocketed,
                     eligibility.SkippedNoMatchingContainer,
                     eligibility.SkippedFull,
                     skippedBusy: 0));
@@ -305,7 +297,7 @@ internal static class QuickStack
 
         operation.Player.Message(
             MessageHud.MessageType.TopLeft,
-            QuickStackMessages.NothingMoved(operation.Containers.Count, 0, 0, 0, operation.BusyContainers));
+            QuickStackMessages.NothingMoved(operation.Containers.Count, 0, 0, operation.BusyContainers));
     }
 
     private static int MoveAsMuchAsPossible(Inventory sourceInventory, Inventory targetInventory, ItemDrop.ItemData item)

@@ -4,6 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 feedback="$root/src/Inventory/InventoryFeedback.cs"
 marker="$root/src/Inventory/PocketMarker.cs"
+controller="$root/src/Inventory/PocketItemController.cs"
 protection="$root/src/Inventory/PocketItems.cs"
 
 grep -Fq 'AddInworldText' "$feedback"
@@ -16,5 +17,6 @@ grep -Fq 'IsAutomaticallyProtected' "$protection"
 grep -Fq 'ManualColor' "$marker"
 grep -Fq 'AutomaticColor' "$marker"
 grep -Fq 'manuallyProtected ? ManualColor : AutomaticColor' "$marker"
+grep -Fq 'InventoryFeedback.ShowAbovePlayer(player, "Nothing to pocket")' "$controller"
 
 printf 'inventory protection marker and local-feedback checks passed\n'

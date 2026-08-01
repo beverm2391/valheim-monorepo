@@ -13,15 +13,15 @@ internal static class ShortcutOverlay
             new Color(1f, 0.82f, 0.28f, 1f),
             new[]
             {
-                new Entry("Gold P", "Manually pocketed; persists when moved", PocketMarker.ManualColor),
-                new Entry("Cyan P", "Equipped or in the hotbar; protected automatically", PocketMarker.AutomaticColor),
-                new Entry("Hover + P", "Pocket or unpocket this item type"),
-                new Entry("Left Alt + click", "Pocket or unpocket this item type"),
+                new Entry("Gold P", "Manual; toggle with P; persists when moved", PocketMarker.ManualColor),
+                new Entry("Cyan P", "Automatic; equipped or hotbar items", PocketMarker.AutomaticColor),
+                new Entry("Hover + P", "Toggle manual pocketing for this item type"),
+                new Entry("Left Alt + click", "Toggle manual pocketing for this item type"),
                 new Entry("Left Shift + P", $"Put matching items away within {QuickStack.Radius:0.#} m"),
                 new Entry("Backspace/Delete", "Reset the split amount to 1"),
                 new Entry("Enter", "Confirm a split; move it across an open container"),
             },
-            "Put Away moves only unprotected items. A chest must already contain the item and have room."),
+            "Gold P is editable. Cyan P lasts until unequipped or moved off the hotbar. Put Away moves only unprotected matching items into chests with room."),
         new Section(
             "Build & Repair",
             new Color(1f, 0.58f, 0.36f, 1f),

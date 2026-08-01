@@ -22,19 +22,11 @@ if (!string.Equals(expected, actual, StringComparison.Ordinal))
 }
 
 Expect(
-    "Kept 1 protected stack",
-    QuickStackMessages.ProtectedWorldText(1),
-    "singular protected world text");
-Expect(
-    "Kept 3 protected stacks",
-    QuickStackMessages.ProtectedWorldText(3),
-    "plural protected world text");
-Expect(
-    "Kept 3 protected stacks (5 chests checked; 2 without a matching chest)",
-    QuickStackMessages.NothingMoved(5, 3, 2, 0, 0),
-    "protected no-move summary");
+    "Nothing moved (5 chests; 2 without a matching chest)",
+    QuickStackMessages.NothingMoved(5, 2, 0, 0),
+    "no-move summary");
 
-Console.WriteLine("quick-stack grouping and protected-message checks passed");
+Console.WriteLine("quick-stack grouping and no-move message checks passed");
 return 0;
 
 static void Expect(string expectedValue, string actualValue, string scenario)

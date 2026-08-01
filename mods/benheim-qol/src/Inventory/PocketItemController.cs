@@ -7,15 +7,16 @@ internal static class PocketItemController
     internal static bool TryTogglePlayerItem(InventoryGrid grid, ItemDrop.ItemData? item)
     {
         Player player = Player.m_localPlayer;
-        if (item == null)
-        {
-            Diagnostics.Event("Inventory", "pocket_toggle_rejected", "reason=no_hovered_item");
-            return false;
-        }
-
         if (player == null || grid.GetInventory() != player.GetInventory())
         {
             Diagnostics.Event("Inventory", "pocket_toggle_rejected", "reason=not_player_inventory");
+            return false;
+        }
+
+        if (item == null)
+        {
+            Diagnostics.Event("Inventory", "pocket_toggle_rejected", "reason=no_hovered_item");
+            InventoryFeedback.ShowAbovePlayer(player, "Nothing to pocket");
             return false;
         }
 
