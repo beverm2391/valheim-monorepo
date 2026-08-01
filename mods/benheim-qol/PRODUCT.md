@@ -56,7 +56,7 @@ BenheimQoL `0.1.15` is the next test build. It includes:
 ## Later
 
 - Craft from nearby containers with ingredient totals.
-- Config-driven tuning for mining, range, and quick-stack radius.
+- Make mining progression configurable.
 - Decide whether to increase adrenaline gains. The Adrenaline module changes
   only feedback and decay visibility.
 - Decide whether batch crafting should go beyond Valheim's native controls.
