@@ -1,7 +1,7 @@
 # Shortcuts
 
-The Shortcuts module gives players one in-game place to discover BenheimQoL's
-controls and passive behavior.
+The Shortcuts module gives players one in-game panel for discovering
+BenheimQoL's controls and passive features.
 
 ## Current Behavior
 
@@ -13,5 +13,5 @@ controls and passive behavior.
 
 ## In Development
 
-- One gameplay check must confirm that the panel still works with the
-  reorganized DLL.
+- Use one gameplay check to confirm that the reorganized DLL preserves the panel
+  behavior listed under **Current Behavior**.

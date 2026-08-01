@@ -10,7 +10,7 @@ This file owns the overall product promise. Each feature module has a
 ## Product Rules
 
 - Keep one client DLL and one simple install.
-- Keep servers and players without BenheimQoL compatible.
+- Keep BenheimQoL compatible with servers and players that do not use it.
 - Do not add custom persistent game objects or custom item data.
 - Prefer normal Valheim actions over direct inventory or world mutation.
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
@@ -32,11 +32,15 @@ This file owns the overall product promise. Each feature module has a
 `Infrastructure` contains shared implementation support and has no independent
 player-facing promise.
 
-## Current Status
+## Current Behavior
 
-The reorganized client DLL builds successfully and still includes every
-existing game patch. It has not been installed. Every module needs an in-game
-check on this build, and features marked **In development** still require fixes.
+BenheimQoL `0.1.11` builds, installs, and loads successfully as one client-only
+DLL. Each feature module records the behavior confirmed in gameplay.
+
+## In Development
+
+Features listed under **In Development** in the module documents still need
+gameplay proof or fixes.
 
 ## Later
 

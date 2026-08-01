@@ -1,7 +1,7 @@
 # Portals
 
-The Portals module makes naming and traveling through portals faster while
-still waiting for the destination to finish loading.
+The Portals module makes naming portals and traveling through them faster.
+Portal travel still waits for the destination to finish loading.
 
 ## Current Behavior
 
