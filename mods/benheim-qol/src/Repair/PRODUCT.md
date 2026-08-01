@@ -12,5 +12,5 @@ The Repair module removes repeated repair clicks.
 
 - Mass repair for buildings and structures does not currently work and needs
   debugging.
-- `Left Shift` + hammer repair click will repair damaged accessible buildings
-  and structures near the selected piece.
+- `Left Shift` + hammer repair click will repair up to 80 accessible, damaged
+  pieces within 20 meters while normal repair costs can be paid.

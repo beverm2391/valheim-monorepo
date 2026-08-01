@@ -28,7 +28,7 @@ This file owns the overall product promise. Each feature module has a
 | [Inventory](src/Inventory/PRODUCT.md) | Split stacks, pocket items, and quick stack. |
 | [Repair](src/Repair/PRODUCT.md) | Batch gear repair and nearby building repair. |
 | [Interaction](src/Interaction/PRODUCT.md) | Less fussy interaction and station range. |
-| [Portals](src/Portals/PRODUCT.md) | Portal tag autocomplete and faster transitions. |
+| [Portals](src/Portals/PRODUCT.md) | Faster transitions after the destination is ready. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
 | [Adrenaline](src/Adrenaline/PRODUCT.md) | Perfect parry and dodge feedback, plus adrenaline decay timing. |
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |
@@ -47,13 +47,15 @@ module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-BenheimQoL `0.1.14` is the next test build. It groups quick-stack results by
-destination chest and sorts each chest's items by moved quantity.
+BenheimQoL `0.1.15` is the next test build. It includes:
+
+- quick-stack results grouped by destination chest;
+- items sorted by moved quantity within each chest; and
+- focused diagnostics for mass building repair.
 
 ## Later
 
 - Craft from nearby containers with ingredient totals.
-- Better portal tag selector or dropdown UI.
 - Config-driven tuning for mining, range, and quick-stack radius.
 - Decide whether to increase adrenaline gains. The Adrenaline module changes
   only feedback and decay visibility.

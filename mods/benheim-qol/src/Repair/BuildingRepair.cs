@@ -25,6 +25,26 @@ internal static class BuildingRepair
     private static readonly FieldInfo ZanimField =
         AccessTools.Field(typeof(Character), "m_zanim") ?? AccessTools.Field(typeof(Player), "m_zanim");
 
+    internal static void LogRepairInput()
+    {
+        if (!InputState.IsShiftHeld() || !ZInput.GetButtonDown("Attack"))
+        {
+            return;
+        }
+
+        Player player = Player.m_localPlayer;
+        if (!player)
+        {
+            return;
+        }
+
+        Piece hoveredPiece = player.GetHoveringPiece();
+        Diagnostics.Event(
+            "Repair",
+            "building_repair_click_observed",
+            $"repair_mode={Diagnostics.Bool(player.InRepairMode())} hovered={Diagnostics.Bool(hoveredPiece)} target=\"{(hoveredPiece ? hoveredPiece.gameObject.name : "none")}\"");
+    }
+
     internal static void RepairNearbyPieces(Player player, ItemDrop.ItemData toolItem)
     {
         if (!player.InPlaceMode())

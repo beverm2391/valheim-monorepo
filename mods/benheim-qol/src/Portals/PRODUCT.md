@@ -1,7 +1,7 @@
 # Portals
 
-The Portals module makes naming portals and traveling through them faster.
-Portal travel still waits for the destination to finish loading.
+The Portals module makes portal travel faster. Portal travel still waits for
+the destination to finish loading.
 
 ## Current Behavior
 
@@ -10,6 +10,4 @@ Portal travel still waits for the destination to finish loading.
 
 ## In Development
 
-- Portal tag autocomplete does not currently work and needs debugging.
-- `Tab` will cycle known portal tags that match the typed prefix.
-- Seen and typed tags will be remembered after relaunching the game.
+- No portal changes are in development.

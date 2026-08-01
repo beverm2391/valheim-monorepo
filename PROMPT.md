@@ -91,6 +91,11 @@ The `PRODUCT.md` in each user-facing feature folder owns that feature's behavior
 and current test status. Update the owning feature document when behavior,
 controls, test results, or development status changes.
 
+When the player reports gameplay results, update the owning feature document
+before completing the task. Move confirmed behavior to **Current Behavior**.
+Keep failed or unproven behavior in **In Development**. Delete behavior the
+player no longer wants.
+
 Update the repository `PRODUCT.md` when a mod moves between the client and
 server or changes its compatibility requirements. Do not duplicate each mod's
 detailed behavior there.
