@@ -16,7 +16,6 @@ internal static class PocketItemController
         if (item == null)
         {
             Diagnostics.Event("Inventory", "pocket_toggle_rejected", "reason=no_hovered_item");
-            InventoryFeedback.ShowAbovePlayer(player, "Nothing to pocket");
             return false;
         }
 
@@ -33,7 +32,6 @@ internal static class PocketItemController
         string verb = pocketed ? "Pocketed" : "Unpocketed";
         string message = $"{verb} {PocketItems.GetDisplayName(item)}";
         player.Message(MessageHud.MessageType.TopLeft, message);
-        InventoryFeedback.ShowAbovePlayer(player, message);
         return true;
     }
 }

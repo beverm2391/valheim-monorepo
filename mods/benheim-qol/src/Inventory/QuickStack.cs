@@ -67,6 +67,7 @@ internal static class QuickStack
         {
             Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_nearby_containers");
             player.Message(MessageHud.MessageType.TopLeft, "No nearby containers");
+            ShowNothingToPutAway(player);
             return;
         }
 
@@ -85,6 +86,7 @@ internal static class QuickStack
                     eligibility.SkippedNoMatchingContainer,
                     eligibility.SkippedFull,
                     skippedBusy: 0));
+            ShowNothingToPutAway(player);
             return;
         }
 
@@ -298,6 +300,12 @@ internal static class QuickStack
         operation.Player.Message(
             MessageHud.MessageType.TopLeft,
             QuickStackMessages.NothingMoved(operation.Containers.Count, 0, 0, operation.BusyContainers));
+        ShowNothingToPutAway(operation.Player);
+    }
+
+    private static void ShowNothingToPutAway(Player player)
+    {
+        InventoryFeedback.ShowAbovePlayer(player, "Nothing to put away");
     }
 
     private static int MoveAsMuchAsPossible(Inventory sourceInventory, Inventory targetInventory, ItemDrop.ItemData item)

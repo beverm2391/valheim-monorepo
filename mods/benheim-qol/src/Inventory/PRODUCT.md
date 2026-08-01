@@ -20,10 +20,9 @@ The Inventory module makes routine item movement faster.
 
 - Show one result line for each destination chest. Sort the items on each line
   by moved quantity, from highest to lowest.
-- After a successful manual toggle, show `Pocketed` or `Unpocketed` above the
-  player. Keep the item marker and detailed message.
-- Show `Nothing to pocket` above the player when `P` is pressed without a
-  hovered player-inventory item.
+- When Put Away moves nothing, show `Nothing to put away` above the player.
+  This is the Inventory module's only above-player message.
+- Keep pocket and unpocket confirmations in the normal message feed.
 - A gold `P` marks manual pocketing, which the player can toggle. A cyan `P`
   marks automatic protection that lasts while an item is equipped or in the
   hotbar.

@@ -47,16 +47,15 @@ module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-BenheimQoL `0.1.17` is the next test build. It includes:
+BenheimQoL `0.1.18` is the next test build. It includes:
 
 - quick-stack results grouped by destination chest;
 - items sorted by moved quantity within each chest;
 - focused diagnostics for mass building repair;
 - a shortcuts panel that preloads and groups features under Inventory, Build &
   Repair, Farming, Travel, and Combat; and
-- above-player `Pocketed` or `Unpocketed` feedback after successful manual
-  toggles, plus `Nothing to pocket` when `P` is pressed without a hovered
-  player-inventory item.
+- `Nothing to put away` as the only above-player Inventory message, shown when
+  Put Away moves nothing.
 
 ## Later
 
