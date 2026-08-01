@@ -86,12 +86,13 @@ BenheimQoL lives under:
 mods/benheim-qol/
 ```
 
-`mods/benheim-qol/PRODUCT.md` owns the mod's product promise and detailed
-user-visible behavior. Update it whenever a feature, shortcut, acceptance
-expectation, or roadmap item changes.
+`mods/benheim-qol/PRODUCT.md` owns the overall mod promise and feature index.
+The `PRODUCT.md` in each user-facing feature folder owns that feature's behavior
+and current test status. Update the owning feature document when behavior,
+controls, test results, or development status changes.
 
-Update root `PRODUCT.md` when a mod's role, runtime placement, client
-requirement, or compatibility promise changes. Do not duplicate each mod's
+Update the repository `PRODUCT.md` when a mod moves between the client and
+server or changes its compatibility requirements. Do not duplicate each mod's
 detailed behavior there.
 
 Manual test plans are task-scoped process artifacts, not canonical product
@@ -114,8 +115,8 @@ Client mod rules:
 
 - Keep BenheimQoL client-only unless the product direction changes explicitly.
 - Do not add custom persistent world objects or custom item data casually.
-- Keep the in-game shortcuts panel and `PRODUCT.md` aligned with implemented
-  controls.
+- Keep the in-game shortcuts panel and the owning feature `PRODUCT.md` aligned
+  with implemented controls.
 - Bump the visible plugin version when installing a user-testable behavior
   change so testers can verify the loaded DLL after relaunch.
 - Valheim does not hot-reload the plugin DLL; after install, fully quit and
