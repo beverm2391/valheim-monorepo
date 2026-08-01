@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Reflection;
+using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using UnityEngine;
 
@@ -28,12 +29,20 @@ internal static class BuildingRepair
     {
         if (!player.InPlaceMode())
         {
+            Diagnostics.Event("Repair", "building_repair_finished", "repaired=0 reason=not_in_place_mode");
             return;
         }
 
         Piece anchor = player.GetHoveringPiece();
-        if (!anchor || !CanUseRepairToolHere(player, anchor, showWardFlash: true))
+        if (!anchor)
         {
+            Diagnostics.Event("Repair", "building_repair_finished", "repaired=0 reason=no_hovered_piece");
+            return;
+        }
+
+        if (!CanUseRepairToolHere(player, anchor, showWardFlash: true))
+        {
+            Diagnostics.Event("Repair", "building_repair_finished", "repaired=0 reason=no_anchor_access");
             return;
         }
 
@@ -42,8 +51,16 @@ internal static class BuildingRepair
         NearbyPieces.Sort((left, right) =>
             Vector3.SqrMagnitude(left.transform.position - anchor.transform.position)
                 .CompareTo(Vector3.SqrMagnitude(right.transform.position - anchor.transform.position)));
+        Diagnostics.Event(
+            "Repair",
+            "building_repair_scan",
+            $"anchor=\"{anchor.gameObject.name}\" radius={RepairRadius:0.#} candidates={NearbyPieces.Count}");
 
         int repaired = 0;
+        int inaccessible = 0;
+        int undamaged = 0;
+        int repairFailed = 0;
+        bool exhaustedResources = false;
         foreach (Piece piece in NearbyPieces)
         {
             if (repaired >= MaxPiecesPerClick)
@@ -53,23 +70,27 @@ internal static class BuildingRepair
 
             if (!piece || !PrivateArea.CheckAccess(piece.transform.position, 0f, flash: false))
             {
+                inaccessible++;
                 continue;
             }
 
             WearNTear wearNTear = piece.GetComponent<WearNTear>();
             if (!wearNTear || wearNTear.GetHealthPercentage() >= 1f)
             {
+                undamaged++;
                 continue;
             }
 
             if (!CanPayRepairCost(player, toolItem))
             {
+                exhaustedResources = true;
                 Hud.instance.StaminaBarEmptyFlash();
                 break;
             }
 
             if (!wearNTear.Repair())
             {
+                repairFailed++;
                 continue;
             }
 
@@ -80,10 +101,18 @@ internal static class BuildingRepair
 
         if (repaired == 0)
         {
+            Diagnostics.Event(
+                "Repair",
+                "building_repair_finished",
+                $"repaired=0 inaccessible={inaccessible} undamaged={undamaged} repair_failed={repairFailed} exhausted_resources={Diagnostics.Bool(exhaustedResources)}");
             player.Message(MessageHud.MessageType.TopLeft, $"No damaged build pieces within {RepairRadius:0}m");
             return;
         }
 
+        Diagnostics.Event(
+            "Repair",
+            "building_repair_finished",
+            $"repaired={repaired} inaccessible={inaccessible} undamaged={undamaged} repair_failed={repairFailed} exhausted_resources={Diagnostics.Bool(exhaustedResources)}");
         PlayRepairAnimation(player, toolItem);
         player.Message(MessageHud.MessageType.TopLeft, $"Repaired {repaired} pieces");
     }

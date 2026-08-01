@@ -1,3 +1,4 @@
+using BenheimQoL.Infrastructure;
 using UnityEngine;
 
 namespace BenheimQoL.Shortcuts;
@@ -13,7 +14,7 @@ internal static class ShortcutOverlay
         ("Split stack: Backspace/Delete", "Clear split amount back to 1"),
         ("Split stack: Enter", "Confirm split; with a container open, move it across"),
         ("Station repair: Left Shift + click", "Repair all eligible gear"),
-        ("Hammer repair: Left Shift + click", "Repair nearby damaged building pieces"),
+        ("Hammer repair: Left Shift + click", "Repair nearby damaged buildings and structures"),
         ("Portal tag edit: Tab", "Cycle known portal tag matches"),
     };
 
@@ -43,6 +44,7 @@ internal static class ShortcutOverlay
         if (Input.GetKeyDown(KeyCode.F8))
         {
             visible = !visible;
+            Diagnostics.Event("Shortcuts", "panel_toggled", $"visible={Diagnostics.Bool(visible)}");
         }
     }
 

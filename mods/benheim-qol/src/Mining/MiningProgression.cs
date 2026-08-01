@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using BenheimQoL.Infrastructure;
 using UnityEngine;
 
 namespace BenheimQoL.Mining;
@@ -35,14 +36,20 @@ internal static class MiningProgression
         }
 
         float skillFactor = GetPickaxeSkillFactor(hit);
+        float beforePickaxeDamage = hit.m_damage.m_pickaxe;
         float multiplier = 1f + MaxPrimaryDamageBonus * skillFactor;
-        if (RollCrit(skillFactor))
+        bool crit = RollCrit(skillFactor, out float critChance, out float critRoll);
+        if (crit)
         {
             multiplier *= CritMultiplier;
             DamageText.instance?.ShowText(DamageText.TextType.Bonus, hit.m_point, "CRIT", player: true);
         }
 
         hit.m_damage.Modify(multiplier);
+        Diagnostics.Event(
+            "Mining",
+            "primary_hit",
+            $"skill={skillFactor * 100f:0.##} base_pickaxe_damage={beforePickaxeDamage:0.##} multiplier={multiplier:0.###} final_pickaxe_damage={hit.m_damage.m_pickaxe:0.##} crit_chance={critChance:0.###} crit_roll={critRoll:0.###} crit={Diagnostics.Bool(crit)}");
     }
 
     internal static void TryApplyAoe(Component primaryTarget, HitData hit)
@@ -65,13 +72,22 @@ internal static class MiningProgression
         float skillFactor = GetPickaxeSkillFactor(hit);
         if (skillFactor * 100f < AoeUnlockLevel)
         {
+            Diagnostics.Event(
+                "Mining",
+                "aoe_skipped",
+                $"reason=below_unlock skill={skillFactor * 100f:0.##} unlock={AoeUnlockLevel:0.##}");
             return;
         }
 
         float unlockedFactor = Mathf.InverseLerp(AoeUnlockLevel / 100f, 1f, skillFactor);
         float chance = Mathf.Lerp(MinAoeChance, MaxAoeChance, unlockedFactor);
-        if (UnityEngine.Random.value > chance)
+        float roll = UnityEngine.Random.value;
+        if (roll > chance)
         {
+            Diagnostics.Event(
+                "Mining",
+                "aoe_skipped",
+                $"reason=roll skill={skillFactor * 100f:0.##} chance={chance:0.###} roll={roll:0.###}");
             return;
         }
 
@@ -79,6 +95,10 @@ internal static class MiningProgression
         int colliderCount = Physics.OverlapSphereNonAlloc(hit.m_point, radius, AoeColliders, AoeMask);
         if (colliderCount == 0)
         {
+            Diagnostics.Event(
+                "Mining",
+                "aoe_skipped",
+                $"reason=no_colliders skill={skillFactor * 100f:0.##} chance={chance:0.###} roll={roll:0.###} radius={radius:0.##}");
             return;
         }
 
@@ -96,6 +116,10 @@ internal static class MiningProgression
 
         if (AoeTargetColliders.Count == 0 || Player.m_localPlayer == null)
         {
+            Diagnostics.Event(
+                "Mining",
+                "aoe_skipped",
+                $"reason=no_secondary_targets skill={skillFactor * 100f:0.##} chance={chance:0.###} roll={roll:0.###} radius={radius:0.##} colliders={colliderCount}");
             return;
         }
 
@@ -105,6 +129,10 @@ internal static class MiningProgression
 
         aoeRunning = true;
         aoeStartedAt = Time.realtimeSinceStartup;
+        Diagnostics.Event(
+            "Mining",
+            "aoe_triggered",
+            $"skill={skillFactor * 100f:0.##} chance={chance:0.###} roll={roll:0.###} radius={radius:0.##} targets={AoeTargetColliders.Count} damage_multiplier={AoeDamageMultiplier:0.###}");
         DamageText.instance?.ShowText(DamageText.TextType.Bonus, hit.m_point + Vector3.up * 0.25f, "AOE", player: true);
         Player.m_localPlayer.StartCoroutine(ApplyAoeDamage(primaryTarget, AoeTargetColliders.ToArray(), aoeHit));
     }
@@ -112,6 +140,7 @@ internal static class MiningProgression
     private static IEnumerator ApplyAoeDamage(Component primaryTarget, Collider[] targetColliders, HitData aoeHit)
     {
         int iterations = 0;
+        int applied = 0;
         try
         {
             for (int i = 0; i < targetColliders.Length; i++)
@@ -133,15 +162,18 @@ internal static class MiningProgression
                 if (primaryTarget is MineRock mineRock && collider.GetComponentInParent<MineRock>() == mineRock)
                 {
                     mineRock.Damage(aoeHit);
+                    applied++;
                 }
                 else if (primaryTarget is MineRock5 mineRock5 && collider.GetComponentInParent<MineRock5>() == mineRock5)
                 {
                     mineRock5.Damage(aoeHit);
+                    applied++;
                 }
             }
         }
         finally
         {
+            Diagnostics.Event("Mining", "aoe_finished", $"targets_requested={targetColliders.Length} targets_applied={applied}");
             ResetAoeState();
         }
     }
@@ -177,15 +209,19 @@ internal static class MiningProgression
         return Player.m_localPlayer ? Player.m_localPlayer.GetSkillFactor(Skills.SkillType.Pickaxes) : 0f;
     }
 
-    private static bool RollCrit(float skillFactor)
+    private static bool RollCrit(float skillFactor, out float chance, out float roll)
     {
         if (skillFactor * 100f < CritUnlockLevel)
         {
+            chance = 0f;
+            roll = -1f;
             return false;
         }
 
         float unlockedFactor = Mathf.InverseLerp(CritUnlockLevel / 100f, 1f, skillFactor);
-        return UnityEngine.Random.value < MaxCritChance * unlockedFactor;
+        chance = MaxCritChance * unlockedFactor;
+        roll = UnityEngine.Random.value;
+        return roll < chance;
     }
 
     private static void ResetAoeState()

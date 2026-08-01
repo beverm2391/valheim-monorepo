@@ -20,9 +20,14 @@ internal static class InventoryPatches
     [HarmonyPatch(typeof(InventoryGui), "OnSelectedItem")]
     private static class TogglePocketPatch
     {
-        private static bool Prefix(InventoryGrid grid, ItemDrop.ItemData item)
+        private static bool Prefix(InventoryGrid grid, ItemDrop.ItemData? item)
         {
-            return !InputState.IsAltHeld() || !PocketItemController.TryTogglePlayerItem(grid, item);
+            bool altHeld = InputState.IsAltHeld();
+            Diagnostics.Event(
+                "Inventory",
+                "item_clicked",
+                $"alt={Diagnostics.Bool(altHeld)} item={(item == null ? "none" : item.m_shared.m_name)}");
+            return !altHeld || !PocketItemController.TryTogglePlayerItem(grid, item);
         }
     }
 
@@ -75,6 +80,24 @@ internal static class InventoryPatches
         private static void Postfix(InventoryGrid __instance, Inventory inventory)
         {
             PocketMarker.Refresh(__instance, inventory);
+        }
+    }
+
+    [HarmonyPatch(typeof(Container), "RPC_StackResponse")]
+    private static class QuickStackResponsePatch
+    {
+        private static bool Prefix(Container __instance, bool granted)
+        {
+            return !QuickStack.TryHandleStackResponse(__instance, granted);
+        }
+    }
+
+    [HarmonyPatch(typeof(Container), nameof(Container.StackAll))]
+    private static class QuickStackRequestGuardPatch
+    {
+        private static bool Prefix(Container __instance)
+        {
+            return QuickStack.CanSendStackRequest(__instance);
         }
     }
 }

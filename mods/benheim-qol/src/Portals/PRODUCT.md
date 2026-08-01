@@ -3,15 +3,13 @@
 The Portals module makes naming and traveling through portals faster while
 still waiting for the destination to finish loading.
 
-## Behavior
+## Current Behavior
 
-- `Tab` cycles known portal tags that match the typed prefix.
-- Seen and typed tags are remembered in a local BepInEx config file.
 - Distant portal travel removes most of the fixed delay after the destination
   is ready.
 
-## Status
+## In Development
 
-- **Tested:** Faster portal transitions work in gameplay.
-- **Needs test:** Tag autocomplete, fallback cycling, and remembered tags after
-  relaunch.
+- Portal tag autocomplete does not currently work and needs debugging.
+- `Tab` will cycle known portal tags that match the typed prefix.
+- Seen and typed tags will be remembered after relaunching the game.

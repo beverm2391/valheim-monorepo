@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using UnityEngine;
 
@@ -32,6 +33,7 @@ internal static class SplitStackController
     {
         ClearTypedAmount(inventoryGui);
         SplitNumInputTimeoutSecField.SetValue(inventoryGui, 10f);
+        Diagnostics.Event("Inventory", "split_opened", "numeric_input=true timeout_seconds=10");
     }
 
     internal static void ClearAmount(InventoryGui inventoryGui)
@@ -39,6 +41,7 @@ internal static class SplitStackController
         ClearTypedAmount(inventoryGui);
         inventoryGui.m_splitSlider.value = 1f;
         OnSplitSliderChangedMethod.Invoke(inventoryGui, new object[] { 1f });
+        Diagnostics.Event("Inventory", "split_amount_reset", "amount=1");
     }
 
     internal static bool TryAutoMove(InventoryGui inventoryGui)
@@ -49,6 +52,7 @@ internal static class SplitStackController
         Player player = Player.m_localPlayer;
         if (item == null || sourceInventory == null || !currentContainer || player == null)
         {
+            Diagnostics.Event("Inventory", "split_auto_move_skipped", "reason=no_open_container");
             return false;
         }
 
@@ -65,12 +69,14 @@ internal static class SplitStackController
         }
         else
         {
+            Diagnostics.Event("Inventory", "split_auto_move_skipped", "reason=unknown_source_inventory");
             return false;
         }
 
         int amount = Mathf.Clamp((int)inventoryGui.m_splitSlider.value, 1, item.m_stack);
         if (!targetInventory.CanAddItem(item, amount))
         {
+            Diagnostics.Event("Inventory", "split_auto_move_skipped", $"reason=target_full amount={amount}");
             return false;
         }
 
@@ -78,12 +84,17 @@ internal static class SplitStackController
         splitItem.m_stack = amount;
         if (!targetInventory.AddItem(splitItem))
         {
+            Diagnostics.Event("Inventory", "split_auto_move_skipped", $"reason=add_failed amount={amount}");
             return false;
         }
 
         sourceInventory.RemoveItem(item, amount);
         inventoryGui.m_moveItemEffects.Create(inventoryGui.transform.position, Quaternion.identity);
         CloseDialog(inventoryGui);
+        Diagnostics.Event(
+            "Inventory",
+            "split_auto_moved",
+            $"item={item.m_shared.m_name} amount={amount} direction={(sourceInventory == playerInventory ? "to_container" : "to_player")}");
         return true;
     }
 

@@ -19,7 +19,7 @@ internal static class GearRepair
     private static readonly MethodInfo UpdateCraftingPanelMethod =
         AccessTools.Method(typeof(InventoryGui), "UpdateCraftingPanel");
 
-    internal static void RepairAll(InventoryGui inventoryGui)
+    internal static int RepairAll(InventoryGui inventoryGui)
     {
         int repaired = 0;
         while (repaired < MaxRepairIterations && HasRepairableItems(inventoryGui))
@@ -30,6 +30,7 @@ internal static class GearRepair
 
         UpdateRepairMethod.Invoke(inventoryGui, null);
         UpdateCraftingPanelMethod.Invoke(inventoryGui, new object[] { false });
+        return repaired;
     }
 
     private static bool HasRepairableItems(InventoryGui inventoryGui)

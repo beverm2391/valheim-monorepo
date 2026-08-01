@@ -1,4 +1,4 @@
-# BenheimQoL 0.1.9 Stabilization Pass
+# BenheimQoL 0.1.11 Stabilization Pass
 
 This is the one-time checklist for the current stabilization pass. It is not a
 product contract or a permanent source of truth. Product behavior remains owned
@@ -11,7 +11,7 @@ message.
 
 | Area | Action | Expected result |
 | --- | --- | --- |
-| Load | Open the `F8` panel. | BenheimQoL loads and the panel shows version `0.1.9`. |
+| Load | Open the `F8` panel. | BenheimQoL loads and the panel shows version `0.1.11`. |
 | Shortcuts panel | Press `F8` twice. | The panel appears and disappears; text is readable over gameplay. |
 | Split stack | Open the split dialog, type a number, delete it, type again, and press `Enter`. | The amount resets cleanly and confirms. |
 | Split transfer | Open a container, split from either side, and press `Enter`. | The split amount moves to the opposite inventory when space exists. |

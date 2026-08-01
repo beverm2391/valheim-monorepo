@@ -1,4 +1,5 @@
 using System.Reflection;
+using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -14,6 +15,7 @@ internal static class AdrenalineHud
         AccessTools.Field(typeof(Player), "m_adrenalineDegenTimer");
 
     private static TMP_Text? decayLabel;
+    private static string hudState = string.Empty;
 
     internal static void Update(Hud hud, Player player)
     {
@@ -28,6 +30,7 @@ internal static class AdrenalineHud
         if (adrenaline <= 0f || maximum <= 0f)
         {
             decayLabel.gameObject.SetActive(false);
+            SetHudState("hidden", $"adrenaline={adrenaline:0.###} maximum={maximum:0.###}");
             return;
         }
 
@@ -36,6 +39,7 @@ internal static class AdrenalineHud
         if (delay > 0.05f)
         {
             decayLabel.text = $"Decay {delay:0.0}s";
+            SetHudState("waiting", $"delay={delay:0.###} adrenaline={adrenaline:0.###}");
             return;
         }
 
@@ -43,6 +47,7 @@ internal static class AdrenalineHud
         decayLabel.text = float.IsInfinity(remaining)
             ? "Decaying"
             : $"Decaying {remaining:0.0}s";
+        SetHudState("decaying", $"estimated_seconds={remaining:0.###} adrenaline={adrenaline:0.###}");
     }
 
     private static void EnsureLabel(Hud hud)
@@ -66,6 +71,18 @@ internal static class AdrenalineHud
         rect.pivot = new Vector2(0f, 1f);
         rect.anchoredPosition = new Vector2(8f, -4f);
         rect.sizeDelta = new Vector2(280f, 36f);
+        Diagnostics.Event("Adrenaline", "decay_label_created");
+    }
+
+    private static void SetHudState(string state, string details)
+    {
+        if (hudState == state)
+        {
+            return;
+        }
+
+        hudState = state;
+        Diagnostics.Event("Adrenaline", "decay_state_changed", $"state={state} {details}");
     }
 
     private static float EstimateDecayTime(Player player, float adrenaline, float maximum)

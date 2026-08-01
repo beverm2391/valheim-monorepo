@@ -3,7 +3,7 @@
 The Shortcuts module gives players one in-game place to discover BenheimQoL's
 controls and passive behavior.
 
-## Behavior
+## Current Behavior
 
 - `F8` shows or hides the panel unless the player is typing in a text field or
   console.
@@ -11,8 +11,7 @@ controls and passive behavior.
 - The panel lists active controls and passive features without changing
   gameplay.
 
-## Status
+## In Development
 
-- **Tested before the internal refactor:** The panel toggles, shows its version,
-  and is readable during gameplay.
-- **Needs test:** One smoke check on the reorganized DLL.
+- One gameplay check must confirm that the panel still works with the
+  reorganized DLL.

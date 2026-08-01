@@ -9,14 +9,17 @@ internal static class GearRepairPatch
 {
     private static bool Prefix(InventoryGui __instance)
     {
-        if (!InputState.IsShiftHeld())
+        bool shiftHeld = InputState.IsShiftHeld();
+        Diagnostics.Event("Repair", "station_repair_input", $"shift={Diagnostics.Bool(shiftHeld)}");
+        if (!shiftHeld)
         {
             return true;
         }
 
         try
         {
-            GearRepair.RepairAll(__instance);
+            int repaired = GearRepair.RepairAll(__instance);
+            Diagnostics.Event("Repair", "station_repair_all_finished", $"repaired={repaired}");
         }
         catch (Exception ex)
         {
@@ -28,12 +31,19 @@ internal static class GearRepairPatch
     }
 }
 
-[HarmonyPatch(typeof(Player), "Repair")]
+[HarmonyPatch(typeof(Player), "Repair", new[] { typeof(ItemDrop.ItemData), typeof(Piece) })]
 internal static class BuildingRepairPatch
 {
-    private static bool Prefix(Player __instance, ItemDrop.ItemData toolItem)
+    [HarmonyPriority(Priority.First)]
+    private static bool Prefix(Player __instance, ItemDrop.ItemData toolItem, Piece repairPiece)
     {
-        if (!InputState.IsShiftHeld())
+        bool shiftHeld = InputState.IsShiftHeld();
+        bool repairablePiece = repairPiece && repairPiece.m_repairPiece;
+        Diagnostics.Event(
+            "Repair",
+            "building_repair_input",
+            $"shift={Diagnostics.Bool(shiftHeld)} repair_piece={Diagnostics.Bool(repairablePiece)} target=\"{(repairPiece ? repairPiece.gameObject.name : "none")}\"");
+        if (!repairablePiece || !shiftHeld)
         {
             return true;
         }

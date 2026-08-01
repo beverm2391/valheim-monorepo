@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using BepInEx;
+using BenheimQoL.Infrastructure;
 
 namespace BenheimQoL.InventoryFeature;
 
@@ -77,6 +78,7 @@ internal static class PocketItems
         loaded = true;
         if (!File.Exists(Path))
         {
+            Diagnostics.Event("Inventory", "pocket_history_loaded", "items=0 file_exists=false");
             return;
         }
 
@@ -87,6 +89,8 @@ internal static class PocketItems
                 ItemKeys.Add(line.Trim());
             }
         }
+
+        Diagnostics.Event("Inventory", "pocket_history_loaded", $"items={ItemKeys.Count} file_exists=true");
     }
 
     private static void Save()

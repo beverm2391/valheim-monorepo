@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using UnityEngine;
 
@@ -18,20 +19,31 @@ internal static class PortalAutocomplete
 
     internal static void CycleMatch(TextInput textInput)
     {
-        if (!TextInput.IsVisible() || !Input.GetKeyDown(KeyCode.Tab))
+        if (!Input.GetKeyDown(KeyCode.Tab))
         {
+            return;
+        }
+
+        if (!TextInput.IsVisible())
+        {
+            Diagnostics.Event("Portals", "autocomplete_rejected", "reason=text_input_hidden");
             return;
         }
 
         object queuedReceiver = QueuedTextReceiverField.GetValue(textInput);
         if (!(queuedReceiver is TeleportWorld))
         {
+            Diagnostics.Event(
+                "Portals",
+                "autocomplete_rejected",
+                $"reason=not_portal receiver={queuedReceiver?.GetType().Name ?? "none"}");
             return;
         }
 
         List<string> tags = GetKnownPortalTags();
         if (tags.Count == 0)
         {
+            Diagnostics.Event("Portals", "autocomplete_rejected", "reason=no_known_tags");
             return;
         }
 
@@ -54,6 +66,10 @@ internal static class PortalAutocomplete
         textInput.m_inputField.caretPosition = textInput.m_inputField.text.Length;
         textInput.m_inputField.selectionAnchorPosition = textInput.m_inputField.text.Length;
         textInput.m_inputField.selectionFocusPosition = textInput.m_inputField.text.Length;
+        Diagnostics.Event(
+            "Portals",
+            "autocomplete_selected",
+            $"prefix=\"{prefix}\" known={tags.Count} matches={matches.Count} selected=\"{matches[lastIndex]}\"");
     }
 
     private static List<string> GetKnownPortalTags()
@@ -91,6 +107,9 @@ internal static class PortalAutocomplete
 
     internal static void RememberTag(string tag)
     {
-        TagHistory.Remember(tag);
+        if (TagHistory.Remember(tag))
+        {
+            Diagnostics.Event("Portals", "tag_remembered", $"tag=\"{tag.Trim()}\"");
+        }
     }
 }

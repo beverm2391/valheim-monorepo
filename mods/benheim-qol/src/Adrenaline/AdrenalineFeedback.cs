@@ -1,4 +1,5 @@
 using System.Reflection;
+using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using UnityEngine;
 
@@ -32,6 +33,10 @@ internal static class AdrenalineFeedback
             && blockTimer < 0.25f)
         {
             currentSource = "Perfect parry";
+            Diagnostics.Event(
+                "Adrenaline",
+                "perfect_parry_detected",
+                $"block_timer={blockTimer:0.###} timed_block_bonus={blocker.m_shared.m_timedBlockBonus:0.##}");
         }
     }
 
@@ -41,6 +46,7 @@ internal static class AdrenalineFeedback
         if (player == Player.m_localPlayer && !alreadyAwarded)
         {
             currentSource = "Perfect dodge";
+            Diagnostics.Event("Adrenaline", "perfect_dodge_detected");
         }
     }
 
@@ -67,6 +73,10 @@ internal static class AdrenalineFeedback
         float amount = value * Game.m_adrenalineRate;
         amount *= player.m_adrenalineGainMultiplier.Evaluate(fill);
         player.GetSEMan().ModifyAdrenaline(amount, ref amount);
+        Diagnostics.Event(
+            "Adrenaline",
+            "award_captured",
+            $"source=\"{currentSource}\" requested={value:0.###} applied={amount:0.###} before={before:0.###} maximum={maximum:0.###}");
         return new Award(currentSource, amount);
     }
 
@@ -83,6 +93,10 @@ internal static class AdrenalineFeedback
             player.transform.position + Vector3.up * 1.75f,
             text,
             player: true);
+        Diagnostics.Event(
+            "Adrenaline",
+            "feedback_shown",
+            $"source=\"{award.Source}\" amount={award.Amount:0.###}");
     }
 
     internal sealed class Award

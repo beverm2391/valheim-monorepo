@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using BepInEx;
+using BenheimQoL.Infrastructure;
 
 namespace BenheimQoL.Portals;
 
@@ -17,20 +18,21 @@ internal sealed class PortalTagHistory
         return tags;
     }
 
-    internal void Remember(string tag)
+    internal bool Remember(string tag)
     {
         if (string.IsNullOrWhiteSpace(tag))
         {
-            return;
+            return false;
         }
 
         EnsureLoaded();
         if (!tags.Add(tag.Trim()))
         {
-            return;
+            return false;
         }
 
         Save();
+        return true;
     }
 
     private void EnsureLoaded()
@@ -43,6 +45,7 @@ internal sealed class PortalTagHistory
         loaded = true;
         if (!File.Exists(path))
         {
+            Diagnostics.Event("Portals", "tag_history_loaded", "tags=0 file_exists=false");
             return;
         }
 
@@ -53,6 +56,8 @@ internal sealed class PortalTagHistory
                 tags.Add(line.Trim());
             }
         }
+
+        Diagnostics.Event("Portals", "tag_history_loaded", $"tags={tags.Count} file_exists=true");
     }
 
     private void Save()

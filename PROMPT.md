@@ -106,6 +106,23 @@ mods/benheim-qol/scripts/build.sh
 mods/benheim-qol/scripts/install-local.sh
 ```
 
+Use this development loop for gameplay changes:
+
+1. Add concise diagnostic events for the changed action and the decisions that
+   control it.
+2. Bump the visible plugin version and install the new DLL while Valheim is
+   fully quit.
+3. Ask the player to relaunch, reproduce the behavior, and report what they
+   tried.
+4. Read `<Valheim>/BepInEx/LogOutput.log` and filter for `[diag]` events.
+5. Read the server journal only when code for the behavior runs on the server or
+   the behavior depends on a server response.
+6. Fix the observed failure, reinstall, and repeat until gameplay and logs agree.
+
+Diagnostic events use `[diag][Feature] action key=value`. Log player actions,
+important decisions, and results. Do not log every frame. Keep normal BepInEx
+warning and error logging enabled.
+
 Expected build caveat:
 
 - `System.Net.Http` version conflict warnings can appear from Valheim assembly

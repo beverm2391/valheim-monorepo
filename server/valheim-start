@@ -78,4 +78,5 @@ fi
 export LD_LIBRARY_PATH="./linux64:${LD_LIBRARY_PATH:-}"
 export SteamAppId=892970
 
+echo "[diag][Server] launch modded=$VALHEIM_MODDED portals=${VALHEIM_PORTALS:-default} skill_gain=${VALHEIM_SKILL_GAIN_RATE:-default} skill_loss=${VALHEIM_SKILL_REDUCTION_RATE:-default} crossplay=$VALHEIM_CROSSPLAY public=$VALHEIM_PUBLIC port=$VALHEIM_PORT"
 exec ./valheim_server.x86_64 "${args[@]}"

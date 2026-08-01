@@ -1,23 +1,22 @@
 # Inventory
 
-The Inventory module makes routine item movement faster while keeping the
-player in control of what stays in their inventory.
+The Inventory module makes routine item movement faster.
 
-## Behavior
+## Current Behavior
 
-- Split-stack dialogs accept immediate numeric input.
+- You can immediately enter a number in a split-stack dialog.
 - `Backspace` or `Delete` resets the amount to `1`.
 - When a container is open, `Enter` moves the split stack between the player
   inventory and the container.
-- Equipped items, hotbar items, and manually pocketed item types stay with the
-  player during quick stack.
-- Hover + `P` or `Left Alt` + click toggles manual pocketing.
-- `Left Alt` + `P` quick-stacks items into nearby chests that already contain a
-  matching item.
 
-## Status
+## In Development
 
-- **Tested:** Split-stack input and transfer work well.
-- **In development:** Quick stack does not currently move eligible items.
-- **Needs test:** Pocket markers, saved pocket choices after relaunch, and
-  protection for equipped, hotbar, and pocketed items during quick stack.
+- Quick stack does not currently move any items and needs debugging.
+- When it works, `Left Alt` + `P` will quick-stack items into nearby chests that
+  already contain a matching item.
+- Quick stack will keep equipped items, hotbar items, and manually pocketed item
+  types with the player.
+- Press `P` while hovering over an item to toggle manual pocketing.
+- Hold `Left Alt` while clicking an item to toggle manual pocketing.
+- Pocketed items will show a marker. Their pocketed status will persist after
+  the game relaunches.

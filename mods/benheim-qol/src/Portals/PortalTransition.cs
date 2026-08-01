@@ -1,4 +1,5 @@
 using System.Reflection;
+using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using UnityEngine;
 
@@ -16,9 +17,19 @@ internal static class PortalTransition
     {
         if (!teleportStarted || !distantTeleport)
         {
+            Diagnostics.Event(
+                "Portals",
+                "transition_unchanged",
+                $"started={Diagnostics.Bool(teleportStarted)} distant={Diagnostics.Bool(distantTeleport)}");
             return;
         }
 
+        float previous = (float)TeleportTimerField.GetValue(player);
         TeleportTimerField.SetValue(player, Mathf.Max(0f, VanillaDistantPortalDelay - TargetMinimumDelay));
+        float current = (float)TeleportTimerField.GetValue(player);
+        Diagnostics.Event(
+            "Portals",
+            "transition_shortened",
+            $"previous_timer={previous:0.##} current_timer={current:0.##} target_minimum={TargetMinimumDelay:0.##}");
     }
 }

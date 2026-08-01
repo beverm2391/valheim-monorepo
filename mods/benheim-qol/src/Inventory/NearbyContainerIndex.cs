@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using UnityEngine;
 
@@ -13,9 +14,6 @@ internal static class NearbyContainerIndex
 
     private static readonly MethodInfo CheckAccessMethod =
         AccessTools.Method(typeof(Container), "CheckAccess");
-
-    private static readonly FieldInfo NetViewField =
-        AccessTools.Field(typeof(Container), "m_nview");
 
     internal static List<Container> FindAccessibleContainers(Player player, float radius, Container? currentContainer)
     {
@@ -46,22 +44,6 @@ internal static class NearbyContainerIndex
         return Containers;
     }
 
-    internal static bool TryClaim(Container container)
-    {
-        ZNetView? netView = (ZNetView?)NetViewField.GetValue(container);
-        if (!netView || !netView.IsValid())
-        {
-            return false;
-        }
-
-        if (!netView.IsOwner())
-        {
-            netView.ClaimOwnership();
-        }
-
-        return netView.IsOwner();
-    }
-
     private static void AddContainer(Container container)
     {
         if (SeenContainers.Add(container))
@@ -74,18 +56,35 @@ internal static class NearbyContainerIndex
     {
         if (container.m_checkGuardStone && !PrivateArea.CheckAccess(container.transform.position, 0f, flash: false))
         {
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_container_skipped",
+                $"container=\"{container.gameObject.name}\" reason=ward_access");
             return false;
         }
 
         if (container != currentContainer && container.IsInUse())
         {
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_container_skipped",
+                $"container=\"{container.gameObject.name}\" reason=in_use");
             return false;
         }
 
         try
         {
             long playerID = Game.instance.GetPlayerProfile().GetPlayerID();
-            return (bool)(CheckAccessMethod.Invoke(container, new object[] { playerID }) ?? false);
+            bool hasAccess = (bool)(CheckAccessMethod.Invoke(container, new object[] { playerID }) ?? false);
+            if (!hasAccess)
+            {
+                Diagnostics.Event(
+                    "Inventory",
+                    "quick_stack_container_skipped",
+                    $"container=\"{container.gameObject.name}\" reason=container_access");
+            }
+
+            return hasAccess;
         }
         catch (Exception ex)
         {
