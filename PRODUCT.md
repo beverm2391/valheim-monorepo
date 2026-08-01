@@ -18,7 +18,7 @@ installing anything.
 - Quality-of-life changes should remove repetition without erasing meaningful
   progression, resource costs, or multiplayer coordination.
 - Mod infrastructure is part of server operations. Players should not need to
-  understand BepInEx, Jotunn, systemd, or deployment mechanics to play.
+  understand BepInEx, systemd, or deployment mechanics to play.
 
 ## Gameplay Breakdown
 
@@ -56,6 +56,8 @@ installing or removing it does not corrupt shared world or character data.
 - Decide whether faster sailing justifies client installs on both Mac and
   Windows. Every candidate examined so far requires a client install, so no
   server-only ship mod was deployed.
+- Create a Windows installer and launcher for friends who want BenheimQoL.
+  Verify both before sharing them. The shareable Mac installer is complete.
 - Stabilize BenheimQoL's current behavior before expanding its feature set.
 - Decide whether craft-from-nearby-containers belongs in BenheimQoL without
   removing the resource-budgeting information players use to make decisions.

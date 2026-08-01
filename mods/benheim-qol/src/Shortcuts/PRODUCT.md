@@ -13,5 +13,4 @@ BenheimQoL's controls and passive features.
 
 ## In Development
 
-- Use one gameplay check to confirm that the reorganized DLL preserves the panel
-  behavior listed under **Current Behavior**.
+- No changes are currently in development.

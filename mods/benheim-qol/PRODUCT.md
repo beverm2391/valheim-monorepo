@@ -55,4 +55,9 @@ destination chest and sorts each chest's items by moved quantity.
 - Craft from nearby containers with ingredient totals.
 - Better portal tag selector or dropdown UI.
 - Config-driven tuning for mining, range, and quick-stack radius.
+- Decide whether to increase adrenaline gains. The Adrenaline module changes
+  only feedback and decay visibility.
+- Decide whether batch crafting should go beyond Valheim's native controls.
+- Add skill-based woodcutting effects after all planned Mining behavior is
+  gameplay-confirmed.
 - Food or rested HUD only after its gameplay value justifies more UI.
