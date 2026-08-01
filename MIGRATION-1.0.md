@@ -111,12 +111,12 @@ files, not this table, own exact versions.
 | Component | Runs on | September 9 disposition | 1.0 re-enable gate | Decision |
 | --- | --- | --- | --- | --- |
 | BepInEx | Server | Disabled | Server starts cleanly under the 1.0-compatible loader. | Deployed pre-1.0; 1.0 re-enable proof pending |
-| Jotunn | Server | Disabled | Upstream supports 1.0 and server logs show a clean load. | Deployed pre-1.0; 1.0 re-enable proof pending |
-| Eternal Fire | Server | Disabled | Vanilla clients see persistent fires and can reconnect after a restart. | Deployed pre-1.0; stopped-server R2 backup succeeded; systemd logged BepInEx, Jotunn, and Eternal Fire loads and `Game server connected`; vanilla-player fire and restart/rejoin proof pending |
-| Metal portals | Server, native | Reapply after vanilla proof | Restricted items pass through portals for vanilla clients after restart. | `portals=casual` deployed and logged pre-1.0; player metal traversal pending |
+| Jotunn | Server | Remove | No re-enable gate if the first-party fire replacement passes. | Deployed pre-1.0 only for the failed third-party Eternal Fire stack; replacement removes this dependency |
+| Third-party Eternal Fire | Server | Remove | None. Do not restore it. | Failed vanilla-client behavior test: after one manual fuel, a standing wood torch remained at `1/4`; an empty standing wood control torch did not relight. It was replaced by Benheim Eternal Fire. |
+| Benheim Eternal Fire | Server | Disabled | Vanilla clients see existing zero-fuel pieces relight and burning pieces refill before they extinguish. This behavior survives a server restart and client reconnect. | Benheim Eternal Fire `0.1.1` is deployed on Valheim `0.221.12`. Existing empty fires and torches relit for a client that did not have Benheim Eternal Fire installed. Low-fuel and restart proof is pending. |
+| Metal portals | Server, native | Reapply after vanilla proof | Restricted items pass through portals for vanilla clients after restart. | Passed portal traversal with a normally restricted metal item; restart proof pending. |
 | BepInEx | Clients | Use vanilla launch | Mac and Windows clients launch and join with the compatible loader. | Pending |
-| MassFarming | Clients | Disabled | Planting and harvesting work without inventory, networking, or save errors. | Pending |
-| BenheimQoL | Clients | Disabled | The current product behavior passes a focused 1.0 test pass. | Pending |
+| BenheimQoL | Clients | Disabled | The current product behavior passes a focused 1.0 test pass. | Pre-1.0 `0.1.13` passed farming, quick stack, extended chest interaction, and adrenaline UI checks. Final 1.0 proof pending. |
 | Future gameplay mods | To classify | Not admitted | Source audit identifies network ownership, persistence, and platform support. | Deferred |
 
 ## Character Backups
@@ -352,12 +352,10 @@ client-mod validation.
 Restore in this order:
 
 1. Server BepInEx.
-2. Jotunn.
-3. Eternal Fire.
-4. Client BepInEx on Mac and Windows.
-5. MassFarming.
-6. BenheimQoL.
-7. Any newly selected gameplay mods.
+2. Benheim Eternal Fire.
+3. Client BepInEx on Mac and Windows.
+4. BenheimQoL.
+5. Any newly selected gameplay mods.
 
 For every layer:
 
