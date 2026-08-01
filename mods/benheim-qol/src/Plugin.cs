@@ -2,6 +2,7 @@ using BepInEx;
 using BepInEx.Logging;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.InventoryFeature;
+using BenheimQoL.Farming;
 using BenheimQoL.Shortcuts;
 using HarmonyLib;
 using UnityEngine;
@@ -13,7 +14,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "BenheimQoL";
-    public const string PluginVersion = "0.1.12";
+    public const string PluginVersion = "0.1.13";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -42,6 +43,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        PlantingPreview.DestroyGhosts();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         harmony?.UnpatchSelf();
     }

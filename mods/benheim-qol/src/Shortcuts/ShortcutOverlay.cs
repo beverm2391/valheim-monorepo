@@ -16,6 +16,8 @@ internal static class ShortcutOverlay
         ("Split stack: Enter", "Confirm split; with a container open, move it across"),
         ("Station repair: Left Shift + click", "Repair all eligible gear"),
         ("Hammer repair: Left Shift + click", "Repair nearby damaged buildings and structures"),
+        ("Farming: Left Shift + interact", $"Harvest matching crops, pickups, or beehives within {Farming.FarmingSettings.HarvestRadius:0.#} m"),
+        ("Farming: Left Shift + plant", $"Plant a centered {Farming.FarmingSettings.GridWidth}x{Farming.FarmingSettings.GridLength} grid"),
         ("Portal tag edit: Tab", "Cycle known portal tag matches"),
     };
 

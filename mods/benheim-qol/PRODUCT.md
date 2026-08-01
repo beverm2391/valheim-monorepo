@@ -10,6 +10,10 @@ This file owns the overall product promise. Each feature module has a
 ## Product Rules
 
 - Keep one client DLL and one simple install.
+- Use the same idempotent Mac installer for local development and player
+  installs. It must leave unrelated files and applications unchanged. It must
+  refuse installation while Valheim is running.
+- The Mac launcher starts Steam when needed before it starts modded Valheim.
 - Keep BenheimQoL compatible with servers and players that do not use it.
 - Do not add custom persistent game objects or custom item data.
 - Prefer normal Valheim actions over direct inventory or world mutation.
@@ -27,6 +31,7 @@ This file owns the overall product promise. Each feature module has a
 | [Portals](src/Portals/PRODUCT.md) | Portal tag autocomplete and faster transitions. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
 | [Adrenaline](src/Adrenaline/PRODUCT.md) | Perfect parry and dodge feedback, plus adrenaline decay timing. |
+| [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 
 `Infrastructure` contains shared implementation support and has no independent
@@ -34,13 +39,16 @@ player-facing promise.
 
 ## Current Behavior
 
-BenheimQoL `0.1.12` is the current client-only test build. Each feature module
-records the behavior confirmed in gameplay.
+BenheimQoL `0.1.12` is the current gameplay-confirmed client build. Each feature
+module records its confirmed behavior.
 
 ## In Development
 
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
+
+BenheimQoL `0.1.13` is the next test build. It integrates farming into the main
+DLL.
 
 ## Later
 

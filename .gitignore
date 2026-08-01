@@ -8,3 +8,6 @@ worlds/
 backups/
 mods/**/bin/
 mods/**/obj/
+mods/**/dist/
+server-mods/**/bin/
+server-mods/**/obj/
