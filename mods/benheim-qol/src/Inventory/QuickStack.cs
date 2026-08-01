@@ -120,6 +120,7 @@ internal static class QuickStack
         {
             operation.MovedItems += MoveEligibleItems(
                 operation.Player,
+                container,
                 container.GetInventory(),
                 operation.Summary);
         }
@@ -245,6 +246,7 @@ internal static class QuickStack
 
     private static int MoveEligibleItems(
         Player player,
+        Container container,
         Inventory targetInventory,
         QuickStackSummary summary)
     {
@@ -263,7 +265,11 @@ internal static class QuickStack
 
             int moved = MoveAsMuchAsPossible(playerInventory, targetInventory, item);
             movedItems += moved;
-            summary.Add(item, moved);
+            summary.Add(
+                container.GetInstanceID(),
+                Localize(container.GetHoverName()),
+                Localize(item.m_shared.m_name),
+                moved);
 
             Diagnostics.Event(
                 "Inventory",
@@ -332,6 +338,13 @@ internal static class QuickStack
         }
 
         return count;
+    }
+
+    private static string Localize(string name)
+    {
+        return Localization.instance != null
+            ? Localization.instance.Localize(name)
+            : name.TrimStart('$');
     }
 
     private static int GetCapacityFor(Inventory inventory, ItemDrop.ItemData item)

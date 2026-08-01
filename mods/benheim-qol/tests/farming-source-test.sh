@@ -12,7 +12,6 @@ assert_source() {
   fi
 }
 
-assert_source 'PluginVersion = "0\.1\.13"' 'src/Plugin.cs'
 assert_source 'HarvestRadius = 10f' 'src/Farming/FarmingSettings.cs'
 assert_source 'GridWidth = 5' 'src/Farming/FarmingSettings.cs'
 assert_source 'GridLength = 5' 'src/Farming/FarmingSettings.cs'

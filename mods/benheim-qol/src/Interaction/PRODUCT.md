@@ -7,8 +7,9 @@ without enabling remote use across a base.
 
 - Cauldrons and crafting stations can be used from farther away than Valheim's
   default range.
+- When a player opens a chest from extended range, both the player inventory
+  and chest inventory appear.
 
 ## In Development
 
-- You can interact with chests from extended range, but only the player
-  inventory appears. The chest inventory does not appear and needs debugging.
+- No interaction changes are currently in development.

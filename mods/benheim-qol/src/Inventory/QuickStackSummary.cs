@@ -6,45 +6,58 @@ namespace BenheimQoL.InventoryFeature;
 
 internal sealed class QuickStackSummary
 {
-    private const int MaxNamedTypes = 5;
+    private readonly List<ContainerSummary> containers = new List<ContainerSummary>();
+    private readonly Dictionary<int, ContainerSummary> containersByInstanceId =
+        new Dictionary<int, ContainerSummary>();
 
-    private readonly Dictionary<string, int> movedByItemName =
-        new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-    internal void Add(ItemDrop.ItemData item, int amount)
+    internal void Add(
+        int containerInstanceId,
+        string containerDisplayName,
+        string itemDisplayName,
+        int amount)
     {
         if (amount <= 0)
         {
             return;
         }
 
-        string displayName = GetDisplayName(item);
-        movedByItemName.TryGetValue(displayName, out int previous);
-        movedByItemName[displayName] = previous + amount;
+        if (!containersByInstanceId.TryGetValue(containerInstanceId, out ContainerSummary? summary))
+        {
+            summary = new ContainerSummary(containerDisplayName);
+            containersByInstanceId.Add(containerInstanceId, summary);
+            containers.Add(summary);
+        }
+
+        summary.MovedByItemName.TryGetValue(itemDisplayName, out int previous);
+        summary.MovedByItemName[itemDisplayName] = previous + amount;
     }
 
     internal string Format()
     {
-        List<KeyValuePair<string, int>> items = movedByItemName
-            .OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        List<string> parts = items
-            .Take(MaxNamedTypes)
-            .Select(pair => $"{pair.Value}x {pair.Key}")
-            .ToList();
-        if (items.Count > MaxNamedTypes)
+        var lines = new List<string>(containers.Count);
+        for (int index = 0; index < containers.Count; index++)
         {
-            parts.Add($"+{items.Count - MaxNamedTypes} more types");
+            ContainerSummary container = containers[index];
+            List<string> parts = container.MovedByItemName
+                .OrderByDescending(pair => pair.Value)
+                .ThenBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(pair => $"{pair.Value}x {pair.Key}")
+                .ToList();
+            lines.Add($"{container.DisplayName} {index + 1}: {string.Join(", ", parts)}");
         }
 
-        return "Put away " + string.Join(", ", parts);
+        return string.Join("\n", lines);
     }
 
-    private static string GetDisplayName(ItemDrop.ItemData item)
+    private sealed class ContainerSummary
     {
-        string name = item.m_shared.m_name;
-        return Localization.instance != null
-            ? Localization.instance.Localize(name)
-            : name.TrimStart('$');
+        internal ContainerSummary(string displayName)
+        {
+            DisplayName = displayName;
+        }
+
+        internal string DisplayName { get; }
+        internal Dictionary<string, int> MovedByItemName { get; } =
+            new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     }
 }

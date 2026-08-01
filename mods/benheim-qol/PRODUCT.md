@@ -39,7 +39,7 @@ player-facing promise.
 
 ## Current Behavior
 
-BenheimQoL `0.1.12` is the current gameplay-confirmed client build. Each feature
+BenheimQoL `0.1.13` is the current gameplay-confirmed client build. Each feature
 module records its confirmed behavior.
 
 ## In Development
@@ -47,8 +47,8 @@ module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-BenheimQoL `0.1.13` is the next test build. It integrates farming into the main
-DLL.
+BenheimQoL `0.1.14` is the next test build. It groups quick-stack results by
+destination chest and sorts each chest's items by moved quantity.
 
 ## Later
 

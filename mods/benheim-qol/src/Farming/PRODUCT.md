@@ -5,10 +5,6 @@ Valheim's normal farming costs and restrictions.
 
 ## Current Behavior
 
-- Gameplay testing has not yet proven the integrated farming behavior.
-
-## In Development
-
 - Hold `Left Shift` while harvesting a crop, pickup, or beehive. The mod then
   harvests matching targets within 10 meters.
 - Hold `Left Shift` while planting to place a centered 5x5 grid.
@@ -18,3 +14,7 @@ Valheim's normal farming costs and restrictions.
 - Planting previews show which grid positions are valid before placement.
 - Farming diagnostics record harvest totals and the reason for each invalid
   planting position.
+
+## In Development
+
+- No farming changes are currently in development.
