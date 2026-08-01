@@ -9,13 +9,13 @@ internal static class QuickStack
     internal const float Radius = 30f;
     private const float ResponseTimeoutSeconds = 5f;
 
-    private static Operation? activeOperation;
+    private static QuickStackOperation? activeOperation;
     private static readonly HashSet<Container> PendingResponses = new HashSet<Container>();
     private static Container? issuingContainer;
 
     internal static void Update()
     {
-        Operation? operation = activeOperation;
+        QuickStackOperation? operation = activeOperation;
         if (operation == null || ReferenceEquals(operation.CurrentContainer, null))
         {
             return;
@@ -70,7 +70,7 @@ internal static class QuickStack
             return;
         }
 
-        Eligibility eligibility = FindEligibleContainers(player, containers);
+        QuickStackEligibility eligibility = FindEligibleContainers(player, containers);
         Diagnostics.Event(
             "Inventory",
             "quick_stack_eligibility",
@@ -96,13 +96,13 @@ internal static class QuickStack
             return;
         }
 
-        activeOperation = new Operation(player, inventoryGui, eligibility.Containers);
+        activeOperation = new QuickStackOperation(player, inventoryGui, eligibility.Containers);
         RequestNextContainer();
     }
 
     internal static bool TryHandleStackResponse(Container container, bool granted)
     {
-        Operation? operation = activeOperation;
+        QuickStackOperation? operation = activeOperation;
         if (!PendingResponses.Contains(container))
         {
             return false;
@@ -141,9 +141,9 @@ internal static class QuickStack
         return true;
     }
 
-    private static Eligibility FindEligibleContainers(Player player, List<Container> containers)
+    private static QuickStackEligibility FindEligibleContainers(Player player, List<Container> containers)
     {
-        Eligibility eligibility = new Eligibility();
+        QuickStackEligibility eligibility = new QuickStackEligibility();
         HashSet<Container> seen = new HashSet<Container>();
         foreach (ItemDrop.ItemData item in player.GetInventory().GetAllItemsInGridOrder())
         {
@@ -196,7 +196,7 @@ internal static class QuickStack
 
     private static void RequestNextContainer()
     {
-        Operation? operation = activeOperation;
+        QuickStackOperation? operation = activeOperation;
         if (operation == null)
         {
             return;
@@ -287,7 +287,7 @@ internal static class QuickStack
         return movedItems;
     }
 
-    private static void Finish(Operation operation)
+    private static void Finish(QuickStackOperation operation)
     {
         activeOperation = null;
         Diagnostics.Event(
@@ -375,31 +375,4 @@ internal static class QuickStack
         return capacity;
     }
 
-    private sealed class Eligibility
-    {
-        internal List<Container> Containers { get; } = new List<Container>();
-        internal int SkippedPocketed { get; set; }
-        internal int SkippedNoMatchingContainer { get; set; }
-        internal int SkippedFull { get; set; }
-    }
-
-    private sealed class Operation
-    {
-        internal Operation(Player player, InventoryGui inventoryGui, List<Container> containers)
-        {
-            Player = player;
-            InventoryGui = inventoryGui;
-            Containers = containers;
-        }
-
-        internal Player Player { get; }
-        internal InventoryGui InventoryGui { get; }
-        internal List<Container> Containers { get; }
-        internal int NextContainerIndex { get; set; }
-        internal Container? CurrentContainer { get; set; }
-        internal float RequestStartedAt { get; set; }
-        internal int MovedItems { get; set; }
-        internal int BusyContainers { get; set; }
-        internal QuickStackSummary Summary { get; } = new QuickStackSummary();
-    }
 }
