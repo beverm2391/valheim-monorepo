@@ -4,6 +4,16 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static class QuickStackMessages
 {
+    internal static string AbovePlayerSummary(int movedItems)
+    {
+        if (movedItems <= 0)
+        {
+            return "Nothing to put away";
+        }
+
+        return movedItems == 1 ? "Put away 1 item" : $"Put away {movedItems} items";
+    }
+
     internal static string NothingMoved(
         int containerCount,
         int skippedNoMatchingContainer,

@@ -20,9 +20,15 @@ The Inventory module makes routine item movement faster.
 
 - Show one result line for each destination chest. Sort the items on each line
   by moved quantity, from highest to lowest.
-- When Put Away moves nothing, show `Nothing to put away` above the player.
-  This is the Inventory module's only above-player message.
-- Keep pocket and unpocket confirmations in the normal message feed.
+- Put Away always keeps its existing detailed result in the normal top-left
+  message feed.
+- When Put Away starts with the inventory closed, also show a short summary
+  above the player. On success, show `Put away N items`, where `N` is the total
+  number of units moved. Show `Put away 1 item` for one unit and `Nothing to put
+  away` when no units move.
+- When Put Away starts with the inventory open, show no above-player summary.
+- Show pocket and unpocket confirmations only in the normal top-left message
+  feed.
 - A gold `P` marks manual pocketing, which the player can toggle. A cyan `P`
   marks automatic protection that lasts while an item is equipped or in the
   hotbar.

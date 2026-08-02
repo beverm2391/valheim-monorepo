@@ -7,6 +7,8 @@ marker="$root/src/Inventory/PocketMarker.cs"
 controller="$root/src/Inventory/PocketItemController.cs"
 protection="$root/src/Inventory/PocketItems.cs"
 quick_stack="$root/src/Inventory/QuickStack.cs"
+quick_stack_feedback="$root/src/Inventory/QuickStackFeedback.cs"
+visibility="$root/src/Inventory/InventoryVisibility.cs"
 
 grep -Fq 'AddInworldText' "$feedback"
 if grep -Fq '.ShowText(' "$feedback"; then
@@ -18,7 +20,9 @@ grep -Fq 'IsAutomaticallyProtected' "$protection"
 grep -Fq 'ManualColor' "$marker"
 grep -Fq 'AutomaticColor' "$marker"
 grep -Fq 'manuallyProtected ? ManualColor : AutomaticColor' "$marker"
-grep -Fq 'InventoryFeedback.ShowAbovePlayer(player, "Nothing to put away")' "$quick_stack"
+grep -Fq 'if (inventoryWasOpen)' "$quick_stack_feedback"
+grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedback"
+grep -Fq 'm_animator' "$visibility"
 if grep -Fq 'InventoryFeedback' "$controller"; then
   printf 'pocket toggles must not show floating world text\n' >&2
   exit 1

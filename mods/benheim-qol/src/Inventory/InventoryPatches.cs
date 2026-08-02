@@ -11,9 +11,6 @@ internal static class InventoryPatches
     private static readonly FieldInfo PlayerGridField =
         AccessTools.Field(typeof(InventoryGui), "m_playerGrid");
 
-    private static readonly FieldInfo AnimatorField =
-        AccessTools.Field(typeof(InventoryGui), "m_animator");
-
     [HarmonyPatch(typeof(InventoryGui), "OnSelectedItem")]
     private static class TogglePocketPatch
     {
@@ -33,7 +30,7 @@ internal static class InventoryPatches
     {
         private static void Postfix(InventoryGui __instance)
         {
-            if (!IsInventoryVisible(__instance)
+            if (!InventoryVisibility.IsOpen(__instance)
                 || TextInput.IsVisible()
                 || Console.IsVisible()
                 || Player.m_localPlayer == null)
@@ -59,11 +56,6 @@ internal static class InventoryPatches
             }
         }
 
-        private static bool IsInventoryVisible(InventoryGui inventoryGui)
-        {
-            Animator? animator = (Animator?)AnimatorField.GetValue(inventoryGui);
-            return animator != null && animator.GetBool("visible");
-        }
     }
 
     [HarmonyPatch(typeof(InventoryGrid), "UpdateInventory")]
