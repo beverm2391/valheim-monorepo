@@ -20,3 +20,4 @@ BenheimQoL's controls and passive features.
   receive items.
 - Explain that a gold `P` means manually pocketed. Explain that a cyan `P`
   means equipped or in the hotbar.
+- List Wood Cutting cleave as a passive skill feature.

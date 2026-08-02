@@ -50,6 +50,7 @@ internal static class ShortcutOverlay
             new Color(1f, 0.46f, 0.5f, 1f),
             new Entry[0],
             "Pickaxes skill improves mining damage, crits, and AOE after level 25. " +
+            "Wood Cutting unlocks CLEAVE after level 25. " +
             "Perfect defenses show adrenaline gains, and the meter shows decay timing."),
     };
 

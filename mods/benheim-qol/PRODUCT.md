@@ -30,6 +30,7 @@ This file owns the overall product promise. Each feature module has a
 | [Interaction](src/Interaction/PRODUCT.md) | Less fussy interaction and station range. |
 | [Portals](src/Portals/PRODUCT.md) | Faster transitions after the destination is ready. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
+| [Woodcutting](src/Woodcutting/PRODUCT.md) | Skill-based cleave for trees and logs. |
 | [Adrenaline](src/Adrenaline/PRODUCT.md) | Perfect parry and dodge feedback, plus adrenaline decay timing. |
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
@@ -47,7 +48,7 @@ module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-BenheimQoL `0.1.20` is the next test build. It includes:
+BenheimQoL `0.1.21` is the next test build. It includes:
 
 - quick-stack results grouped by destination chest;
 - items sorted by moved quantity within each chest;
@@ -57,7 +58,9 @@ BenheimQoL `0.1.20` is the next test build. It includes:
 - a short above-player Put Away summary when the inventory is closed, while the
   existing detailed top-left result remains visible; and
 - yellow feedback over the targeted structure when mass repair repairs more
-  than one piece.
+  than one piece; and
+- Wood Cutting cleave for standing trees and fallen logs at skill level 25 or
+  higher.
 
 ## Later
 
@@ -66,6 +69,4 @@ BenheimQoL `0.1.20` is the next test build. It includes:
 - Decide whether to increase adrenaline gains. The Adrenaline module changes
   only feedback and decay visibility.
 - Decide whether batch crafting should go beyond Valheim's native controls.
-- Add skill-based woodcutting effects after all planned Mining behavior is
-  gameplay-confirmed.
 - Food or rested HUD only after its gameplay value justifies more UI.
