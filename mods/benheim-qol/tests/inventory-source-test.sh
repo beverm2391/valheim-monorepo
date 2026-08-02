@@ -7,6 +7,7 @@ marker="$root/src/Inventory/PocketMarker.cs"
 controller="$root/src/Inventory/PocketItemController.cs"
 protection="$root/src/Inventory/PocketItems.cs"
 quick_stack="$root/src/Inventory/QuickStack.cs"
+quick_stack_location="$root/src/Inventory/QuickStackLocation.cs"
 quick_stack_feedback="$root/src/Inventory/QuickStackFeedback.cs"
 visibility="$root/src/Inventory/InventoryVisibility.cs"
 
@@ -26,7 +27,8 @@ grep -Fq 'if (inventoryWasOpen)' "$quick_stack_feedback"
 grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedback"
 grep -Fq 'WorldFeedback.ShowAt(container.transform.position' "$quick_stack_feedback"
 grep -Fq 'FormatItemsForContainer' "$quick_stack_feedback"
-grep -Fq 'FormatLocation(player, container)' "$quick_stack"
+grep -Fq 'QuickStackLocation.Format(player, container)' "$quick_stack"
+grep -Fq 'CompassDirections' "$quick_stack_location"
 grep -Fq 'm_animator' "$visibility"
 if grep -Fq 'WorldFeedback' "$controller"; then
   printf 'pocket toggles must not show floating world text\n' >&2

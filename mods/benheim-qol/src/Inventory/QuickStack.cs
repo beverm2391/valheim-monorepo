@@ -11,7 +11,6 @@ internal static class QuickStack
 
     private static QuickStackOperation? activeOperation;
     private static readonly HashSet<Container> PendingResponses = new HashSet<Container>();
-    private static readonly string[] CompassDirections = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
     private static Container? issuingContainer;
 
     internal static void Update()
@@ -268,7 +267,7 @@ internal static class QuickStack
     {
         Inventory playerInventory = player.GetInventory();
         string containerDisplayName = Localize(container.GetHoverName());
-        string containerLocation = FormatLocation(player, container);
+        string containerLocation = QuickStackLocation.Format(player, container);
         int movedItems = 0;
         foreach (ItemDrop.ItemData item in new List<ItemDrop.ItemData>(playerInventory.GetAllItemsInGridOrder()))
         {
@@ -373,15 +372,6 @@ internal static class QuickStack
         return Localization.instance != null
             ? Localization.instance.Localize(name)
             : name.TrimStart('$');
-    }
-
-    private static string FormatLocation(Player player, Container container)
-    {
-        Vector3 offset = container.transform.position - player.transform.position;
-        float distance = new Vector2(offset.x, offset.z).magnitude;
-        float heading = (Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg + 360f) % 360f;
-        int directionIndex = Mathf.RoundToInt(heading / 45f) % CompassDirections.Length;
-        return $"{Mathf.Max(1, Mathf.RoundToInt(distance))}m {CompassDirections[directionIndex]}";
     }
 
     private static int GetCapacityFor(Inventory inventory, ItemDrop.ItemData item)
