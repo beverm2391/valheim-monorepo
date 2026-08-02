@@ -23,6 +23,11 @@ if grep -Fq '.ShowText(' "$feedback"; then
 fi
 
 grep -Fq 'IsAutomaticallyProtected' "$protection"
+grep -Fq 'InstancePocketKey = "com.benheim.qol:pocketed"' "$protection"
+grep -Fq 'm_maxStackSize > 1' "$protection"
+grep -Fq 'item.m_customData[InstancePocketKey] = PocketedValue' "$protection"
+grep -Fq 'GetProtectionScope' "$protection"
+grep -Fq 'scope={PocketItems.GetProtectionScope(item)}' "$controller"
 grep -Fq 'ManualColor' "$marker"
 if grep -Fq 'AutomaticColor' "$marker"; then
   printf 'automatic protection must not have a visible marker\n' >&2

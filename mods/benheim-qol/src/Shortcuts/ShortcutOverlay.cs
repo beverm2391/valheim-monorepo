@@ -14,19 +14,20 @@ internal static class ShortcutOverlay
             new[]
             {
                 new Entry("Gold P", "Manual; toggle with P; persists when moved", PocketMarker.ManualColor),
-                new Entry("Hover + P", "Toggle manual pocketing for this item type"),
-                new Entry("Left Alt + click", "Toggle manual pocketing for this item type"),
+                new Entry("Hover + P", "Toggle manual pocketing for this stack or item"),
+                new Entry("Left Alt + click", "Toggle manual pocketing for this stack or item"),
                 new Entry("Left Shift + P", $"Put matching items away within {QuickStack.Radius:0.#} m"),
                 new Entry("Backspace/Delete", "Reset the split amount to 1"),
                 new Entry("Enter", "Confirm a split; move it across an open container"),
             },
-            "A gold P means manually pocketed. Equipped and hotbar items stay protected without a marker. Put Away moves only unprotected matching items into chests with room."),
+            "A gold P means manually pocketed. Stackables protect their item type; gear protects only the marked item. Equipped and hotbar items stay protected without a marker."),
         new Section(
             "Build & Repair",
             new Color(1f, 0.58f, 0.36f, 1f),
             new[]
             {
                 new Entry("Shift + station click", "Repair all eligible gear"),
+                new Entry("Left Shift + station input", "Fill its available input or fuel capacity"),
             },
             "Stations, cauldrons, and nearby objects have a longer interaction range."),
         new Section(

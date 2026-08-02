@@ -13,9 +13,9 @@ The Inventory module makes routine item movement faster.
 - An eligible chest already contains the item and has room for more.
 - Put Away checks eligible chests from nearest to farthest.
 - Put Away reports the quantity and name of each item type moved.
-- Manually pocketed item types stay with the player during quick stack.
-- Press `P` while hovering over an item to toggle manual pocketing for that item
-  type. Pocketed items show a `P` marker.
+- Manually pocketed items stay with the player during Put Away.
+- Press `P` while hovering over an item to toggle manual pocketing. Pocketed
+  items show a `P` marker.
 
 ## In Development
 
@@ -38,12 +38,14 @@ The Inventory module makes routine item movement faster.
   feed.
 - A gold `P` in the top-left of an item slot marks manual pocketing, which the
   player can toggle.
+- Pocketing a stackable item protects every stack of that item type. Pocketing
+  a non-stackable item protects only that exact item.
+- Manual pocketing persists after the game relaunches. For a non-stackable
+  item, protection stays with the marked item when it moves.
 - Equipped and hotbar items remain automatically protected without showing a
   marker. If an item is also manually pocketed, hide its `P` while automatic
   protection applies and show the same manual `P` again when it no longer
   applies.
 - Confirm that equipped items and hotbar items stay with the player during Put
   Away.
-- Hold `Left Alt` while clicking an item to toggle manual pocketing for that
-  item type.
-- Confirm that the set of pocketed item types persists after the game relaunches.
+- Hold `Left Alt` while clicking an item to toggle manual pocketing.

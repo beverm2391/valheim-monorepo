@@ -28,7 +28,8 @@ internal static class PocketItemController
         Diagnostics.Event(
             "Inventory",
             "pocket_toggled",
-            $"item={item.m_shared.m_name} pocketed={Diagnostics.Bool(pocketed)}");
+            $"item={item.m_shared.m_name} scope={PocketItems.GetProtectionScope(item)} " +
+            $"pocketed={Diagnostics.Bool(pocketed)}");
         string verb = pocketed ? "Pocketed" : "Unpocketed";
         string message = $"{verb} {PocketItems.GetDisplayName(item)}";
         player.Message(MessageHud.MessageType.TopLeft, message);

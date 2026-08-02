@@ -8,6 +8,9 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static class PocketItems
 {
+    private const string InstancePocketKey = "com.benheim.qol:pocketed";
+    private const string PocketedValue = "1";
+
     private static readonly string Path = System.IO.Path.Combine(Paths.ConfigPath, "BenheimQoL.pocket-items.txt");
     private static readonly HashSet<string> ItemKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private static bool loaded;
@@ -30,12 +33,29 @@ internal static class PocketItems
     internal static bool IsManuallyPocketed(ItemDrop.ItemData item)
     {
         EnsureLoaded();
-        return item != null && ItemKeys.Contains(GetItemKey(item));
+        if (item == null)
+        {
+            return false;
+        }
+
+        if (UsesTypeProtection(item))
+        {
+            return ItemKeys.Contains(GetItemKey(item));
+        }
+
+        return item.m_customData != null
+            && item.m_customData.TryGetValue(InstancePocketKey, out string value)
+            && value == PocketedValue;
     }
 
     internal static bool Toggle(ItemDrop.ItemData item, out bool pocketed)
     {
         EnsureLoaded();
+        if (!UsesTypeProtection(item))
+        {
+            return ToggleInstance(item, out pocketed);
+        }
+
         string key = GetItemKey(item);
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -58,6 +78,11 @@ internal static class PocketItems
         return true;
     }
 
+    internal static string GetProtectionScope(ItemDrop.ItemData item)
+    {
+        return UsesTypeProtection(item) ? "item_type" : "item_instance";
+    }
+
     internal static string GetDisplayName(ItemDrop.ItemData item)
     {
         string name = item?.m_shared?.m_name ?? string.Empty;
@@ -67,6 +92,36 @@ internal static class PocketItems
     private static bool IsHotbarItem(ItemDrop.ItemData item)
     {
         return item.m_gridPos.y == 0 && item.m_gridPos.x >= 0 && item.m_gridPos.x < 8;
+    }
+
+    private static bool UsesTypeProtection(ItemDrop.ItemData item)
+    {
+        return item?.m_shared?.m_maxStackSize > 1;
+    }
+
+    private static bool ToggleInstance(ItemDrop.ItemData item, out bool pocketed)
+    {
+        string legacyTypeKey = GetItemKey(item);
+        bool removedLegacyType = ItemKeys.Remove(legacyTypeKey);
+        item.m_customData ??= new Dictionary<string, string>();
+
+        if (item.m_customData.ContainsKey(InstancePocketKey))
+        {
+            item.m_customData.Remove(InstancePocketKey);
+            pocketed = false;
+        }
+        else
+        {
+            item.m_customData[InstancePocketKey] = PocketedValue;
+            pocketed = true;
+        }
+
+        if (removedLegacyType)
+        {
+            Save();
+        }
+
+        return true;
     }
 
     private static string GetItemKey(ItemDrop.ItemData item)

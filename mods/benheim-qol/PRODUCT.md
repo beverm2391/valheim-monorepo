@@ -17,7 +17,9 @@ This file owns the overall product promise. Each feature module has a
 - The Windows installer finds Valheim across Steam libraries and creates a
   desktop shortcut. A player still needs to test the installer on a Windows PC.
 - Keep Benheim compatible with servers and players that do not use it.
-- Do not add custom persistent game objects or custom item data.
+- Do not add custom persistent world objects. Store explicit per-item
+  preferences in Benheim-namespaced item metadata only when another
+  representation cannot preserve them safely.
 - Prefer normal Valheim actions over direct inventory or world mutation.
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
   reason without damaging game state.
@@ -27,7 +29,8 @@ This file owns the overall product promise. Each feature module has a
 
 | Module | Product responsibility |
 | --- | --- |
-| [Inventory](src/Inventory/PRODUCT.md) | Split stacks, pocket items, and quick stack. |
+| [Inventory](src/Inventory/PRODUCT.md) | Split stacks, pocket items, and Put Away. |
+| [Production](src/Production/PRODUCT.md) | Fill production and cooking stations without repetitive clicks. |
 | [Repair](src/Repair/PRODUCT.md) | Batch gear repair and nearby building repair. |
 | [Interaction](src/Interaction/PRODUCT.md) | Less fussy interaction and station range. |
 | [Portals](src/Portals/PRODUCT.md) | Faster transitions after the destination is ready. |
@@ -50,12 +53,16 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.31` is the next test build. It:
+Benheim `0.1.32` is the next test build. It:
 
 - disables the broken mass building repair action while preserving normal
   hammer repair and batch gear repair;
 - shows a gold manual-pocket `P` in the top-left of an item slot and hides it
   while equipped or hotbar protection is active;
+- protects every stack of a manually pocketed stackable item type, but only the
+  marked instance of a non-stackable item;
+- fills production station inputs and fuel, plus cooking station food and fuel,
+  when the player holds `Left Shift` while interacting;
 - identifies every Put Away destination by distance and direction in the
   detailed HUD receipt and shows a short generic summary above the player;
 - moves detailed Put Away feedback to Valheim's center message area while the
