@@ -24,6 +24,9 @@ grep -Fq 'rect.anchorMin = new Vector2(0f, 0f)' "$marker"
 grep -Fq 'TextAlignmentOptions.BottomLeft' "$marker"
 grep -Fq 'if (inventoryWasOpen)' "$quick_stack_feedback"
 grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedback"
+grep -Fq 'WorldFeedback.ShowAt(container.transform.position' "$quick_stack_feedback"
+grep -Fq 'FormatItemsForContainer' "$quick_stack_feedback"
+grep -Fq 'FormatLocation(player, container)' "$quick_stack"
 grep -Fq 'm_animator' "$visibility"
 if grep -Fq 'WorldFeedback' "$controller"; then
   printf 'pocket toggles must not show floating world text\n' >&2

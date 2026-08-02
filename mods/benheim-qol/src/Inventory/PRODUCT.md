@@ -11,6 +11,7 @@ The Inventory module makes routine item movement faster.
 - `Left Shift` + `P` moves matching items into accessible chests within 30
   meters. It works during normal gameplay and while the inventory is open.
 - An eligible chest already contains the item and has room for more.
+- Put Away checks eligible chests from nearest to farthest.
 - Quick stack reports the quantity and name of each item type moved.
 - Manually pocketed item types stay with the player during quick stack.
 - Press `P` while hovering over an item to toggle manual pocketing for that item
@@ -19,7 +20,10 @@ The Inventory module makes routine item movement faster.
 ## In Development
 
 - Show one result line for each destination chest. Sort the items on each line
-  by moved quantity, from highest to lowest.
+  by moved quantity, from highest to lowest. Identify the chest by its distance
+  and compass direction from the player when Put Away finishes.
+- Briefly show the item names and quantities received above each destination
+  chest so the player can locate it in the world.
 - Put Away always keeps its existing detailed result in the normal top-left
   message feed.
 - When Put Away starts with the inventory closed, also show a short summary

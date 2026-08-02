@@ -50,12 +50,14 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.24` is the next test build. It:
+Benheim `0.1.25` is the next test build. It:
 
 - disables the broken mass building repair action while preserving normal
   hammer repair and batch gear repair;
 - moves the manual and automatic protection markers to the bottom-left corner
   of each item slot;
+- identifies every Put Away destination by distance and direction and shows a
+  floating item receipt above each chest that received items;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel; and
 - includes Wood Cutting cleave for standing trees and fallen logs at skill
