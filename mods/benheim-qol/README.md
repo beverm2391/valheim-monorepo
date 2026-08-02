@@ -25,9 +25,9 @@ old standalone MassFarming plugin because farming is part of BenheimQoL.
 Install Valheim through Steam first. Then unzip the Windows package and
 double-click `Install BenheimQoL.cmd`. The installer finds Valheim in your
 configured Steam libraries. It installs the pinned BepInEx runtime and current
-BenheimQoL DLL. It also creates a `Benheim QoL` desktop shortcut.
+BenheimQoL DLL. It also creates a `Benheim` desktop shortcut.
 
-Open the `Benheim QoL` desktop shortcut to play. On Windows, BepInEx loads from
+Open the `Benheim` desktop shortcut to play. On Windows, BepInEx loads from
 the Valheim game directory, so Steam's normal Play button also starts the
 modded game after installation.
 

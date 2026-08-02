@@ -144,8 +144,17 @@ function Install-BenheimQoL {
         throw 'Windows did not report a Desktop folder, so the launcher shortcut could not be created.'
     }
 
-    $shortcutPath = Join-Path $desktop 'Benheim QoL.lnk'
+    $shortcutPath = Join-Path $desktop 'Benheim.lnk'
+    $legacyShortcutPath = Join-Path $desktop 'Benheim QoL.lnk'
     $shell = New-Object -ComObject WScript.Shell
+
+    if (Test-Path -LiteralPath $legacyShortcutPath -PathType Leaf) {
+        $legacyShortcut = $shell.CreateShortcut($legacyShortcutPath)
+        if ($legacyShortcut.Description -eq $ShortcutMarker) {
+            Remove-Item -LiteralPath $legacyShortcutPath -Force
+        }
+    }
+
     if (Test-Path -LiteralPath $shortcutPath -PathType Leaf) {
         $existingShortcut = $shell.CreateShortcut($shortcutPath)
         if ($existingShortcut.Description -ne $ShortcutMarker) {
@@ -153,8 +162,8 @@ function Install-BenheimQoL {
         }
     }
 
-    Write-Host 'Installing the Benheim QoL desktop shortcut...'
-    $stagedShortcut = Join-Path $TempDir 'Benheim QoL.lnk'
+    Write-Host 'Installing the Benheim desktop shortcut...'
+    $stagedShortcut = Join-Path $TempDir 'Benheim.lnk'
     $shortcut = $shell.CreateShortcut($stagedShortcut)
     $shortcut.TargetPath = Join-Path $env:WINDIR 'explorer.exe'
     $shortcut.Arguments = 'steam://rungameid/892970'
@@ -166,7 +175,7 @@ function Install-BenheimQoL {
 
     Write-Host ''
     Write-Host 'Installed BenheimQoL.'
-    Write-Host 'Open Benheim QoL from your Desktop to play.'
+    Write-Host 'Open Benheim from your Desktop to play.'
 }
 
 try {
