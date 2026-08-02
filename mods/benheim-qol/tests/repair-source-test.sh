@@ -5,12 +5,12 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 patches="$root/src/Repair/RepairPatches.cs"
 repair="$root/src/Repair/BuildingRepair.cs"
 
-grep -Fq 'AccessTools.DeclaredMethod(' "$patches"
-grep -Fq 'building_repair_patch_ready' "$patches"
-grep -Fq 'building_repair_click_observed' "$repair"
-grep -Fq 'RepairRadius = 20f' "$repair"
-grep -Fq 'if (repaired > 1)' "$repair"
-grep -Fq 'WorldFeedback.ShowAt(GetFeedbackPosition(anchor)' "$repair"
-grep -Fq 'pieces repaired' "$repair"
+grep -Fq 'internal static class GearRepairPatch' "$patches"
+grep -Fq 'station_repair_all_finished' "$patches"
+test ! -e "$repair"
+if grep -Fq 'BuildingRepair' "$patches"; then
+  printf 'mass building repair must stay disabled until target detection is proven\n' >&2
+  exit 1
+fi
 
-printf 'repair patch diagnostic checks passed\n'
+printf 'station repair enabled and mass building repair disabled\n'

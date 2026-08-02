@@ -15,7 +15,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.22";
+    public const string PluginVersion = "0.1.23";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -26,14 +26,12 @@ public sealed class Plugin : BaseUnityPlugin
         Log = Logger;
         harmony = new Harmony(PluginGuid);
         harmony.PatchAll();
-        BuildingRepairPatch.LogPatchStatus();
         Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
         Diagnostics.Event("Core", "session_start", $"version={PluginVersion}");
     }
 
     private void Update()
     {
-        BuildingRepair.LogRepairInput();
         QuickStack.Update();
         QuickStackHotkey.Update();
         ShortcutOverlay.Update();

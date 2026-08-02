@@ -31,7 +31,10 @@ The Inventory module makes routine item movement faster.
   feed.
 - A gold `P` marks manual pocketing, which the player can toggle. A cyan `P`
   marks automatic protection that lasts while an item is equipped or in the
-  hotbar.
+  hotbar. Both markers appear in the bottom-left of the item slot.
+- Show Put Away results for about seven seconds in the top-left and about six
+  seconds above the player. These durations are longer than Valheim's normal
+  flash messages.
 - Confirm that equipped items and hotbar items stay with the player during quick
   stack.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing for that

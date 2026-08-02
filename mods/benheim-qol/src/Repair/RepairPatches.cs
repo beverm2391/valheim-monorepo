@@ -1,6 +1,4 @@
 using System;
-using System.Linq;
-using System.Reflection;
 using BenheimQoL.Infrastructure;
 using HarmonyLib;
 
@@ -26,61 +24,6 @@ internal static class GearRepairPatch
         catch (Exception ex)
         {
             Plugin.Log.LogWarning($"Repair-all gear failed; falling back to vanilla repair: {ex.Message}");
-            return true;
-        }
-
-        return false;
-    }
-}
-
-[HarmonyPatch]
-internal static class BuildingRepairPatch
-{
-    private static MethodBase TargetMethod()
-    {
-        return AccessTools.DeclaredMethod(
-            typeof(Player),
-            "Repair",
-            new[] { typeof(ItemDrop.ItemData), typeof(Piece) })
-            ?? throw new MissingMethodException("Could not find Player.Repair(ItemData, Piece)");
-    }
-
-    internal static void LogPatchStatus()
-    {
-        MethodBase target = TargetMethod();
-        Patches? patchInfo = Harmony.GetPatchInfo(target);
-        bool installed = patchInfo?.Prefixes.Any(patch => patch.owner == Plugin.PluginGuid) == true;
-        Diagnostics.Event(
-            "Repair",
-            "building_repair_patch_ready",
-            $"installed={Diagnostics.Bool(installed)} target=\"{target.DeclaringType?.Name}.{target.Name}\"");
-        if (!installed)
-        {
-            Plugin.Log.LogWarning("Mass building repair patch is not installed; normal repair remains available.");
-        }
-    }
-
-    [HarmonyPriority(Priority.First)]
-    private static bool Prefix(Player __instance, ItemDrop.ItemData toolItem, Piece repairPiece)
-    {
-        bool shiftHeld = InputState.IsShiftHeld();
-        bool repairablePiece = repairPiece && repairPiece.m_repairPiece;
-        Diagnostics.Event(
-            "Repair",
-            "building_repair_input",
-            $"shift={Diagnostics.Bool(shiftHeld)} repair_piece={Diagnostics.Bool(repairablePiece)} target=\"{(repairPiece ? repairPiece.gameObject.name : "none")}\"");
-        if (!repairablePiece || !shiftHeld)
-        {
-            return true;
-        }
-
-        try
-        {
-            BuildingRepair.RepairNearbyPieces(__instance, toolItem);
-        }
-        catch (Exception ex)
-        {
-            Plugin.Log.LogWarning($"Mass building repair failed; falling back to vanilla repair: {ex.Message}");
             return true;
         }
 

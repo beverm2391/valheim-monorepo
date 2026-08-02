@@ -50,19 +50,18 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.22` is the next test build. It includes:
+Benheim `0.1.23` is the next test build. It:
 
-- quick-stack results grouped by destination chest;
-- items sorted by moved quantity within each chest;
-- focused diagnostics for mass building repair;
-- a shortcuts panel that preloads and groups features under Inventory, Build &
-  Repair, Farming, Travel, and Combat;
-- a short above-player Put Away summary when the inventory is closed, while the
-  existing detailed top-left result remains visible; and
-- yellow feedback over the targeted structure when mass repair repairs more
-  than one piece; and
-- Wood Cutting cleave for standing trees and fallen logs at skill level 25 or
-  higher.
+- disables the broken mass building repair action while preserving normal
+  hammer repair and batch gear repair;
+- moves the manual and automatic protection markers to the bottom-left corner
+  of each item slot;
+- shows Put Away results for about seven seconds in the top-left and about six
+  seconds above the player;
+- uses Benheim as the player-facing name in the Mac and Windows launchers and
+  in the shortcuts panel; and
+- includes Wood Cutting cleave for standing trees and fallen logs at skill
+  level 25 or higher.
 
 ## Later
 

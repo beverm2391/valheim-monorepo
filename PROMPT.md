@@ -135,6 +135,17 @@ Use `mods/benheim-qol/tests/windows-installer-test.sh` to verify the installer
 source and packaged files. Keep this test until a Windows CI runner can execute
 the installer.
 
+Publish Benheim with `mods/benheim-qol/scripts/release.sh`. The command must run
+only from a clean local `main` that exactly matches `origin/main`. The script:
+
+- runs the complete client test suite;
+- builds both platform packages;
+- creates the `benheim-v<version>` GitHub release; and
+- uploads the stable `Benheim-macOS.zip` and `Benheim-Windows.zip` assets.
+
+Friends update by downloading the latest package from the stable Mac or Windows
+link. They rerun the installer while Valheim is closed.
+
 Use this development loop for gameplay changes:
 
 1. Add concise diagnostic events for the changed action and the decisions that

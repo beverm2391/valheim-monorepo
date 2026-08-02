@@ -57,10 +57,10 @@ internal static class PocketMarker
         markerObject.transform.SetParent(inventoryElement.transform, worldPositionStays: false);
 
         RectTransform rect = markerObject.AddComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0f, 1f);
-        rect.anchorMax = new Vector2(0f, 1f);
-        rect.pivot = new Vector2(0f, 1f);
-        rect.anchoredPosition = new Vector2(3f, -2f);
+        rect.anchorMin = new Vector2(0f, 0f);
+        rect.anchorMax = new Vector2(0f, 0f);
+        rect.pivot = new Vector2(0f, 0f);
+        rect.anchoredPosition = new Vector2(3f, 2f);
         rect.sizeDelta = new Vector2(20f, 18f);
 
         TMP_Text text = markerObject.AddComponent<TextMeshProUGUI>();
@@ -74,7 +74,7 @@ internal static class PocketMarker
         text.text = "P";
         text.fontSize = 14f;
         text.fontStyle = FontStyles.Bold;
-        text.alignment = TextAlignmentOptions.TopLeft;
+        text.alignment = TextAlignmentOptions.BottomLeft;
         text.color = Color.white;
         text.raycastTarget = false;
         return text;

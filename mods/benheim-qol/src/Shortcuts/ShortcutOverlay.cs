@@ -28,7 +28,6 @@ internal static class ShortcutOverlay
             new[]
             {
                 new Entry("Shift + station click", "Repair all eligible gear"),
-                new Entry("Shift + hammer click", "Repair nearby damaged pieces"),
             },
             "Stations, cauldrons, and nearby objects have a longer interaction range."),
         new Section(

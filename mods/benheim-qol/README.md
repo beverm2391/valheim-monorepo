@@ -35,6 +35,17 @@ You can run the installer again to update Benheim. The installer stops if
 Valheim is open. It verifies the BepInEx download. It does not replace an
 unrelated desktop shortcut. It disables the old standalone MassFarming plugin.
 
+## Update Benheim
+
+Quit Valheim, then download the latest package for your computer:
+
+- [Latest Mac package](https://github.com/beverm2391/valheim-server/releases/latest/download/Benheim-macOS.zip)
+- [Latest Windows package](https://github.com/beverm2391/valheim-server/releases/latest/download/Benheim-Windows.zip)
+
+Unzip the package and run `Install Benheim` again. The installer replaces the
+mod and launcher without removing saves, characters, settings, or pocketed item
+preferences. Press `F8` in game to confirm the installed version.
+
 ## Features
 
 See [`PRODUCT.md`](PRODUCT.md) for the canonical product promise and detailed
@@ -67,6 +78,20 @@ players. To create the shareable package, run:
 mods/benheim-qol/scripts/package-macos.sh
 mods/benheim-qol/scripts/package-windows.sh
 ```
+
+Publish a tested release from a clean local `main` branch that exactly matches
+`origin/main`:
+
+```bash
+mods/benheim-qol/scripts/release.sh
+```
+
+The release command:
+
+- runs the complete client test suite;
+- builds both packages;
+- creates a versioned GitHub release; and
+- uploads both packages with the stable asset names used by the links above.
 
 The package is written under `mods/benheim-qol/dist/`. The installer copies
 `BenheimQoL.dll` into:

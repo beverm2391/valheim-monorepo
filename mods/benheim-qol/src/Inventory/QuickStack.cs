@@ -70,11 +70,11 @@ internal static class QuickStack
         if (containers.Count == 0)
         {
             Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_nearby_containers");
-            player.Message(MessageHud.MessageType.TopLeft, "No nearby containers");
-            QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
+            QuickStackFeedback.ShowResult(
                 player,
                 inventoryWasOpen,
-                movedItems: 0);
+                movedItems: 0,
+                "No nearby containers");
             return;
         }
 
@@ -86,17 +86,15 @@ internal static class QuickStack
         if (eligibility.Containers.Count == 0)
         {
             Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_eligible_containers");
-            player.Message(
-                MessageHud.MessageType.TopLeft,
+            QuickStackFeedback.ShowResult(
+                player,
+                inventoryWasOpen,
+                movedItems: 0,
                 QuickStackMessages.NothingMoved(
                     containers.Count,
                     eligibility.SkippedNoMatchingContainer,
                     eligibility.SkippedFull,
                     skippedBusy: 0));
-            QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
-                player,
-                inventoryWasOpen,
-                movedItems: 0);
             return;
         }
 
@@ -305,23 +303,19 @@ internal static class QuickStack
         if (operation.MovedItems > 0)
         {
             operation.InventoryGui.m_moveItemEffects.Create(operation.InventoryGui.transform.position, Quaternion.identity);
-            operation.Player.Message(
-                MessageHud.MessageType.TopLeft,
-                operation.Summary.Format());
-            QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
+            QuickStackFeedback.ShowResult(
                 operation.Player,
                 operation.InventoryWasOpen,
-                operation.MovedItems);
+                operation.MovedItems,
+                operation.Summary.Format());
             return;
         }
 
-        operation.Player.Message(
-            MessageHud.MessageType.TopLeft,
-            QuickStackMessages.NothingMoved(operation.Containers.Count, 0, 0, operation.BusyContainers));
-        QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
+        QuickStackFeedback.ShowResult(
             operation.Player,
             operation.InventoryWasOpen,
-            movedItems: 0);
+            movedItems: 0,
+            QuickStackMessages.NothingMoved(operation.Containers.Count, 0, 0, operation.BusyContainers));
     }
 
     private static int MoveAsMuchAsPossible(Inventory sourceInventory, Inventory targetInventory, ItemDrop.ItemData item)

@@ -1,19 +1,42 @@
+using System.Collections;
 using BenheimQoL.Infrastructure;
+using UnityEngine;
 
 namespace BenheimQoL.InventoryFeature;
 
 internal static class QuickStackFeedback
 {
-    internal static void ShowAbovePlayerSummaryIfInventoryWasClosed(
+    private const float AbovePlayerDurationSeconds = 6f;
+    private const float TopLeftRefreshDelaySeconds = 3f;
+
+    internal static void ShowResult(
         Player player,
         bool inventoryWasOpen,
-        int movedItems)
+        int movedItems,
+        string topLeftMessage)
     {
-        if (inventoryWasOpen)
+        player.Message(MessageHud.MessageType.TopLeft, topLeftMessage);
+        player.StartCoroutine(RefreshTopLeftIfStillVisible(player, topLeftMessage));
+
+        if (!inventoryWasOpen)
         {
-            return;
+            WorldFeedback.ShowAbovePlayer(
+                player,
+                QuickStackMessages.AbovePlayerSummary(movedItems),
+                AbovePlayerDurationSeconds);
+        }
+    }
+
+    private static IEnumerator RefreshTopLeftIfStillVisible(Player player, string message)
+    {
+        yield return new WaitForSecondsRealtime(TopLeftRefreshDelaySeconds);
+
+        MessageHud messageHud = MessageHud.instance;
+        if (!player || !messageHud || messageHud.m_messageText.text != Localization.instance.Localize(message))
+        {
+            yield break;
         }
 
-        WorldFeedback.ShowAbovePlayer(player, QuickStackMessages.AbovePlayerSummary(movedItems));
+        player.Message(MessageHud.MessageType.TopLeft, message);
     }
 }
