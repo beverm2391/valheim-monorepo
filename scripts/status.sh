@@ -4,7 +4,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 load_config
 
-echo "Server: $HETZNER_SERVER_NAME ($(server_ip))"
+echo "Server: $HETZNER_SERVER_NAME (${SSH_HOST:-$(server_ip)})"
 remote_ssh '
   set -euo pipefail
   echo "valheim.service: $(systemctl is-active valheim.service)"

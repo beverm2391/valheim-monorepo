@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+since=${1:?Usage: verify-benheim-eternal-fire <journalctl-since>}
+journalctl_bin=${JOURNALCTL_BIN:-journalctl}
+unit=${VALHEIM_SYSTEMD_UNIT:-valheim.service}
+expected=${BENHEIM_ETERNAL_FIRE_LOAD_MESSAGE:-Benheim Eternal Fire 0.1.1 loaded after PatchAll.}
+
+logs="$($journalctl_bin -u "$unit" --since "$since" --no-pager)"
+if ! grep -Fq -- "$expected" <<<"$logs"; then
+  echo "Valheim became ready, but the exact Benheim Eternal Fire load message was absent after $since." >&2
+  exit 1
+fi
+
+echo "Verified: $expected"

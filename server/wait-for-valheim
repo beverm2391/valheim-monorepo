@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+since=${1:?Usage: valheim-wait-ready <journalctl-since>}
+
+for attempt in $(seq 1 45); do
+  if journalctl -u valheim.service --since "$since" --no-pager | \
+    grep -Fq 'Game server connected'; then
+    exit 0
+  fi
+  systemctl is-active --quiet valheim.service || exit 1
+  sleep 2
+done
+
+echo "Valheim did not become ready within 90 seconds." >&2
+exit 1

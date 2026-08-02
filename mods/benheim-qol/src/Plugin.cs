@@ -1,5 +1,10 @@
 using BepInEx;
 using BepInEx.Logging;
+using BenheimQoL.Infrastructure;
+using BenheimQoL.InventoryFeature;
+using BenheimQoL.Farming;
+using BenheimQoL.Repair;
+using BenheimQoL.Shortcuts;
 using HarmonyLib;
 using UnityEngine;
 
@@ -10,7 +15,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "BenheimQoL";
-    public const string PluginVersion = "0.1.5";
+    public const string PluginVersion = "0.1.21";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -21,11 +26,16 @@ public sealed class Plugin : BaseUnityPlugin
         Log = Logger;
         harmony = new Harmony(PluginGuid);
         harmony.PatchAll();
+        BuildingRepairPatch.LogPatchStatus();
         Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
+        Diagnostics.Event("Core", "session_start", $"version={PluginVersion}");
     }
 
     private void Update()
     {
+        BuildingRepair.LogRepairInput();
+        QuickStack.Update();
+        QuickStackHotkey.Update();
         ShortcutOverlay.Update();
     }
 
@@ -36,6 +46,8 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        PlantingPreview.DestroyGhosts();
+        Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         harmony?.UnpatchSelf();
     }
 }
