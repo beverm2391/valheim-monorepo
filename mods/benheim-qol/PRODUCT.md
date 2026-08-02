@@ -56,8 +56,6 @@ Benheim `0.1.23` is the next test build. It:
   hammer repair and batch gear repair;
 - moves the manual and automatic protection markers to the bottom-left corner
   of each item slot;
-- shows Put Away results for about seven seconds in the top-left and about six
-  seconds above the player;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel; and
 - includes Wood Cutting cleave for standing trees and fallen logs at skill
