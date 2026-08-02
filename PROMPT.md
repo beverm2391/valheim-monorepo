@@ -110,18 +110,30 @@ Manual test plans are task-scoped process artifacts, not canonical product
 context. Derive the relevant checklist from the changed behavior, use it for the
 current development pass, and do not accumulate it in `PRODUCT.md`.
 
-Build, install locally, and package for Mac:
+Build and install locally on Mac, then package for Mac and Windows:
 
 ```bash
 mods/benheim-qol/scripts/build.sh
 mods/benheim-qol/scripts/install-local.sh
 mods/benheim-qol/scripts/package-macos.sh
+mods/benheim-qol/scripts/package-windows.sh
 ```
 
 `install-local.sh` must invoke the same idempotent Mac installer shipped to
 players. Keep BepInEx installation, legacy-plugin cleanup, and launcher
 generation in that installer. The generated launcher must start Steam when it
 is closed and wait for Steam IPC readiness before starting Valheim.
+
+The Windows installer must:
+
+- find Valheim in configured Steam libraries;
+- verify the pinned BepInEx archive;
+- disable the standalone MassFarming plugin; and
+- refuse to overwrite an unrelated desktop shortcut.
+
+Use `mods/benheim-qol/tests/windows-installer-test.sh` to verify the installer
+source and packaged files. Keep this test until a Windows CI runner can execute
+the installer.
 
 Use this development loop for gameplay changes:
 

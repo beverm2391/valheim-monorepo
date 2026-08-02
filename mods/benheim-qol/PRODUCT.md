@@ -10,10 +10,12 @@ This file owns the overall product promise. Each feature module has a
 ## Product Rules
 
 - Keep one client DLL and one simple install.
-- Use the same idempotent Mac installer for local development and player
-  installs. It must leave unrelated files and applications unchanged. It must
-  refuse installation while Valheim is running.
+- Ship one idempotent installer for each desktop platform. Each installer must
+  leave unrelated files and launchers unchanged. It must refuse installation
+  while Valheim is running.
 - The Mac launcher starts Steam when needed before it starts modded Valheim.
+- The Windows installer finds Valheim across Steam libraries and creates a
+  desktop shortcut. A player still needs to test the installer on a Windows PC.
 - Keep BenheimQoL compatible with servers and players that do not use it.
 - Do not add custom persistent game objects or custom item data.
 - Prefer normal Valheim actions over direct inventory or world mutation.

@@ -20,6 +20,21 @@ The installer is safe to run again for an update. It refuses to run while
 Valheim is open and refuses to replace an unrelated app. It also disables the
 old standalone MassFarming plugin because farming is part of BenheimQoL.
 
+## Install On Windows
+
+Install Valheim through Steam first. Then unzip the Windows package and
+double-click `Install BenheimQoL.cmd`. The installer finds Valheim in your
+configured Steam libraries. It installs the pinned BepInEx runtime and current
+BenheimQoL DLL. It also creates a `Benheim QoL` desktop shortcut.
+
+Open the `Benheim QoL` desktop shortcut to play. On Windows, BepInEx loads from
+the Valheim game directory, so Steam's normal Play button also starts the
+modded game after installation.
+
+You can run the installer again to update BenheimQoL. The installer stops if
+Valheim is open. It verifies the BepInEx download. It does not replace an
+unrelated desktop shortcut. It disables the old standalone MassFarming plugin.
+
 ## Features
 
 See [`PRODUCT.md`](PRODUCT.md) for the canonical product promise and detailed
@@ -50,6 +65,7 @@ players. To create the shareable package, run:
 
 ```bash
 mods/benheim-qol/scripts/package-macos.sh
+mods/benheim-qol/scripts/package-windows.sh
 ```
 
 The package is written under `mods/benheim-qol/dist/`. The installer copies
