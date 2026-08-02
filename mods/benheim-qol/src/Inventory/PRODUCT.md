@@ -24,13 +24,14 @@ The Inventory module makes routine item movement faster.
   and compass direction from the player when Put Away finishes.
 - Briefly show the item names and quantities received above each destination
   chest so the player can locate it in the world.
-- Put Away always keeps its existing detailed result in the normal top-left
-  message feed.
-- When Put Away starts with the inventory closed, also show a short summary
-  above the player. On success, show `Put away N items`, where `N` is the total
-  number of units moved. Show `Put away 1 item` for one unit and `Nothing to put
-  away` when no units move.
-- When Put Away starts with the inventory open, show no above-player summary.
+- When Put Away starts with the inventory closed, show its detailed result in
+  the normal top-left message feed and a short summary above the player. On
+  success, show `Put away N items`, where `N` is the total number of units
+  moved. Show `Put away 1 item` for one unit and `Nothing to put away` when no
+  units move.
+- When Put Away starts with the inventory open, show the detailed result in
+  Valheim's center message area so the inventory cannot cover it. Show no
+  above-player summary.
 - Show pocket and unpocket confirmations only in the normal top-left message
   feed.
 - A gold `P` marks manual pocketing, which the player can toggle. A cyan `P`

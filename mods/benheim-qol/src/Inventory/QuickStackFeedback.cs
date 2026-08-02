@@ -6,6 +6,17 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static class QuickStackFeedback
 {
+    internal static void ShowDetailedResult(
+        Player player,
+        bool inventoryWasOpen,
+        string message)
+    {
+        MessageHud.MessageType messageType = inventoryWasOpen
+            ? MessageHud.MessageType.Center
+            : MessageHud.MessageType.TopLeft;
+        player.Message(messageType, message);
+    }
+
     internal static void ShowDestinationSummaries(
         IEnumerable<Container> containers,
         QuickStackSummary summary)

@@ -70,7 +70,7 @@ internal static class QuickStack
         if (containers.Count == 0)
         {
             Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_nearby_containers");
-            player.Message(MessageHud.MessageType.TopLeft, "No nearby containers");
+            QuickStackFeedback.ShowDetailedResult(player, inventoryWasOpen, "No nearby containers");
             QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
                 player,
                 inventoryWasOpen,
@@ -86,8 +86,9 @@ internal static class QuickStack
         if (eligibility.Containers.Count == 0)
         {
             Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_eligible_containers");
-            player.Message(
-                MessageHud.MessageType.TopLeft,
+            QuickStackFeedback.ShowDetailedResult(
+                player,
+                inventoryWasOpen,
                 QuickStackMessages.NothingMoved(
                     containers.Count,
                     eligibility.SkippedNoMatchingContainer,
@@ -289,10 +290,7 @@ internal static class QuickStack
                 Localize(item.m_shared.m_name),
                 moved);
 
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_item",
-                $"item={item.m_shared.m_name} moved={moved}");
+            QuickStackDiagnostics.ItemMoved(item, moved, container, containerLocation);
         }
 
         return movedItems;
@@ -309,8 +307,9 @@ internal static class QuickStack
         {
             operation.InventoryGui.m_moveItemEffects.Create(operation.InventoryGui.transform.position, Quaternion.identity);
             QuickStackFeedback.ShowDestinationSummaries(operation.Containers, operation.Summary);
-            operation.Player.Message(
-                MessageHud.MessageType.TopLeft,
+            QuickStackFeedback.ShowDetailedResult(
+                operation.Player,
+                operation.InventoryWasOpen,
                 operation.Summary.Format());
             QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
                 operation.Player,
@@ -319,8 +318,9 @@ internal static class QuickStack
             return;
         }
 
-        operation.Player.Message(
-            MessageHud.MessageType.TopLeft,
+        QuickStackFeedback.ShowDetailedResult(
+            operation.Player,
+            operation.InventoryWasOpen,
             QuickStackMessages.NothingMoved(operation.Containers.Count, 0, 0, operation.BusyContainers));
         QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
             operation.Player,
