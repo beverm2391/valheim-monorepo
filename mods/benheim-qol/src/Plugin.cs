@@ -14,8 +14,8 @@ namespace BenheimQoL;
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
-    public const string PluginName = "BenheimQoL";
-    public const string PluginVersion = "0.1.21";
+    public const string PluginName = "Benheim";
+    public const string PluginVersion = "0.1.22";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 

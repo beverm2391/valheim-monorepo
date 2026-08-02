@@ -1,6 +1,6 @@
-# BenheimQoL
+# Benheim
 
-BenheimQoL is one client-only Valheim mod made from small feature modules. It
+Benheim is a client-only Valheim mod made from small feature modules. It
 removes repetitive chores without adding custom items, custom world data, or a
 server requirement.
 
@@ -16,7 +16,7 @@ This file owns the overall product promise. Each feature module has a
 - The Mac launcher starts Steam when needed before it starts modded Valheim.
 - The Windows installer finds Valheim across Steam libraries and creates a
   desktop shortcut. A player still needs to test the installer on a Windows PC.
-- Keep BenheimQoL compatible with servers and players that do not use it.
+- Keep Benheim compatible with servers and players that do not use it.
 - Do not add custom persistent game objects or custom item data.
 - Prefer normal Valheim actions over direct inventory or world mutation.
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
@@ -42,15 +42,15 @@ player-facing promise.
 
 ## Current Behavior
 
-BenheimQoL `0.1.13` is the current gameplay-confirmed client build. Each feature
-module records its confirmed behavior.
+Benheim `0.1.13` is the latest client build that players have confirmed during
+gameplay. Each feature module records its confirmed behavior.
 
 ## In Development
 
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-BenheimQoL `0.1.21` is the next test build. It includes:
+Benheim `0.1.22` is the next test build. It includes:
 
 - quick-stack results grouped by destination chest;
 - items sorted by moved quantity within each chest;

@@ -93,7 +93,7 @@ function Install-BenheimQoL {
         throw "Valheim was not found at: $gameDir"
     }
     if (-not (Test-Path -LiteralPath $PluginDll -PathType Leaf)) {
-        throw 'BenheimQoL.dll is missing beside the installer.'
+        throw 'The Benheim plugin file is missing beside the installer.'
     }
 
     $bepInExDir = Join-Path $gameDir 'BepInEx'
@@ -121,7 +121,7 @@ function Install-BenheimQoL {
         throw 'The BepInEx package had an unexpected layout.'
     }
 
-    Write-Host 'Installing BepInEx and BenheimQoL...'
+    Write-Host 'Installing BepInEx and Benheim...'
     Get-ChildItem -LiteralPath $bepInExRoot -Force |
         Copy-Item -Destination $gameDir -Recurse -Force
     New-Item -ItemType Directory -Path $pluginDir -Force | Out-Null
@@ -174,7 +174,7 @@ function Install-BenheimQoL {
     Copy-Item -LiteralPath $stagedShortcut -Destination $shortcutPath -Force
 
     Write-Host ''
-    Write-Host 'Installed BenheimQoL.'
+    Write-Host 'Installed Benheim.'
     Write-Host 'Open Benheim from your Desktop to play.'
 }
 

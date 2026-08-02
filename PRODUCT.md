@@ -24,7 +24,7 @@ installing anything.
 
 | Feature | Product role | Runs on | Required for friends |
 | --- | --- | --- | --- |
-| BenheimQoL | First-party quality-of-life behavior such as inventory, farming, repair, portal, and mining improvements. | Client | No |
+| Benheim | Quality-of-life features we maintain for inventory, farming, repair, portals, and mining. | Client | No |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
@@ -32,7 +32,7 @@ installing anything.
 BepInEx loads the mods. Benheim Eternal Fire does not depend on a shared mod
 library.
 
-BenheimQoL's detailed product behavior is owned by
+Benheim's detailed product behavior is owned by
 [`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Benheim Eternal
 Fire's behavior and player experience are owned by
 [`server-mods/benheim-eternal-fire/PRODUCT.md`](server-mods/benheim-eternal-fire/PRODUCT.md).
@@ -60,6 +60,6 @@ installing or removing it does not corrupt shared world or character data.
   server-only ship mod was deployed.
 - Test the packaged Windows installer and desktop shortcut on a friend's PC.
   Friends have already tested the shareable Mac installer during gameplay.
-- Stabilize BenheimQoL's current behavior before expanding its feature set.
-- Decide whether craft-from-nearby-containers belongs in BenheimQoL without
-  removing the resource-budgeting information players use to make decisions.
+- Stabilize Benheim's current behavior before expanding its feature set.
+- Decide whether Benheim should support crafting from nearby containers without
+  hiding the resource totals players use to plan.

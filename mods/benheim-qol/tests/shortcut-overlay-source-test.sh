@@ -31,5 +31,6 @@ grep -Fq '"Travel"' "$source_file"
 grep -Fq '"Combat & Skills"' "$source_file"
 grep -Fq 'GUILayout.BeginScrollView(' "$source_file"
 grep -Fq 'GUILayout.EndScrollView();' "$source_file"
+grep -Fq 'private static readonly string Title = $"Benheim v{Plugin.PluginVersion}";' "$source_file"
 
 printf 'shortcut overlay preload, cache, and semantic-group checks passed\n'

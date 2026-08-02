@@ -54,7 +54,7 @@ internal static class ShortcutOverlay
             "Perfect defenses show adrenaline gains, and the meter shows decay timing."),
     };
 
-    private static readonly string Title = $"BenheimQoL v{Plugin.PluginVersion}";
+    private static readonly string Title = $"Benheim v{Plugin.PluginVersion}";
     private static readonly Rect PreloadRect = new Rect(0f, 0f, 1000f, 100f);
 
     private static bool visible;

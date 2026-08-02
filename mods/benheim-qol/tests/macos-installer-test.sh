@@ -25,6 +25,22 @@ fixture_zip="$test_root/BepInExPack.zip"
 fixture_sha="$(shasum -a 256 "$fixture_zip" | awk '{print $1}')"
 
 printf 'test-dll\n' > "$test_root/BenheimQoL.dll"
+
+# A successful install replaces the old managed launcher name without leaving
+# two launchers behind.
+legacy_app="$app_dir/Benheim QoL.app"
+mkdir -p "$legacy_app/Contents"
+cat > "$legacy_app/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.beneverman.benheim-qol</string>
+</dict>
+</plist>
+PLIST
+
 BENHEIM_QOL_GAME_DIR="$game_dir" \
 BENHEIM_QOL_APP_DIR="$app_dir" \
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
@@ -38,14 +54,17 @@ test -x "$game_dir/start_game_bepinex.sh"
 test -f "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll"
 test ! -f "$game_dir/BepInEx/plugins/MassFarming/MassFarming.dll"
 test -f "$game_dir/BepInEx/disabled/MassFarming/MassFarming.dll"
-test -x "$app_dir/Benheim QoL.app/Contents/MacOS/BenheimQoL"
-test -f "$app_dir/Benheim QoL.app/Contents/Resources/PlayerIcon.icns"
-grep -Fq 'open -a Steam' "$app_dir/Benheim QoL.app/Contents/MacOS/BenheimQoL"
-grep -Fq 'pgrep -x ipcserver' "$app_dir/Benheim QoL.app/Contents/MacOS/BenheimQoL"
+test ! -e "$legacy_app"
+test -x "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL"
+test -f "$app_dir/Benheim.app/Contents/Resources/PlayerIcon.icns"
+grep -Fq 'open -a Steam' "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL"
+grep -Fq 'pgrep -x ipcserver' "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL"
 grep -Fq 'Rosetta 2 is required' "$root/scripts/install-macos.command"
+grep -Fq 'package_name="Benheim-macOS-$version"' "$root/scripts/package-macos.sh"
+grep -Fq 'Install Benheim.command' "$root/scripts/package-macos.sh"
 
 first_plugin_sha="$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
-first_launcher_sha="$(shasum -a 256 "$app_dir/Benheim QoL.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
+first_launcher_sha="$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
 
 # A second install must converge on the same active plugin and launcher.
 BENHEIM_QOL_GAME_DIR="$game_dir" \
@@ -58,12 +77,12 @@ BENHEIM_QOL_NONINTERACTIVE=1 \
   "$root/scripts/install-macos.command" >/dev/null
 
 test "$first_plugin_sha" = "$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
-test "$first_launcher_sha" = "$(shasum -a 256 "$app_dir/Benheim QoL.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
+test "$first_launcher_sha" = "$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
 
 # Never overwrite an unrelated app that happens to use the target name.
 foreign_app_dir="$test_root/Foreign Applications"
-mkdir -p "$foreign_app_dir/Benheim QoL.app/Contents"
-printf 'not our app\n' > "$foreign_app_dir/Benheim QoL.app/Contents/Info.plist"
+mkdir -p "$foreign_app_dir/Benheim.app/Contents"
+printf 'not our app\n' > "$foreign_app_dir/Benheim.app/Contents/Info.plist"
 if BENHEIM_QOL_GAME_DIR="$game_dir" \
   BENHEIM_QOL_APP_DIR="$foreign_app_dir" \
   BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
@@ -75,6 +94,6 @@ if BENHEIM_QOL_GAME_DIR="$game_dir" \
   echo "installer replaced an unrelated app" >&2
   exit 1
 fi
-grep -Fq 'not our app' "$foreign_app_dir/Benheim QoL.app/Contents/Info.plist"
+grep -Fq 'not our app' "$foreign_app_dir/Benheim.app/Contents/Info.plist"
 
 echo "macOS installer checks passed"

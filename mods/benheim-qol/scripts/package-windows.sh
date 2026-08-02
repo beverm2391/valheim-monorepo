@@ -5,11 +5,11 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
 dll="${BENHEIM_QOL_DLL:-$root/src/bin/Release/netstandard2.1/BenheimQoL.dll}"
 dist="${BENHEIM_QOL_DIST:-$root/dist}"
-package_name="BenheimQoL-Windows-$version"
+package_name="Benheim-Windows-$version"
 stage="$dist/$package_name"
 
 if [[ -z "$version" ]]; then
-  echo "Could not determine BenheimQoL version." >&2
+  echo "Could not determine the Benheim version." >&2
   exit 1
 fi
 
@@ -18,13 +18,13 @@ if [[ "${BENHEIM_QOL_SKIP_BUILD:-0}" != "1" ]]; then
 fi
 
 if [[ ! -f "$dll" ]]; then
-  echo "BenheimQoL.dll was not found at: $dll" >&2
+  echo "The Benheim plugin file was not found at: $dll" >&2
   exit 1
 fi
 
 rm -rf "$stage" "$dist/$package_name.zip"
 install -d "$stage"
-install -m 0644 "$root/scripts/Install BenheimQoL.cmd" "$stage/Install BenheimQoL.cmd"
+install -m 0644 "$root/scripts/Install Benheim.cmd" "$stage/Install Benheim.cmd"
 install -m 0644 "$root/scripts/install-windows.ps1" "$stage/install-windows.ps1"
 install -m 0644 "$dll" "$stage/BenheimQoL.dll"
 

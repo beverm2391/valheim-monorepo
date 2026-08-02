@@ -4,7 +4,8 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 game_dir="${BENHEIM_QOL_GAME_DIR:-$HOME/Library/Application Support/Steam/steamapps/common/Valheim}"
 app_parent="${BENHEIM_QOL_APP_DIR:-$HOME/Applications}"
-app="$app_parent/Benheim QoL.app"
+app="$app_parent/Benheim.app"
+legacy_app="$app_parent/Benheim QoL.app"
 plugin_dir="$game_dir/BepInEx/plugins/BenheimQoL"
 dll="${BENHEIM_QOL_DLL:-$script_dir/BenheimQoL.dll}"
 launcher_source="${BENHEIM_QOL_LAUNCHER_SOURCE:-$script_dir/macos-launcher.sh}"
@@ -54,7 +55,7 @@ if [[ ! -d "$game_dir/valheim.app" ]]; then
 fi
 
 if [[ ! -f "$dll" ]]; then
-  fail "Missing BenheimQoL.dll beside the installer."
+  fail "The Benheim plugin file is missing beside the installer."
 fi
 
 if [[ ! -f "$launcher_source" ]]; then
@@ -90,7 +91,7 @@ if [[ ! -f "$bepinex_root/start_game_bepinex.sh" ]]; then
   fail "The BepInEx package had an unexpected layout."
 fi
 
-echo "Installing BepInEx and BenheimQoL..."
+echo "Installing BepInEx and Benheim..."
 cp -R "$bepinex_root/." "$game_dir/"
 chmod +x "$game_dir/start_game_bepinex.sh"
 install -d "$plugin_dir"
@@ -132,10 +133,10 @@ if [[ -f "$legacy_mass_farming_config" ]]; then
   fi
 fi
 
-echo "Installing the Benheim QoL launcher..."
+echo "Installing the Benheim launcher..."
 install -d "$app_parent"
-staged_app="$app_parent/.Benheim QoL.app.stage.$$"
-backup_app="$app_parent/.Benheim QoL.app.backup.$$"
+staged_app="$app_parent/.Benheim.app.stage.$$"
+backup_app="$app_parent/.Benheim.app.backup.$$"
 install -d "$staged_app/Contents/MacOS" "$staged_app/Contents/Resources"
 install -m 0755 "$launcher_source" "$staged_app/Contents/MacOS/BenheimQoL"
 install -m 0644 \
@@ -147,7 +148,7 @@ cat > "$staged_app/Contents/Info.plist" <<'PLIST'
 <plist version="1.0">
 <dict>
   <key>CFBundleDisplayName</key>
-  <string>Benheim QoL</string>
+  <string>Benheim</string>
   <key>CFBundleExecutable</key>
   <string>BenheimQoL</string>
   <key>CFBundleIconFile</key>
@@ -155,7 +156,7 @@ cat > "$staged_app/Contents/Info.plist" <<'PLIST'
   <key>CFBundleIdentifier</key>
   <string>com.beneverman.benheim-qol</string>
   <key>CFBundleName</key>
-  <string>Benheim QoL</string>
+  <string>Benheim</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -175,6 +176,17 @@ fi
 if mv "$staged_app" "$app"; then
   staged_app=""
   rm -rf "$backup_app"
+
+  if [[ -e "$legacy_app" ]]; then
+    legacy_identifier=""
+    legacy_plist="$legacy_app/Contents/Info.plist"
+    if [[ -f "$legacy_plist" ]]; then
+      legacy_identifier="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$legacy_plist" 2>/dev/null || true)"
+    fi
+    if [[ "$legacy_identifier" == "com.beneverman.benheim-qol" ]]; then
+      rm -rf "$legacy_app"
+    fi
+  fi
 else
   if [[ -e "$backup_app" ]]; then
     mv "$backup_app" "$app"
@@ -184,7 +196,7 @@ fi
 
 touch "$app"
 echo
-echo "Installed BenheimQoL and:"
+echo "Installed Benheim and:"
 echo "  $app"
 echo
-echo "Open Benheim QoL from Applications. The launcher will start Steam when needed."
+echo "Open Benheim from Applications. The launcher will start Steam when needed."
