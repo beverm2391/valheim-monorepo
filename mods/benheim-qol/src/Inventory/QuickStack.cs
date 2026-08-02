@@ -306,7 +306,6 @@ internal static class QuickStack
         if (operation.MovedItems > 0)
         {
             operation.InventoryGui.m_moveItemEffects.Create(operation.InventoryGui.transform.position, Quaternion.identity);
-            QuickStackFeedback.ShowDestinationSummaries(operation.Containers, operation.Summary);
             QuickStackFeedback.ShowDetailedResult(
                 operation.Player,
                 operation.InventoryWasOpen,

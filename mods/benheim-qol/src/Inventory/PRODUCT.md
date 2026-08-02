@@ -12,7 +12,7 @@ The Inventory module makes routine item movement faster.
   meters. It works during normal gameplay and while the inventory is open.
 - An eligible chest already contains the item and has room for more.
 - Put Away checks eligible chests from nearest to farthest.
-- Quick stack reports the quantity and name of each item type moved.
+- Put Away reports the quantity and name of each item type moved.
 - Manually pocketed item types stay with the player during quick stack.
 - Press `P` while hovering over an item to toggle manual pocketing for that item
   type. Pocketed items show a `P` marker.
@@ -22,17 +22,15 @@ The Inventory module makes routine item movement faster.
 - Show one result line for each destination chest. Sort the items on each line
   by moved quantity, from highest to lowest. Identify the chest by its distance
   and compass direction from the player when Put Away finishes.
-- Briefly show the item names and quantities received above each destination
-  chest so the player can locate it in the world. Use Valheim's native
-  floating-text style. Show destination labels and the short above-player
-  summary for 3 seconds so they rise more slowly. Do not pin messages in place.
+- When Put Away starts with the inventory closed, show a short generic summary
+  above the player for 3 seconds. Do not show floating receipts above destination
+  chests; the detailed HUD receipt already identifies each destination.
 - When Put Away starts with the inventory closed, show its detailed result in
-  a dedicated top-left receipt and a short summary above the player. Match
-  Valheim's native message styling without moving or replacing Valheim's own
-  message feed. Start the receipt below the visible hotbar slots and extend
-  additional lines downward. On success, show `Put away N items`, where `N` is
-  the total number of units moved. Show `Put away 1 item` for one unit and
-  `Nothing to put away` when no units move.
+  a dedicated top-left receipt. Match Valheim's native message styling without
+  moving or replacing Valheim's own message feed. Start the receipt below the
+  visible hotbar slots and extend additional lines downward. On success, show
+  `Put away N items`, where `N` is the total number of units moved. Show
+  `Put away 1 item` for one unit and `Nothing to put away` when no units move.
 - When Put Away starts with the inventory open, show the detailed result in
   Valheim's center message area so the inventory cannot cover it. Show no
   above-player summary.
@@ -44,8 +42,8 @@ The Inventory module makes routine item movement faster.
   marker. If an item is also manually pocketed, hide its `P` while automatic
   protection applies and show the same manual `P` again when it no longer
   applies.
-- Confirm that equipped items and hotbar items stay with the player during quick
-  stack.
+- Confirm that equipped items and hotbar items stay with the player during Put
+  Away.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing for that
   item type.
 - Confirm that the set of pocketed item types persists after the game relaunches.

@@ -56,13 +56,12 @@ Benheim `0.1.31` is the next test build. It:
   hammer repair and batch gear repair;
 - shows a gold manual-pocket `P` in the top-left of an item slot and hides it
   while equipped or hotbar protection is active;
-- identifies every Put Away destination by distance and direction and shows a
-  floating item receipt above each chest that received items, using Valheim's
-  native floating-text style for 3 seconds;
+- identifies every Put Away destination by distance and direction in the
+  detailed HUD receipt and shows a short generic summary above the player;
 - moves detailed Put Away feedback to Valheim's center message area while the
   inventory is open so the inventory cannot cover it;
-- gives inventory-closed Put Away a dedicated native-styled receipt below the
-  visible hotbar slots, without moving Valheim's own messages;
+- shows Put Away details below the visible hotbar slots using Valheim's message
+  style, without moving Valheim's own messages;
 - lets players press `F7` to save a timestamped diagnostic log to the Desktop;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel; and
