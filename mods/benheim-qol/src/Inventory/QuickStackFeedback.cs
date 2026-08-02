@@ -11,6 +11,11 @@ internal static class QuickStackFeedback
         bool inventoryWasOpen,
         string message)
     {
+        if (!inventoryWasOpen)
+        {
+            QuickStackTopLeftLayout.MoveBelowHotbar();
+        }
+
         MessageHud.MessageType messageType = inventoryWasOpen
             ? MessageHud.MessageType.Center
             : MessageHud.MessageType.TopLeft;

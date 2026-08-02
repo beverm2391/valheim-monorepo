@@ -27,7 +27,8 @@ The Inventory module makes routine item movement faster.
   floating-text style. Show destination labels and the short above-player
   summary for 3 seconds so they rise more slowly. Do not pin messages in place.
 - When Put Away starts with the inventory closed, show its detailed result in
-  the normal top-left message feed and a short summary above the player. On
+  the normal top-left message feed and a short summary above the player. Start
+  the detailed result below the hotbar and extend additional lines downward. On
   success, show `Put away N items`, where `N` is the total number of units
   moved. Show `Put away 1 item` for one unit and `Nothing to put away` when no
   units move.
