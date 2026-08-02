@@ -50,7 +50,7 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.26` is the next test build. It:
+Benheim `0.1.27` is the next test build. It:
 
 - disables the broken mass building repair action while preserving normal
   hammer repair and batch gear repair;
@@ -60,6 +60,7 @@ Benheim `0.1.26` is the next test build. It:
   floating item receipt above each chest that received items;
 - moves detailed Put Away feedback to Valheim's center message area while the
   inventory is open so the inventory cannot cover it;
+- lets players press `F7` to save a timestamped diagnostic log to the Desktop;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel; and
 - includes Wood Cutting cleave for standing trees and fallen logs at skill

@@ -34,7 +34,7 @@ internal static class QuickStackFeedback
                 continue;
             }
 
-            WorldFeedback.ShowAt(container.transform.position + Vector3.up * 1.5f, items);
+            WorldFeedback.ShowAbove(container.transform, Vector3.up * 1.5f, items);
         }
     }
 

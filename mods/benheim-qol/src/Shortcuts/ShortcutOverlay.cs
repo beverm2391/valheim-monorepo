@@ -51,6 +51,15 @@ internal static class ShortcutOverlay
             "Pickaxes skill improves mining damage, crits, and AOE after level 25. " +
             "Wood Cutting unlocks CLEAVE after level 25. " +
             "Perfect defenses show adrenaline gains, and the meter shows decay timing."),
+        new Section(
+            "Help",
+            new Color(0.74f, 0.7f, 1f, 1f),
+            new[]
+            {
+                new Entry("F7", "Save a diagnostic log to the Desktop"),
+                new Entry("F8", "Show or hide this panel"),
+            },
+            "Send the exported Benheim log when reporting a problem."),
     };
 
     private static readonly string Title = $"Benheim v{Plugin.PluginVersion}";

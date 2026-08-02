@@ -14,10 +14,14 @@ controls and passive features.
 ## In Development
 
 - Preload the panel before the first `F8` press.
-- Group features under five color-coded headings: Inventory, Build & Repair,
-  Farming, Travel, and Combat.
+- Group features under six color-coded headings: Inventory, Build & Repair,
+  Farming, Travel, Combat & Skills, and Help.
 - Explain which items Put Away always protects and which nearby chests can
   receive items.
 - Explain that a gold `P` means manually pocketed. Explain that a cyan `P`
   means equipped or in the hotbar.
 - List Wood Cutting cleave as a passive skill feature.
+- `F7` copies the active Benheim diagnostic log to the player's Desktop with a
+  timestamped filename on Mac and Windows.
+- Confirm the exported filename in game so the player can attach it when
+  reporting a problem.

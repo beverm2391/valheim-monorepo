@@ -23,7 +23,10 @@ The Inventory module makes routine item movement faster.
   by moved quantity, from highest to lowest. Identify the chest by its distance
   and compass direction from the player when Put Away finishes.
 - Briefly show the item names and quantities received above each destination
-  chest so the player can locate it in the world.
+  chest so the player can locate it in the world. Keep each destination label
+  at a fixed height above its chest and the short summary at a fixed height
+  above the player while they fade. Neither message drifts upward like combat
+  text.
 - When Put Away starts with the inventory closed, show its detailed result in
   the normal top-left message feed and a short summary above the player. On
   success, show `Put away N items`, where `N` is the total number of units

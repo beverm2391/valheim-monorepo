@@ -46,6 +46,14 @@ Unzip the package and run `Install Benheim` again. The installer replaces the
 mod and launcher without removing saves, characters, settings, or pocketed item
 preferences. Press `F8` in game to confirm the installed version.
 
+## Send A Diagnostic Log
+
+Press `F7` in game. Benheim copies the active diagnostic log to your Desktop as
+a timestamped `.txt` file and confirms the filename on screen. Attach that file
+when reporting a problem. This works on both Mac and Windows while the game is
+running. The log can include local paths and player or server identifiers, so
+share it only with people you trust.
+
 ## Features
 
 See [`PRODUCT.md`](PRODUCT.md) for the canonical product promise and detailed
