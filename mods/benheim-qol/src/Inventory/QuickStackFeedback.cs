@@ -11,15 +11,13 @@ internal static class QuickStackFeedback
         bool inventoryWasOpen,
         string message)
     {
-        if (!inventoryWasOpen)
+        if (inventoryWasOpen)
         {
-            QuickStackTopLeftLayout.MoveBelowHotbar();
+            player.Message(MessageHud.MessageType.Center, message);
+            return;
         }
 
-        MessageHud.MessageType messageType = inventoryWasOpen
-            ? MessageHud.MessageType.Center
-            : MessageHud.MessageType.TopLeft;
-        player.Message(messageType, message);
+        QuickStackReceiptHud.Show(message);
     }
 
     internal static void ShowDestinationSummaries(

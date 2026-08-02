@@ -27,11 +27,12 @@ The Inventory module makes routine item movement faster.
   floating-text style. Show destination labels and the short above-player
   summary for 3 seconds so they rise more slowly. Do not pin messages in place.
 - When Put Away starts with the inventory closed, show its detailed result in
-  the normal top-left message feed and a short summary above the player. Start
-  the detailed result below the hotbar and extend additional lines downward. On
-  success, show `Put away N items`, where `N` is the total number of units
-  moved. Show `Put away 1 item` for one unit and `Nothing to put away` when no
-  units move.
+  a dedicated top-left receipt and a short summary above the player. Match
+  Valheim's native message styling without moving or replacing Valheim's own
+  message feed. Start the receipt below the visible hotbar slots and extend
+  additional lines downward. On success, show `Put away N items`, where `N` is
+  the total number of units moved. Show `Put away 1 item` for one unit and
+  `Nothing to put away` when no units move.
 - When Put Away starts with the inventory open, show the detailed result in
   Valheim's center message area so the inventory cannot cover it. Show no
   above-player summary.
