@@ -50,22 +50,23 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.27` is the next test build. It:
+Benheim `0.1.29` is the next test build. It:
 
 - disables the broken mass building repair action while preserving normal
   hammer repair and batch gear repair;
-- moves the manual and automatic protection markers to the bottom-left corner
-  of each item slot;
+- shows a gold manual-pocket `P` in the top-left of an item slot and hides it
+  while equipped or hotbar protection is active;
 - identifies every Put Away destination by distance and direction and shows a
-  floating item receipt above each chest that received items;
+  floating item receipt above each chest that received items, using Valheim's
+  native floating-text style for 3 seconds;
 - moves detailed Put Away feedback to Valheim's center message area while the
   inventory is open so the inventory cannot cover it;
 - lets players press `F7` to save a timestamped diagnostic log to the Desktop;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel; and
 - includes Wood Cutting cleave for standing trees and fallen logs at skill
-  level 25 or higher, with a cleave chance that rises from 15% at level 25 to
-  45% at level 100 and visible `CLEAVE` combat text.
+  level 25 or higher, with a cleave chance that rises from 30% at level 25 to
+  85% at level 100 and visible `CLEAVE` combat text.
 
 ## Later
 

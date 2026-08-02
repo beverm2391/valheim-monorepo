@@ -12,20 +12,23 @@ quick_stack_location="$root/src/Inventory/QuickStackLocation.cs"
 quick_stack_feedback="$root/src/Inventory/QuickStackFeedback.cs"
 visibility="$root/src/Inventory/InventoryVisibility.cs"
 
-grep -Fq 'camera.WorldToScreenPoint' "$feedback"
-grep -Fq 'Time.unscaledTime + DurationSeconds' "$feedback"
-grep -Fq 'GUI.Label(rect, content, labelStyle)' "$feedback"
-if grep -Eq 'AddInworldText|\.ShowText\(' "$feedback"; then
-  printf 'world feedback must use static local labels instead of damage text\n' >&2
+grep -Fq 'AddInworldText' "$feedback"
+grep -Fq 'UtilityTextDurationSeconds = 3f' "$feedback"
+grep -Fq 'DurationField?.SetValue' "$feedback"
+if grep -Fq '.ShowText(' "$feedback"; then
+  printf 'world feedback must stay local instead of using broadcast damage text\n' >&2
   exit 1
 fi
 
 grep -Fq 'IsAutomaticallyProtected' "$protection"
 grep -Fq 'ManualColor' "$marker"
-grep -Fq 'AutomaticColor' "$marker"
-grep -Fq 'manuallyProtected ? ManualColor : AutomaticColor' "$marker"
-grep -Fq 'rect.anchorMin = new Vector2(0f, 0f)' "$marker"
-grep -Fq 'TextAlignmentOptions.BottomLeft' "$marker"
+if grep -Fq 'AutomaticColor' "$marker"; then
+  printf 'automatic protection must not have a visible marker\n' >&2
+  exit 1
+fi
+grep -Fq 'manuallyProtected && !automaticallyProtected' "$marker"
+grep -Fq 'rect.anchorMin = new Vector2(0f, 1f)' "$marker"
+grep -Fq 'TextAlignmentOptions.TopLeft' "$marker"
 grep -Fq 'if (inventoryWasOpen)' "$quick_stack_feedback"
 grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedback"
 grep -Fq 'WorldFeedback.ShowAbove(container.transform' "$quick_stack_feedback"

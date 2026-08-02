@@ -6,8 +6,8 @@ namespace BenheimQoL.Woodcutting;
 internal static class WoodcuttingProgression
 {
     private const float CleaveUnlockLevel = 25f;
-    private const float MinCleaveChance = 0.15f;
-    private const float MaxCleaveChance = 0.45f;
+    private const float MinCleaveChance = 0.3f;
+    private const float MaxCleaveChance = 0.85f;
     private const float CleaveDamageMultiplier = 0.5f;
 
     private static bool cleaveRunning;

@@ -23,10 +23,9 @@ The Inventory module makes routine item movement faster.
   by moved quantity, from highest to lowest. Identify the chest by its distance
   and compass direction from the player when Put Away finishes.
 - Briefly show the item names and quantities received above each destination
-  chest so the player can locate it in the world. Keep each destination label
-  at a fixed height above its chest and the short summary at a fixed height
-  above the player while they fade. Neither message drifts upward like combat
-  text.
+  chest so the player can locate it in the world. Use Valheim's native
+  floating-text style. Show destination labels and the short above-player
+  summary for 3 seconds so they rise more slowly. Do not pin messages in place.
 - When Put Away starts with the inventory closed, show its detailed result in
   the normal top-left message feed and a short summary above the player. On
   success, show `Put away N items`, where `N` is the total number of units
@@ -37,9 +36,12 @@ The Inventory module makes routine item movement faster.
   above-player summary.
 - Show pocket and unpocket confirmations only in the normal top-left message
   feed.
-- A gold `P` marks manual pocketing, which the player can toggle. A cyan `P`
-  marks automatic protection that lasts while an item is equipped or in the
-  hotbar. Both markers appear in the bottom-left of the item slot.
+- A gold `P` in the top-left of an item slot marks manual pocketing, which the
+  player can toggle.
+- Equipped and hotbar items remain automatically protected without showing a
+  marker. If an item is also manually pocketed, hide its `P` while automatic
+  protection applies and show the same manual `P` again when it no longer
+  applies.
 - Confirm that equipped items and hotbar items stay with the player during quick
   stack.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing for that

@@ -11,7 +11,7 @@ swings without creating bonus drops.
 
 - Cleave unlocks at Wood Cutting 25 for local-player axe hits against standing
   trees and fallen logs.
-- Cleave chance increases from 15% at Wood Cutting 25 to 45% at Wood Cutting
+- Cleave chance increases from 30% at Wood Cutting 25 to 85% at Wood Cutting
   100.
 - A cleave applies one secondary hit that deals 50% of the original hit's
   damage to the exact standing tree or fallen log that the player hit. It does

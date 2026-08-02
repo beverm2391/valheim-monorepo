@@ -18,8 +18,8 @@ controls and passive features.
   Farming, Travel, Combat & Skills, and Help.
 - Explain which items Put Away always protects and which nearby chests can
   receive items.
-- Explain that a gold `P` means manually pocketed. Explain that a cyan `P`
-  means equipped or in the hotbar.
+- Explain that a gold `P` means manually pocketed. Equipped and hotbar items
+  remain protected without showing a marker.
 - List Wood Cutting cleave as a passive skill feature.
 - `F7` copies the active Benheim diagnostic log to the player's Desktop with a
   timestamped filename on Mac and Windows.

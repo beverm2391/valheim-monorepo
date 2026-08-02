@@ -9,7 +9,6 @@ namespace BenheimQoL.InventoryFeature;
 internal static class PocketMarker
 {
     internal static readonly Color ManualColor = new Color(1f, 0.86f, 0.25f, 1f);
-    internal static readonly Color AutomaticColor = new Color(0.35f, 0.84f, 1f, 1f);
 
     private static readonly FieldInfo ElementsField =
         AccessTools.Field(typeof(InventoryGrid), "m_elements");
@@ -37,11 +36,7 @@ internal static class PocketMarker
             ItemDrop.ItemData item = inventory.GetItemAt(position.x, position.y);
             bool manuallyProtected = item != null && PocketItems.IsManuallyPocketed(item);
             bool automaticallyProtected = item != null && PocketItems.IsAutomaticallyProtected(player, item);
-            marker.gameObject.SetActive(manuallyProtected || automaticallyProtected);
-            if (manuallyProtected || automaticallyProtected)
-            {
-                marker.color = manuallyProtected ? ManualColor : AutomaticColor;
-            }
+            marker.gameObject.SetActive(manuallyProtected && !automaticallyProtected);
         }
     }
 
@@ -57,10 +52,10 @@ internal static class PocketMarker
         markerObject.transform.SetParent(inventoryElement.transform, worldPositionStays: false);
 
         RectTransform rect = markerObject.AddComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0f, 0f);
-        rect.anchorMax = new Vector2(0f, 0f);
-        rect.pivot = new Vector2(0f, 0f);
-        rect.anchoredPosition = new Vector2(3f, 2f);
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(3f, -2f);
         rect.sizeDelta = new Vector2(20f, 18f);
 
         TMP_Text text = markerObject.AddComponent<TextMeshProUGUI>();
@@ -74,8 +69,8 @@ internal static class PocketMarker
         text.text = "P";
         text.fontSize = 14f;
         text.fontStyle = FontStyles.Bold;
-        text.alignment = TextAlignmentOptions.BottomLeft;
-        text.color = Color.white;
+        text.alignment = TextAlignmentOptions.TopLeft;
+        text.color = ManualColor;
         text.raycastTarget = false;
         return text;
     }
