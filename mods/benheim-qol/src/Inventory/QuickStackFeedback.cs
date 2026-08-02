@@ -1,3 +1,5 @@
+using BenheimQoL.Infrastructure;
+
 namespace BenheimQoL.InventoryFeature;
 
 internal static class QuickStackFeedback
@@ -12,6 +14,6 @@ internal static class QuickStackFeedback
             return;
         }
 
-        InventoryFeedback.ShowAbovePlayer(player, QuickStackMessages.AbovePlayerSummary(movedItems));
+        WorldFeedback.ShowAbovePlayer(player, QuickStackMessages.AbovePlayerSummary(movedItems));
     }
 }

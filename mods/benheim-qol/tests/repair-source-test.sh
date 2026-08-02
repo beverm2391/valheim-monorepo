@@ -9,5 +9,8 @@ grep -Fq 'AccessTools.DeclaredMethod(' "$patches"
 grep -Fq 'building_repair_patch_ready' "$patches"
 grep -Fq 'building_repair_click_observed' "$repair"
 grep -Fq 'RepairRadius = 20f' "$repair"
+grep -Fq 'if (repaired > 1)' "$repair"
+grep -Fq 'WorldFeedback.ShowAt(GetFeedbackPosition(anchor)' "$repair"
+grep -Fq 'pieces repaired' "$repair"
 
 printf 'repair patch diagnostic checks passed\n'

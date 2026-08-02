@@ -47,15 +47,17 @@ module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-BenheimQoL `0.1.19` is the next test build. It includes:
+BenheimQoL `0.1.20` is the next test build. It includes:
 
 - quick-stack results grouped by destination chest;
 - items sorted by moved quantity within each chest;
 - focused diagnostics for mass building repair;
 - a shortcuts panel that preloads and groups features under Inventory, Build &
-  Repair, Farming, Travel, and Combat; and
+  Repair, Farming, Travel, and Combat;
 - a short above-player Put Away summary when the inventory is closed, while the
-  existing detailed top-left result remains visible.
+  existing detailed top-left result remains visible; and
+- yellow feedback over the targeted structure when mass repair repairs more
+  than one piece.
 
 ## Later
 

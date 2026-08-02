@@ -134,7 +134,12 @@ internal static class BuildingRepair
             "building_repair_finished",
             $"repaired={repaired} inaccessible={inaccessible} undamaged={undamaged} repair_failed={repairFailed} exhausted_resources={Diagnostics.Bool(exhaustedResources)}");
         PlayRepairAnimation(player, toolItem);
-        player.Message(MessageHud.MessageType.TopLeft, $"Repaired {repaired} pieces");
+        string pieceLabel = repaired == 1 ? "piece" : "pieces";
+        player.Message(MessageHud.MessageType.TopLeft, $"Repaired {repaired} {pieceLabel}");
+        if (repaired > 1)
+        {
+            WorldFeedback.ShowAt(GetFeedbackPosition(anchor), $"{repaired} pieces repaired");
+        }
     }
 
     private static bool CanUseRepairToolHere(Player player, Piece piece, bool showWardFlash)
@@ -168,6 +173,14 @@ internal static class BuildingRepair
     private static float GetBuildStamina(Player player)
     {
         return (float)(GetBuildStaminaMethod.Invoke(player, null) ?? 0f);
+    }
+
+    private static Vector3 GetFeedbackPosition(Piece anchor)
+    {
+        Collider collider = anchor.GetComponentInChildren<Collider>();
+        return collider
+            ? collider.bounds.center + Vector3.up * 0.25f
+            : anchor.transform.position + Vector3.up * 0.75f;
     }
 
     private static void PlayRepairAnimation(Player player, ItemDrop.ItemData toolItem)

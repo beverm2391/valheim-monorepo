@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-feedback="$root/src/Inventory/InventoryFeedback.cs"
+feedback="$root/src/Infrastructure/WorldFeedback.cs"
 marker="$root/src/Inventory/PocketMarker.cs"
 controller="$root/src/Inventory/PocketItemController.cs"
 protection="$root/src/Inventory/PocketItems.cs"
@@ -12,7 +12,7 @@ visibility="$root/src/Inventory/InventoryVisibility.cs"
 
 grep -Fq 'AddInworldText' "$feedback"
 if grep -Fq '.ShowText(' "$feedback"; then
-  printf 'inventory feedback must stay local instead of using broadcast damage text\n' >&2
+  printf 'world feedback must stay local instead of using broadcast damage text\n' >&2
   exit 1
 fi
 
@@ -23,7 +23,7 @@ grep -Fq 'manuallyProtected ? ManualColor : AutomaticColor' "$marker"
 grep -Fq 'if (inventoryWasOpen)' "$quick_stack_feedback"
 grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedback"
 grep -Fq 'm_animator' "$visibility"
-if grep -Fq 'InventoryFeedback' "$controller"; then
+if grep -Fq 'WorldFeedback' "$controller"; then
   printf 'pocket toggles must not show floating world text\n' >&2
   exit 1
 fi

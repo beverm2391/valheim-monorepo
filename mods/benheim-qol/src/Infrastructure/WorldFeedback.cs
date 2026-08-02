@@ -2,9 +2,9 @@ using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
-namespace BenheimQoL.InventoryFeature;
+namespace BenheimQoL.Infrastructure;
 
-internal static class InventoryFeedback
+internal static class WorldFeedback
 {
     private static readonly MethodInfo? AddInworldTextMethod = AccessTools.DeclaredMethod(
         typeof(DamageText),
@@ -13,6 +13,11 @@ internal static class InventoryFeedback
 
     internal static void ShowAbovePlayer(Player player, string text)
     {
+        ShowAt(player.transform.position + Vector3.up * 1.9f, text);
+    }
+
+    internal static void ShowAt(Vector3 position, string text)
+    {
         DamageText damageText = DamageText.instance;
         Camera camera = Utils.GetMainCamera();
         if (!damageText || !camera || Hud.IsUserHidden() || AddInworldTextMethod == null)
@@ -20,7 +25,6 @@ internal static class InventoryFeedback
             return;
         }
 
-        Vector3 position = player.transform.position + Vector3.up * 1.9f;
         float distance = Vector3.Distance(camera.transform.position, position);
         AddInworldTextMethod.Invoke(
             damageText,
