@@ -6,8 +6,8 @@ namespace BenheimQoL.Woodcutting;
 internal static class WoodcuttingProgression
 {
     private const float CleaveUnlockLevel = 25f;
-    private const float MinCleaveChance = 0.3f;
-    private const float MaxCleaveChance = 0.85f;
+    private const float MinCleaveChance = 0.15f;
+    private const float MaxCleaveChance = 0.45f;
     private const float CleaveDamageMultiplier = 0.5f;
 
     private static bool cleaveRunning;
@@ -64,7 +64,11 @@ internal static class WoodcuttingProgression
 
             if (applied)
             {
-                WorldFeedback.ShowAt(hit.m_point + Vector3.up * 0.25f, "CLEAVE");
+                DamageText.instance?.ShowText(
+                    DamageText.TextType.Bonus,
+                    hit.m_point + Vector3.up * 0.25f,
+                    "CLEAVE",
+                    player: true);
             }
         }
         finally
