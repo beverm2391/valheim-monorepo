@@ -88,8 +88,14 @@ mods/benheim-qol/
 
 `mods/benheim-qol/PRODUCT.md` owns the overall mod promise and feature index.
 The `PRODUCT.md` in each user-facing feature folder owns that feature's behavior
-and current test status. Update the owning feature document when behavior,
-controls, test results, or development status changes.
+and current test status. Product behavior includes lightweight player-facing UI,
+feedback, and interaction expectations; keep implementation details in code or
+deeper technical docs. Update the owning feature document when behavior,
+controls, player experience, test results, or development status changes.
+
+Each first-party server mod with player-facing behavior owns one `PRODUCT.md` at
+the mod root. That document owns the mod's behavior, player experience, and
+proof status.
 
 When the player reports gameplay results, update the owning feature document
 before completing the task. Move confirmed behavior to **Current Behavior**.

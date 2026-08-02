@@ -25,7 +25,7 @@ installing anything.
 | Feature | Product role | Runs on | Required for friends |
 | --- | --- | --- | --- |
 | BenheimQoL | First-party quality-of-life behavior such as inventory, farming, repair, portal, and mining improvements. | Client | No |
-| Benheim Eternal Fire | Supported fires, torches, hearths, braziers, and similar pieces never require manual refueling. | Server | No |
+| Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
@@ -33,9 +33,12 @@ BepInEx loads the mods. Benheim Eternal Fire does not depend on a shared mod
 library.
 
 BenheimQoL's detailed product behavior is owned by
-[`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Third-party mod
-behavior remains owned by each upstream project; this document records only why
-the mod belongs in our stack and what compatibility promise it must preserve.
+[`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Benheim Eternal
+Fire's behavior and player experience are owned by
+[`server-mods/benheim-eternal-fire/PRODUCT.md`](server-mods/benheim-eternal-fire/PRODUCT.md).
+Third-party mod behavior remains owned by each upstream project; this document
+records only why the mod belongs in our stack and what compatibility promise it
+must preserve.
 
 ## Acceptance Shape
 
@@ -50,9 +53,8 @@ installing or removing it does not corrupt shared world or character data.
 
 - Complete the temporary [Valheim 1.0 migration](MIGRATION-1.0.md): prove the
   existing world on vanilla 1.0, then restore or defer each mod deliberately.
-- Prove that Benheim Eternal Fire refills burning pieces before they visibly
-  extinguish and continues working after a server restart. Existing empty fires
-  and torches now relight for a client without Benheim Eternal Fire installed.
+- Complete Benheim Eternal Fire's remaining
+  [gameplay and restart proof](server-mods/benheim-eternal-fire/PRODUCT.md).
 - Decide whether faster sailing justifies client installs on both Mac and
   Windows. Every candidate examined so far requires a client install, so no
   server-only ship mod was deployed.
