@@ -48,4 +48,7 @@ The Inventory module makes routine item movement faster.
   applies.
 - Confirm that equipped items and hotbar items stay with the player during Put
   Away.
+- After Valheim grants access to a chest, Put Away must claim the chest before
+  transferring items. Another player who opens the chest must see the
+  transferred items.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing.

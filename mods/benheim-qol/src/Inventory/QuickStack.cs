@@ -132,13 +132,15 @@ internal static class QuickStack
             "Inventory",
             "quick_stack_response",
             $"container=\"{container.gameObject.name}\" granted={Diagnostics.Bool(granted)}");
-        if (granted)
+        if (granted && QuickStackContainerWrite.TryBegin(container, out QuickStackContainerWrite? write))
         {
-            operation.MovedItems += MoveEligibleItems(
+            int movedItems = MoveEligibleItems(
                 operation.Player,
                 container,
                 container.GetInventory(),
                 operation.Summary);
+            operation.MovedItems += movedItems;
+            write!.Complete(movedItems);
         }
         else
         {
