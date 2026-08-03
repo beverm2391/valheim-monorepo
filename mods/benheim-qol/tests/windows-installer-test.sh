@@ -48,11 +48,12 @@ BENHEIM_QOL_SKIP_BUILD=1 \
 
 package="$test_root/dist/Benheim-Windows-$version.zip"
 test -f "$package"
-unzip -Z1 "$package" | grep -Fqx "Benheim-Windows-$version/BenheimQoL.dll"
-unzip -Z1 "$package" | grep -Fqx "Benheim-Windows-$version/Install Benheim.cmd"
-unzip -Z1 "$package" | grep -Fqx "Benheim-Windows-$version/install-windows.ps1"
-unzip -Z1 "$package" | grep -Fqx "Benheim-Windows-$version/Update Benheim.cmd"
-unzip -Z1 "$package" | grep -Fqx "Benheim-Windows-$version/update-windows.ps1"
-unzip -Z1 "$package" | grep -Fqx "Benheim-Windows-$version/VERSION"
+package_entries="$(unzip -Z1 "$package")"
+grep -Fqx "Benheim-Windows-$version/BenheimQoL.dll" <<<"$package_entries"
+grep -Fqx "Benheim-Windows-$version/Install Benheim.cmd" <<<"$package_entries"
+grep -Fqx "Benheim-Windows-$version/install-windows.ps1" <<<"$package_entries"
+grep -Fqx "Benheim-Windows-$version/Update Benheim.cmd" <<<"$package_entries"
+grep -Fqx "Benheim-Windows-$version/update-windows.ps1" <<<"$package_entries"
+grep -Fqx "Benheim-Windows-$version/VERSION" <<<"$package_entries"
 
 echo "Windows installer source and package checks passed"

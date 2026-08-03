@@ -30,7 +30,6 @@ internal sealed class QuickStackOperation
     internal bool InventoryWasOpen { get; }
     internal int NextContainerIndex { get; set; }
     internal Container? CurrentContainer { get; set; }
-    internal float RequestStartedAt { get; set; }
     internal int MovedItems { get; set; }
     internal int BusyContainers { get; set; }
     internal QuickStackSummary Summary { get; } = new QuickStackSummary();

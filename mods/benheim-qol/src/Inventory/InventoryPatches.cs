@@ -67,21 +67,4 @@ internal static class InventoryPatches
         }
     }
 
-    [HarmonyPatch(typeof(Container), "RPC_StackResponse")]
-    private static class QuickStackResponsePatch
-    {
-        private static bool Prefix(Container __instance, bool granted)
-        {
-            return !QuickStack.TryHandleStackResponse(__instance, granted);
-        }
-    }
-
-    [HarmonyPatch(typeof(Container), nameof(Container.StackAll))]
-    private static class QuickStackRequestGuardPatch
-    {
-        private static bool Prefix(Container __instance)
-        {
-            return QuickStack.CanSendStackRequest(__instance);
-        }
-    }
 }

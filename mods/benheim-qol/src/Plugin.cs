@@ -5,6 +5,7 @@ using BenheimQoL.InventoryFeature;
 using BenheimQoL.Farming;
 using BenheimQoL.Repair;
 using BenheimQoL.Shortcuts;
+using BenheimInventoryProtocol;
 using HarmonyLib;
 using UnityEngine;
 
@@ -15,7 +16,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.34";
+    public const string PluginVersion = "0.1.35";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -24,6 +25,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Log = Logger;
+        InventoryTransactions.Initialize(Logger);
         harmony = new Harmony(PluginGuid);
         harmony.PatchAll();
         Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
@@ -33,6 +35,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void Update()
     {
         DiagnosticLogExporter.Update();
+        InventoryTransactions.Update();
         QuickStackReceiptHud.Update();
         QuickStack.Update();
         QuickStackHotkey.Update();
@@ -48,6 +51,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         PlantingPreview.DestroyGhosts();
         QuickStackReceiptHud.Destroy();
+        InventoryTransactions.Shutdown();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         harmony?.UnpatchSelf();
     }

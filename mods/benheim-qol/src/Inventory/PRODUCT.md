@@ -13,13 +13,22 @@ The Inventory module makes routine item movement faster.
 
 ## In Development
 
-- Put Away does not move items in multiplayer. To enable it, Benheim must ask
-  the game instance that owns the chest to perform each transfer. The player
-  keeps the item until that instance confirms the transfer. This prevents
-  invisible or lost items when another player opens the chest.
-- `Left Shift` + `P` moves matching items into eligible chests within 30
-  meters in a single-player world. It works during normal gameplay and while
-  the inventory is open.
+- `Left Shift` + `P` moves matching items into eligible chests within 30 meters.
+  It works during normal gameplay and while the inventory is open.
+- In multiplayer, the server approves each deposit and routes it to the game
+  instance that currently owns the destination chest. Only that instance
+  changes the chest inventory.
+- Put Away works only when the server and every connected player use the same
+  transaction protocol. Otherwise, it moves nothing and explains the mismatch.
+- Benheim retries a delayed request with the same transaction ID. Each chest
+  records a limited history of recent transaction IDs so a retry cannot deposit
+  items twice.
+- Before removing an item from the player, Benheim records the pending transfer
+  locally. After an interrupted session, it rolls back a transfer the server
+  never saw or retries the same transaction after a transfer was reserved.
+- If a chest accepts only part of a stack, Benheim returns the rejected amount
+  to the player. Put Away must never claim chest ownership or change a copy of
+  the chest inventory that other players cannot see.
 - An eligible chest already contains the item and has room for more.
 - Put Away checks eligible chests from nearest to farthest.
 - Put Away reports the quantity and name of each item type moved.
@@ -28,14 +37,14 @@ The Inventory module makes routine item movement faster.
   by moved quantity, from highest to lowest. Identify the chest by its distance
   and compass direction from the player when Put Away finishes.
 - When Put Away starts with the inventory closed, show a short generic summary
-  above the player for 3 seconds. Do not show floating receipts above destination
-  chests; the detailed HUD receipt already identifies each destination.
+  above the player for 3 seconds. On success, show `Put away N items`, where `N`
+  is the number of units moved. Show `Put away 1 item` for one unit. Show
+  `Nothing to put away` when no units move. Do not show floating receipts above
+  destination chests.
 - When Put Away starts with the inventory closed, show its detailed result in
   a dedicated top-left receipt. Match Valheim's native message styling without
   moving or replacing Valheim's own message feed. Start the receipt below the
-  visible hotbar slots and extend additional lines downward. On success, show
-  `Put away N items`, where `N` is the total number of units moved. Show
-  `Put away 1 item` for one unit and `Nothing to put away` when no units move.
+  visible hotbar slots and extend additional lines downward.
 - When Put Away starts with the inventory open, show the detailed result in
   Valheim's center message area so the inventory cannot cover it. Show no
   above-player summary.
@@ -51,6 +60,15 @@ The Inventory module makes routine item movement faster.
   marker. If an item is also manually pocketed, hide its `P` while automatic
   protection applies and show the same manual `P` again when it no longer
   applies.
-- Confirm that equipped items and hotbar items stay with the player during Put
-  Away.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing.
+
+## Test Gate
+
+- Start with low-value stacks and confirm one normal Put Away transaction before
+  testing valuable materials.
+- Confirm that two players see each deposit immediately, regardless of which
+  player opened the chest last.
+- Repeat the same deposit into one chest and confirm that no items duplicate or
+  disappear.
+- Connect one client without the matching protocol and confirm that Put Away
+  disables itself without affecting normal chest use.

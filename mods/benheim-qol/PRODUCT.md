@@ -1,8 +1,8 @@
 # Benheim
 
-Benheim is a client-only Valheim mod made from small feature modules. It
-removes repetitive chores without adding custom items, custom world data, or a
-server requirement.
+Benheim is one client mod made from small feature modules. It removes repetitive
+chores without adding custom items or world objects. Most features are
+client-only. Multiplayer Put Away also uses the Benheim Inventory server plugin.
 
 This file owns the overall product promise. Each feature module has a
 `PRODUCT.md` that owns its behavior and current test status.
@@ -25,9 +25,10 @@ This file owns the overall product promise. Each feature module has a
 - The updater must not replace a newer installed version with an older stable
   release.
 - Keep Benheim compatible with servers and players that do not use it.
-- Do not add custom persistent world objects. Store explicit per-item
-  preferences in Benheim-namespaced item metadata only when another
-  representation cannot preserve them safely.
+  Multiplayer Put Away must disable itself unless the server and every connected
+  player use the same protocol version.
+- Do not add custom persistent world objects. Store a player's manual pocket
+  choice on an item only when no safer representation can preserve that choice.
 - Prefer normal Valheim actions over direct inventory or world mutation.
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
   reason without damaging game state.
@@ -61,7 +62,7 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.34` is the next test build. It:
+Benheim `0.1.35` is the next test build. It:
 
 - disables the broken mass building repair action while preserving normal
   hammer repair and batch gear repair;
@@ -73,8 +74,12 @@ Benheim `0.1.34` is the next test build. It:
   when the player holds `Left Shift` while interacting;
 - identifies every Put Away destination by distance and direction in the
   detailed HUD receipt and shows a short generic summary above the player;
-- refuses to move items with Put Away in multiplayer until Benheim can send
-  each transfer to the game instance that owns the destination chest;
+- sends multiplayer Put Away through the server to the current owner of each
+  destination chest;
+- retries a delayed transaction with the same ID and records recent transaction
+  IDs on each chest so retries cannot deposit the same items twice;
+- disables multiplayer Put Away when the server or any connected player has a
+  missing or mismatched transaction protocol;
 - moves detailed Put Away feedback to Valheim's center message area while the
   inventory is open so the inventory cannot cover it;
 - shows Put Away details below the visible hotbar slots using Valheim's message
@@ -82,7 +87,7 @@ Benheim `0.1.34` is the next test build. It:
 - lets players press `F7` to save a timestamped diagnostic log to the Desktop;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel;
-- includes Wood Cutting cleave for standing trees and fallen logs at skill
+- includes Woodcutting cleave for standing trees and fallen logs at skill
   level 25 or higher, with a cleave chance that rises from 30% at level 25 to
   85% at level 100 and visible `CLEAVE` combat text; and
 - adds `Update Benheim` on Mac and Windows and reports when Benheim is already

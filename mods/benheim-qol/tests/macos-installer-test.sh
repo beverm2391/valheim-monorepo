@@ -69,6 +69,7 @@ grep -Fq 'package_name="Benheim-macOS-$version"' "$root/scripts/package-macos.sh
 grep -Fq 'Install Benheim.command' "$root/scripts/package-macos.sh"
 grep -Fq 'update-macos.sh' "$root/scripts/package-macos.sh"
 grep -Fq '"$stage/VERSION"' "$root/scripts/package-macos.sh"
+grep -Fq 'BENHEIM_QOL_VERSION_FILE="$version_file"' "$root/scripts/install-local.sh"
 
 first_plugin_sha="$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 first_launcher_sha="$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"

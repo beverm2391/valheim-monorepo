@@ -4,12 +4,13 @@ This repo has three related jobs:
 
 - Provision and operate a Valheim dedicated server on a cloud VM.
 - Support selected server-side mods that remain compatible with vanilla clients.
-- Build optional client-only quality-of-life mods under `mods/`.
+- Build optional quality-of-life mods under `mods/`. Keep server-assisted
+  features explicit.
 
-Keep those boundaries clear. Server work should not assume client mods are
-installed. Client mod work should not depend on server mods unless that product
-direction changes explicitly. Read root `PRODUCT.md` for the overall server and
-mod promise before changing compatibility boundaries.
+Keep those boundaries clear. Most server work must not assume client mods are
+installed. A server-assisted client feature must disable itself when a required
+client component is missing. Read root `PRODUCT.md` before changing
+compatibility boundaries.
 
 ## Public Repo Rules
 
@@ -55,7 +56,9 @@ scripts/set-server-mods.sh disable
 installed mod files or configuration. `scripts/install-server-mods.sh` owns the
 pinned package versions and checksums, stages downloads before downtime, takes
 a stopped-server backup, and falls back to the vanilla path if installation
-fails. Keep new server mods removable without changing the world save.
+fails. Keep new server mods removable without changing the world save. Benheim
+Inventory is the one server plugin that coordinates a client feature. It must
+not prevent a vanilla client from joining.
 
 `scripts/apply-server-config.sh` owns routine deployment of the launcher and
 `server.env`. It takes a stopped-server backup and restores the previous files
@@ -78,9 +81,9 @@ Migration work must preserve a vanilla launch path, prove the world on a
 temporary server before production, back up server world and client characters,
 and restore mods only after vanilla 1.0 is stable.
 
-## BenheimQoL Mod Work
+## Benheim Client Mod Work
 
-BenheimQoL lives under:
+The Benheim client mod lives under:
 
 ```text
 mods/benheim-qol/
@@ -119,10 +122,11 @@ mods/benheim-qol/scripts/package-macos.sh
 mods/benheim-qol/scripts/package-windows.sh
 ```
 
-`install-local.sh` must invoke the same idempotent Mac installer shipped to
-players. Keep BepInEx installation, legacy-plugin cleanup, and launcher
-generation in that installer. The generated launcher must start Steam when it
-is closed and wait for Steam IPC readiness before starting Valheim.
+`install-local.sh` must run the same Mac installer shipped to players. The
+installer must be safe to run repeatedly. Keep BepInEx installation,
+legacy-plugin cleanup, and launcher generation in that installer. The launcher
+must start Steam when needed and wait until Steam's interprocess communication
+(IPC) service is ready before it starts Valheim.
 
 The Windows installer must:
 
@@ -173,7 +177,18 @@ Expected build caveat:
 
 Client mod rules:
 
-- Keep BenheimQoL client-only unless the product direction changes explicitly.
+- Keep one Benheim client DLL. Shared inventory protocol source lives under
+  `shared/benheim-inventory-protocol/` and compiles into both BenheimQoL and the
+  Benheim Inventory server plugin.
+- Multiplayer Put Away requires the server and every connected client to use
+  the exact protocol version. A mismatch disables Put Away instead of kicking
+  the player.
+- The chest owner performs each deposit. Never claim ownership to force a
+  local inventory write.
+- When Benheim retries a transaction, it must reuse the original transaction
+  ID. It may restore unaccepted items only after an explicit server result.
+  Persist an in-progress reservation before removing items from the player so
+  reconnect recovery can roll back or retry without inventing a new transfer.
 - Do not add custom persistent world objects or custom item data casually.
 - Keep the in-game shortcuts panel and the owning feature `PRODUCT.md` aligned
   with implemented controls.
