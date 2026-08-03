@@ -58,16 +58,8 @@ internal static class QuickStack
             "Inventory",
             "quick_stack_requested",
             $"radius={Radius:0.#} inventory_open={Diagnostics.Bool(inventoryWasOpen)}");
-        if (!IsTrueSinglePlayer())
+        if (!QuickStackAvailability.CanRun(player, inventoryWasOpen))
         {
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_rejected",
-                "reason=multiplayer_requires_authoritative_transaction");
-            QuickStackFeedback.ShowDetailedResult(
-                player,
-                inventoryWasOpen,
-                "Put Away is temporarily unavailable in multiplayer");
             return;
         }
 
@@ -120,15 +112,6 @@ internal static class QuickStack
             eligibility.Containers,
             inventoryWasOpen);
         RequestNextContainer();
-    }
-
-    private static bool IsTrueSinglePlayer()
-    {
-        ZNet? network = ZNet.instance;
-        return network != null
-            && network.IsServer()
-            && !network.IsDedicated()
-            && network.GetConnectedPeers().Count == 0;
     }
 
     internal static bool TryHandleStackResponse(Container container, bool granted)
@@ -305,7 +288,10 @@ internal static class QuickStack
                 continue;
             }
 
-            int moved = MoveAsMuchAsPossible(playerInventory, targetInventory, item);
+            int moved = QuickStackItemTransfer.MoveAsMuchAsPossible(
+                playerInventory,
+                targetInventory,
+                item);
             movedItems += moved;
             summary.Add(
                 container.GetInstanceID(),
@@ -351,71 +337,11 @@ internal static class QuickStack
             movedItems: 0);
     }
 
-    private static int MoveAsMuchAsPossible(Inventory sourceInventory, Inventory targetInventory, ItemDrop.ItemData item)
-    {
-        int amount = Mathf.Min(item.m_stack, GetCapacityFor(targetInventory, item));
-        if (amount <= 0)
-        {
-            return 0;
-        }
-
-        int before = CountMatchingItems(targetInventory, item);
-        ItemDrop.ItemData clone = item.Clone();
-        clone.m_stack = amount;
-        targetInventory.AddItem(clone);
-
-        int moved = Mathf.Clamp(CountMatchingItems(targetInventory, item) - before, 0, amount);
-        if (moved <= 0)
-        {
-            return 0;
-        }
-
-        sourceInventory.RemoveItem(item, moved);
-        return moved;
-    }
-
-    private static int CountMatchingItems(Inventory inventory, ItemDrop.ItemData item)
-    {
-        int count = 0;
-        foreach (ItemDrop.ItemData storedItem in inventory.GetAllItems())
-        {
-            if (storedItem.m_shared.m_name == item.m_shared.m_name
-                && storedItem.m_quality == item.m_quality
-                && storedItem.m_worldLevel == item.m_worldLevel)
-            {
-                count += storedItem.m_stack;
-            }
-        }
-
-        return count;
-    }
-
     private static string Localize(string name)
     {
         return Localization.instance != null
             ? Localization.instance.Localize(name)
             : name.TrimStart('$');
-    }
-
-    private static int GetCapacityFor(Inventory inventory, ItemDrop.ItemData item)
-    {
-        int capacity = 0;
-        int occupied = 0;
-        foreach (ItemDrop.ItemData storedItem in inventory.GetAllItems())
-        {
-            occupied++;
-            if (storedItem.m_shared.m_name == item.m_shared.m_name
-                && storedItem.m_quality == item.m_quality
-                && storedItem.m_worldLevel == item.m_worldLevel
-                && storedItem.m_stack < storedItem.m_shared.m_maxStackSize)
-            {
-                capacity += storedItem.m_shared.m_maxStackSize - storedItem.m_stack;
-            }
-        }
-
-        int emptySlots = inventory.GetWidth() * inventory.GetHeight() - occupied;
-        capacity += Mathf.Max(0, emptySlots) * item.m_shared.m_maxStackSize;
-        return capacity;
     }
 
 }
