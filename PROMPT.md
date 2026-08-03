@@ -148,10 +148,12 @@ only from a clean local `main` that exactly matches `origin/main`. The script:
 - uploads the stable `Benheim-macOS.zip` and `Benheim-Windows.zip` assets.
 
 The first install uses the stable package for Mac or Windows. The installer adds
-a separate updater named `Update Benheim`. The updater downloads the stable
-package, verifies it against `SHA256SUMS.txt`, and reruns the installer while
-Valheim is closed. Normal game launch must never contact the network to check
-for Benheim updates.
+a separate updater named `Update Benheim`. Before launch, each launcher briefly
+checks the stable `VERSION` file. If the check fails or times out, the launcher
+continues with the installed version. When a newer stable version exists, the
+launcher offers `Update and launch` or `Launch current version`. Only the updater
+can change files. It verifies the package against `SHA256SUMS.txt` and reruns the
+installer while Valheim is closed.
 
 Use this development loop for gameplay changes:
 

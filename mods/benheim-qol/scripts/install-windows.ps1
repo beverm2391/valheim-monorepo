@@ -10,6 +10,7 @@ $UpdaterShortcutMarker = 'Benheim updater managed by the Benheim installer'
 $UpdaterMarker = 'Benheim updater managed directory v1'
 $UpdaterScript = Join-Path $ScriptDir 'update-windows.ps1'
 $UpdaterWrapper = Join-Path $ScriptDir 'Update Benheim.cmd'
+$LauncherScript = Join-Path $ScriptDir 'launch-windows.ps1'
 $VersionSource = Join-Path $ScriptDir 'VERSION'
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("BenheimQoL-" + [guid]::NewGuid().ToString('N'))
 
@@ -101,8 +102,9 @@ function Install-BenheimQoL {
         throw 'The Benheim plugin file is missing beside the installer.'
     }
     if (-not (Test-Path -LiteralPath $UpdaterScript -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $UpdaterWrapper -PathType Leaf)) {
-        throw 'The Benheim updater files are missing beside the installer.'
+        -not (Test-Path -LiteralPath $UpdaterWrapper -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $LauncherScript -PathType Leaf)) {
+        throw 'The Benheim launcher or updater files are missing beside the installer.'
     }
     if (-not (Test-Path -LiteralPath $VersionSource -PathType Leaf)) {
         throw 'The Benheim VERSION file is missing beside the installer.'
@@ -140,12 +142,20 @@ function Install-BenheimQoL {
     if ($updaterVersionExisted) {
         $installedUpdaterScript = Join-Path $updaterDir 'update-windows.ps1'
         $installedUpdaterWrapper = Join-Path $updaterDir 'Update Benheim.cmd'
+        $installedLauncherScript = Join-Path $updaterDir 'launch-windows.ps1'
+        $installedRuntimeVersion = Join-Path $updaterDir 'VERSION'
         if (-not (Test-Path -LiteralPath $installedUpdaterScript -PathType Leaf) -or
             -not (Test-Path -LiteralPath $installedUpdaterWrapper -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $installedLauncherScript -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $installedRuntimeVersion -PathType Leaf) -or
             (Get-FileHash -LiteralPath $installedUpdaterScript -Algorithm SHA256).Hash -ne
                 (Get-FileHash -LiteralPath $UpdaterScript -Algorithm SHA256).Hash -or
             (Get-FileHash -LiteralPath $installedUpdaterWrapper -Algorithm SHA256).Hash -ne
-                (Get-FileHash -LiteralPath $UpdaterWrapper -Algorithm SHA256).Hash) {
+                (Get-FileHash -LiteralPath $UpdaterWrapper -Algorithm SHA256).Hash -or
+            (Get-FileHash -LiteralPath $installedLauncherScript -Algorithm SHA256).Hash -ne
+                (Get-FileHash -LiteralPath $LauncherScript -Algorithm SHA256).Hash -or
+            (Get-FileHash -LiteralPath $installedRuntimeVersion -Algorithm SHA256).Hash -ne
+                (Get-FileHash -LiteralPath $VersionSource -Algorithm SHA256).Hash) {
             throw "Refusing to replace a damaged updater version at: $updaterDir"
         }
     }
@@ -209,6 +219,8 @@ function Install-BenheimQoL {
     New-Item -ItemType Directory -Path $stagedUpdaterDir -Force | Out-Null
     Copy-Item -LiteralPath $UpdaterScript -Destination (Join-Path $stagedUpdaterDir 'update-windows.ps1')
     Copy-Item -LiteralPath $UpdaterWrapper -Destination (Join-Path $stagedUpdaterDir 'Update Benheim.cmd')
+    Copy-Item -LiteralPath $LauncherScript -Destination (Join-Path $stagedUpdaterDir 'launch-windows.ps1')
+    Copy-Item -LiteralPath $VersionSource -Destination (Join-Path $stagedUpdaterDir 'VERSION')
 
     if (Get-Process -Name 'valheim' -ErrorAction SilentlyContinue) {
         throw 'Valheim started during setup. Quit the game completely, then run this installer again.'
@@ -267,8 +279,8 @@ function Install-BenheimQoL {
     Write-Host 'Installing the Benheim desktop shortcut...'
     $stagedShortcut = Join-Path $TempDir 'Benheim.lnk'
     $shortcut = $shell.CreateShortcut($stagedShortcut)
-    $shortcut.TargetPath = Join-Path $env:WINDIR 'explorer.exe'
-    $shortcut.Arguments = 'steam://rungameid/892970'
+    $shortcut.TargetPath = (Get-Command powershell.exe).Source
+    $shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $updaterDir 'launch-windows.ps1') + '"'
     $shortcut.WorkingDirectory = $gameDir
     $shortcut.IconLocation = (Join-Path $gameDir 'valheim.exe') + ',0'
     $shortcut.Description = $ShortcutMarker
@@ -340,7 +352,7 @@ function Install-BenheimQoL {
     Write-Host ''
     Write-Host 'Installed Benheim.'
     Write-Host 'Open Benheim from your Desktop to play.'
-    Write-Host 'Open Update Benheim from your Desktop when a new release is ready.'
+    Write-Host 'Benheim will offer stable updates before launch.'
 }
 
 try {

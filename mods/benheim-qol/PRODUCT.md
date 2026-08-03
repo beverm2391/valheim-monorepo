@@ -16,8 +16,10 @@ This file owns the overall product promise. Each feature module has a
 - The Mac launcher starts Steam when needed before it starts modded Valheim.
 - The Windows installer finds Valheim across Steam libraries and creates a
   desktop shortcut. A player still needs to test the installer on a Windows PC.
-- Install a separate updater named `Update Benheim` on Mac and Windows. Normal
-  game launch must never contact the network to check for Benheim updates.
+- Install a separate updater named `Update Benheim` on Mac and Windows. Each
+  launcher checks briefly for a newer stable version. If one exists, it offers
+  `Update and launch` or `Launch current version`. If the stable `VERSION` check
+  fails or times out, the launcher must continue with the installed version.
 - The updater must apply an update only after the stable package matches the
   checksum in `SHA256SUMS.txt`. It must preserve the existing installation if
   the release is missing or unreachable, the download is interrupted, or
@@ -62,7 +64,7 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.35` is the next test build. It:
+Benheim `0.1.36` is the next test build. It:
 
 - disables the broken mass building repair action while preserving normal
   hammer repair and batch gear repair;
@@ -89,9 +91,11 @@ Benheim `0.1.35` is the next test build. It:
   in the shortcuts panel;
 - includes Woodcutting cleave for standing trees and fallen logs at skill
   level 25 or higher, with a cleave chance that rises from 30% at level 25 to
-  85% at level 100 and visible `CLEAVE` combat text; and
+  85% at level 100 and visible `CLEAVE` combat text;
 - adds `Update Benheim` on Mac and Windows and reports when Benheim is already
-  current.
+  current; and
+- offers a stable update before launch without changing the current install
+  until the player chooses `Update and launch` and package verification passes.
 
 ## Later
 

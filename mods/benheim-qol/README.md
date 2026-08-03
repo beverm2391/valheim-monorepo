@@ -12,12 +12,13 @@ Install Valheim through Steam first. Then unzip the Mac package and double-click
 current Benheim plugin to Valheim. It creates `Benheim.app` in the user's
 Applications folder.
 
-The installer also creates `Update Benheim.app`. Open it while Valheim is
-closed to check for and install a new stable release.
+The installer also creates `Update Benheim.app` for manual update checks.
 
-Open `Benheim.app` to play. The launcher starts Steam when needed, waits for
-it to become ready, and then starts the BepInEx-enabled game. The normal Steam
-Play button remains the unmodded launch path.
+Open `Benheim.app` to play. If a newer stable version exists, the launcher
+offers `Update and launch` or `Launch current version`. After that choice, or
+when no update exists, the launcher starts Steam when needed and then starts
+the BepInEx-enabled game. The normal Steam Play button remains the unmodded
+launch path.
 
 The installer is safe to run again for an update. It refuses to run while
 Valheim is open and refuses to replace an unrelated app. It also disables the
@@ -30,12 +31,13 @@ double-click `Install Benheim.cmd`. The installer finds Valheim in your
 configured Steam libraries. It installs the fixed BepInEx version and the
 current Benheim plugin. It also creates a `Benheim` desktop shortcut.
 
-The installer also creates an `Update Benheim` desktop shortcut. Open it while
-Valheim is closed to check for and install a new stable release.
+The installer also creates an `Update Benheim` desktop shortcut for manual
+update checks.
 
-Open the `Benheim` desktop shortcut to play. On Windows, BepInEx loads from
-the Valheim game directory, so Steam's normal Play button also starts the
-modded game after installation.
+Open the `Benheim` desktop shortcut to play. If a newer stable version exists,
+choose `Update and launch` or `Launch current version`. On Windows, BepInEx
+loads from the Valheim game directory, so Steam's normal Play button also
+starts the modded game after installation without checking for updates.
 
 The installer stops if Valheim is open. It verifies the BepInEx download. It
 does not replace an unrelated desktop shortcut. It disables the old standalone
@@ -43,13 +45,14 @@ MassFarming plugin.
 
 ## Update Benheim
 
-The first install adds `Update Benheim.app` on Mac or an `Update Benheim`
-desktop shortcut on Windows. Quit Valheim, then open the updater. It downloads
-the latest stable package and verifies it against `SHA256SUMS.txt`. After
-verification succeeds, the updater runs the normal installer.
+Before launch, the Benheim launcher briefly checks the stable `VERSION` file.
+If the check fails or times out, the launcher starts the installed version. If
+a newer stable version exists, choosing `Update and launch` runs the updater and
+then starts Valheim. The separate `Update Benheim` app or shortcut still
+supports a manual check.
 
-Normal game launch never contacts the network to check for Benheim updates. The
-updater preserves the existing installation in these cases:
+The updater downloads the stable package and verifies it against
+`SHA256SUMS.txt`. It preserves the existing installation in these cases:
 
 - no stable release exists;
 - GitHub or the network is unavailable;

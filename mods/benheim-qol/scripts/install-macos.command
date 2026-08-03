@@ -339,4 +339,4 @@ echo "Installed Benheim and:"
 echo "  $app"
 echo "  $updater_app"
 echo
-echo "Open Benheim to play. Open Update Benheim when a new release is ready."
+echo "Open Benheim to play. It will offer stable updates before launch."

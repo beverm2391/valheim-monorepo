@@ -114,6 +114,7 @@ function Update-Benheim {
     if (-not (Test-Path -LiteralPath $packagePlugin -PathType Leaf) -or
         -not (Test-Path -LiteralPath (Join-Path $packageDir 'Update Benheim.cmd') -PathType Leaf) -or
         -not (Test-Path -LiteralPath (Join-Path $packageDir 'update-windows.ps1') -PathType Leaf) -or
+        -not (Test-Path -LiteralPath (Join-Path $packageDir 'launch-windows.ps1') -PathType Leaf) -or
         -not (Test-Path -LiteralPath $packageVersionPath -PathType Leaf)) {
         throw 'The update package is incomplete. Your current installation was not changed.'
     }

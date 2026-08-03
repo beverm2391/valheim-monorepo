@@ -47,9 +47,10 @@ release_dir="$(mktemp -d)"
 trap 'rm -rf "$release_dir"' EXIT
 cp "$mac_package" "$release_dir/Benheim-macOS.zip"
 cp "$windows_package" "$release_dir/Benheim-Windows.zip"
+printf '%s\n' "$version" > "$release_dir/VERSION"
 (
   cd "$release_dir"
-  shasum -a 256 Benheim-macOS.zip Benheim-Windows.zip > SHA256SUMS.txt
+  shasum -a 256 Benheim-macOS.zip Benheim-Windows.zip VERSION > SHA256SUMS.txt
 )
 
 cat > "$release_dir/notes.md" <<EOF
@@ -58,12 +59,13 @@ Quit Valheim before installing or updating Benheim.
 - Mac: download \`Benheim-macOS.zip\`, unzip it, and open \`Install Benheim.command\`.
 - Windows: download \`Benheim-Windows.zip\`, unzip it, and open \`Install Benheim.cmd\`.
 
-After this install, open \`Update Benheim\` whenever a new release is ready. Press F8 in game to confirm version $version.
+After this install, open \`Benheim\` to play. It offers to install future stable updates before launch. Press F8 in game to confirm version $version.
 EOF
 
 gh release create "$tag" \
   "$release_dir/Benheim-macOS.zip" \
   "$release_dir/Benheim-Windows.zip" \
+  "$release_dir/VERSION" \
   "$release_dir/SHA256SUMS.txt" \
   --target "$head" \
   --title "Benheim v$version" \
