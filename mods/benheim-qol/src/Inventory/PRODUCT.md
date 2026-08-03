@@ -8,17 +8,22 @@ The Inventory module makes routine item movement faster.
 - `Backspace` or `Delete` resets the amount to `1`.
 - When a container is open, `Enter` moves the split stack between the player
   inventory and the container.
-- `Left Shift` + `P` moves matching items into accessible chests within 30
-  meters. It works during normal gameplay and while the inventory is open.
-- An eligible chest already contains the item and has room for more.
-- Put Away checks eligible chests from nearest to farthest.
-- Put Away reports the quantity and name of each item type moved.
-- Manually pocketed items stay with the player during Put Away.
 - Press `P` while hovering over an item to toggle manual pocketing. Pocketed
   items show a `P` marker.
 
 ## In Development
 
+- Put Away does not move items in multiplayer. To enable it, Benheim must ask
+  the game instance that owns the chest to perform each transfer. The player
+  keeps the item until that instance confirms the transfer. This prevents
+  invisible or lost items when another player opens the chest.
+- `Left Shift` + `P` moves matching items into eligible chests within 30
+  meters in a single-player world. It works during normal gameplay and while
+  the inventory is open.
+- An eligible chest already contains the item and has room for more.
+- Put Away checks eligible chests from nearest to farthest.
+- Put Away reports the quantity and name of each item type moved.
+- Manually pocketed items stay with the player during Put Away.
 - Show one result line for each destination chest. Sort the items on each line
   by moved quantity, from highest to lowest. Identify the chest by its distance
   and compass direction from the player when Put Away finishes.
@@ -48,7 +53,4 @@ The Inventory module makes routine item movement faster.
   applies.
 - Confirm that equipped items and hotbar items stay with the player during Put
   Away.
-- After Valheim grants access to a chest, Put Away must claim the chest before
-  transferring items. Another player who opens the chest must see the
-  transferred items.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing.

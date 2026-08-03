@@ -143,8 +143,11 @@ only from a clean local `main` that exactly matches `origin/main`. The script:
 - creates the `benheim-v<version>` GitHub release; and
 - uploads the stable `Benheim-macOS.zip` and `Benheim-Windows.zip` assets.
 
-Friends update by downloading the latest package from the stable Mac or Windows
-link. They rerun the installer while Valheim is closed.
+The first install uses the stable package for Mac or Windows. The installer adds
+a separate updater named `Update Benheim`. The updater downloads the stable
+package, verifies it against `SHA256SUMS.txt`, and reruns the installer while
+Valheim is closed. Normal game launch must never contact the network to check
+for Benheim updates.
 
 Use this development loop for gameplay changes:
 

@@ -17,5 +17,6 @@ grep -Fq 'SHA256SUMS.txt' "$release_script"
 grep -Fq 'gh release create "$tag"' "$release_script"
 grep -Fq 'releases/latest/download/Benheim-macOS.zip' "$release_script"
 grep -Fq 'releases/latest/download/Benheim-Windows.zip' "$release_script"
+grep -Fq 'open \`Update Benheim\`' "$release_script"
 
 echo "release flow gates and stable asset checks passed"

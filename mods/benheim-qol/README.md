@@ -12,6 +12,9 @@ Install Valheim through Steam first. Then unzip the Mac package and double-click
 current Benheim plugin to Valheim. It creates `Benheim.app` in the user's
 Applications folder.
 
+The installer also creates `Update Benheim.app`. Open it while Valheim is
+closed to check for and install a new stable release.
+
 Open `Benheim.app` to play. The launcher starts Steam when needed, waits for
 it to become ready, and then starts the BepInEx-enabled game. The normal Steam
 Play button remains the unmodded launch path.
@@ -27,24 +30,43 @@ double-click `Install Benheim.cmd`. The installer finds Valheim in your
 configured Steam libraries. It installs the fixed BepInEx version and the
 current Benheim plugin. It also creates a `Benheim` desktop shortcut.
 
+The installer also creates an `Update Benheim` desktop shortcut. Open it while
+Valheim is closed to check for and install a new stable release.
+
 Open the `Benheim` desktop shortcut to play. On Windows, BepInEx loads from
 the Valheim game directory, so Steam's normal Play button also starts the
 modded game after installation.
 
-You can run the installer again to update Benheim. The installer stops if
-Valheim is open. It verifies the BepInEx download. It does not replace an
-unrelated desktop shortcut. It disables the old standalone MassFarming plugin.
+The installer stops if Valheim is open. It verifies the BepInEx download. It
+does not replace an unrelated desktop shortcut. It disables the old standalone
+MassFarming plugin.
 
 ## Update Benheim
 
-Quit Valheim, then download the latest package for your computer:
+The first install adds `Update Benheim.app` on Mac or an `Update Benheim`
+desktop shortcut on Windows. Quit Valheim, then open the updater. It downloads
+the latest stable package and verifies it against `SHA256SUMS.txt`. After
+verification succeeds, the updater runs the normal installer.
+
+Normal game launch never contacts the network to check for Benheim updates. The
+updater preserves the existing installation in these cases:
+
+- no stable release exists;
+- GitHub or the network is unavailable;
+- the download is interrupted; or
+- checksum verification fails.
+
+If the updater is missing or reports that the Benheim installation is damaged,
+download the latest package for your computer:
 
 - [Latest Mac package](https://github.com/beverm2391/valheim-server/releases/latest/download/Benheim-macOS.zip)
 - [Latest Windows package](https://github.com/beverm2391/valheim-server/releases/latest/download/Benheim-Windows.zip)
 
-Unzip the package and run `Install Benheim` again. The installer replaces the
-mod and launcher without removing saves, characters, settings, or pocketed item
-preferences. Press `F8` in game to confirm the installed version.
+Unzip the package and run its installer. The installer repairs the updater and
+reinstalls the Benheim plugin. It also replaces `Benheim.app` on Mac or the
+`Benheim` desktop shortcut on Windows. It does not remove saves, characters,
+settings, or pocketed item preferences. Press `F8` in game to confirm the
+installed version.
 
 ## Send A Diagnostic Log
 
@@ -99,7 +121,7 @@ The release command:
 - runs the complete client test suite;
 - builds both packages;
 - creates a versioned GitHub release; and
-- uploads both packages with the stable asset names used by the links above.
+- uploads both packages and `SHA256SUMS.txt` with stable asset names.
 
 The package is written under `mods/benheim-qol/dist/`. The installer copies
 `BenheimQoL.dll` into:

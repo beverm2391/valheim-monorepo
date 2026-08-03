@@ -58,6 +58,19 @@ internal static class QuickStack
             "Inventory",
             "quick_stack_requested",
             $"radius={Radius:0.#} inventory_open={Diagnostics.Bool(inventoryWasOpen)}");
+        if (!IsTrueSinglePlayer())
+        {
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_rejected",
+                "reason=multiplayer_requires_authoritative_transaction");
+            QuickStackFeedback.ShowDetailedResult(
+                player,
+                inventoryWasOpen,
+                "Put Away is temporarily unavailable in multiplayer");
+            return;
+        }
+
         if (activeOperation != null)
         {
             Diagnostics.Event("Inventory", "quick_stack_rejected", "reason=already_in_progress");
@@ -107,6 +120,15 @@ internal static class QuickStack
             eligibility.Containers,
             inventoryWasOpen);
         RequestNextContainer();
+    }
+
+    private static bool IsTrueSinglePlayer()
+    {
+        ZNet? network = ZNet.instance;
+        return network != null
+            && network.IsServer()
+            && !network.IsDedicated()
+            && network.GetConnectedPeers().Count == 0;
     }
 
     internal static bool TryHandleStackResponse(Container container, bool granted)

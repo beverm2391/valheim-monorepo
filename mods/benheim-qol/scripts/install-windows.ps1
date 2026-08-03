@@ -6,6 +6,10 @@ $PluginDll = if ($env:BENHEIM_QOL_DLL) { $env:BENHEIM_QOL_DLL } else { Join-Path
 $BepInExUrl = if ($env:BENHEIM_QOL_BEPINEX_URL) { $env:BENHEIM_QOL_BEPINEX_URL } else { 'https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip' }
 $BepInExSha256 = if ($env:BENHEIM_QOL_BEPINEX_SHA256) { $env:BENHEIM_QOL_BEPINEX_SHA256.ToLowerInvariant() } else { '5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716' }
 $ShortcutMarker = 'BenheimQoL launcher managed by the BenheimQoL installer'
+$UpdaterShortcutMarker = 'Benheim updater managed by the Benheim installer'
+$UpdaterMarker = 'Benheim updater managed directory v1'
+$UpdaterScript = Join-Path $ScriptDir 'update-windows.ps1'
+$UpdaterWrapper = Join-Path $ScriptDir 'Update Benheim.cmd'
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("BenheimQoL-" + [guid]::NewGuid().ToString('N'))
 
 function Find-ValheimGameDir {
@@ -95,11 +99,81 @@ function Install-BenheimQoL {
     if (-not (Test-Path -LiteralPath $PluginDll -PathType Leaf)) {
         throw 'The Benheim plugin file is missing beside the installer.'
     }
+    if (-not (Test-Path -LiteralPath $UpdaterScript -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $UpdaterWrapper -PathType Leaf)) {
+        throw 'The Benheim updater files are missing beside the installer.'
+    }
+
+    $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+    if (-not $localAppData) {
+        throw 'Windows did not report a Local AppData folder, so the updater could not be installed.'
+    }
+    $updaterRoot = Join-Path $localAppData 'Benheim'
+    $updaterRootExisted = Test-Path -LiteralPath $updaterRoot
+    $updaterMarkerPath = Join-Path $updaterRoot '.benheim-managed'
+    if (Test-Path -LiteralPath $updaterRoot) {
+        if (-not (Test-Path -LiteralPath $updaterRoot -PathType Container) -or
+            -not (Test-Path -LiteralPath $updaterMarkerPath -PathType Leaf) -or
+            (Get-Content -LiteralPath $updaterMarkerPath -Raw).Trim() -ne $UpdaterMarker) {
+            throw "Refusing to replace an unrelated or damaged updater directory at: $updaterRoot"
+        }
+    }
+
+    $updaterVersionsRoot = Join-Path $updaterRoot 'versions'
+    if ((Test-Path -LiteralPath $updaterVersionsRoot) -and
+        -not (Test-Path -LiteralPath $updaterVersionsRoot -PathType Container)) {
+        throw "Refusing to replace a damaged updater versions directory at: $updaterVersionsRoot"
+    }
+    $updaterVersion = (Get-FileHash -LiteralPath $PluginDll -Algorithm SHA256).Hash.ToLowerInvariant()
+    $updaterDir = Join-Path $updaterVersionsRoot $updaterVersion
+    $updaterVersionExisted = Test-Path -LiteralPath $updaterDir
+    if ($updaterVersionExisted) {
+        $installedUpdaterScript = Join-Path $updaterDir 'update-windows.ps1'
+        $installedUpdaterWrapper = Join-Path $updaterDir 'Update Benheim.cmd'
+        if (-not (Test-Path -LiteralPath $installedUpdaterScript -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $installedUpdaterWrapper -PathType Leaf) -or
+            (Get-FileHash -LiteralPath $installedUpdaterScript -Algorithm SHA256).Hash -ne
+                (Get-FileHash -LiteralPath $UpdaterScript -Algorithm SHA256).Hash -or
+            (Get-FileHash -LiteralPath $installedUpdaterWrapper -Algorithm SHA256).Hash -ne
+                (Get-FileHash -LiteralPath $UpdaterWrapper -Algorithm SHA256).Hash) {
+            throw "Refusing to replace a damaged updater version at: $updaterDir"
+        }
+    }
 
     $bepInExDir = Join-Path $gameDir 'BepInEx'
     $pluginDir = Join-Path $bepInExDir 'plugins\BenheimQoL'
     if ((Test-Path -LiteralPath $pluginDir) -and -not (Test-Path -LiteralPath $pluginDir -PathType Container)) {
         throw "Expected a plugin directory but found another kind of file at: $pluginDir"
+    }
+
+    $desktop = [Environment]::GetFolderPath('Desktop')
+    if (-not $desktop) {
+        throw 'Windows did not report a Desktop folder, so the launcher shortcuts could not be created.'
+    }
+
+    $shortcutPath = Join-Path $desktop 'Benheim.lnk'
+    $updaterShortcutPath = Join-Path $desktop 'Update Benheim.lnk'
+    $legacyShortcutPath = Join-Path $desktop 'Benheim QoL.lnk'
+    $shell = New-Object -ComObject WScript.Shell
+    $removeLegacyShortcut = $false
+
+    if (Test-Path -LiteralPath $legacyShortcutPath -PathType Leaf) {
+        $legacyShortcut = $shell.CreateShortcut($legacyShortcutPath)
+        $removeLegacyShortcut = $legacyShortcut.Description -eq $ShortcutMarker
+    }
+
+    if (Test-Path -LiteralPath $shortcutPath -PathType Leaf) {
+        $existingShortcut = $shell.CreateShortcut($shortcutPath)
+        if ($existingShortcut.Description -ne $ShortcutMarker) {
+            throw "Refusing to replace an unrelated shortcut at: $shortcutPath"
+        }
+    }
+
+    if (Test-Path -LiteralPath $updaterShortcutPath -PathType Leaf) {
+        $existingUpdaterShortcut = $shell.CreateShortcut($updaterShortcutPath)
+        if ($existingUpdaterShortcut.Description -ne $UpdaterShortcutMarker) {
+            throw "Refusing to replace an unrelated shortcut at: $updaterShortcutPath"
+        }
     }
 
     New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
@@ -121,13 +195,43 @@ function Install-BenheimQoL {
         throw 'The BepInEx package had an unexpected layout.'
     }
 
-    Write-Host 'Installing BepInEx and Benheim...'
-    Get-ChildItem -LiteralPath $bepInExRoot -Force |
-        Copy-Item -Destination $gameDir -Recurse -Force
-    New-Item -ItemType Directory -Path $pluginDir -Force | Out-Null
-    $pluginTemp = Join-Path $pluginDir ('.BenheimQoL.dll.' + [guid]::NewGuid().ToString('N'))
-    Copy-Item -LiteralPath $PluginDll -Destination $pluginTemp
-    Move-Item -LiteralPath $pluginTemp -Destination (Join-Path $pluginDir 'BenheimQoL.dll') -Force
+    $stagedUpdaterDir = Join-Path $TempDir 'updater'
+    New-Item -ItemType Directory -Path $stagedUpdaterDir -Force | Out-Null
+    Copy-Item -LiteralPath $UpdaterScript -Destination (Join-Path $stagedUpdaterDir 'update-windows.ps1')
+    Copy-Item -LiteralPath $UpdaterWrapper -Destination (Join-Path $stagedUpdaterDir 'Update Benheim.cmd')
+
+    if (Get-Process -Name 'valheim' -ErrorAction SilentlyContinue) {
+        throw 'Valheim started during setup. Quit the game completely, then run this installer again.'
+    }
+
+    $pluginPath = Join-Path $pluginDir 'BenheimQoL.dll'
+    $pluginBackup = Join-Path $TempDir 'BenheimQoL.previous.dll'
+    $pluginHadPrevious = Test-Path -LiteralPath $pluginPath -PathType Leaf
+    $pluginReplaced = $false
+    if ($pluginHadPrevious) {
+        Copy-Item -LiteralPath $pluginPath -Destination $pluginBackup
+    }
+
+    $shortcutHadPrevious = Test-Path -LiteralPath $shortcutPath -PathType Leaf
+    $updaterShortcutHadPrevious = Test-Path -LiteralPath $updaterShortcutPath -PathType Leaf
+    $shortcutBackup = Join-Path $TempDir 'Benheim.previous.lnk'
+    $updaterShortcutBackup = Join-Path $TempDir 'Update Benheim.previous.lnk'
+    if ($shortcutHadPrevious) {
+        Copy-Item -LiteralPath $shortcutPath -Destination $shortcutBackup
+    }
+    if ($updaterShortcutHadPrevious) {
+        Copy-Item -LiteralPath $updaterShortcutPath -Destination $updaterShortcutBackup
+    }
+
+    try {
+        Write-Host 'Installing BepInEx and Benheim...'
+        Get-ChildItem -LiteralPath $bepInExRoot -Force |
+            Copy-Item -Destination $gameDir -Recurse -Force
+        New-Item -ItemType Directory -Path $pluginDir -Force | Out-Null
+        $pluginTemp = Join-Path $pluginDir ('.BenheimQoL.dll.' + [guid]::NewGuid().ToString('N'))
+        Copy-Item -LiteralPath $PluginDll -Destination $pluginTemp
+        Move-Item -LiteralPath $pluginTemp -Destination $pluginPath -Force
+        $pluginReplaced = $true
 
     $disabledDir = Join-Path $bepInExDir 'disabled\MassFarming'
     Move-LegacyFile `
@@ -138,29 +242,6 @@ function Install-BenheimQoL {
         -Source (Join-Path $bepInExDir 'config\xeio.MassFarming.cfg') `
         -Destination (Join-Path $disabledDir 'xeio.MassFarming.cfg') `
         -ArchivePrefix 'xeio.MassFarming.cfg'
-
-    $desktop = [Environment]::GetFolderPath('Desktop')
-    if (-not $desktop) {
-        throw 'Windows did not report a Desktop folder, so the launcher shortcut could not be created.'
-    }
-
-    $shortcutPath = Join-Path $desktop 'Benheim.lnk'
-    $legacyShortcutPath = Join-Path $desktop 'Benheim QoL.lnk'
-    $shell = New-Object -ComObject WScript.Shell
-
-    if (Test-Path -LiteralPath $legacyShortcutPath -PathType Leaf) {
-        $legacyShortcut = $shell.CreateShortcut($legacyShortcutPath)
-        if ($legacyShortcut.Description -eq $ShortcutMarker) {
-            Remove-Item -LiteralPath $legacyShortcutPath -Force
-        }
-    }
-
-    if (Test-Path -LiteralPath $shortcutPath -PathType Leaf) {
-        $existingShortcut = $shell.CreateShortcut($shortcutPath)
-        if ($existingShortcut.Description -ne $ShortcutMarker) {
-            throw "Refusing to replace an unrelated shortcut at: $shortcutPath"
-        }
-    }
 
     Write-Host 'Installing the Benheim desktop shortcut...'
     $stagedShortcut = Join-Path $TempDir 'Benheim.lnk'
@@ -173,9 +254,64 @@ function Install-BenheimQoL {
     $shortcut.Save()
     Copy-Item -LiteralPath $stagedShortcut -Destination $shortcutPath -Force
 
+    Write-Host 'Installing the Benheim updater...'
+    if (-not (Test-Path -LiteralPath $updaterDir)) {
+        New-Item -ItemType Directory -Path (Split-Path -Parent $updaterDir) -Force | Out-Null
+        Move-Item -LiteralPath $stagedUpdaterDir -Destination $updaterDir
+    }
+    if (-not (Test-Path -LiteralPath $updaterRoot)) {
+        New-Item -ItemType Directory -Path $updaterRoot -Force | Out-Null
+    }
+    Set-Content -LiteralPath $updaterMarkerPath -Value $UpdaterMarker -NoNewline
+
+    $stagedUpdaterShortcut = Join-Path $TempDir 'Update Benheim.lnk'
+    $updaterShortcut = $shell.CreateShortcut($stagedUpdaterShortcut)
+    $updaterShortcut.TargetPath = $env:ComSpec
+    $updaterShortcut.Arguments = '/c ""' + (Join-Path $updaterDir 'Update Benheim.cmd') + '""'
+    $updaterShortcut.WorkingDirectory = [System.IO.Path]::GetTempPath()
+    $updaterShortcut.IconLocation = (Join-Path $gameDir 'valheim.exe') + ',0'
+    $updaterShortcut.Description = $UpdaterShortcutMarker
+    $updaterShortcut.Save()
+    Copy-Item -LiteralPath $stagedUpdaterShortcut -Destination $updaterShortcutPath -Force
+
+    if ($removeLegacyShortcut) {
+        Remove-Item -LiteralPath $legacyShortcutPath -Force
+    }
+    }
+    catch {
+        if ($pluginReplaced) {
+            if ($pluginHadPrevious) {
+                Copy-Item -LiteralPath $pluginBackup -Destination $pluginPath -Force
+            }
+            else {
+                Remove-Item -LiteralPath $pluginPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+        if ($shortcutHadPrevious) {
+            Copy-Item -LiteralPath $shortcutBackup -Destination $shortcutPath -Force
+        }
+        else {
+            Remove-Item -LiteralPath $shortcutPath -Force -ErrorAction SilentlyContinue
+        }
+        if ($updaterShortcutHadPrevious) {
+            Copy-Item -LiteralPath $updaterShortcutBackup -Destination $updaterShortcutPath -Force
+        }
+        else {
+            Remove-Item -LiteralPath $updaterShortcutPath -Force -ErrorAction SilentlyContinue
+        }
+        if (-not $updaterVersionExisted -and (Test-Path -LiteralPath $updaterDir)) {
+            Remove-Item -LiteralPath $updaterDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if (-not $updaterRootExisted -and (Test-Path -LiteralPath $updaterRoot)) {
+            Remove-Item -LiteralPath $updaterRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        throw
+    }
+
     Write-Host ''
     Write-Host 'Installed Benheim.'
     Write-Host 'Open Benheim from your Desktop to play.'
+    Write-Host 'Open Update Benheim from your Desktop when a new release is ready.'
 }
 
 try {

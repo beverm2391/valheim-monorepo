@@ -57,14 +57,18 @@ test -f "$game_dir/BepInEx/disabled/MassFarming/MassFarming.dll"
 test ! -e "$legacy_app"
 test -x "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL"
 test -f "$app_dir/Benheim.app/Contents/Resources/PlayerIcon.icns"
+test -x "$app_dir/Update Benheim.app/Contents/MacOS/UpdateBenheim"
+grep -Fq 'com.beneverman.benheim-updater' "$app_dir/Update Benheim.app/Contents/Info.plist"
 grep -Fq 'open -a Steam' "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL"
 grep -Fq 'pgrep -x ipcserver' "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL"
 grep -Fq 'Rosetta 2 is required' "$root/scripts/install-macos.command"
 grep -Fq 'package_name="Benheim-macOS-$version"' "$root/scripts/package-macos.sh"
 grep -Fq 'Install Benheim.command' "$root/scripts/package-macos.sh"
+grep -Fq 'update-macos.sh' "$root/scripts/package-macos.sh"
 
 first_plugin_sha="$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 first_launcher_sha="$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
+first_updater_sha="$(shasum -a 256 "$app_dir/Update Benheim.app/Contents/MacOS/UpdateBenheim" | awk '{print $1}')"
 
 # A second install must converge on the same active plugin and launcher.
 BENHEIM_QOL_GAME_DIR="$game_dir" \
@@ -78,6 +82,28 @@ BENHEIM_QOL_NONINTERACTIVE=1 \
 
 test "$first_plugin_sha" = "$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 test "$first_launcher_sha" = "$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
+test "$first_updater_sha" = "$(shasum -a 256 "$app_dir/Update Benheim.app/Contents/MacOS/UpdateBenheim" | awk '{print $1}')"
+
+# A failure after the plugin swap restores the plugin and both managed apps.
+printf 'new-test-dll\n' > "$test_root/NewBenheimQoL.dll"
+printf '#!/bin/sh\n' > "$test_root/unreadable-updater.sh"
+chmod 000 "$test_root/unreadable-updater.sh"
+if BENHEIM_QOL_GAME_DIR="$game_dir" \
+  BENHEIM_QOL_APP_DIR="$app_dir" \
+  BENHEIM_QOL_DLL="$test_root/NewBenheimQoL.dll" \
+  BENHEIM_QOL_LAUNCHER_SOURCE="$root/scripts/macos-launcher.sh" \
+  BENHEIM_QOL_UPDATER_SOURCE="$test_root/unreadable-updater.sh" \
+  BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
+  BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
+  BENHEIM_QOL_NONINTERACTIVE=1 \
+    "$root/scripts/install-macos.command" >/dev/null 2>&1; then
+  echo "installer succeeded after a late updater failure" >&2
+  exit 1
+fi
+chmod 600 "$test_root/unreadable-updater.sh"
+test "$first_plugin_sha" = "$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
+test "$first_launcher_sha" = "$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
+test "$first_updater_sha" = "$(shasum -a 256 "$app_dir/Update Benheim.app/Contents/MacOS/UpdateBenheim" | awk '{print $1}')"
 
 # Never overwrite an unrelated app that happens to use the target name.
 foreign_app_dir="$test_root/Foreign Applications"
@@ -95,5 +121,22 @@ if BENHEIM_QOL_GAME_DIR="$game_dir" \
   exit 1
 fi
 grep -Fq 'not our app' "$foreign_app_dir/Benheim.app/Contents/Info.plist"
+
+# Never overwrite an unrelated app that uses the updater's target name.
+foreign_updater_dir="$test_root/Foreign Updater Applications"
+mkdir -p "$foreign_updater_dir/Update Benheim.app/Contents"
+printf 'not our updater\n' > "$foreign_updater_dir/Update Benheim.app/Contents/Info.plist"
+if BENHEIM_QOL_GAME_DIR="$game_dir" \
+  BENHEIM_QOL_APP_DIR="$foreign_updater_dir" \
+  BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+  BENHEIM_QOL_LAUNCHER_SOURCE="$root/scripts/macos-launcher.sh" \
+  BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
+  BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
+  BENHEIM_QOL_NONINTERACTIVE=1 \
+    "$root/scripts/install-macos.command" >/dev/null 2>&1; then
+  echo "installer replaced an unrelated updater app" >&2
+  exit 1
+fi
+grep -Fq 'not our updater' "$foreign_updater_dir/Update Benheim.app/Contents/Info.plist"
 
 echo "macOS installer checks passed"

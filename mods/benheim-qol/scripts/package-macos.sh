@@ -18,6 +18,7 @@ rm -rf "$stage" "$dist/$package_name.zip"
 install -d "$stage"
 install -m 0755 "$root/scripts/install-macos.command" "$stage/Install Benheim.command"
 install -m 0755 "$root/scripts/macos-launcher.sh" "$stage/macos-launcher.sh"
+install -m 0755 "$root/scripts/update-macos.sh" "$stage/update-macos.sh"
 install -m 0644 "$dll" "$stage/BenheimQoL.dll"
 
 (

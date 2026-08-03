@@ -58,7 +58,7 @@ Quit Valheim before installing or updating Benheim.
 - Mac: download \`Benheim-macOS.zip\`, unzip it, and open \`Install Benheim.command\`.
 - Windows: download \`Benheim-Windows.zip\`, unzip it, and open \`Install Benheim.cmd\`.
 
-Run the same installer again for future updates. Press F8 in game to confirm version $version.
+After this install, open \`Update Benheim\` whenever a new release is ready. Press F8 in game to confirm version $version.
 EOF
 
 gh release create "$tag" \
