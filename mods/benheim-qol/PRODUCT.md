@@ -22,6 +22,8 @@ This file owns the overall product promise. Each feature module has a
   checksum in `SHA256SUMS.txt`. It must preserve the existing installation if
   the release is missing or unreachable, the download is interrupted, or
   checksum verification fails.
+- The updater must not replace a newer installed version with an older stable
+  release.
 - Keep Benheim compatible with servers and players that do not use it.
 - Do not add custom persistent world objects. Store explicit per-item
   preferences in Benheim-namespaced item metadata only when another

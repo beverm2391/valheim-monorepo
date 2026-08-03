@@ -20,6 +20,7 @@ install -m 0755 "$root/scripts/install-macos.command" "$stage/Install Benheim.co
 install -m 0755 "$root/scripts/macos-launcher.sh" "$stage/macos-launcher.sh"
 install -m 0755 "$root/scripts/update-macos.sh" "$stage/update-macos.sh"
 install -m 0644 "$dll" "$stage/BenheimQoL.dll"
+printf '%s\n' "$version" > "$stage/VERSION"
 
 (
   cd "$dist"

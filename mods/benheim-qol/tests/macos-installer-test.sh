@@ -25,6 +25,7 @@ fixture_zip="$test_root/BepInExPack.zip"
 fixture_sha="$(shasum -a 256 "$fixture_zip" | awk '{print $1}')"
 
 printf 'test-dll\n' > "$test_root/BenheimQoL.dll"
+printf '0.1.34\n' > "$test_root/VERSION"
 
 # A successful install replaces the old managed launcher name without leaving
 # two launchers behind.
@@ -44,6 +45,7 @@ PLIST
 BENHEIM_QOL_GAME_DIR="$game_dir" \
 BENHEIM_QOL_APP_DIR="$app_dir" \
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+BENHEIM_QOL_VERSION_FILE="$test_root/VERSION" \
 BENHEIM_QOL_LAUNCHER_SOURCE="$root/scripts/macos-launcher.sh" \
 BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
 BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
@@ -52,6 +54,7 @@ BENHEIM_QOL_NONINTERACTIVE=1 \
 
 test -x "$game_dir/start_game_bepinex.sh"
 test -f "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll"
+grep -Fqx '0.1.34' "$game_dir/BepInEx/plugins/BenheimQoL/VERSION"
 test ! -f "$game_dir/BepInEx/plugins/MassFarming/MassFarming.dll"
 test -f "$game_dir/BepInEx/disabled/MassFarming/MassFarming.dll"
 test ! -e "$legacy_app"
@@ -65,6 +68,7 @@ grep -Fq 'Rosetta 2 is required' "$root/scripts/install-macos.command"
 grep -Fq 'package_name="Benheim-macOS-$version"' "$root/scripts/package-macos.sh"
 grep -Fq 'Install Benheim.command' "$root/scripts/package-macos.sh"
 grep -Fq 'update-macos.sh' "$root/scripts/package-macos.sh"
+grep -Fq '"$stage/VERSION"' "$root/scripts/package-macos.sh"
 
 first_plugin_sha="$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 first_launcher_sha="$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
@@ -74,6 +78,7 @@ first_updater_sha="$(shasum -a 256 "$app_dir/Update Benheim.app/Contents/MacOS/U
 BENHEIM_QOL_GAME_DIR="$game_dir" \
 BENHEIM_QOL_APP_DIR="$app_dir" \
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+BENHEIM_QOL_VERSION_FILE="$test_root/VERSION" \
 BENHEIM_QOL_LAUNCHER_SOURCE="$root/scripts/macos-launcher.sh" \
 BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
 BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
@@ -91,6 +96,7 @@ chmod 000 "$test_root/unreadable-updater.sh"
 if BENHEIM_QOL_GAME_DIR="$game_dir" \
   BENHEIM_QOL_APP_DIR="$app_dir" \
   BENHEIM_QOL_DLL="$test_root/NewBenheimQoL.dll" \
+  BENHEIM_QOL_VERSION_FILE="$test_root/VERSION" \
   BENHEIM_QOL_LAUNCHER_SOURCE="$root/scripts/macos-launcher.sh" \
   BENHEIM_QOL_UPDATER_SOURCE="$test_root/unreadable-updater.sh" \
   BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
@@ -112,6 +118,7 @@ printf 'not our app\n' > "$foreign_app_dir/Benheim.app/Contents/Info.plist"
 if BENHEIM_QOL_GAME_DIR="$game_dir" \
   BENHEIM_QOL_APP_DIR="$foreign_app_dir" \
   BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+  BENHEIM_QOL_VERSION_FILE="$test_root/VERSION" \
   BENHEIM_QOL_LAUNCHER_SOURCE="$root/scripts/macos-launcher.sh" \
   BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
   BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
@@ -129,6 +136,7 @@ printf 'not our updater\n' > "$foreign_updater_dir/Update Benheim.app/Contents/I
 if BENHEIM_QOL_GAME_DIR="$game_dir" \
   BENHEIM_QOL_APP_DIR="$foreign_updater_dir" \
   BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+  BENHEIM_QOL_VERSION_FILE="$test_root/VERSION" \
   BENHEIM_QOL_LAUNCHER_SOURCE="$root/scripts/macos-launcher.sh" \
   BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
   BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \

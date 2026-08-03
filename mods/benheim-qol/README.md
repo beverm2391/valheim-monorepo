@@ -54,7 +54,8 @@ updater preserves the existing installation in these cases:
 - no stable release exists;
 - GitHub or the network is unavailable;
 - the download is interrupted; or
-- checksum verification fails.
+- checksum verification fails; or
+- the installed version is newer than the current stable release.
 
 If the updater is missing or reports that the Benheim installation is damaged,
 download the latest package for your computer:

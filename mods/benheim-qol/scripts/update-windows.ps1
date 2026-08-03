@@ -110,10 +110,38 @@ function Update-Benheim {
     $installer = $installers[0].FullName
     $packageDir = Split-Path -Parent $installer
     $packagePlugin = Join-Path $packageDir 'BenheimQoL.dll'
+    $packageVersionPath = Join-Path $packageDir 'VERSION'
     if (-not (Test-Path -LiteralPath $packagePlugin -PathType Leaf) -or
         -not (Test-Path -LiteralPath (Join-Path $packageDir 'Update Benheim.cmd') -PathType Leaf) -or
-        -not (Test-Path -LiteralPath (Join-Path $packageDir 'update-windows.ps1') -PathType Leaf)) {
+        -not (Test-Path -LiteralPath (Join-Path $packageDir 'update-windows.ps1') -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $packageVersionPath -PathType Leaf)) {
         throw 'The update package is incomplete. Your current installation was not changed.'
+    }
+
+    try {
+        $packageVersion = [version](Get-Content -LiteralPath $packageVersionPath -Raw).Trim()
+    }
+    catch {
+        throw 'The update package has an invalid version. Your current installation was not changed.'
+    }
+
+    $installedVersionPath = Join-Path (Split-Path -Parent $installedPlugin) 'VERSION'
+    if (Test-Path -LiteralPath $installedVersionPath -PathType Leaf) {
+        try {
+            $installedVersion = [version](Get-Content -LiteralPath $installedVersionPath -Raw).Trim()
+        }
+        catch {
+            throw 'The installed Benheim version marker is damaged. Download the latest Windows package and run Install Benheim.cmd.'
+        }
+
+        if ($installedVersion -gt $packageVersion) {
+            Write-Host "Installed Benheim $installedVersion is newer than stable $packageVersion. Nothing was changed." -ForegroundColor Green
+            return
+        }
+        if ($installedVersion -eq $packageVersion) {
+            Write-Host 'Benheim is already up to date.' -ForegroundColor Green
+            return
+        }
     }
 
     $installedSha256 = (Get-FileHash -LiteralPath $installedPlugin -Algorithm SHA256).Hash

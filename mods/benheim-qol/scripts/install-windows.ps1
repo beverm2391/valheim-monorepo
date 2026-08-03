@@ -10,6 +10,7 @@ $UpdaterShortcutMarker = 'Benheim updater managed by the Benheim installer'
 $UpdaterMarker = 'Benheim updater managed directory v1'
 $UpdaterScript = Join-Path $ScriptDir 'update-windows.ps1'
 $UpdaterWrapper = Join-Path $ScriptDir 'Update Benheim.cmd'
+$VersionSource = Join-Path $ScriptDir 'VERSION'
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("BenheimQoL-" + [guid]::NewGuid().ToString('N'))
 
 function Find-ValheimGameDir {
@@ -102,6 +103,15 @@ function Install-BenheimQoL {
     if (-not (Test-Path -LiteralPath $UpdaterScript -PathType Leaf) -or
         -not (Test-Path -LiteralPath $UpdaterWrapper -PathType Leaf)) {
         throw 'The Benheim updater files are missing beside the installer.'
+    }
+    if (-not (Test-Path -LiteralPath $VersionSource -PathType Leaf)) {
+        throw 'The Benheim VERSION file is missing beside the installer.'
+    }
+    try {
+        [void][version](Get-Content -LiteralPath $VersionSource -Raw).Trim()
+    }
+    catch {
+        throw 'The Benheim VERSION file is invalid.'
     }
 
     $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
@@ -205,11 +215,18 @@ function Install-BenheimQoL {
     }
 
     $pluginPath = Join-Path $pluginDir 'BenheimQoL.dll'
+    $installedVersionPath = Join-Path $pluginDir 'VERSION'
     $pluginBackup = Join-Path $TempDir 'BenheimQoL.previous.dll'
+    $versionBackup = Join-Path $TempDir 'VERSION.previous'
     $pluginHadPrevious = Test-Path -LiteralPath $pluginPath -PathType Leaf
+    $versionHadPrevious = Test-Path -LiteralPath $installedVersionPath -PathType Leaf
     $pluginReplaced = $false
+    $versionReplaced = $false
     if ($pluginHadPrevious) {
         Copy-Item -LiteralPath $pluginPath -Destination $pluginBackup
+    }
+    if ($versionHadPrevious) {
+        Copy-Item -LiteralPath $installedVersionPath -Destination $versionBackup
     }
 
     $shortcutHadPrevious = Test-Path -LiteralPath $shortcutPath -PathType Leaf
@@ -232,6 +249,10 @@ function Install-BenheimQoL {
         Copy-Item -LiteralPath $PluginDll -Destination $pluginTemp
         Move-Item -LiteralPath $pluginTemp -Destination $pluginPath -Force
         $pluginReplaced = $true
+        $versionTemp = Join-Path $pluginDir ('.VERSION.' + [guid]::NewGuid().ToString('N'))
+        Copy-Item -LiteralPath $VersionSource -Destination $versionTemp
+        Move-Item -LiteralPath $versionTemp -Destination $installedVersionPath -Force
+        $versionReplaced = $true
 
     $disabledDir = Join-Path $bepInExDir 'disabled\MassFarming'
     Move-LegacyFile `
@@ -285,6 +306,14 @@ function Install-BenheimQoL {
             }
             else {
                 Remove-Item -LiteralPath $pluginPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+        if ($versionReplaced) {
+            if ($versionHadPrevious) {
+                Copy-Item -LiteralPath $versionBackup -Destination $installedVersionPath -Force
+            }
+            else {
+                Remove-Item -LiteralPath $installedVersionPath -Force -ErrorAction SilentlyContinue
             }
         }
         if ($shortcutHadPrevious) {

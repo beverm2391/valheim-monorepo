@@ -12,6 +12,7 @@ package_dir="$test_root/package/Benheim-macOS-test"
 mkdir -p "$plugin_dir" "$release_dir" "$package_dir"
 printf 'old-plugin\n' > "$plugin_dir/BenheimQoL.dll"
 printf 'new-plugin\n' > "$package_dir/BenheimQoL.dll"
+printf '1.2.0\n' > "$package_dir/VERSION"
 printf '#!/bin/sh\n' > "$package_dir/macos-launcher.sh"
 printf '#!/bin/sh\n' > "$package_dir/update-macos.sh"
 cat > "$package_dir/Install Benheim.command" <<'INSTALLER'
@@ -21,6 +22,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 plugin_dir="$BENHEIM_QOL_GAME_DIR/BepInEx/plugins/BenheimQoL"
 mkdir -p "$plugin_dir"
 cp "$script_dir/BenheimQoL.dll" "$plugin_dir/BenheimQoL.dll"
+cp "$script_dir/VERSION" "$plugin_dir/VERSION"
 printf 'called\n' >> "$BENHEIM_UPDATE_TEST_CALLS"
 INSTALLER
 chmod +x "$package_dir/Install Benheim.command"
@@ -50,6 +52,13 @@ test "$(wc -l < "$calls" | tr -d ' ')" = "1"
 
 # An already-current install reports success without invoking the installer.
 run_update | grep -Fq 'already up to date'
+test "$(wc -l < "$calls" | tr -d ' ')" = "1"
+
+# A newer local build must never be replaced by an older stable release.
+printf '9.0.0\n' > "$plugin_dir/VERSION"
+printf 'newer-local-plugin\n' > "$plugin_dir/BenheimQoL.dll"
+run_update | grep -Fq 'newer than stable'
+grep -Fqx 'newer-local-plugin' "$plugin_dir/BenheimQoL.dll"
 test "$(wc -l < "$calls" | tr -d ' ')" = "1"
 
 # A partial or tampered download cannot replace the current plugin.

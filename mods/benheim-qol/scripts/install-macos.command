@@ -12,6 +12,7 @@ plugin="$plugin_dir/BenheimQoL.dll"
 dll="${BENHEIM_QOL_DLL:-$script_dir/BenheimQoL.dll}"
 launcher_source="${BENHEIM_QOL_LAUNCHER_SOURCE:-$script_dir/macos-launcher.sh}"
 updater_source="${BENHEIM_QOL_UPDATER_SOURCE:-$script_dir/update-macos.sh}"
+version_source="${BENHEIM_QOL_VERSION_FILE:-$script_dir/VERSION}"
 bepinex_url="${BENHEIM_QOL_BEPINEX_URL:-https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip}"
 bepinex_sha256="${BENHEIM_QOL_BEPINEX_SHA256:-5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716}"
 tmp_dir="$(mktemp -d)"
@@ -24,6 +25,10 @@ updater_app_installed=0
 plugin_replaced=0
 plugin_had_previous=0
 plugin_backup="$tmp_dir/BenheimQoL.previous.dll"
+installed_version="$plugin_dir/VERSION"
+version_backup="$tmp_dir/VERSION.previous"
+version_replaced=0
+version_had_previous=0
 
 cleanup() {
   status=$?
@@ -49,6 +54,13 @@ cleanup() {
         install -m 0644 "$plugin_backup" "$plugin"
       else
         rm -f "$plugin"
+      fi
+    fi
+    if [[ "$version_replaced" == "1" ]]; then
+      if [[ "$version_had_previous" == "1" ]]; then
+        install -m 0644 "$version_backup" "$installed_version"
+      else
+        rm -f "$installed_version"
       fi
     fi
   fi
@@ -109,6 +121,10 @@ if [[ ! -f "$updater_source" ]]; then
   fail "Missing update-macos.sh beside the installer."
 fi
 
+if [[ ! -f "$version_source" ]] || ! grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' "$version_source"; then
+  fail "Missing or invalid VERSION beside the installer."
+fi
+
 if [[ -e "$plugin_dir" && ! -d "$plugin_dir" ]]; then
   fail "Expected a plugin directory but found another kind of file at: $plugin_dir"
 fi
@@ -162,10 +178,18 @@ if [[ -f "$plugin" ]]; then
   cp "$plugin" "$plugin_backup"
   plugin_had_previous=1
 fi
+if [[ -f "$installed_version" ]]; then
+  cp "$installed_version" "$version_backup"
+  version_had_previous=1
+fi
 plugin_tmp="$plugin_dir/.BenheimQoL.dll.$$"
 install -m 0644 "$dll" "$plugin_tmp"
 mv -f "$plugin_tmp" "$plugin"
 plugin_replaced=1
+version_tmp="$plugin_dir/.VERSION.$$"
+install -m 0644 "$version_source" "$version_tmp"
+mv -f "$version_tmp" "$installed_version"
+version_replaced=1
 
 # BenheimQoL owns farming now. Leaving the old plugin active would execute two
 # Shift-interact and planting handlers against the same player action.

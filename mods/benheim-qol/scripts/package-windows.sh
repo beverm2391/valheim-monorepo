@@ -29,6 +29,7 @@ install -m 0644 "$root/scripts/install-windows.ps1" "$stage/install-windows.ps1"
 install -m 0644 "$root/scripts/Update Benheim.cmd" "$stage/Update Benheim.cmd"
 install -m 0644 "$root/scripts/update-windows.ps1" "$stage/update-windows.ps1"
 install -m 0644 "$dll" "$stage/BenheimQoL.dll"
+printf '%s\n' "$version" > "$stage/VERSION"
 
 (
   cd "$dist"

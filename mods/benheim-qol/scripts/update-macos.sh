@@ -82,8 +82,39 @@ fi
 installer="$(find "$expanded" -mindepth 2 -maxdepth 2 -type f -name 'Install Benheim.command')"
 package_dir="$(dirname "$installer")"
 package_plugin="$package_dir/BenheimQoL.dll"
-if [[ ! -f "$package_plugin" || ! -f "$package_dir/macos-launcher.sh" || ! -f "$package_dir/update-macos.sh" ]]; then
+package_version_file="$package_dir/VERSION"
+if [[ ! -f "$package_plugin" || ! -f "$package_dir/macos-launcher.sh" || ! -f "$package_dir/update-macos.sh" || ! -f "$package_version_file" ]]; then
   fail "The update package is incomplete. Your current installation was not changed."
+fi
+
+package_version="$(tr -d '[:space:]' < "$package_version_file")"
+if [[ ! "$package_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  fail "The update package has an invalid version. Your current installation was not changed."
+fi
+
+installed_version_file="$(dirname "$plugin")/VERSION"
+if [[ -f "$installed_version_file" ]]; then
+  installed_version="$(tr -d '[:space:]' < "$installed_version_file")"
+  if [[ ! "$installed_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    fail "The installed Benheim version marker is damaged. Download the latest Mac package and run Install Benheim.command."
+  fi
+
+  IFS=. read -r package_major package_minor package_patch <<< "$package_version"
+  IFS=. read -r installed_major installed_minor installed_patch <<< "$installed_version"
+  if (( package_major < installed_major \
+    || (package_major == installed_major && package_minor < installed_minor) \
+    || (package_major == installed_major && package_minor == installed_minor && package_patch < installed_patch) )); then
+    message="Installed Benheim $installed_version is newer than stable $package_version. Nothing was changed."
+    echo "$message"
+    show_dialog "Benheim" "$message"
+    exit 0
+  fi
+  if [[ "$package_version" == "$installed_version" ]]; then
+    message="Benheim is already up to date."
+    echo "$message"
+    show_dialog "Benheim" "$message"
+    exit 0
+  fi
 fi
 
 installed_sha256="$(shasum -a 256 "$plugin" | awk '{print tolower($1)}')"
