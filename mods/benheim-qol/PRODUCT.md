@@ -35,6 +35,10 @@ This file owns the overall product promise. Each feature module has a
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
   reason without damaging game state.
 - Keep controls discoverable from the in-game shortcuts panel.
+- Benheim shortcuts and modifier actions do nothing while the player edits any
+  in-game text field, including portal tags and map pin names. In Benheim's
+  split-stack dialog, `Backspace`, `Delete`, and `Enter` remain active as
+  text-editing controls.
 
 ## Feature Modules
 
@@ -89,8 +93,9 @@ Benheim `0.1.38` is the next test build. It:
 - lets players press `F7` to save a timestamped diagnostic log to the Desktop;
 - includes the current and previous Put Away audit files in the `F7` diagnostic
   export;
-- suppresses Benheim hotkeys while the player edits a portal tag, a map pin
-  name, or another text field;
+- suppresses all Benheim shortcuts and modifier actions while the player edits
+  any in-game text field, including portal tags and map pin names; `Backspace`,
+  `Delete`, and `Enter` remain active in Benheim's split-stack dialog;
 - uses a valid Valheim font for pocket markers;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel;

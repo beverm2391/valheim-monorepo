@@ -36,5 +36,6 @@ grep -Fq 'Stackables protect their item type; gear protects only the marked item
 grep -Fq 'GUILayout.BeginScrollView(' "$source_file"
 grep -Fq 'GUILayout.EndScrollView();' "$source_file"
 grep -Fq 'private static readonly string Title = $"Benheim v{Plugin.PluginVersion}";' "$source_file"
+grep -Fq 'InputState.IsKeyDown(KeyCode.F8)' "$source_file"
 
 printf 'shortcut overlay preload, cache, and semantic-group checks passed\n'

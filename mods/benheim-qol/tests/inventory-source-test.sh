@@ -29,8 +29,11 @@ grep -Fq 'Minimap.InTextInput()' "$input_state"
 grep -Fq 'textInput.m_panel.activeInHierarchy' "$input_state"
 grep -Fq 'EventSystem.current?.currentSelectedGameObject' "$input_state"
 grep -Fq 'GetComponentInParent<TMP_InputField>()' "$input_state"
-grep -Fq 'InputState.IsTextEntryActive()' "$root/src/Inventory/QuickStackHotkey.cs"
+test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 3
+grep -Fq 'InputState.IsShiftHeld()' "$root/src/Inventory/QuickStackHotkey.cs"
+grep -Fq 'InputState.IsKeyDown(KeyCode.P)' "$root/src/Inventory/QuickStackHotkey.cs"
 grep -Fq 'InputState.IsTextEntryActive()' "$root/src/Inventory/InventoryPatches.cs"
+grep -Fq 'The split dialog is the text-entry surface' "$root/src/Inventory/SplitStackPatches.cs"
 
 grep -Fq 'AddInworldText' "$feedback"
 grep -Fq 'UtilityTextDurationSeconds = 3f' "$feedback"

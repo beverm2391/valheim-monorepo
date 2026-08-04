@@ -9,6 +9,11 @@ internal static class InputState
 {
     internal static bool IsShiftHeld()
     {
+        if (IsTextEntryActive())
+        {
+            return false;
+        }
+
         return Input.GetKey(KeyCode.LeftShift)
             || Input.GetKey(KeyCode.RightShift)
             || ZInput.GetKey(KeyCode.LeftShift)
@@ -17,6 +22,11 @@ internal static class InputState
 
     internal static bool IsAltHeld()
     {
+        if (IsTextEntryActive())
+        {
+            return false;
+        }
+
         return Input.GetKey(KeyCode.LeftAlt)
             || Input.GetKey(KeyCode.RightAlt)
             || ZInput.GetKey(KeyCode.LeftAlt)
@@ -25,6 +35,11 @@ internal static class InputState
 
     internal static bool IsKeyDown(KeyCode key)
     {
+        if (IsTextEntryActive())
+        {
+            return false;
+        }
+
         return Input.GetKeyDown(key) || ZInput.GetKeyDown(key);
     }
 

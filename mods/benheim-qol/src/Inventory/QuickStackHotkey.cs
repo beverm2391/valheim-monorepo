@@ -14,8 +14,7 @@ internal static class QuickStackHotkey
     internal static void Update()
     {
         if (!InputState.IsShiftHeld()
-            || !InputState.IsKeyDown(KeyCode.P)
-            || InputState.IsTextEntryActive())
+            || !InputState.IsKeyDown(KeyCode.P))
         {
             return;
         }

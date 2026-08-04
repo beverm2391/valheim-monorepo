@@ -24,6 +24,7 @@ internal static class SplitStackPatches
     {
         private static void Postfix(InventoryGui __instance)
         {
+            // The split dialog is the text-entry surface, so these keys edit it.
             if (!__instance.m_splitSlider.gameObject.activeInHierarchy
                 || (!Input.GetKeyDown(KeyCode.Backspace) && !Input.GetKeyDown(KeyCode.Delete)))
             {

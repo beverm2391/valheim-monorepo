@@ -78,12 +78,7 @@ internal static class ShortcutOverlay
 
     internal static void Update()
     {
-        if (InputState.IsTextEntryActive())
-        {
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.F8))
+        if (InputState.IsKeyDown(KeyCode.F8))
         {
             visible = !visible;
             Diagnostics.Event("Shortcuts", "panel_toggled", $"visible={Diagnostics.Bool(visible)}");

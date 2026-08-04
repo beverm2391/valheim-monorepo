@@ -16,7 +16,7 @@ internal static class InventoryPatches
     {
         private static bool Prefix(InventoryGrid grid, ItemDrop.ItemData? item)
         {
-            bool altHeld = !InputState.IsTextEntryActive() && InputState.IsAltHeld();
+            bool altHeld = InputState.IsAltHeld();
             Diagnostics.Event(
                 "Inventory",
                 "item_clicked",
