@@ -84,7 +84,7 @@ the server plugin. Keep one wire model and one protocol version.
 
 Transaction protocol `2` adds versioned capability and roster status. It is the
 next test protocol and has not passed gameplay proof. The next test client is
-Benheim `0.1.40`. The next test server plugin is Benheim Inventory `0.1.2`.
+Benheim `0.1.41`. The next test server plugin is Benheim Inventory `0.1.2`.
 
 Each ready client sends a capability hello that contains its transaction
 protocol and exact Benheim version. The server records that hello for the

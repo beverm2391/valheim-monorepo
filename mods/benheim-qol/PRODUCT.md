@@ -32,9 +32,9 @@ This file owns the overall product promise. Each feature module has a
 - Prefer normal Valheim actions over direct inventory or world mutation.
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
   reason without damaging game state.
-- Keep controls discoverable from the native Valheim-styled Unity `F8` menu. Its
-  version roster must update when the ready-player roster or compatibility
-  status changes.
+- Keep controls discoverable from the native Valheim-styled Unity menu. `Left
+  Shift + B` opens or closes it. The version roster must update when the
+  ready-player roster or compatibility status changes.
 - Benheim shortcuts and modifier actions do nothing while the player edits any
   in-game text field, including portal tags and map pin names. In Benheim's
   split-stack dialog, `Backspace`, `Delete`, and `Enter` remain active as
@@ -68,7 +68,7 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.40` is the next test build. It has not passed gameplay proof. Each
+Benheim `0.1.41` is the next test build. It has not passed gameplay proof. Each
 module document owns its changed behavior and remaining proof gates. The Mac
 and Windows launch paths also require platform testing before release.
 

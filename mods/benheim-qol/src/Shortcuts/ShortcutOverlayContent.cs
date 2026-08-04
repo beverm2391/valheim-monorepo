@@ -62,7 +62,7 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("F7", "Save a diagnostic log to the Desktop"),
-                new Entry("F8 / Escape", "Close this panel"),
+                new Entry("Left Shift + B / Escape", "Close this panel"),
             },
             "Send the exported Benheim log when reporting a problem."),
     };

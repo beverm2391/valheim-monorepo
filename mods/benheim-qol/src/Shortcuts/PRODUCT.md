@@ -6,8 +6,8 @@ features, and multiplayer compatibility.
 
 ## In Development
 
-- `F8` shows or hides the menu unless the player is typing in a text field or
-  console. This menu has not passed gameplay proof.
+- `Left Shift + B` shows or hides the menu unless the player is typing in a
+  text field or console. This menu has not passed gameplay proof.
 - The title shows the loaded Benheim version. The menu lists active controls
   and passive features without changing gameplay.
 - Show the Benheim Inventory server version and transaction protocol.
@@ -17,7 +17,7 @@ features, and multiplayer compatibility.
   compatibility changes.
 - Use the transaction protocol version to decide compatibility. Show exact
   semantic versions only for diagnosis.
-- Preload the menu before the first `F8` press.
+- Preload the menu before the first `Left Shift + B` press.
 - Group features under six color-coded headings: Inventory, Build & Repair,
   Farming, Travel, Combat & Skills, and Help.
 - Explain which items Put Away always protects and which nearby chests can

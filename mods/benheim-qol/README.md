@@ -44,7 +44,7 @@ manages your server. Fully quit Valheim, unzip the package for your computer,
 and run its installer again. The installer updates Benheim without removing
 saves, characters, settings, or pocketed item preferences.
 
-Press `F8` in game to confirm the installed version and multiplayer Put Away
+Press `Left Shift + B` in game to confirm the installed version and multiplayer Put Away
 compatibility. The Valheim-styled Benheim menu uses Unity UI and Valheim's loaded
 UI templates to show the server and dynamic ready-player version roster. Exact
 versions appear for diagnosis. Put Away compatibility depends on the transaction
@@ -61,7 +61,7 @@ share it only with people you trust.
 ## Features
 
 See [`PRODUCT.md`](PRODUCT.md) for the canonical product promise and detailed
-feature behavior. The native `F8` menu is the in-game shortcut and version
+feature behavior. The native Benheim menu is the in-game shortcut and version
 reference.
 
 ## Build
@@ -113,5 +113,5 @@ The package is written under `mods/benheim-qol/dist/`. The installer copies
 <Valheim>/BepInEx/plugins/BenheimQoL/
 ```
 
-Launch `Benheim.app` after installing. Press `F8` in-game to confirm the
+Launch `Benheim.app` after installing. Press `Left Shift + B` in-game to confirm the
 loaded version and open the native shortcut and version menu.

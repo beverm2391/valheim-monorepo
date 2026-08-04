@@ -93,7 +93,7 @@ grep -Fq 'internal const int CurrentProtocolVersion = 2;' "$protocol_recovery_po
 grep -Fq 'internal const int LegacyJournalProtocolVersion = 1;' "$protocol_recovery_policy"
 grep -Fq 'Benheim.Inventory.v2.Hello' "$protocol_core"
 grep -Fq 'matching Benheim protocols on the server and every player' "$protocol_core"
-grep -Fq 'PluginVersion = "0.1.40"' "$client_plugin"
+grep -Fq 'PluginVersion = "0.1.41"' "$client_plugin"
 grep -Fq 'PluginVersion = "0.1.2"' "$server_plugin"
 grep -Fq 'Benheim Inventory 0.1.2 loaded with protocol 2.' "$server_plugin"
 grep -Fq '<Version>0.1.2</Version>' "$server_project"
@@ -119,7 +119,7 @@ grep -Fq 'status.Write(player.IsDetected)' "$protocol_capabilities"
 grep -Fq 'isCompatible != (isDetected && playerProtocol == protocol)' "$protocol_capabilities"
 grep -Fq 'Semantic versions deliberately do not participate in this key.' "$protocol_models"
 grep -Fq 'InventoryCompatibilityWarningTracker' "$compatibility_feedback"
-grep -Fq 'Press F8 for details.' "$compatibility_feedback"
+grep -Fq 'Press Left Shift + B for details.' "$compatibility_feedback"
 if rg -n 'ClientVersion\s*==|ServerVersion\s*==' "$protocol_root"; then
   printf 'semantic versions must remain diagnostic rather than capability gates\n' >&2
   exit 1

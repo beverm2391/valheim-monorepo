@@ -41,7 +41,7 @@ internal static class MultiplayerCompatibilityFeedback
 
         player.Message(
             MessageHud.MessageType.Center,
-            "Put Away is unavailable because multiplayer Benheim support does not match. Press F8 for details.");
+            "Put Away is unavailable because multiplayer Benheim support does not match. Press Left Shift + B for details.");
         WarningTracker.MarkWarned(warningKey);
         Diagnostics.Event("Inventory", "compatibility_warning", $"roster={warningKey}");
     }

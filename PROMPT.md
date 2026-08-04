@@ -204,9 +204,9 @@ Client mod rules:
   status for diagnosis.
 - Add custom persistent world objects or custom item data only when the product
   or protocol design explicitly requires them.
-- Keep the Valheim-styled Benheim `F8` menu built with Unity UI and Valheim's
-  loaded UI templates aligned with the owning feature `PRODUCT.md`, implemented
-  controls, and the dynamic version roster.
+- Build the Valheim-styled Benheim menu with Unity UI and Valheim's loaded UI
+  templates. Keep its controls and dynamic version roster aligned with the
+  owning feature `PRODUCT.md`.
 - Bump the visible plugin version when installing a user-testable behavior
   change so testers can verify the loaded DLL after relaunch.
 - Valheim does not hot-reload the plugin DLL; after install, fully quit and

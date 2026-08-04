@@ -28,7 +28,9 @@ grep -Fq 'InputState.IsTextEntryActive()' "$farming_input"
 grep -Fq 'The split dialog is the text-entry surface' "$split_input"
 grep -Fq 'InputState.IsKeyDown(KeyCode.F7)' \
   "$root/src/Infrastructure/DiagnosticLogExporter.cs"
-grep -Fq 'RawKeyDown(KeyCode.F8)' \
+grep -Fq 'MenuShortcutDown()' \
+  "$root/src/Shortcuts/ShortcutOverlay.cs"
+grep -Fq 'RawKeyDown(KeyCode.B)' \
   "$root/src/Shortcuts/ShortcutOverlay.cs"
 
 printf 'text-entry input routing checks passed\n'

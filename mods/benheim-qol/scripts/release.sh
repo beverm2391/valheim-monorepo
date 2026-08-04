@@ -57,8 +57,9 @@ the new package to update an existing install.
 - Windows: download \`Benheim-Windows.zip\`, unzip it, and open \`Install Benheim.cmd\`.
 
 The normal Steam Play button starts vanilla Valheim. Open \`Benheim\` to start
-the modded game. Press F8 in game to confirm version $version and Put Away
-compatibility.
+the modded game. Press Left Shift + B, the only Benheim menu toggle, to open or
+close the menu. Press Escape to close it. The menu shows version $version and
+Put Away compatibility.
 EOF
 
 gh release create "$tag" \

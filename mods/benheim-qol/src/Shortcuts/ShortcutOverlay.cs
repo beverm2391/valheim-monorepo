@@ -23,6 +23,7 @@ internal static partial class ShortcutOverlay
     private static bool previousCursorVisible;
     private static CursorLockMode previousCursorLock;
     private static float nextStatusRefreshAt;
+    private static float nextBuildAttemptAt;
     private static string lastStatusFingerprint = string.Empty;
     private static int lastScreenWidth;
     private static int lastScreenHeight;
@@ -31,9 +32,15 @@ internal static partial class ShortcutOverlay
 
     internal static void Update()
     {
+        if (root == null && Time.unscaledTime >= nextBuildAttemptAt)
+        {
+            nextBuildAttemptAt = Time.unscaledTime + 1f;
+            EnsureBuilt();
+        }
+
         if (!visible)
         {
-            if (RawKeyDown(KeyCode.F8)
+            if (MenuShortcutDown()
                 && !InputState.IsTextEntryActive()
                 && !Menu.IsVisible())
             {
@@ -49,7 +56,7 @@ internal static partial class ShortcutOverlay
             return;
         }
 
-        if (RawKeyDown(KeyCode.F8) || RawKeyDown(KeyCode.Escape))
+        if (MenuShortcutDown() || RawKeyDown(KeyCode.Escape))
         {
             Hide();
             return;
@@ -130,15 +137,18 @@ internal static partial class ShortcutOverlay
     {
         RectTransform scrollRoot = CreateRectObject("ScrollView", parent);
         Image background = scrollRoot.gameObject.AddComponent<Image>();
-        CopyImageStyle(templates.Scroll.GetComponent<Image>() ?? templates.PanelBackground, background);
+        CopyImageStyle(templates.Scroll?.GetComponent<Image>() ?? templates.PanelBackground, background);
         ScrollRect scroll = scrollRoot.gameObject.AddComponent<ScrollRect>();
         scroll.horizontal = false;
         scroll.vertical = true;
-        scroll.movementType = templates.Scroll.movementType;
-        scroll.elasticity = templates.Scroll.elasticity;
-        scroll.inertia = templates.Scroll.inertia;
-        scroll.decelerationRate = templates.Scroll.decelerationRate;
-        scroll.scrollSensitivity = templates.Scroll.scrollSensitivity;
+        if (templates.Scroll != null)
+        {
+            scroll.movementType = templates.Scroll.movementType;
+            scroll.elasticity = templates.Scroll.elasticity;
+            scroll.inertia = templates.Scroll.inertia;
+            scroll.decelerationRate = templates.Scroll.decelerationRate;
+            scroll.scrollSensitivity = templates.Scroll.scrollSensitivity;
+        }
 
         RectTransform viewport = CreateRectObject("Viewport", scrollRoot);
         viewport.anchorMin = Vector2.zero;
@@ -146,7 +156,7 @@ internal static partial class ShortcutOverlay
         viewport.offsetMin = new Vector2(12f, 12f);
         viewport.offsetMax = new Vector2(-34f, -12f);
         Image viewportImage = viewport.gameObject.AddComponent<Image>();
-        Image? nativeViewportImage = templates.Scroll.viewport?.GetComponent<Image>();
+        Image? nativeViewportImage = templates.Scroll?.viewport?.GetComponent<Image>();
         CopyImageStyle(nativeViewportImage ?? templates.PanelBackground, viewportImage);
         Mask mask = viewport.gameObject.AddComponent<Mask>();
         mask.showMaskGraphic = false;
@@ -169,7 +179,11 @@ internal static partial class ShortcutOverlay
         fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        Scrollbar scrollbar = CreateNativeScrollbar("Scrollbar", scrollRoot, templates.Scrollbar);
+        Scrollbar scrollbar = CreateNativeScrollbar(
+            "Scrollbar",
+            scrollRoot,
+            templates.Scrollbar,
+            templates.PanelBackground);
         RectTransform scrollbarRect = (RectTransform)scrollbar.transform;
         scrollbarRect.anchorMin = new Vector2(1f, 0f);
         scrollbarRect.anchorMax = new Vector2(1f, 1f);
@@ -185,33 +199,37 @@ internal static partial class ShortcutOverlay
         return scroll;
     }
 
-    private static Scrollbar CreateNativeScrollbar(string name, RectTransform parent, Scrollbar template)
+    private static Scrollbar CreateNativeScrollbar(
+        string name,
+        RectTransform parent,
+        Scrollbar? template,
+        Image fallback)
     {
         RectTransform rootRect = CreateRectObject(name, parent);
         Image background = rootRect.gameObject.AddComponent<Image>();
-        Image? templateBackground = template.GetComponent<Image>();
-        if (templateBackground != null)
-        {
-            CopyImageStyle(templateBackground, background);
-        }
+        Image? templateBackground = template?.GetComponent<Image>();
+        CopyImageStyle(templateBackground ?? fallback, background);
 
         RectTransform slidingArea = CreateRectObject("Sliding Area", rootRect);
         Stretch(slidingArea, 3f);
         RectTransform handle = CreateRectObject("Handle", slidingArea);
         Stretch(handle);
         Image handleImage = handle.gameObject.AddComponent<Image>();
-        Image? templateHandle = template.handleRect?.GetComponent<Image>();
-        CopyImageStyle(templateHandle ?? templateBackground!, handleImage);
+        Image? templateHandle = template?.handleRect?.GetComponent<Image>();
+        CopyImageStyle(templateHandle ?? templateBackground ?? fallback, handleImage);
 
         Scrollbar scrollbar = rootRect.gameObject.AddComponent<Scrollbar>();
         scrollbar.targetGraphic = handleImage;
         scrollbar.handleRect = handle;
         scrollbar.direction = Scrollbar.Direction.BottomToTop;
-        scrollbar.transition = template.transition;
-        scrollbar.colors = template.colors;
-        scrollbar.spriteState = template.spriteState;
-        scrollbar.animationTriggers = template.animationTriggers;
-        scrollbar.navigation = template.navigation;
+        if (template != null)
+        {
+            scrollbar.transition = template.transition;
+            scrollbar.colors = template.colors;
+            scrollbar.spriteState = template.spriteState;
+            scrollbar.animationTriggers = template.animationTriggers;
+            scrollbar.navigation = template.navigation;
+        }
         return scrollbar;
     }
 
@@ -219,16 +237,20 @@ internal static partial class ShortcutOverlay
     {
         RectTransform rect = CreateRectObject(name, parent);
         Image image = rect.gameObject.AddComponent<Image>();
-        Image? templateImage = templates.Button.targetGraphic as Image ?? templates.Button.GetComponent<Image>();
+        Image? templateImage = templates.Button?.targetGraphic as Image
+            ?? templates.Button?.GetComponent<Image>();
         CopyImageStyle(templateImage ?? templates.PanelBackground, image);
 
         Button button = rect.gameObject.AddComponent<Button>();
         button.targetGraphic = image;
-        button.transition = templates.Button.transition;
-        button.colors = templates.Button.colors;
-        button.spriteState = templates.Button.spriteState;
-        button.animationTriggers = templates.Button.animationTriggers;
-        button.navigation = templates.Button.navigation;
+        if (templates.Button != null)
+        {
+            button.transition = templates.Button.transition;
+            button.colors = templates.Button.colors;
+            button.spriteState = templates.Button.spriteState;
+            button.animationTriggers = templates.Button.animationTriggers;
+            button.navigation = templates.Button.navigation;
+        }
 
         TMP_Text label = CreateText("Label", rect, templates.Text, layoutElement: false);
         RectTransform labelRect = (RectTransform)label.transform;
@@ -273,13 +295,7 @@ internal static partial class ShortcutOverlay
             ?? FindNativeComponent<Scrollbar>(candidate => candidate.handleRect != null);
         TMP_Text? text = button?.GetComponentInChildren<TMP_Text>(includeInactive: true)
             ?? FindNativeComponent<TMP_Text>(candidate => candidate.font != null);
-        return panel != null
-            && button != null
-            && scroll != null
-            && scrollbar != null
-            && scrollbar.GetComponent<Image>() != null
-            && scrollbar.handleRect?.GetComponent<Image>() != null
-            && text != null
+        return panel != null && text != null
             ? new NativeTemplates(panel, button, scroll, scrollbar, text)
             : null;
     }
@@ -394,9 +410,21 @@ internal static partial class ShortcutOverlay
         return Input.GetKeyDown(key) || ZInput.GetKeyDown(key);
     }
 
+    private static bool MenuShortcutDown()
+    {
+        return RawKeyDown(KeyCode.B)
+            && (Input.GetKey(KeyCode.LeftShift)
+                || ZInput.GetKey(KeyCode.LeftShift));
+    }
+
     private sealed class NativeTemplates
     {
-        internal NativeTemplates(Image panelBackground, Button button, ScrollRect scroll, Scrollbar scrollbar, TMP_Text text)
+        internal NativeTemplates(
+            Image panelBackground,
+            Button? button,
+            ScrollRect? scroll,
+            Scrollbar? scrollbar,
+            TMP_Text text)
         {
             PanelBackground = panelBackground;
             Button = button;
@@ -406,9 +434,9 @@ internal static partial class ShortcutOverlay
         }
 
         internal Image PanelBackground { get; }
-        internal Button Button { get; }
-        internal ScrollRect Scroll { get; }
-        internal Scrollbar Scrollbar { get; }
+        internal Button? Button { get; }
+        internal ScrollRect? Scroll { get; }
+        internal Scrollbar? Scrollbar { get; }
         internal TMP_Text Text { get; }
     }
 }
