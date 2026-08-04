@@ -124,9 +124,8 @@ mods/benheim-qol/scripts/package-windows.sh
 
 `install-local.sh` must run the same Mac installer shipped to players. The
 installer must be safe to run repeatedly. Keep BepInEx installation,
-legacy-plugin cleanup, and launcher generation in that installer. The launcher
-must start Steam when needed and wait until Steam's interprocess communication
-(IPC) service is ready before it starts Valheim.
+legacy-plugin cleanup, and launcher generation in that installer. The Mac
+launcher must start Steam when needed before it starts Valheim.
 
 Share updates as complete platform packages. A player updates by rerunning the
 idempotent installer. Launchers and installers must not check GitHub or another
@@ -134,9 +133,12 @@ network source for updates. The normal Steam launch must remain vanilla on Mac
 and Windows. `Benheim.app` on Mac and the `Benheim` shortcut on Windows are the
 explicit modded launch paths.
 
-The Mac launcher starts the installed BepInEx launch script directly after
-Steam's IPC service becomes ready. The Windows installer keeps UnityDoorstop
-disabled in `doorstop_config.ini`. Its managed `Benheim` shortcut starts Steam,
+The Mac launcher starts the installed BepInEx launch script only after Steam's
+connection log shows a successful login. Do not use the `ipcserver` process as
+the readiness signal because it can remain running after Steam exits.
+
+The Windows installer keeps UnityDoorstop disabled in `doorstop_config.ini`.
+Its managed `Benheim` shortcut starts Steam,
 finds Valheim across configured Steam libraries, and launches `valheim.exe`
 with `--doorstop-enabled true`. Do not rename Doorstop DLLs to switch modes.
 Remove retired updater apps, shortcuts, and state only when their managed

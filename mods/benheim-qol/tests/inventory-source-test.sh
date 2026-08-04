@@ -93,7 +93,7 @@ grep -Fq 'internal const int CurrentProtocolVersion = 2;' "$protocol_recovery_po
 grep -Fq 'internal const int LegacyJournalProtocolVersion = 1;' "$protocol_recovery_policy"
 grep -Fq 'Benheim.Inventory.v2.Hello' "$protocol_core"
 grep -Fq 'matching Benheim protocols on the server and every player' "$protocol_core"
-grep -Fq 'PluginVersion = "0.1.39"' "$client_plugin"
+grep -Fq 'PluginVersion = "0.1.40"' "$client_plugin"
 grep -Fq 'PluginVersion = "0.1.2"' "$server_plugin"
 grep -Fq 'Benheim Inventory 0.1.2 loaded with protocol 2.' "$server_plugin"
 grep -Fq '<Version>0.1.2</Version>' "$server_project"
