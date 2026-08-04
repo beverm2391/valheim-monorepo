@@ -8,47 +8,33 @@ The Inventory module makes routine item movement faster.
 - `Backspace` or `Delete` resets the amount to `1`.
 - When a container is open, `Enter` moves the split stack between the player
   inventory and the container.
-- Press `P` while hovering over an item to toggle manual pocketing. Pocketed
-  items show a `P` marker.
-
-## In Development
-
+- Press `P` while hovering over an item to toggle manual pocketing.
+- Put Away treats a chest as eligible only when it already contains the item
+  and has room for more.
 - `Left Shift` + `P` moves matching items into eligible chests within 30 meters.
   It works during normal gameplay and while the inventory is open.
-- In multiplayer, the server approves each deposit and routes it to the game
-  instance that currently owns the destination chest. Only that instance
+- In multiplayer, the server routes each deposit to the game instance that
+  currently owns the destination chest. Only that instance validates and
   changes the chest inventory.
-- Put Away works only when the server and every connected player use the same
-  transaction protocol. Otherwise, it moves nothing and explains the mismatch.
-- Benheim retries a delayed request with the same transaction ID. Each chest
-  records a limited history of recent transaction IDs so a retry cannot deposit
-  items twice.
-- Before removing an item from the player, Benheim records the pending transfer
-  locally. After an interrupted session, it rolls back a transfer the server
-  never saw or retries the same transaction after a transfer was reserved.
-- If a chest accepts only part of a stack, Benheim returns the rejected amount
-  to the player. Put Away must never claim chest ownership or change a copy of
-  the chest inventory that other players cannot see.
-- An eligible chest already contains the item and has room for more.
+- Two players see each successful deposit immediately, including when the other
+  player's game instance owns the destination chest.
 - Put Away checks eligible chests from nearest to farthest.
 - Put Away reports the quantity and name of each item type moved.
 - Manually pocketed items stay with the player during Put Away.
-- Show one result line for each destination chest. Sort the items on each line
-  by moved quantity, from highest to lowest. Identify the chest by its distance
-  and compass direction from the player when Put Away finishes.
-- When Put Away starts with the inventory closed, show a short generic summary
-  above the player for 3 seconds. On success, show `Put away N items`, where `N`
-  is the number of units moved. Show `Put away 1 item` for one unit. Show
-  `Nothing to put away` when no units move. Do not show floating receipts above
-  destination chests.
-- When Put Away starts with the inventory closed, show its detailed result in
-  a dedicated top-left receipt. Match Valheim's native message styling without
-  moving or replacing Valheim's own message feed. Start the receipt below the
-  visible hotbar slots and extend additional lines downward.
-- When Put Away starts with the inventory open, show the detailed result in
-  Valheim's center message area so the inventory cannot cover it. Show no
-  above-player summary.
-- Show pocket and unpocket confirmations only in the normal top-left message
+- The detailed result shows one line for each destination chest. Each line
+  sorts items by moved quantity, from highest to lowest. It identifies the
+  chest by its distance and compass direction when Put Away finishes.
+- When Put Away starts with the inventory closed, it shows a short summary above
+  the player for 3 seconds. The summary says `Put away N items`, `Put away 1
+  item`, or `Nothing to put away`. No receipt appears above a destination chest.
+- When Put Away starts with the inventory closed, it also shows a dedicated
+  top-left receipt. The receipt matches Valheim's native message styling
+  without moving or replacing Valheim's message feed. It starts below the
+  visible hotbar slots, and additional lines extend downward.
+- When Put Away starts with the inventory open, its detailed result appears in
+  Valheim's center message area so the inventory cannot cover it. No
+  above-player summary appears.
+- Pocket and unpocket confirmations appear only in the normal top-left message
   feed.
 - A gold `P` in the top-left of an item slot marks manual pocketing, which the
   player can toggle.
@@ -62,13 +48,26 @@ The Inventory module makes routine item movement faster.
   applies.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing.
 
+## In Development
+
+- Put Away works only when the server and every connected player use the exact
+  transaction protocol version. Otherwise, it moves nothing and explains the
+  mismatch.
+- The transaction safety contract in
+  `shared/benheim-inventory-protocol/PROTOCOL.md` remains in development. It
+  owns retry identity, duplicate prevention, reservations, item restoration,
+  chest ownership, and recovery.
+- A delayed, retried, interrupted, or partially accepted transfer must not lose
+  or duplicate items. Put Away returns every amount that a chest rejects.
+- Put Away must never produce a chest state that another player cannot see.
+
 ## Test Gate
 
-- Start with low-value stacks and confirm one normal Put Away transaction before
-  testing valuable materials.
-- Confirm that two players see each deposit immediately, regardless of which
-  player opened the chest last.
 - Repeat the same deposit into one chest and confirm that no items duplicate or
   disappear.
-- Connect one client without the matching protocol and confirm that Put Away
-  disables itself without affecting normal chest use.
+- Interrupt a deposit before its response and confirm reconnect recovery neither
+  loses nor duplicates the reserved items.
+- Fill a matching chest almost completely and confirm that Put Away returns any
+  amount the chest cannot accept.
+- Connect one client without the matching protocol version and confirm that Put
+  Away disables itself without affecting normal chest use.

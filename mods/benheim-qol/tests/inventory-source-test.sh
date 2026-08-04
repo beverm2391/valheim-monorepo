@@ -77,7 +77,7 @@ grep -Fq 'CheckAccessMethod.Invoke' "$protocol_owner"
 grep -Fq 'MaxDistance * MaxDistance' "$protocol_owner"
 grep -Fq 'namesPresentBefore.Contains' "$protocol_owner"
 grep -Fq 'deposit_receipts' "$protocol_receipts"
-if rg -F 'ClaimOwnership' "$protocol_root" "$quick_stack"; then
+if rg -F -g '*.cs' 'ClaimOwnership' "$protocol_root" "$quick_stack"; then
   printf 'authoritative Put Away must never claim chest ownership\n' >&2
   exit 1
 fi

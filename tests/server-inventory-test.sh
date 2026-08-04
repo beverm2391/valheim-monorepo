@@ -55,7 +55,7 @@ fi
 if strings "$plugin" | grep -Fiq "Jotunn"; then
   fail "plugin binary depends on Jotunn"
 fi
-if rg -F 'ClaimOwnership' "$protocol"; then
+if rg -F -g '*.cs' 'ClaimOwnership' "$protocol"; then
   fail "transaction protocol must not claim chest ownership"
 fi
 

@@ -182,16 +182,12 @@ Client mod rules:
 - Keep one Benheim client DLL. Shared inventory protocol source lives under
   `shared/benheim-inventory-protocol/` and compiles into both BenheimQoL and the
   Benheim Inventory server plugin.
-- Multiplayer Put Away requires the server and every connected client to use
-  the exact protocol version. A mismatch disables Put Away instead of kicking
-  the player.
-- The chest owner performs each deposit. Never claim ownership to force a
-  local inventory write.
-- When Benheim retries a transaction, it must reuse the original transaction
-  ID. It may restore unaccepted items only after an explicit server result.
-  Persist an in-progress reservation before removing items from the player so
-  reconnect recovery can roll back or retry without inventing a new transfer.
-- Do not add custom persistent world objects or custom item data casually.
+- Read `shared/benheim-inventory-protocol/PROTOCOL.md` before changing Put Away.
+  That file owns requirements for protocol versions, chest ownership,
+  transactions, retries, journals, receipts, reservations, item restoration,
+  and recovery. Follow those requirements instead of restating them here.
+- Add custom persistent world objects or custom item data only when the product
+  or protocol design explicitly requires them.
 - Keep the in-game shortcuts panel and the owning feature `PRODUCT.md` aligned
   with implemented controls.
 - Bump the visible plugin version when installing a user-testable behavior
