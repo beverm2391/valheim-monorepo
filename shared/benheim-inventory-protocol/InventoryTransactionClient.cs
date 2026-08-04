@@ -66,6 +66,9 @@ internal static partial class InventoryTransactions
                 payloadHash,
                 containerId,
                 requestBytes);
+            LogDiagnostic(
+                $"journal_prepared tx={transactionId} chest={containerId} " +
+                $"hash={payloadHash} requested=\"{DescribeReserved(reserved)}\"");
         }
         catch (Exception ex)
         {
@@ -101,6 +104,7 @@ internal static partial class InventoryTransactions
         try
         {
             InventoryTransactionJournal.MarkReserved(pending);
+            LogDiagnostic($"journal_reserved tx={transactionId} items={reserved.Count}");
         }
         catch (Exception ex)
         {
@@ -112,7 +116,9 @@ internal static partial class InventoryTransactions
 
         ClientPending.Add(transactionId, pending);
         SendDepositRequest(pending);
-        LogDiagnostic($"client_sent tx={transactionId} chest={containerId} items={reserved.Count} attempt=1");
+        LogDiagnostic(
+            $"client_sent tx={transactionId} chest={containerId} attempt=1 " +
+            $"requested=\"{DescribeReserved(reserved)}\"");
         return true;
     }
 
@@ -145,6 +151,9 @@ internal static partial class InventoryTransactions
         try
         {
             InventoryTransactionJournal.MarkCompleted(pending, accepted);
+            LogDiagnostic(
+                $"journal_completed tx={transactionId} " +
+                $"items=\"{DescribeReserved(pending.Items, accepted)}\"");
         }
         catch (Exception ex)
         {
@@ -164,7 +173,8 @@ internal static partial class InventoryTransactions
 
         ClientCompleted[transactionId] = pending;
         LogDiagnostic(
-            $"client_result tx={transactionId} status={status} accepted={string.Join(",", accepted)} attempts={pending.Attempts}");
+            $"client_result tx={transactionId} status={status} attempts={pending.Attempts} " +
+            $"items=\"{DescribeReserved(pending.Items, accepted)}\"");
         pending.Callback(new DepositResult(status, entries));
     }
 
@@ -219,6 +229,12 @@ internal static partial class InventoryTransactions
             pending.Attempts++;
             SendDepositRequest(pending);
             LogDiagnostic($"client_retry tx={pending.TransactionId} chest={pending.ContainerId} attempt={pending.Attempts}");
+            if (pending.Attempts == 5 || pending.Attempts == 20)
+            {
+                LogWarning(
+                    $"client_pending tx={pending.TransactionId} chest={pending.ContainerId} " +
+                    $"attempts={pending.Attempts} age_seconds={now - pending.CreatedAt:0.0}");
+            }
         }
     }
 

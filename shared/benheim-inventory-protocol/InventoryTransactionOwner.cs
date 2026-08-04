@@ -62,6 +62,8 @@ internal static class InventoryTransactionOwner
         int itemCount = requestedItems.Count;
         if (!InventoryTransactionReceipts.CanRecord(zdo!, transactionId))
         {
+            InventoryTransactions.LogWarning(
+                $"owner_receipt_capacity tx={transactionId} chest={containerId}");
             SendResult(requester, InventoryTransactionWire.BuildResponse(
                 transactionId,
                 payloadHash,
@@ -83,7 +85,8 @@ internal static class InventoryTransactionOwner
         InventoryTransactionReceipts.Record(zdo!, transactionId, payloadHash, validation, accepted);
         InventoryTransactions.LogDiagnostic(
             $"owner_result tx={transactionId} requester={requester} chest={containerId} " +
-            $"status={validation} accepted={string.Join(",", accepted)} revision={zdo!.DataRevision}");
+            $"status={validation} items=\"{InventoryTransactions.DescribeRequested(requestedItems, accepted)}\" " +
+            $"revision={zdo!.DataRevision}");
         SendResult(requester, InventoryTransactionWire.BuildResponse(
             transactionId, payloadHash, validation, accepted));
     }

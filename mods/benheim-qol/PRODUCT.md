@@ -64,7 +64,7 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.36` is the next test build. It:
+Benheim `0.1.37` is the next test build. It:
 
 - disables the broken mass building repair action while preserving normal
   hammer repair and batch gear repair;
@@ -87,6 +87,9 @@ Benheim `0.1.36` is the next test build. It:
 - shows Put Away details below the visible hotbar slots using Valheim's message
   style, without moving Valheim's own messages;
 - lets players press `F7` to save a timestamped diagnostic log to the Desktop;
+- includes the current and previous Put Away audit files in the `F7` diagnostic
+  export;
+- uses a valid Valheim font for pocket markers;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel;
 - includes Woodcutting cleave for standing trees and fallen logs at skill

@@ -142,6 +142,12 @@ test with low-value items:
    `server_routed`, `owner_result`, `client_result`, `client_committed`, and
    `owner_receipt_ack` by transaction ID.
 
+Each client and the server keep a limited Put Away audit across relaunches. The
+audit uses two files: the current `BenheimInventoryAudit.log` and a previous
+audit file. Audit entries record transaction phases, item amounts, retries,
+recovery, and warnings. The audit adds a capability entry only when Put Away
+readiness changes. The client `F7` export includes both audit files.
+
 The two-player owner-routed deposit path described above is proven. Retry
 deduplication, interrupted recovery, partial capacity, and mismatched-client
 handling still require limited, task-scoped gameplay tests. The client and

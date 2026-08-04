@@ -31,8 +31,11 @@ bash -n "$verifier"
 dotnet run --project \
   "$root/tests/inventory-transaction-receipts/InventoryTransactionReceiptTests.csproj" \
   --configuration Release
+dotnet run --project \
+  "$root/tests/inventory-transaction-audit/InventoryTransactionAuditTests.csproj" \
+  --configuration Release
 
-expected_checksum=8680793168e313315f0e77dfb461d56ccf18c306687d3422b06c0e2cd33ece18
+expected_checksum=f6ab0e5b29af29e7db0c15b37e41bfd6227ac53a7b19298e70808b327dcc911d
 actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 [[ "$actual_checksum" == "$expected_checksum" ]] || fail "Benheim Inventory plugin checksum changed"
 assert_contains "installer pins the inventory plugin checksum" "$expected_checksum" "$installer"
@@ -44,8 +47,8 @@ assert_contains "rollback snapshots the existing BepInEx tree" '/opt/valheim/ser
 assert_contains "rollback snapshots the launcher" '/usr/local/bin/valheim-start' "$installer"
 assert_contains "rollback snapshots the server environment" '/etc/valheim/server.env' "$installer"
 
-assert_contains "server plugin pins version" 'PluginVersion = "0.1.0"' "$plugin_source"
-assert_contains "server plugin logs exact protocol version" 'Benheim Inventory 0.1.0 loaded with protocol 1.' "$plugin_source"
+assert_contains "server plugin pins version" 'PluginVersion = "0.1.1"' "$plugin_source"
+assert_contains "server plugin logs exact protocol version" 'Benheim Inventory 0.1.1 loaded with protocol 1.' "$plugin_source"
 assert_contains "server and client compile the same protocol source" 'shared/benheim-inventory-protocol/*.cs' "$plugin_project"
 assert_contains "server and client compile the same protocol source" 'shared/benheim-inventory-protocol/*.cs' "$client_project"
 
@@ -83,7 +86,7 @@ if MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
   fail "generic readiness must not satisfy the inventory load gate"
 fi
 
-printf '%s\n' 'Benheim Inventory 0.1.0 loaded with protocol 1.' > "$tmp_dir/journal.log"
+printf '%s\n' 'Benheim Inventory 0.1.1 loaded with protocol 1.' > "$tmp_dir/journal.log"
 MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
 MOCK_JOURNAL_LOG="$tmp_dir/journal.log" \
 JOURNALCTL_BIN="$tmp_dir/journalctl" \

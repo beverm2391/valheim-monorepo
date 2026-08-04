@@ -53,18 +53,26 @@ internal static partial class InventoryTransactions
         // restore items that may already have committed.
         if (!ServerAllReadyPeersCompatible() || !PeerHasProtocol(sender))
         {
+            LogServerBlock(pending, transactionId, "protocol_not_ready");
             return;
         }
 
         long owner = ResolveOwner(containerId);
-        if (owner == 0L || !PeerHasProtocol(owner))
+        if (owner == 0L)
         {
+            LogServerBlock(pending, transactionId, "owner_unavailable");
+            return;
+        }
+        if (!PeerHasProtocol(owner))
+        {
+            LogServerBlock(pending, transactionId, "owner_protocol_missing");
             return;
         }
 
         ZPackage envelope = new ZPackage();
         envelope.Write(sender);
         envelope.Write(new ZPackage(requestBytes));
+        pending.LastBlockReason = string.Empty;
         pending.RoutedOwners.Add(owner);
         ZRoutedRpc.instance.InvokeRoutedRPC(owner, OwnerExecuteRpc, envelope);
         LogDiagnostic($"server_routed tx={transactionId} requester={sender} owner={owner} chest={containerId}");
@@ -150,6 +158,20 @@ internal static partial class InventoryTransactions
     private static void SendClientResult(long requester, byte[] responseBytes)
     {
         ZRoutedRpc.instance.InvokeRoutedRPC(requester, DepositResultRpc, new ZPackage(responseBytes));
+    }
+
+    private static void LogServerBlock(
+        ServerDeposit pending,
+        string transactionId,
+        string reason)
+    {
+        if (pending.LastBlockReason == reason)
+        {
+            return;
+        }
+
+        pending.LastBlockReason = reason;
+        LogWarning($"server_pending tx={transactionId} reason={reason}");
     }
 
     private static void ExpireServerResults(float now)

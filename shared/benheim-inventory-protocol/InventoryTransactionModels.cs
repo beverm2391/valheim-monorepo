@@ -99,6 +99,7 @@ internal sealed class PendingDeposit
         SourceInventory = sourceInventory;
         Items = items;
         Callback = callback;
+        CreatedAt = now;
         LastSentAt = now;
     }
 
@@ -111,6 +112,7 @@ internal sealed class PendingDeposit
     internal Inventory SourceInventory { get; }
     internal List<ReservedDepositItem> Items { get; }
     internal Action<DepositResult> Callback { get; }
+    internal float CreatedAt { get; }
     internal float LastSentAt { get; set; }
     internal int Attempts { get; set; } = 1;
 }
@@ -130,6 +132,7 @@ internal sealed class ServerDeposit
     internal string PayloadHash { get; }
     internal byte[] RequestBytes { get; }
     internal float CreatedAt { get; }
+    internal string LastBlockReason { get; set; } = string.Empty;
 }
 
 internal sealed class CompletedServerDeposit

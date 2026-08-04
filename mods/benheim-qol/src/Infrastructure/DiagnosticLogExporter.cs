@@ -1,5 +1,6 @@
 using System.IO;
 using BepInEx;
+using BenheimInventoryProtocol;
 using UnityEngine;
 
 namespace BenheimQoL.Infrastructure;
@@ -35,18 +36,17 @@ internal static class DiagnosticLogExporter
             Directory.CreateDirectory(desktopPath);
             string fileName = $"Benheim-log-{System.DateTime.Now:yyyyMMdd-HHmmss-fff}.txt";
             string destinationPath = Path.Combine(desktopPath, fileName);
-            using (var source = new FileStream(
-                sourcePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete))
             using (var destination = new FileStream(
                 destinationPath,
                 FileMode.CreateNew,
                 FileAccess.Write,
                 FileShare.Read))
             {
-                source.CopyTo(destination);
+                CopyLog(destination, sourcePath, "Active BepInEx log");
+                foreach (string auditPath in InventoryTransactionAudit.GetExistingPaths())
+                {
+                    CopyLog(destination, auditPath, Path.GetFileName(auditPath));
+                }
             }
 
             Diagnostics.Event("Core", "log_exported", $"file=\"{fileName}\"");
@@ -61,5 +61,23 @@ internal static class DiagnosticLogExporter
                 MessageHud.MessageType.Center,
                 "Could not export Benheim log; check LogOutput.log");
         }
+    }
+
+    private static void CopyLog(FileStream destination, string sourcePath, string title)
+    {
+        if (!File.Exists(sourcePath))
+        {
+            return;
+        }
+
+        byte[] header = System.Text.Encoding.UTF8.GetBytes(
+            $"\n===== {title} =====\n");
+        destination.Write(header, 0, header.Length);
+        using var source = new FileStream(
+            sourcePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete);
+        source.CopyTo(destination);
     }
 }

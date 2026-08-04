@@ -12,6 +12,8 @@ grep -Fq 'Paths.BepInExRootPath' "$exporter"
 grep -Fq 'FileShare.ReadWrite | FileShare.Delete' "$exporter"
 grep -Fq 'SpecialFolder.DesktopDirectory' "$exporter"
 grep -Fq 'Benheim-log-' "$exporter"
+grep -Fq 'InventoryTransactionAudit.GetExistingPaths()' "$exporter"
+grep -Fq 'BenheimInventoryAudit.previous.log' "$root/../../shared/benheim-inventory-protocol/InventoryTransactionAudit.cs"
 grep -Fq 'DiagnosticLogExporter.Update();' "$plugin"
 
 printf 'diagnostic log export source checks passed\n'

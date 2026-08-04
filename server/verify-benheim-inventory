@@ -4,7 +4,7 @@ set -euo pipefail
 since=${1:?Usage: verify-benheim-inventory <journalctl-since>}
 journalctl_bin=${JOURNALCTL_BIN:-journalctl}
 unit=${VALHEIM_SYSTEMD_UNIT:-valheim.service}
-expected=${BENHEIM_INVENTORY_LOAD_MESSAGE:-Benheim Inventory 0.1.0 loaded with protocol 1.}
+expected=${BENHEIM_INVENTORY_LOAD_MESSAGE:-Benheim Inventory 0.1.1 loaded with protocol 1.}
 
 logs="$($journalctl_bin -u "$unit" --since "$since" --no-pager)"
 if ! grep -Fq -- "$expected" <<<"$logs"; then

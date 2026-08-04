@@ -12,6 +12,10 @@ internal static partial class InventoryTransactions
     private static float lastStatusBroadcastAt = float.NegativeInfinity;
     private static int lastConnected = -1;
     private static int lastCompatible = -1;
+    private static bool lastClientReady;
+    private static int lastClientConnected = -1;
+    private static int lastClientCompatible = -1;
+    private static int lastClientProtocol = -1;
 
     private static void EnsureRegistered()
     {
@@ -35,7 +39,14 @@ internal static partial class InventoryTransactions
         clientReady = false;
         serverReady = false;
         lastHelloAt = float.NegativeInfinity;
+        lastStatusBroadcastAt = float.NegativeInfinity;
         lastStatusAt = float.NegativeInfinity;
+        lastConnected = -1;
+        lastCompatible = -1;
+        lastClientReady = false;
+        lastClientConnected = -1;
+        lastClientCompatible = -1;
+        lastClientProtocol = -1;
         journalRecoveryAttempted = false;
         LogDiagnostic($"rpc_registered protocol={ProtocolVersion} server={ZNet.instance.IsServer()}");
     }
@@ -44,9 +55,11 @@ internal static partial class InventoryTransactions
     {
         if (now - lastHelloAt < HandshakeInterval)
         {
-            if (now - lastStatusAt > StatusStaleAfter)
+            if (now - lastStatusAt > StatusStaleAfter && clientReady)
             {
                 clientReady = false;
+                lastClientReady = false;
+                LogWarning("capability changed ready=false reason=status_stale");
             }
             return;
         }
@@ -138,16 +151,30 @@ internal static partial class InventoryTransactions
         try
         {
             int version = package.ReadInt();
-            clientReady = version == ProtocolVersion && package.ReadBool();
+            bool nextReady = version == ProtocolVersion && package.ReadBool();
             int connected = package.ReadInt();
             int compatible = package.ReadInt();
+            bool changed = nextReady != lastClientReady
+                || connected != lastClientConnected
+                || compatible != lastClientCompatible
+                || version != lastClientProtocol;
+            clientReady = nextReady;
             lastStatusAt = Time.realtimeSinceStartup;
-            LogDiagnostic(
-                $"capability ready={clientReady} connected={connected} compatible={compatible} protocol={version}");
+            if (changed)
+            {
+                LogDiagnostic(
+                    $"capability changed ready={clientReady} connected={connected} " +
+                    $"compatible={compatible} protocol={version}");
+                lastClientReady = clientReady;
+                lastClientConnected = connected;
+                lastClientCompatible = compatible;
+                lastClientProtocol = version;
+            }
         }
         catch (Exception ex)
         {
             clientReady = false;
+            lastClientReady = false;
             LogWarning($"status_invalid error=\"{ex.Message}\"");
         }
     }

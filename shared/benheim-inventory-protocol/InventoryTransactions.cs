@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using BepInEx;
 using BepInEx.Logging;
 using UnityEngine;
 
@@ -33,10 +35,25 @@ internal static partial class InventoryTransactions
     internal static void Initialize(ManualLogSource logger)
     {
         log = logger;
+        if (InventoryTransactionAudit.Initialize(Paths.ConfigPath))
+        {
+            LogDiagnostic($"audit_session_start protocol={ProtocolVersion}");
+        }
+        else
+        {
+            log.LogWarning("[diag][InventoryTransaction] audit_disabled reason=initialize_failed");
+        }
     }
 
     internal static void Shutdown()
     {
+        if (ClientPending.Count > 0 || ClientCompleted.Count > 0 || ServerPending.Count > 0)
+        {
+            LogWarning(
+                $"shutdown_pending client={ClientPending.Count} " +
+                $"completed={ClientCompleted.Count} server={ServerPending.Count}");
+        }
+        LogDiagnostic("audit_session_end");
         registeredRpc = null;
         PeerProtocols.Clear();
         ClientPending.Clear();
@@ -115,10 +132,42 @@ internal static partial class InventoryTransactions
     internal static void LogDiagnostic(string message)
     {
         log?.LogInfo($"[diag][InventoryTransaction] {message}");
+        InventoryTransactionAudit.Write("INFO", message);
     }
 
     internal static void LogWarning(string message)
     {
         log?.LogWarning($"[diag][InventoryTransaction] {message}");
+        InventoryTransactionAudit.Write("WARN", message);
+    }
+
+    internal static string DescribeReserved(
+        IReadOnlyList<ReservedDepositItem> items,
+        IReadOnlyList<int>? accepted = null)
+    {
+        return string.Join(
+            ",",
+            items.Select((item, index) =>
+            {
+                string name = SafeItemName(item.Item);
+                return accepted == null
+                    ? $"{name}:{item.Item.m_stack}"
+                    : $"{name}:{item.Item.m_stack}->{accepted[index]}";
+            }));
+    }
+
+    internal static string DescribeRequested(
+        IReadOnlyList<RequestedDepositItem> items,
+        IReadOnlyList<int> accepted)
+    {
+        return string.Join(
+            ",",
+            items.Select((item, index) =>
+                $"{SafeItemName(item.Item)}:{item.Item.m_stack}->{accepted[index]}"));
+    }
+
+    private static string SafeItemName(ItemDrop.ItemData item)
+    {
+        return item.m_shared.m_name.Replace(' ', '_').Replace('"', '\'');
     }
 }

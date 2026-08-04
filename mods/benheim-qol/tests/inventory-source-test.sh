@@ -20,6 +20,8 @@ protocol_client="$protocol_root/InventoryTransactionClient.cs"
 protocol_server="$protocol_root/InventoryTransactionServer.cs"
 protocol_owner="$protocol_root/InventoryTransactionOwner.cs"
 protocol_receipts="$protocol_root/InventoryTransactionReceipts.cs"
+protocol_audit="$protocol_root/InventoryTransactionAudit.cs"
+protocol_capabilities="$protocol_root/InventoryTransactionCapabilities.cs"
 
 grep -Fq 'AddInworldText' "$feedback"
 grep -Fq 'UtilityTextDurationSeconds = 3f' "$feedback"
@@ -43,6 +45,12 @@ fi
 grep -Fq 'manuallyProtected && !automaticallyProtected' "$marker"
 grep -Fq 'rect.anchorMin = new Vector2(0f, 1f)' "$marker"
 grep -Fq 'TextAlignmentOptions.TopLeft' "$marker"
+grep -Fq 'GetComponentsInChildren<TMP_Text>(includeInactive: true)' "$marker"
+grep -Fq 'TMP_Settings.defaultFontAsset' "$marker"
+if grep -Fq 'fontMaterial' "$marker"; then
+  printf 'pocket marker must use the selected font asset material\n' >&2
+  exit 1
+fi
 grep -Fq 'if (inventoryWasOpen)' "$quick_stack_feedback"
 grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedback"
 ! grep -Fq 'ShowDestinationSummaries' "$quick_stack_feedback"
@@ -77,6 +85,11 @@ grep -Fq 'CheckAccessMethod.Invoke' "$protocol_owner"
 grep -Fq 'MaxDistance * MaxDistance' "$protocol_owner"
 grep -Fq 'namesPresentBefore.Contains' "$protocol_owner"
 grep -Fq 'deposit_receipts' "$protocol_receipts"
+grep -Fq 'BenheimInventoryAudit.log' "$protocol_audit"
+grep -Fq 'InventoryTransactionAudit.Write' "$protocol_core"
+grep -Fq 'if (changed)' "$protocol_capabilities"
+grep -Fq 'reason=status_stale' "$protocol_capabilities"
+grep -Fq 'LogServerBlock' "$protocol_server"
 if rg -F -g '*.cs' 'ClaimOwnership' "$protocol_root" "$quick_stack"; then
   printf 'authoritative Put Away must never claim chest ownership\n' >&2
   exit 1
