@@ -13,6 +13,8 @@ The Inventory module makes routine item movement faster.
   and has room for more.
 - `Left Shift` + `P` moves matching items into eligible chests within 30 meters.
   It works during normal gameplay and while the inventory is open.
+- Put Away does not run while the player edits a portal tag, a map pin name, or
+  another text field.
 - In multiplayer, the server routes each deposit to the game instance that
   currently owns the destination chest. Only that instance validates and
   changes the chest inventory.

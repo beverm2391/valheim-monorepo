@@ -78,7 +78,7 @@ internal static class ShortcutOverlay
 
     internal static void Update()
     {
-        if (TextInput.IsVisible() || Console.IsVisible())
+        if (InputState.IsTextEntryActive())
         {
             return;
         }

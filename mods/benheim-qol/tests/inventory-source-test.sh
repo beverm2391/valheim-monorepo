@@ -2,6 +2,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+input_state="$root/src/Infrastructure/InputState.cs"
 feedback="$root/src/Infrastructure/WorldFeedback.cs"
 marker="$root/src/Inventory/PocketMarker.cs"
 controller="$root/src/Inventory/PocketItemController.cs"
@@ -22,6 +23,14 @@ protocol_owner="$protocol_root/InventoryTransactionOwner.cs"
 protocol_receipts="$protocol_root/InventoryTransactionReceipts.cs"
 protocol_audit="$protocol_root/InventoryTransactionAudit.cs"
 protocol_capabilities="$protocol_root/InventoryTransactionCapabilities.cs"
+
+grep -Fq 'internal static bool IsTextEntryActive()' "$input_state"
+grep -Fq 'Minimap.InTextInput()' "$input_state"
+grep -Fq 'textInput.m_panel.activeInHierarchy' "$input_state"
+grep -Fq 'EventSystem.current?.currentSelectedGameObject' "$input_state"
+grep -Fq 'GetComponentInParent<TMP_InputField>()' "$input_state"
+grep -Fq 'InputState.IsTextEntryActive()' "$root/src/Inventory/QuickStackHotkey.cs"
+grep -Fq 'InputState.IsTextEntryActive()' "$root/src/Inventory/InventoryPatches.cs"
 
 grep -Fq 'AddInworldText' "$feedback"
 grep -Fq 'UtilityTextDurationSeconds = 3f' "$feedback"

@@ -16,7 +16,7 @@ internal static class InventoryPatches
     {
         private static bool Prefix(InventoryGrid grid, ItemDrop.ItemData? item)
         {
-            bool altHeld = InputState.IsAltHeld();
+            bool altHeld = !InputState.IsTextEntryActive() && InputState.IsAltHeld();
             Diagnostics.Event(
                 "Inventory",
                 "item_clicked",
@@ -31,8 +31,7 @@ internal static class InventoryPatches
         private static void Postfix(InventoryGui __instance)
         {
             if (!InventoryVisibility.IsOpen(__instance)
-                || TextInput.IsVisible()
-                || Console.IsVisible()
+                || InputState.IsTextEntryActive()
                 || Player.m_localPlayer == null)
             {
                 return;

@@ -1,4 +1,7 @@
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace BenheimQoL.Infrastructure;
 
@@ -23,5 +26,36 @@ internal static class InputState
     internal static bool IsKeyDown(KeyCode key)
     {
         return Input.GetKeyDown(key) || ZInput.GetKeyDown(key);
+    }
+
+    internal static bool IsTextEntryActive()
+    {
+        if (Console.IsVisible() || Minimap.InTextInput() || TextInput.IsVisible())
+        {
+            return true;
+        }
+
+        TextInput textInput = TextInput.instance;
+        if (textInput != null
+            && textInput.m_panel != null
+            && textInput.m_panel.activeInHierarchy)
+        {
+            return true;
+        }
+
+        GameObject? selected = EventSystem.current?.currentSelectedGameObject;
+        if (selected == null)
+        {
+            return false;
+        }
+
+        TMP_InputField? tmpInput = selected.GetComponentInParent<TMP_InputField>();
+        if (tmpInput != null && tmpInput.isFocused)
+        {
+            return true;
+        }
+
+        InputField? legacyInput = selected.GetComponentInParent<InputField>();
+        return legacyInput != null && legacyInput.isFocused;
     }
 }

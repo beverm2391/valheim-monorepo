@@ -9,8 +9,7 @@ internal static class DiagnosticLogExporter
 {
     internal static void Update()
     {
-        if (TextInput.IsVisible()
-            || Console.IsVisible()
+        if (InputState.IsTextEntryActive()
             || !Input.GetKeyDown(KeyCode.F7))
         {
             return;

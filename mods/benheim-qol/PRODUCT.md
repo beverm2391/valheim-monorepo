@@ -64,7 +64,7 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.37` is the next test build. It:
+Benheim `0.1.38` is the next test build. It:
 
 - disables the broken mass building repair action while preserving normal
   hammer repair and batch gear repair;
@@ -89,6 +89,8 @@ Benheim `0.1.37` is the next test build. It:
 - lets players press `F7` to save a timestamped diagnostic log to the Desktop;
 - includes the current and previous Put Away audit files in the `F7` diagnostic
   export;
+- suppresses Benheim hotkeys while the player edits a portal tag, a map pin
+  name, or another text field;
 - uses a valid Valheim font for pocket markers;
 - uses Benheim as the player-facing name in the Mac and Windows launchers and
   in the shortcuts panel;
