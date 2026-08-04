@@ -34,6 +34,7 @@ for test_script in "$root"/tests/*-test.sh; do
   "$test_script"
 done
 dotnet run --project "$root/tests/quick-stack-summary/QuickStackSummaryTests.csproj"
+dotnet run --project "$repo_root/tests/inventory-capabilities/InventoryCapabilityTests.csproj"
 
 "$root/scripts/package-macos.sh"
 "$root/scripts/package-windows.sh"
@@ -47,26 +48,22 @@ release_dir="$(mktemp -d)"
 trap 'rm -rf "$release_dir"' EXIT
 cp "$mac_package" "$release_dir/Benheim-macOS.zip"
 cp "$windows_package" "$release_dir/Benheim-Windows.zip"
-printf '%s\n' "$version" > "$release_dir/VERSION"
-(
-  cd "$release_dir"
-  shasum -a 256 Benheim-macOS.zip Benheim-Windows.zip VERSION > SHA256SUMS.txt
-)
 
 cat > "$release_dir/notes.md" <<EOF
-Quit Valheim before installing or updating Benheim.
+Quit Valheim before installing or updating Benheim. Rerun the installer from
+the new package to update an existing install.
 
 - Mac: download \`Benheim-macOS.zip\`, unzip it, and open \`Install Benheim.command\`.
 - Windows: download \`Benheim-Windows.zip\`, unzip it, and open \`Install Benheim.cmd\`.
 
-After this install, open \`Benheim\` to play. It offers to install future stable updates before launch. Press F8 in game to confirm version $version.
+The normal Steam Play button starts vanilla Valheim. Open \`Benheim\` to start
+the modded game. Press F8 in game to confirm version $version and Put Away
+compatibility.
 EOF
 
 gh release create "$tag" \
   "$release_dir/Benheim-macOS.zip" \
   "$release_dir/Benheim-Windows.zip" \
-  "$release_dir/VERSION" \
-  "$release_dir/SHA256SUMS.txt" \
   --target "$head" \
   --title "Benheim v$version" \
   --notes-file "$release_dir/notes.md"

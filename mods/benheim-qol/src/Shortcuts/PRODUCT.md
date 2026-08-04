@@ -1,19 +1,23 @@
 # Shortcuts
 
-The Shortcuts module gives players one in-game panel for discovering Benheim's
-controls and passive features.
-
-## Current Behavior
-
-- `F8` shows or hides the panel unless the player is typing in a text field or
-  console.
-- The title shows the loaded Benheim version.
-- The panel lists active controls and passive features without changing
-  gameplay.
+The Shortcuts module gives players one Valheim-styled Benheim menu built with
+Unity UI and Valheim's loaded UI templates for discovering controls, passive
+features, and multiplayer compatibility.
 
 ## In Development
 
-- Preload the panel before the first `F8` press.
+- `F8` shows or hides the menu unless the player is typing in a text field or
+  console. This menu has not passed gameplay proof.
+- The title shows the loaded Benheim version. The menu lists active controls
+  and passive features without changing gameplay.
+- Show the Benheim Inventory server version and transaction protocol.
+- Show each ready player's Benheim version, protocol, detection state, and
+  Put Away compatibility.
+- Update the version roster when ready players join or leave, or when reported
+  compatibility changes.
+- Use the transaction protocol version to decide compatibility. Show exact
+  semantic versions only for diagnosis.
+- Preload the menu before the first `F8` press.
 - Group features under six color-coded headings: Inventory, Build & Repair,
   Farming, Travel, Combat & Skills, and Help.
 - Explain which items Put Away always protects and which nearby chests can

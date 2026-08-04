@@ -24,9 +24,14 @@ internal static partial class InventoryTransactions
             currentWorldId))
         {
             if (ClientPending.ContainsKey(record.TransactionId)
-                || ClientCompleted.ContainsKey(record.TransactionId)
-                || !InventoryTransactionWire.TryReadRequest(
+                || ClientCompleted.ContainsKey(record.TransactionId))
+            {
+                continue;
+            }
+
+            if (!InventoryTransactionWire.TryReadRequest(
                     record.RequestBytes,
+                    out int requestProtocol,
                     out string transactionId,
                     out long playerId,
                     out ZDOID containerId,
@@ -35,6 +40,21 @@ internal static partial class InventoryTransactions
                 || containerId != record.ContainerId
                 || playerId != currentPlayerId)
             {
+                LogWarning($"journal_recovery_blocked tx={record.TransactionId} reason=request_invalid");
+                continue;
+            }
+
+            if (!InventoryTransactionRecoveryPolicy.TryChooseAction(
+                    requestProtocol,
+                    record.Phase,
+                    requested.Count,
+                    record.Accepted.Count,
+                    out PendingJournalRecoveryAction action))
+            {
+                LogWarning(
+                    $"journal_recovery_blocked tx={record.TransactionId} " +
+                    $"reason=phase_invalid protocol={requestProtocol} phase={record.Phase} " +
+                    $"requested={requested.Count} accepted={record.Accepted.Count}");
                 continue;
             }
 
@@ -52,32 +72,30 @@ internal static partial class InventoryTransactions
                 reserved,
                 _ => { },
                 Time.realtimeSinceStartup);
-            if (record.Phase == PendingJournalPhase.Prepared)
+            if (action == PendingJournalRecoveryAction.RestorePrepared)
             {
                 RestoreMissingPreparedItems(source, requested);
                 ClientCompleted.Add(record.TransactionId, pending);
-                LogDiagnostic($"journal_rolled_back_prepared tx={record.TransactionId}");
+                LogDiagnostic(
+                    $"journal_rolled_back_prepared tx={record.TransactionId} protocol={requestProtocol}");
                 continue;
             }
 
-            if (record.Phase == PendingJournalPhase.Completed)
+            if (action == PendingJournalRecoveryAction.FinalizeCompleted)
             {
-                if (record.Accepted.Count != requested.Count)
-                {
-                    LogWarning($"journal_completed_invalid tx={record.TransactionId}");
-                    continue;
-                }
-
                 NormalizeCompletedItems(source, reserved, record.Accepted);
                 ClientCompleted.Add(record.TransactionId, pending);
-                LogDiagnostic($"journal_recovered_completed tx={record.TransactionId}");
+                LogDiagnostic(
+                    $"journal_recovered_completed tx={record.TransactionId} protocol={requestProtocol}");
                 continue;
             }
 
             ReestablishReservation(source, reserved);
             ClientPending.Add(record.TransactionId, pending);
             SendDepositRequest(pending);
-            LogDiagnostic($"journal_recovered_reserved tx={record.TransactionId} items={reserved.Count}");
+            LogDiagnostic(
+                $"journal_recovered_reserved tx={record.TransactionId} " +
+                $"protocol={requestProtocol} items={reserved.Count}");
         }
     }
 
@@ -115,7 +133,7 @@ internal static partial class InventoryTransactions
             int present = actual != null && SameItem(actual, expected.Item)
                 ? actual.m_stack
                 : 0;
-            if (present > desired)
+            if (present > desired && actual != null)
             {
                 inventory.RemoveItem(actual, present - desired);
             }
@@ -154,5 +172,31 @@ internal static partial class InventoryTransactions
         return left.m_shared.m_name == right.m_shared.m_name
             && left.m_quality == right.m_quality
             && left.m_worldLevel == right.m_worldLevel;
+    }
+
+    private static void RestoreRemainder(Inventory inventory, ReservedDepositItem reserved, int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        ItemDrop.ItemData remainder = reserved.Item.Clone();
+        remainder.m_stack = amount;
+        if (inventory.AddItem(remainder, reserved.SourcePosition) || inventory.AddItem(remainder))
+        {
+            return;
+        }
+
+        Player? player = Player.m_localPlayer;
+        if (player)
+        {
+            ItemDrop.DropItem(
+                remainder,
+                remainder.m_stack,
+                player!.transform.position + player.transform.forward + Vector3.up,
+                player.transform.rotation);
+        }
+        LogWarning($"client_restore_dropped item={remainder.m_shared.m_name} amount={remainder.m_stack}");
     }
 }

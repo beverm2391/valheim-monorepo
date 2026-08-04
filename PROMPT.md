@@ -128,12 +128,27 @@ legacy-plugin cleanup, and launcher generation in that installer. The launcher
 must start Steam when needed and wait until Steam's interprocess communication
 (IPC) service is ready before it starts Valheim.
 
+Share updates as complete platform packages. A player updates by rerunning the
+idempotent installer. Launchers and installers must not check GitHub or another
+network source for updates. The normal Steam launch must remain vanilla on Mac
+and Windows. `Benheim.app` on Mac and the `Benheim` shortcut on Windows are the
+explicit modded launch paths.
+
+The Mac launcher starts the installed BepInEx launch script directly after
+Steam's IPC service becomes ready. The Windows installer keeps UnityDoorstop
+disabled in `doorstop_config.ini`. Its managed `Benheim` shortcut starts Steam,
+finds Valheim across configured Steam libraries, and launches `valheim.exe`
+with `--doorstop-enabled true`. Do not rename Doorstop DLLs to switch modes.
+Remove retired updater apps, shortcuts, and state only when their managed
+identifier or marker proves ownership. Leave unrelated paths unchanged.
+
 The Windows installer must:
 
 - find Valheim in configured Steam libraries;
 - verify the pinned BepInEx archive;
 - disable the standalone MassFarming plugin; and
-- refuse to overwrite an unrelated desktop shortcut.
+- refuse to overwrite an unrelated desktop shortcut; and
+- keep the normal Steam launch vanilla after installation.
 
 Use `mods/benheim-qol/tests/windows-installer-test.sh` to verify the installer
 source and packaged files. Keep this test until a Windows CI runner can execute
@@ -147,13 +162,9 @@ only from a clean local `main` that exactly matches `origin/main`. The script:
 - creates the `benheim-v<version>` GitHub release; and
 - uploads the stable `Benheim-macOS.zip` and `Benheim-Windows.zip` assets.
 
-The first install uses the stable package for Mac or Windows. The installer adds
-a separate updater named `Update Benheim`. Before launch, each launcher briefly
-checks the stable `VERSION` file. If the check fails or times out, the launcher
-continues with the installed version. When a newer stable version exists, the
-launcher offers `Update and launch` or `Launch current version`. Only the updater
-can change files. It verifies the package against `SHA256SUMS.txt` and reruns the
-installer while Valheim is closed.
+The release assets are distribution artifacts, not an update channel. Send the
+appropriate package to each player and have them rerun its installer while
+Valheim is closed.
 
 Use this development loop for gameplay changes:
 
@@ -186,10 +197,14 @@ Client mod rules:
   That file owns requirements for protocol versions, chest ownership,
   transactions, retries, journals, receipts, reservations, item restoration,
   and recovery. Follow those requirements instead of restating them here.
+- Put Away compatibility depends on the transaction protocol version, not the
+  client or server semantic version. Keep exact semantic versions in capability
+  status for diagnosis.
 - Add custom persistent world objects or custom item data only when the product
   or protocol design explicitly requires them.
-- Keep the in-game shortcuts panel and the owning feature `PRODUCT.md` aligned
-  with implemented controls.
+- Keep the Valheim-styled Benheim `F8` menu built with Unity UI and Valheim's
+  loaded UI templates aligned with the owning feature `PRODUCT.md`, implemented
+  controls, and the dynamic version roster.
 - Bump the visible plugin version when installing a user-testable behavior
   change so testers can verify the loaded DLL after relaunch.
 - Valheim does not hot-reload the plugin DLL; after install, fully quit and

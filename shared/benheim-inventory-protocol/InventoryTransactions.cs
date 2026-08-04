@@ -9,19 +9,19 @@ namespace BenheimInventoryProtocol;
 
 internal static partial class InventoryTransactions
 {
-    internal const int ProtocolVersion = 1;
+    internal const int ProtocolVersion = InventoryTransactionRecoveryPolicy.CurrentProtocolVersion;
     internal const int MaxItemsPerDeposit = 64;
-    internal const string HelloRpc = "Benheim.Inventory.v1.Hello";
-    internal const string StatusRpc = "Benheim.Inventory.v1.Status";
-    internal const string DepositRequestRpc = "Benheim.Inventory.v1.DepositRequest";
-    internal const string OwnerExecuteRpc = "Benheim.Inventory.v1.OwnerExecute";
-    internal const string OwnerResultRpc = "Benheim.Inventory.v1.OwnerResult";
-    internal const string DepositResultRpc = "Benheim.Inventory.v1.DepositResult";
-    internal const string ReceiptAckRpc = "Benheim.Inventory.v1.ReceiptAck";
-    internal const string OwnerReceiptAckRpc = "Benheim.Inventory.v1.OwnerReceiptAck";
+    internal const string HelloRpc = "Benheim.Inventory.v2.Hello";
+    internal const string StatusRpc = "Benheim.Inventory.v2.Status";
+    internal const string DepositRequestRpc = "Benheim.Inventory.v2.DepositRequest";
+    internal const string OwnerExecuteRpc = "Benheim.Inventory.v2.OwnerExecute";
+    internal const string OwnerResultRpc = "Benheim.Inventory.v2.OwnerResult";
+    internal const string DepositResultRpc = "Benheim.Inventory.v2.DepositResult";
+    internal const string ReceiptAckRpc = "Benheim.Inventory.v2.ReceiptAck";
+    internal const string OwnerReceiptAckRpc = "Benheim.Inventory.v2.OwnerReceiptAck";
 
     private const float StatusStaleAfter = 6f;
-    private static readonly Dictionary<long, int> PeerProtocols = new Dictionary<long, int>();
+    private static readonly InventoryPeerCapabilityRegistry PeerCapabilities = new();
     private static readonly Dictionary<string, PendingDeposit> ClientPending = new Dictionary<string, PendingDeposit>();
     private static readonly Dictionary<string, PendingDeposit> ClientCompleted = new Dictionary<string, PendingDeposit>();
     private static readonly Dictionary<string, ServerDeposit> ServerPending = new Dictionary<string, ServerDeposit>();
@@ -31,10 +31,16 @@ internal static partial class InventoryTransactions
     private static float lastStatusAt = float.NegativeInfinity;
     private static bool serverReady;
     private static bool clientReady;
+    private static string localProductVersion = "unknown";
+    private static float capabilityStartedAt = float.NegativeInfinity;
+    private static InventoryCapabilitySnapshot capabilitySnapshot = InventoryCapabilitySnapshot.Disconnected;
+    private static ZNetPeer? activeServerConnection;
+    private static bool capabilityNetworkActive;
 
-    internal static void Initialize(ManualLogSource logger)
+    internal static void Initialize(ManualLogSource logger, string productVersion)
     {
         log = logger;
+        localProductVersion = string.IsNullOrWhiteSpace(productVersion) ? "unknown" : productVersion.Trim();
         if (InventoryTransactionAudit.Initialize(Paths.ConfigPath))
         {
             LogDiagnostic($"audit_session_start protocol={ProtocolVersion}");
@@ -55,23 +61,29 @@ internal static partial class InventoryTransactions
         }
         LogDiagnostic("audit_session_end");
         registeredRpc = null;
-        PeerProtocols.Clear();
+        PeerCapabilities.Clear();
         ClientPending.Clear();
         ClientCompleted.Clear();
         ServerPending.Clear();
         ServerCompleted.Clear();
         clientReady = false;
         serverReady = false;
+        capabilitySnapshot = InventoryCapabilitySnapshot.Disconnected;
+        capabilityStartedAt = float.NegativeInfinity;
+        activeServerConnection = null;
+        capabilityNetworkActive = false;
     }
 
     internal static void Update()
     {
         if (ZNet.instance == null || ZRoutedRpc.instance == null)
         {
+            ResetCapabilityConnection();
             return;
         }
 
         EnsureRegistered();
+        capabilityNetworkActive = true;
         RecoverPendingJournals();
         float now = Time.realtimeSinceStartup;
         if (ZNet.instance.IsServer())
@@ -81,7 +93,7 @@ internal static partial class InventoryTransactions
         }
         else
         {
-            UpdateClientHandshake(now);
+            UpdateClientCapabilities(now);
         }
 
         RetryClientTransactions(now);
@@ -109,8 +121,36 @@ internal static partial class InventoryTransactions
             return true;
         }
 
-        reason = "Put Away needs matching Benheim versions on the server and every player";
+        reason = "Put Away needs matching Benheim protocols on the server and every player";
         return false;
+    }
+
+    internal static InventoryCapabilitySnapshot GetCapabilitySnapshot()
+    {
+        if (ZNet.instance == null || ZRoutedRpc.instance == null)
+        {
+            return InventoryCapabilitySnapshot.Disconnected;
+        }
+
+        if (ZNet.instance.IsServer())
+        {
+            return capabilitySnapshot;
+        }
+
+        if (activeServerConnection == null)
+        {
+            return InventoryCapabilitySnapshot.Disconnected;
+        }
+
+        float now = Time.realtimeSinceStartup;
+        if (lastStatusAt > float.NegativeInfinity && now - lastStatusAt <= StatusStaleAfter)
+        {
+            return capabilitySnapshot;
+        }
+
+        return now - capabilityStartedAt >= StatusStaleAfter
+            ? InventoryCapabilitySnapshot.ServerMissing
+            : InventoryCapabilitySnapshot.Checking;
     }
 
     internal static long GetServerPeerId()
@@ -120,13 +160,14 @@ internal static partial class InventoryTransactions
             return ZNet.GetUID();
         }
 
-        List<ZNetPeer> peers = ZNet.instance.GetConnectedPeers();
-        return peers.Count > 0 ? peers[0].m_uid : 0L;
+        return activeServerConnection?.m_uid ?? 0L;
     }
 
     internal static bool IsExpectedServer(long sender)
     {
-        return sender != 0L && sender == GetServerPeerId();
+        return activeServerConnection != null
+            && sender != 0L
+            && sender == activeServerConnection.m_uid;
     }
 
     internal static void LogDiagnostic(string message)
@@ -169,5 +210,24 @@ internal static partial class InventoryTransactions
     private static string SafeItemName(ItemDrop.ItemData item)
     {
         return item.m_shared.m_name.Replace(' ', '_').Replace('"', '\'');
+    }
+
+    private static void ResetCapabilityConnection()
+    {
+        if (!capabilityNetworkActive
+            && activeServerConnection == null
+            && capabilitySnapshot.State == InventoryCapabilityState.Disconnected)
+        {
+            return;
+        }
+
+        PeerCapabilities.Clear();
+        clientReady = false;
+        serverReady = false;
+        activeServerConnection = null;
+        capabilityStartedAt = float.NegativeInfinity;
+        capabilitySnapshot = InventoryCapabilitySnapshot.Disconnected;
+        lastStatusAt = float.NegativeInfinity;
+        capabilityNetworkActive = false;
     }
 }

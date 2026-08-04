@@ -1,9 +1,9 @@
 # Benheim
 
-Benheim is a client-only Valheim quality-of-life mod for BepInEx.
-
-Install this only on the player's machine. Benheim has no server component
-and does not require other players to install it.
+Benheim is an optional Valheim quality-of-life mod for BepInEx. Most features
+run only on the player's computer. Multiplayer Put Away also requires the
+Benheim Inventory server plugin and a compatible Benheim client for every
+ready player.
 
 ## Install On A Mac
 
@@ -12,13 +12,9 @@ Install Valheim through Steam first. Then unzip the Mac package and double-click
 current Benheim plugin to Valheim. It creates `Benheim.app` in the user's
 Applications folder.
 
-The installer also creates `Update Benheim.app` for manual update checks.
-
-Open `Benheim.app` to play. If a newer stable version exists, the launcher
-offers `Update and launch` or `Launch current version`. After that choice, or
-when no update exists, the launcher starts Steam when needed and then starts
-the BepInEx-enabled game. The normal Steam Play button remains the unmodded
-launch path.
+Open `Benheim.app` to play with the mod. The launcher starts Steam when needed
+and then starts the BepInEx-enabled game. The normal Steam Play button remains
+the vanilla launch path.
 
 The installer is safe to run again for an update. It refuses to run while
 Valheim is open and refuses to replace an unrelated app. It also disables the
@@ -31,13 +27,11 @@ double-click `Install Benheim.cmd`. The installer finds Valheim in your
 configured Steam libraries. It installs the fixed BepInEx version and the
 current Benheim plugin. It also creates a `Benheim` desktop shortcut.
 
-The installer also creates an `Update Benheim` desktop shortcut for manual
-update checks.
-
-Open the `Benheim` desktop shortcut to play. If a newer stable version exists,
-choose `Update and launch` or `Launch current version`. On Windows, BepInEx
-loads from the Valheim game directory, so Steam's normal Play button also
-starts the modded game after installation without checking for updates.
+Open the `Benheim` desktop shortcut to play with the mod. The normal Steam Play
+button remains the vanilla launch path. The installer leaves UnityDoorstop
+disabled for normal Steam launches. The shortcut starts Steam when needed,
+finds Valheim across configured Steam libraries, and enables Doorstop for that
+launch only.
 
 The installer stops if Valheim is open. It verifies the BepInEx download. It
 does not replace an unrelated desktop shortcut. It disables the old standalone
@@ -45,32 +39,16 @@ MassFarming plugin.
 
 ## Update Benheim
 
-Before launch, the Benheim launcher briefly checks the stable `VERSION` file.
-If the check fails or times out, the launcher starts the installed version. If
-a newer stable version exists, choosing `Update and launch` runs the updater and
-then starts Valheim. The separate `Update Benheim` app or shortcut still
-supports a manual check.
+Benheim does not check for updates. Get the new package from the person who
+manages your server. Fully quit Valheim, unzip the package for your computer,
+and run its installer again. The installer updates Benheim without removing
+saves, characters, settings, or pocketed item preferences.
 
-The updater downloads the stable package and verifies it against
-`SHA256SUMS.txt`. It preserves the existing installation in these cases:
-
-- no stable release exists;
-- GitHub or the network is unavailable;
-- the download is interrupted; or
-- checksum verification fails; or
-- the installed version is newer than the current stable release.
-
-If the updater is missing or reports that the Benheim installation is damaged,
-download the latest package for your computer:
-
-- [Latest Mac package](https://github.com/beverm2391/valheim-server/releases/latest/download/Benheim-macOS.zip)
-- [Latest Windows package](https://github.com/beverm2391/valheim-server/releases/latest/download/Benheim-Windows.zip)
-
-Unzip the package and run its installer. The installer repairs the updater and
-reinstalls the Benheim plugin. It also replaces `Benheim.app` on Mac or the
-`Benheim` desktop shortcut on Windows. It does not remove saves, characters,
-settings, or pocketed item preferences. Press `F8` in game to confirm the
-installed version.
+Press `F8` in game to confirm the installed version and multiplayer Put Away
+compatibility. The Valheim-styled Benheim menu uses Unity UI and Valheim's loaded
+UI templates to show the server and dynamic ready-player version roster. Exact
+versions appear for diagnosis. Put Away compatibility depends on the transaction
+protocol version.
 
 ## Send A Diagnostic Log
 
@@ -83,7 +61,8 @@ share it only with people you trust.
 ## Features
 
 See [`PRODUCT.md`](PRODUCT.md) for the canonical product promise and detailed
-feature behavior. The in-game `F8` panel is the current shortcut reference.
+feature behavior. The native `F8` menu is the in-game shortcut and version
+reference.
 
 ## Build
 
@@ -125,7 +104,7 @@ The release command:
 - runs the complete client test suite;
 - builds both packages;
 - creates a versioned GitHub release; and
-- uploads both packages and `SHA256SUMS.txt` with stable asset names.
+- uploads both packages with stable asset names.
 
 The package is written under `mods/benheim-qol/dist/`. The installer copies
 `BenheimQoL.dll` into:
@@ -135,4 +114,4 @@ The package is written under `mods/benheim-qol/dist/`. The installer copies
 ```
 
 Launch `Benheim.app` after installing. Press `F8` in-game to confirm the
-loaded version and open the shortcut reference.
+loaded version and open the native shortcut and version menu.

@@ -54,7 +54,7 @@ Put Away uses one client, the dedicated server, and the current chest owner.
 The server coordinates the transfer but does not change the chest itself.
 
 1. Every ready peer advertises the exact protocol version. Put Away becomes
-   available only when the server and every connected player match.
+   available only when the server and every ready player match.
 2. The requesting client scans for eligible chests. It never writes a chest.
 3. The client creates an immutable request. The request contains a transaction
    ID, player ID, chest ZDO ID, source positions, and serialized item snapshots.
@@ -79,6 +79,39 @@ The server coordinates the transfer but does not change the chest itself.
 
 The shared source under this directory compiles into both the client mod and
 the server plugin. Keep one wire model and one protocol version.
+
+## Capability And Roster Status
+
+Transaction protocol `2` adds versioned capability and roster status. It is the
+next test protocol and has not passed gameplay proof. The next test client is
+Benheim `0.1.39`. The next test server plugin is Benheim Inventory `0.1.2`.
+
+Each ready client sends a capability hello that contains its transaction
+protocol and exact Benheim version. The server records that hello for the
+client's current peer connection. Missing capability data means Benheim was not
+detected for that connection.
+
+The server sends each client a status snapshot with:
+
+- the server plugin version and transaction protocol;
+- the server's current Put Away readiness;
+- each ready player's name;
+- each ready player's reported Benheim version and protocol;
+- whether Benheim was detected for that player; and
+- whether that player's transaction protocol is compatible.
+
+Compatibility depends only on the transaction protocol. Semantic versions are
+diagnostic information. Two builds with different semantic versions remain
+compatible when they use the same transaction protocol.
+
+Put Away is ready only when the server and every ready player use the same
+transaction protocol. A missing or mismatched client disables Put Away for all
+players. It does not reject that client, disconnect anyone, or change normal
+gameplay and chest use.
+
+The client uses this snapshot for compatibility feedback.
+`mods/benheim-qol/src/Shortcuts/PRODUCT.md` owns roster presentation.
+`mods/benheim-qol/src/Inventory/PRODUCT.md` owns warning behavior.
 
 ## Duplicate Prevention
 
@@ -115,6 +148,27 @@ Recovery must preserve the request bytes, payload hash, transaction ID, player
 ID, world ID, chest ID, source positions, and accepted amounts. Invalid journal
 records do not become new transfers. Benheim does not invent a transfer from an
 invalid journal record.
+
+Protocol `2` can recover journal requests written by protocol `1`. A client that
+uses protocol `2` sends the original protocol `1` request bytes through the
+protocol `2` remote procedure call (RPC). The server and chest owner parse the
+protocol `1` request and return a protocol `2` response. They do not rewrite the
+request or its protocol field.
+
+This rule preserves the original payload hash. A `Reserved` retry can therefore
+find a receipt left by a protocol-1 owner and return its recorded result without
+changing the chest again. If no receipt exists, the owner applies the original
+request once and records its result. If a request version is unsupported or a
+record's fields do not match its phase, Benheim leaves the record in the
+journal, blocks recovery, and logs a warning. Recovery does not delete or
+reinterpret that record.
+
+A receipt acknowledgement includes the original request bytes. The server
+validates the request's payload hash, transaction ID, chest ID, and player ID
+before routing the acknowledgement. This proof lets the client acknowledge the
+receipt for a recovered `Completed` journal after the server restarts and loses
+its in-memory completion record. The chest owner can then clear the receipt.
+The client does not retry the deposit while recovering a `Completed` journal.
 
 ## Invariants
 

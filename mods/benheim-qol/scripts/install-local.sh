@@ -6,7 +6,6 @@ dll="$root/src/bin/Release/netstandard2.1/BenheimQoL.dll"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
 version_file="$(mktemp)"
 trap 'rm -f "$version_file"' EXIT
-
 "$root/scripts/build.sh"
 
 if [[ ! -f "$dll" ]]; then

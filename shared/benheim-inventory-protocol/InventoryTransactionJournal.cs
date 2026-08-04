@@ -6,13 +6,6 @@ using BepInEx;
 
 namespace BenheimInventoryProtocol;
 
-internal enum PendingJournalPhase
-{
-    Prepared = 0,
-    Reserved = 1,
-    Completed = 2,
-}
-
 internal sealed class PendingJournalRecord
 {
     internal PendingJournalRecord(

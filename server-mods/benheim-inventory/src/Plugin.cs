@@ -8,12 +8,12 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.inventory";
     public const string PluginName = "Benheim Inventory";
-    public const string PluginVersion = "0.1.1";
-    public const string LoadMessage = "Benheim Inventory 0.1.1 loaded with protocol 1.";
+    public const string PluginVersion = "0.1.2";
+    public const string LoadMessage = "Benheim Inventory 0.1.2 loaded with protocol 2.";
 
     private void Awake()
     {
-        InventoryTransactions.Initialize(Logger);
+        InventoryTransactions.Initialize(Logger, PluginVersion);
         Logger.LogInfo(LoadMessage);
     }
 

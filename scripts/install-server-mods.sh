@@ -38,7 +38,7 @@ cp "$inventory_source" "$tmp_dir/$inventory_file"
 cat > "$tmp_dir/SHA256SUMS" <<EOF
 5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716  $bepinex_file
 8f452cc68d839b7a843676c89b479e357c2b932db8f0f02106de5c5cfde451f4  $eternal_fire_file
-f6ab0e5b29af29e7db0c15b37e41bfd6227ac53a7b19298e70808b327dcc911d  $inventory_file
+7cd9cb1461e8aa5794fef124a0f498826a78bbc380e45bc553d8ea758c9a286a  $inventory_file
 EOF
 
 if command -v sha256sum >/dev/null 2>&1; then
@@ -191,5 +191,5 @@ valheim-wait-ready "$started_at"
 "$work/verify-benheim-inventory" "$started_at"
 
 trap - EXIT
-echo "Installed BepInEx 5.4.2333, Benheim Eternal Fire 0.1.1, and Benheim Inventory 0.1.1."
+echo "Installed BepInEx 5.4.2333, Benheim Eternal Fire 0.1.1, and Benheim Inventory 0.1.2."
 REMOTE

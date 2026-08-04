@@ -32,10 +32,13 @@ dotnet run --project \
   "$root/tests/inventory-transaction-receipts/InventoryTransactionReceiptTests.csproj" \
   --configuration Release
 dotnet run --project \
+  "$root/tests/inventory-transaction-upgrade/InventoryTransactionUpgradeTests.csproj" \
+  --configuration Release
+dotnet run --project \
   "$root/tests/inventory-transaction-audit/InventoryTransactionAuditTests.csproj" \
   --configuration Release
 
-expected_checksum=f6ab0e5b29af29e7db0c15b37e41bfd6227ac53a7b19298e70808b327dcc911d
+expected_checksum=7cd9cb1461e8aa5794fef124a0f498826a78bbc380e45bc553d8ea758c9a286a
 actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 [[ "$actual_checksum" == "$expected_checksum" ]] || fail "Benheim Inventory plugin checksum changed"
 assert_contains "installer pins the inventory plugin checksum" "$expected_checksum" "$installer"
@@ -47,8 +50,8 @@ assert_contains "rollback snapshots the existing BepInEx tree" '/opt/valheim/ser
 assert_contains "rollback snapshots the launcher" '/usr/local/bin/valheim-start' "$installer"
 assert_contains "rollback snapshots the server environment" '/etc/valheim/server.env' "$installer"
 
-assert_contains "server plugin pins version" 'PluginVersion = "0.1.1"' "$plugin_source"
-assert_contains "server plugin logs exact protocol version" 'Benheim Inventory 0.1.1 loaded with protocol 1.' "$plugin_source"
+assert_contains "server plugin pins version" 'PluginVersion = "0.1.2"' "$plugin_source"
+assert_contains "server plugin logs exact protocol version" 'Benheim Inventory 0.1.2 loaded with protocol 2.' "$plugin_source"
 assert_contains "server and client compile the same protocol source" 'shared/benheim-inventory-protocol/*.cs' "$plugin_project"
 assert_contains "server and client compile the same protocol source" 'shared/benheim-inventory-protocol/*.cs' "$client_project"
 
@@ -86,7 +89,7 @@ if MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
   fail "generic readiness must not satisfy the inventory load gate"
 fi
 
-printf '%s\n' 'Benheim Inventory 0.1.1 loaded with protocol 1.' > "$tmp_dir/journal.log"
+printf '%s\n' 'Benheim Inventory 0.1.2 loaded with protocol 2.' > "$tmp_dir/journal.log"
 MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
 MOCK_JOURNAL_LOG="$tmp_dir/journal.log" \
 JOURNALCTL_BIN="$tmp_dir/journalctl" \

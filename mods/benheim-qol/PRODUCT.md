@@ -13,28 +13,28 @@ This file owns the overall product promise. Each feature module has a
 - Ship one idempotent installer for each desktop platform. Each installer must
   leave unrelated files and launchers unchanged. It must refuse installation
   while Valheim is running.
+- Share updates as complete packages. A player updates by rerunning the
+  installer. Benheim does not check GitHub or another network source for
+  updates.
 - The Mac launcher starts Steam when needed before it starts modded Valheim.
 - The Windows installer finds Valheim across Steam libraries and creates a
-  desktop shortcut. A player still needs to test the installer on a Windows PC.
-- Install a separate updater named `Update Benheim` on Mac and Windows. Each
-  launcher checks briefly for a newer stable version. If one exists, it offers
-  `Update and launch` or `Launch current version`. If the stable `VERSION` check
-  fails or times out, the launcher must continue with the installed version.
-- The updater must apply an update only after the stable package matches the
-  checksum in `SHA256SUMS.txt`. It must preserve the existing installation if
-  the release is missing or unreachable, the download is interrupted, or
-  checksum verification fails.
-- The updater must not replace a newer installed version with an older stable
-  release.
+  desktop shortcut. It keeps UnityDoorstop disabled for Steam Play. The shortcut
+  starts Valheim with Doorstop enabled for that launch only. A player still
+  needs to test the installer on a Windows PC.
+- The normal Steam launch stays vanilla on Mac and Windows. `Benheim.app` on
+  Mac and the `Benheim` shortcut on Windows are explicit modded launch paths.
 - Keep Benheim compatible with servers and players that do not use it.
-  Multiplayer Put Away must disable itself unless the server and every connected
-  player use the same protocol version.
+  Multiplayer Put Away must disable itself unless the server and every ready
+  player use the same transaction protocol version. Exact semantic
+  versions help diagnose a mismatch but do not decide compatibility.
 - Do not add custom persistent world objects. Store a player's manual pocket
   choice on an item only when no safer representation can preserve that choice.
 - Prefer normal Valheim actions over direct inventory or world mutation.
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
   reason without damaging game state.
-- Keep controls discoverable from the in-game shortcuts panel.
+- Keep controls discoverable from the native Valheim-styled Unity `F8` menu. Its
+  version roster must update when the ready-player roster or compatibility
+  status changes.
 - Benheim shortcuts and modifier actions do nothing while the player edits any
   in-game text field, including portal tags and map pin names. In Benheim's
   split-stack dialog, `Backspace`, `Delete`, and `Enter` remain active as
@@ -60,7 +60,7 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.13` is the latest client build that players have confirmed during
+Benheim `0.1.38` is the latest client build that players have confirmed during
 gameplay. Each feature module records its confirmed behavior.
 
 ## In Development
@@ -68,44 +68,9 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.38` is the next test build. It:
-
-- disables the broken mass building repair action while preserving normal
-  hammer repair and batch gear repair;
-- shows a gold manual-pocket `P` in the top-left of an item slot and hides it
-  while equipped or hotbar protection is active;
-- protects every stack of a manually pocketed stackable item type, but only the
-  marked instance of a non-stackable item;
-- fills production station inputs and fuel, plus cooking station food and fuel,
-  when the player holds `Left Shift` while interacting;
-- identifies every Put Away destination by distance and direction in the
-  detailed HUD receipt and shows a short generic summary above the player;
-- sends multiplayer Put Away through the server to the current owner of each
-  destination chest;
-- retries a delayed transaction with the same ID and records recent transaction
-  IDs on each chest so retries cannot deposit the same items twice;
-- disables multiplayer Put Away when the server or any connected player has a
-  missing or mismatched transaction protocol;
-- moves detailed Put Away feedback to Valheim's center message area while the
-  inventory is open so the inventory cannot cover it;
-- shows Put Away details below the visible hotbar slots using Valheim's message
-  style, without moving Valheim's own messages;
-- lets players press `F7` to save a timestamped diagnostic log to the Desktop;
-- includes the current and previous Put Away audit files in the `F7` diagnostic
-  export;
-- suppresses all Benheim shortcuts and modifier actions while the player edits
-  any in-game text field, including portal tags and map pin names; `Backspace`,
-  `Delete`, and `Enter` remain active in Benheim's split-stack dialog;
-- uses a valid Valheim font for pocket markers;
-- uses Benheim as the player-facing name in the Mac and Windows launchers and
-  in the shortcuts panel;
-- includes Woodcutting cleave for standing trees and fallen logs at skill
-  level 25 or higher, with a cleave chance that rises from 30% at level 25 to
-  85% at level 100 and visible `CLEAVE` combat text;
-- adds `Update Benheim` on Mac and Windows and reports when Benheim is already
-  current; and
-- offers a stable update before launch without changing the current install
-  until the player chooses `Update and launch` and package verification passes.
+Benheim `0.1.39` is the next test build. It has not passed gameplay proof. Each
+module document owns its changed behavior and remaining proof gates. The Mac
+and Windows launch paths also require platform testing before release.
 
 ## Later
 

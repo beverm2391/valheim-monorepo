@@ -52,9 +52,17 @@ The Inventory module makes routine item movement faster.
 
 ## In Development
 
-- Put Away works only when the server and every connected player use the exact
-  transaction protocol version. Otherwise, it moves nothing and explains the
-  mismatch.
+- Put Away works only when the server and every ready player use the same
+  transaction protocol version. Exact Benheim versions do not decide
+  compatibility.
+- A missing or mismatched client disables only Put Away. It does not disconnect
+  that player or change normal chest use.
+- After an incompatible state remains stable for 8 seconds, show one warning
+  and point the player to `F8`. This includes missing server support and missing
+  or mismatched clients. Warn again only after reconnecting, returning to
+  compatibility, or changing the incompatible player or protocol set for
+  another 8 seconds. Semantic-version-only changes do not trigger another
+  warning.
 - The transaction safety contract in
   `shared/benheim-inventory-protocol/PROTOCOL.md` remains in development. It
   owns retry identity, duplicate prevention, reservations, item restoration,

@@ -26,6 +26,7 @@ internal static class InventoryTransactionOwner
         string payloadHash = InventoryTransactionWire.Hash(requestBytes);
         if (!InventoryTransactionWire.TryReadRequest(
                 requestBytes,
+                out _,
                 out string transactionId,
                 out long playerId,
                 out ZDOID containerId,

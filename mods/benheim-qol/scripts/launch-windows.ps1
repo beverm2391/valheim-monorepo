@@ -1,110 +1,147 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$InstalledVersionPath = Join-Path $ScriptDir 'VERSION'
-$UpdateScript = Join-Path $ScriptDir 'update-windows.ps1'
-$LatestVersionUrl = if ($env:BENHEIM_UPDATE_VERSION_URL) { $env:BENHEIM_UPDATE_VERSION_URL } else { 'https://github.com/beverm2391/valheim-server/releases/latest/download/VERSION' }
-$LogDir = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Benheim'
+$LogDir = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'BenheimLauncher'
 $LogFile = Join-Path $LogDir 'launch.log'
 
 function Write-LaunchLog {
     param([Parameter(Mandatory = $true)][string]$Message)
+
     New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
     Add-Content -LiteralPath $LogFile -Value ("{0:u} {1}" -f (Get-Date), $Message)
 }
 
-function Show-ChoiceDialog {
-    param(
-        [Parameter(Mandatory = $true)][string]$Title,
-        [Parameter(Mandatory = $true)][string]$Message,
-        [Parameter(Mandatory = $true)][string]$PrimaryText,
-        [Parameter(Mandatory = $true)][string]$SecondaryText
+function Get-SteamRoots {
+    $roots = New-Object System.Collections.Generic.List[string]
+    $registryPaths = @(
+        'HKCU:\Software\Valve\Steam',
+        'HKLM:\Software\WOW6432Node\Valve\Steam',
+        'HKLM:\Software\Valve\Steam'
     )
 
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = $Title
-    $form.ClientSize = New-Object System.Drawing.Size(430, 150)
-    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
-    $form.MaximizeBox = $false
-    $form.MinimizeBox = $false
-    $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-    $form.TopMost = $true
-
-    $label = New-Object System.Windows.Forms.Label
-    $label.Location = New-Object System.Drawing.Point(20, 18)
-    $label.Size = New-Object System.Drawing.Size(390, 58)
-    $label.Text = $Message
-    $form.Controls.Add($label)
-
-    $secondary = New-Object System.Windows.Forms.Button
-    $secondary.Location = New-Object System.Drawing.Point(88, 94)
-    $secondary.Size = New-Object System.Drawing.Size(150, 32)
-    $secondary.Text = $SecondaryText
-    $secondary.DialogResult = [System.Windows.Forms.DialogResult]::No
-    $form.Controls.Add($secondary)
-
-    $primary = New-Object System.Windows.Forms.Button
-    $primary.Location = New-Object System.Drawing.Point(248, 94)
-    $primary.Size = New-Object System.Drawing.Size(162, 32)
-    $primary.Text = $PrimaryText
-    $primary.DialogResult = [System.Windows.Forms.DialogResult]::Yes
-    $form.Controls.Add($primary)
-
-    $form.AcceptButton = $primary
-    $form.CancelButton = $secondary
-    return $form.ShowDialog()
-}
-
-function Get-LatestVersion {
-    try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $response = Invoke-WebRequest -UseBasicParsing -Uri $LatestVersionUrl -TimeoutSec 4
-        return [version]$response.Content.Trim()
+    foreach ($registryPath in $registryPaths) {
+        try {
+            $properties = Get-ItemProperty -Path $registryPath -ErrorAction Stop
+            $steamRoot = $null
+            if ($null -ne $properties.PSObject.Properties['SteamPath']) {
+                $steamRoot = $properties.SteamPath
+            }
+            elseif ($null -ne $properties.PSObject.Properties['InstallPath']) {
+                $steamRoot = $properties.InstallPath
+            }
+            if ($steamRoot -and -not $roots.Contains($steamRoot)) {
+                $roots.Add($steamRoot)
+            }
+        }
+        catch {
+            # Try the next standard Steam registry location.
+        }
     }
-    catch {
-        Write-LaunchLog "Update check skipped: $($_.Exception.Message)"
-        return $null
-    }
-}
 
-try {
-    Write-LaunchLog 'Launching Benheim.'
+    foreach ($primaryRoot in @($roots)) {
+        $libraryFile = Join-Path $primaryRoot 'steamapps\libraryfolders.vdf'
+        if (-not (Test-Path -LiteralPath $libraryFile -PathType Leaf)) {
+            continue
+        }
 
-    if ((Test-Path -LiteralPath $InstalledVersionPath -PathType Leaf) -and
-        (Test-Path -LiteralPath $UpdateScript -PathType Leaf)) {
-        $installedVersion = [version](Get-Content -LiteralPath $InstalledVersionPath -Raw).Trim()
-        $latestVersion = Get-LatestVersion
-
-        if ($null -ne $latestVersion -and $latestVersion -gt $installedVersion) {
-            $choice = Show-ChoiceDialog `
-                -Title 'Benheim update available' `
-                -Message "Benheim $latestVersion is available. You have $installedVersion." `
-                -PrimaryText 'Update and launch' `
-                -SecondaryText 'Launch current version'
-
-            if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
-                Write-LaunchLog "Updating Benheim $installedVersion to $latestVersion."
-                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $UpdateScript
-                if ($LASTEXITCODE -ne 0) {
-                    Write-LaunchLog "Update failed with exit code $LASTEXITCODE."
-                    $failureChoice = Show-ChoiceDialog `
-                        -Title 'Benheim update failed' `
-                        -Message 'The update could not finish. Your current Benheim installation was not changed.' `
-                        -PrimaryText 'Launch current version' `
-                        -SecondaryText 'Cancel'
-                    if ($failureChoice -ne [System.Windows.Forms.DialogResult]::Yes) {
-                        exit 0
-                    }
+        foreach ($line in Get-Content -LiteralPath $libraryFile) {
+            if ($line -match '"path"\s+"([^"]+)"') {
+                $libraryRoot = $Matches[1].Replace('\\', '\')
+                if (-not $roots.Contains($libraryRoot)) {
+                    $roots.Add($libraryRoot)
                 }
             }
         }
     }
 
-    Start-Process 'steam://rungameid/892970'
+    return $roots
+}
+
+function Find-ValheimGameDir {
+    if ($env:BENHEIM_QOL_GAME_DIR) {
+        return $env:BENHEIM_QOL_GAME_DIR
+    }
+
+    foreach ($steamRoot in Get-SteamRoots) {
+        $candidate = Join-Path $steamRoot 'steamapps\common\Valheim'
+        if (Test-Path -LiteralPath (Join-Path $candidate 'valheim.exe') -PathType Leaf) {
+            return $candidate
+        }
+    }
+
+    throw 'Valheim was not found in any Steam library. Install or repair Valheim, then open Benheim again.'
+}
+
+function Find-SteamExecutable {
+    foreach ($steamRoot in Get-SteamRoots) {
+        $candidate = Join-Path $steamRoot 'steam.exe'
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return $candidate
+        }
+    }
+
+    throw 'Steam was not found. Install or repair Steam, then open Benheim again.'
+}
+
+function Wait-ForSteamReady {
+    $steamProcesses = @(Get-Process -Name 'steam' -ErrorAction SilentlyContinue)
+    $startedSteam = $steamProcesses.Count -eq 0
+
+    if ($startedSteam) {
+        Write-LaunchLog 'Starting Steam.'
+        Start-Process -FilePath (Find-SteamExecutable) -ArgumentList '-silent'
+    }
+
+    $deadline = (Get-Date).AddSeconds(90)
+    do {
+        foreach ($steamProcess in @(Get-Process -Name 'steam' -ErrorAction SilentlyContinue)) {
+            try {
+                if ($steamProcess.Responding) {
+                    if ($startedSteam) {
+                        # Steam can report a responsive process just before its
+                        # client IPC is ready for a direct game launch.
+                        Start-Sleep -Seconds 3
+                    }
+                    return
+                }
+            }
+            catch {
+                # Steam can replace its bootstrap process during cold startup.
+            }
+        }
+
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $deadline)
+
+    throw 'Steam did not become ready. Open Steam, sign in, and try Benheim again.'
+}
+
+try {
+    $gameDir = Find-ValheimGameDir
+    $valheimExecutable = Join-Path $gameDir 'valheim.exe'
+    $doorstopConfig = Join-Path $gameDir 'doorstop_config.ini'
+    $plugin = Join-Path $gameDir 'BepInEx\plugins\BenheimQoL\BenheimQoL.dll'
+
+    if (-not (Test-Path -LiteralPath $valheimExecutable -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $doorstopConfig -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $plugin -PathType Leaf)) {
+        throw 'Benheim is not installed correctly. Run the Windows installer again.'
+    }
+
+    $doorstopMatches = [regex]::Matches(
+        (Get-Content -LiteralPath $doorstopConfig -Raw),
+        '(?im)^enabled\s*=\s*false\s*$'
+    )
+    if ($doorstopMatches.Count -ne 1) {
+        throw 'The normal Steam launch is not configured for vanilla Valheim. Run the Windows installer again.'
+    }
+
+    Write-LaunchLog 'Launching Benheim.'
+    Wait-ForSteamReady
+    Start-Process `
+        -FilePath $valheimExecutable `
+        -ArgumentList '--doorstop-enabled', 'true' `
+        -WorkingDirectory $gameDir
 }
 catch {
     Write-LaunchLog "Launch failed: $($_.Exception.Message)"

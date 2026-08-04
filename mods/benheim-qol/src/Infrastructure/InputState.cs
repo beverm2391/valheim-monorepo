@@ -1,4 +1,5 @@
 using TMPro;
+using BenheimQoL.Shortcuts;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -45,7 +46,10 @@ internal static class InputState
 
     internal static bool IsTextEntryActive()
     {
-        if (Console.IsVisible() || Minimap.InTextInput() || TextInput.IsVisible())
+        if (ShortcutOverlay.IsOpen
+            || Console.IsVisible()
+            || Minimap.InTextInput()
+            || TextInput.IsVisible())
         {
             return true;
         }

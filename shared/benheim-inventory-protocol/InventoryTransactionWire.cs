@@ -62,11 +62,13 @@ internal static class InventoryTransactionWire
 
     internal static bool TryReadRequest(
         byte[] requestBytes,
+        out int protocolVersion,
         out string transactionId,
         out long playerId,
         out ZDOID containerId,
         out List<RequestedDepositItem> items)
     {
+        protocolVersion = 0;
         transactionId = string.Empty;
         playerId = 0L;
         containerId = ZDOID.None;
@@ -74,7 +76,8 @@ internal static class InventoryTransactionWire
         try
         {
             ZPackage request = new ZPackage(requestBytes);
-            if (request.ReadInt() != InventoryTransactions.ProtocolVersion)
+            protocolVersion = request.ReadInt();
+            if (!InventoryTransactionRecoveryPolicy.CanReadRequest(protocolVersion))
             {
                 return false;
             }
@@ -113,6 +116,7 @@ internal static class InventoryTransactionWire
         }
         catch (Exception)
         {
+            protocolVersion = 0;
             transactionId = string.Empty;
             playerId = 0L;
             containerId = ZDOID.None;

@@ -16,7 +16,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.38";
+    public const string PluginVersion = "0.1.39";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -25,7 +25,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Log = Logger;
-        InventoryTransactions.Initialize(Logger);
+        InventoryTransactions.Initialize(Logger, PluginVersion);
         harmony = new Harmony(PluginGuid);
         harmony.PatchAll();
         Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
@@ -34,23 +34,20 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void Update()
     {
+        ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
         InventoryTransactions.Update();
+        MultiplayerCompatibilityFeedback.Update();
         QuickStackReceiptHud.Update();
         QuickStack.Update();
         QuickStackHotkey.Update();
-        ShortcutOverlay.Update();
-    }
-
-    private void OnGUI()
-    {
-        ShortcutOverlay.Draw();
     }
 
     private void OnDestroy()
     {
         PlantingPreview.DestroyGhosts();
         QuickStackReceiptHud.Destroy();
+        ShortcutOverlay.Destroy();
         InventoryTransactions.Shutdown();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         harmony?.UnpatchSelf();

@@ -184,6 +184,7 @@ internal static partial class InventoryTransactions
         acknowledgement.Write(pending.TransactionId);
         acknowledgement.Write(pending.PayloadHash);
         acknowledgement.Write(pending.ContainerId);
+        acknowledgement.Write(pending.RequestBytes);
         ZRoutedRpc.instance.InvokeRoutedRPC(ReceiptAckRpc, acknowledgement);
     }
 
@@ -264,29 +265,4 @@ internal static partial class InventoryTransactions
         }
     }
 
-    private static void RestoreRemainder(Inventory inventory, ReservedDepositItem reserved, int amount)
-    {
-        if (amount <= 0)
-        {
-            return;
-        }
-
-        ItemDrop.ItemData remainder = reserved.Item.Clone();
-        remainder.m_stack = amount;
-        if (inventory.AddItem(remainder, reserved.SourcePosition) || inventory.AddItem(remainder))
-        {
-            return;
-        }
-
-        Player? player = Player.m_localPlayer;
-        if (player)
-        {
-            ItemDrop.DropItem(
-                remainder,
-                remainder.m_stack,
-                player.transform.position + player.transform.forward + Vector3.up,
-                player.transform.rotation);
-        }
-        LogWarning($"client_restore_dropped item={remainder.m_shared.m_name} amount={remainder.m_stack}");
-    }
 }

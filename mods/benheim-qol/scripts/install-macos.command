@@ -11,17 +11,15 @@ plugin_dir="$game_dir/BepInEx/plugins/BenheimQoL"
 plugin="$plugin_dir/BenheimQoL.dll"
 dll="${BENHEIM_QOL_DLL:-$script_dir/BenheimQoL.dll}"
 launcher_source="${BENHEIM_QOL_LAUNCHER_SOURCE:-$script_dir/macos-launcher.sh}"
-updater_source="${BENHEIM_QOL_UPDATER_SOURCE:-$script_dir/update-macos.sh}"
 version_source="${BENHEIM_QOL_VERSION_FILE:-$script_dir/VERSION}"
 bepinex_url="${BENHEIM_QOL_BEPINEX_URL:-https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip}"
 bepinex_sha256="${BENHEIM_QOL_BEPINEX_SHA256:-5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716}"
 tmp_dir="$(mktemp -d)"
 staged_app=""
 backup_app=""
-staged_updater_app=""
 backup_updater_app=""
 app_installed=0
-updater_app_installed=0
+updater_app_owned=0
 plugin_replaced=0
 plugin_had_previous=0
 plugin_backup="$tmp_dir/BenheimQoL.previous.dll"
@@ -35,9 +33,6 @@ cleanup() {
   trap - EXIT
 
   if [[ "$status" -ne 0 ]]; then
-    if [[ "$updater_app_installed" == "1" ]]; then
-      rm -rf "$updater_app"
-    fi
     if [[ -n "$backup_updater_app" && -e "$backup_updater_app" ]]; then
       rm -rf "$updater_app"
       mv "$backup_updater_app" "$updater_app"
@@ -67,9 +62,6 @@ cleanup() {
 
   if [[ -n "$staged_app" ]]; then
     rm -rf "$staged_app"
-  fi
-  if [[ -n "$staged_updater_app" ]]; then
-    rm -rf "$staged_updater_app"
   fi
   rm -rf "$tmp_dir"
 
@@ -117,10 +109,6 @@ if [[ ! -f "$launcher_source" ]]; then
   fail "Missing macos-launcher.sh beside the installer."
 fi
 
-if [[ ! -f "$updater_source" ]]; then
-  fail "Missing update-macos.sh beside the installer."
-fi
-
 if [[ ! -f "$version_source" ]] || ! grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' "$version_source"; then
   fail "Missing or invalid VERSION beside the installer."
 fi
@@ -148,8 +136,8 @@ if [[ -e "$updater_app" ]]; then
     updater_identifier="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$updater_plist" 2>/dev/null || true)"
   fi
 
-  if [[ "$updater_identifier" != "com.beneverman.benheim-updater" ]]; then
-    fail "Refusing to replace an unrelated or damaged app at: $updater_app"
+  if [[ "$updater_identifier" == "com.beneverman.benheim-updater" ]]; then
+    updater_app_owned=1
   fi
 fi
 
@@ -274,53 +262,11 @@ fi
 
 touch "$app"
 
-echo "Installing the Benheim updater..."
-staged_updater_app="$app_parent/.Update Benheim.app.stage.$$"
 backup_updater_app="$app_parent/.Update Benheim.app.backup.$$"
-install -d "$staged_updater_app/Contents/MacOS" "$staged_updater_app/Contents/Resources"
-install -m 0755 "$updater_source" "$staged_updater_app/Contents/MacOS/UpdateBenheim"
-install -m 0644 \
-  "$game_dir/valheim.app/Contents/Resources/PlayerIcon.icns" \
-  "$staged_updater_app/Contents/Resources/PlayerIcon.icns"
-cat > "$staged_updater_app/Contents/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleDisplayName</key>
-  <string>Update Benheim</string>
-  <key>CFBundleExecutable</key>
-  <string>UpdateBenheim</string>
-  <key>CFBundleIconFile</key>
-  <string>PlayerIcon</string>
-  <key>CFBundleIdentifier</key>
-  <string>com.beneverman.benheim-updater</string>
-  <key>CFBundleName</key>
-  <string>Update Benheim</string>
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
-  <key>CFBundleShortVersionString</key>
-  <string>1.0</string>
-  <key>CFBundleVersion</key>
-  <string>1</string>
-  <key>LSMinimumSystemVersion</key>
-  <string>12.0</string>
-</dict>
-</plist>
-PLIST
-
-if [[ -e "$updater_app" ]]; then
+if [[ "$updater_app_owned" == "1" ]]; then
+  echo "Removing the retired Benheim updater..."
   mv "$updater_app" "$backup_updater_app"
 fi
-
-if mv "$staged_updater_app" "$updater_app"; then
-  staged_updater_app=""
-  updater_app_installed=1
-else
-  fail "Could not replace the updater; the previous updater was restored."
-fi
-
-touch "$updater_app"
 
 if [[ -e "$legacy_app" ]]; then
   legacy_identifier=""
@@ -337,6 +283,5 @@ rm -rf "$backup_app" "$backup_updater_app"
 echo
 echo "Installed Benheim and:"
 echo "  $app"
-echo "  $updater_app"
 echo
-echo "Open Benheim to play. It will offer stable updates before launch."
+echo "Open Benheim to play. Rerun the installer to update Benheim."

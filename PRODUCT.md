@@ -50,8 +50,9 @@ mods produce the same shared effect for modded and unmodded players.
 
 An optional client mod is healthy when players without it remain compatible and
 installing or removing it does not corrupt shared world or character data.
-Server-assisted features must disable themselves when a connected player lacks
-the same protocol version.
+Multiplayer Put Away must disable itself when the server or any ready player
+lacks the required transaction protocol. This must not reject or disconnect a
+player.
 
 ## Open Gates
 

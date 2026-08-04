@@ -3,39 +3,57 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_file="$root/src/Shortcuts/ShortcutOverlay.cs"
+content_file="$root/src/Shortcuts/ShortcutOverlayContent.cs"
+patches_file="$root/src/Shortcuts/ShortcutOverlayInputPatches.cs"
+plugin="$root/src/Plugin.cs"
+overlay_files=("$source_file" "$content_file" "$patches_file")
 
-hidden_guard_line="$(grep -nF 'if (!visible)' "$source_file" | head -n 1 | cut -d: -f1)"
-style_init_line="$(grep -nF 'EnsureStyles();' "$source_file" | head -n 1 | cut -d: -f1)"
-preload_line="$(grep -nF 'PreloadTextOnce();' "$source_file" | head -n 1 | cut -d: -f1)"
-style_cache_line="$(grep -nF 'if (titleStyle != null)' "$source_file" | head -n 1 | cut -d: -f1)"
-texture_create_line="$(grep -nF 'panelBackground = new Texture2D' "$source_file" | head -n 1 | cut -d: -f1)"
-
-if [[ -z "$hidden_guard_line" || -z "$style_init_line" || -z "$preload_line" ||
-      "$style_init_line" -ge "$preload_line" || "$preload_line" -ge "$hidden_guard_line" ]]; then
-  printf 'shortcut overlay must preload styles and text before its hidden fast path\n' >&2
+if rg -n 'OnGUI|GUIStyle|GUILayout|GUI\.Label|Texture2D|PreloadTextOnce' "${overlay_files[@]}" "$plugin"; then
+  printf 'shortcut panel must not retain the obsolete IMGUI implementation\n' >&2
   exit 1
 fi
 
-if [[ -z "$style_cache_line" || -z "$texture_create_line" ||
-      "$style_cache_line" -ge "$texture_create_line" ]]; then
-  printf 'shortcut overlay must reuse its styles and texture after first initialization\n' >&2
-  exit 1
-fi
+grep -Fq 'FindNativeTemplates()' "$source_file"
+grep -Fq 'FindNativeCanvas()' "$source_file"
+grep -Fq 'CopyImageStyle(templates.PanelBackground, window)' "$content_file"
+grep -Fq 'TextMeshProUGUI' "$source_file"
+grep -Fq 'text.font = template.font' "$source_file"
+grep -Fq 'button.colors = templates.Button.colors' "$source_file"
+grep -Fq 'ScrollRect' "$source_file"
+grep -Fq 'Scrollbar' "$source_file"
+grep -Fq 'VerticalLayoutGroup' "$source_file"
+grep -Fq 'ContentSizeFitter' "$source_file"
+grep -Fq 'closeButton.onClick.AddListener(Hide)' "$content_file"
+grep -Fq 'RawKeyDown(KeyCode.F8) || RawKeyDown(KeyCode.Escape)' "$source_file"
+grep -Fq 'ShortcutOverlayPlayerInputPatch' "$patches_file"
+grep -Fq 'ShortcutOverlayMenuVisibilityPatch' "$patches_file"
+grep -Fq 'if (!visible)' "$source_file"
+grep -Fq 'InventoryTransactions.GetCapabilitySnapshot()' "$content_file"
+grep -Fq 'Server — Benheim Inventory' "$content_file"
+grep -Fq 'player.PlayerName' "$content_file"
+grep -Fq 'player.ClientVersion' "$content_file"
+grep -Fq 'player.ProtocolVersion' "$content_file"
+grep -Fq 'player.IsDetected' "$content_file"
+grep -Fq 'player.IsCompatible' "$content_file"
+grep -Fq 'multiplayerStatus.richText = false' "$content_file"
 
-grep -Fq 'if (preloaded || Event.current.type != EventType.Repaint)' "$source_file"
-grep -Fq 'panel_preloaded' "$source_file"
-grep -Fq '"Inventory"' "$source_file"
-grep -Fq '"Build & Repair"' "$source_file"
-grep -Fq '"Farming"' "$source_file"
-grep -Fq '"Travel"' "$source_file"
-grep -Fq '"Combat & Skills"' "$source_file"
-grep -Fq '"Help"' "$source_file"
-grep -Fq 'new Entry("F7", "Save a diagnostic log to the Desktop")' "$source_file"
-grep -Fq 'new Entry("Left Shift + station input", "Fill its available input or fuel capacity")' "$source_file"
-grep -Fq 'Stackables protect their item type; gear protects only the marked item.' "$source_file"
-grep -Fq 'GUILayout.BeginScrollView(' "$source_file"
-grep -Fq 'GUILayout.EndScrollView();' "$source_file"
-grep -Fq 'private static readonly string Title = $"Benheim v{Plugin.PluginVersion}";' "$source_file"
-grep -Fq 'InputState.IsKeyDown(KeyCode.F8)' "$source_file"
+grep -Fq '"Inventory"' "$content_file"
+grep -Fq '"Build & Repair"' "$content_file"
+grep -Fq '"Farming"' "$content_file"
+grep -Fq '"Travel"' "$content_file"
+grep -Fq '"Combat & Skills"' "$content_file"
+grep -Fq '"Help"' "$content_file"
+grep -Fq 'new Entry("F7", "Save a diagnostic log to the Desktop")' "$content_file"
+grep -Fq 'new Entry("Left Shift + station input", "Fill its available input or fuel capacity")' "$content_file"
+grep -Fq 'Stackables protect their item type; gear protects only the marked item.' "$content_file"
+grep -Fq 'ShortcutOverlay.Destroy();' "$plugin"
+grep -Fq 'RestoreCursor();' "$source_file"
 
-printf 'shortcut overlay preload, cache, and semantic-group checks passed\n'
+for file in "${overlay_files[@]}"; do
+  if [[ "$(wc -l < "$file")" -ge 450 ]]; then
+    printf 'shortcut source exceeds the 449-line limit: %s\n' "$file" >&2
+    exit 1
+  fi
+done
+
+printf 'native shortcut menu, input blocking, and dynamic roster checks passed\n'

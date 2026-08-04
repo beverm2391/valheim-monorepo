@@ -18,10 +18,17 @@ the current chest owner validates and performs the deposit.
 
 ## In Development
 
-- Put Away works only when the server and every connected player use the same
-  protocol version.
+- Benheim Inventory `0.1.2` and transaction protocol `2` are the next test
+  versions. They have not passed gameplay proof.
+- Each ready client reports its transaction protocol and exact Benheim version.
+  The server publishes its own version and protocol, plus each ready player's
+  detected version, protocol, and compatibility state. The
+  [Shortcuts product](../../mods/benheim-qol/src/Shortcuts/PRODUCT.md) owns its
+  client presentation.
+- Put Away works only when the server and every ready player use the same
+  transaction protocol. Exact semantic versions do not decide compatibility.
 - A missing or mismatched client disables Put Away for everyone. It does not
-  disconnect that player.
+  disconnect that player or change normal chest use.
 - The retry and recovery contract in
   `shared/benheim-inventory-protocol/PROTOCOL.md` remains in development. It
   owns transaction identity, duplicate prevention, chest receipts,

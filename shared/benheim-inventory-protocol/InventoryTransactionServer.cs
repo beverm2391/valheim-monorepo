@@ -130,9 +130,24 @@ internal static partial class InventoryTransactions
             string transactionId = acknowledgement.ReadString();
             string payloadHash = acknowledgement.ReadString();
             ZDOID containerId = acknowledgement.ReadZDOID();
-            if (!ServerCompleted.TryGetValue(transactionId, out CompletedServerDeposit? completed)
-                || completed.Requester != sender
-                || completed.PayloadHash != payloadHash)
+            byte[] requestBytes = acknowledgement.ReadByteArray();
+            if (payloadHash != InventoryTransactionWire.Hash(requestBytes)
+                || !InventoryTransactionWire.TryReadRequest(
+                    requestBytes,
+                    out _,
+                    out string requestTransactionId,
+                    out long requestPlayerId,
+                    out ZDOID requestContainerId,
+                    out _)
+                || requestTransactionId != transactionId
+                || requestContainerId != containerId
+                || !RequestBelongsToSender(sender, requestPlayerId))
+            {
+                return;
+            }
+
+            if (ServerCompleted.TryGetValue(transactionId, out CompletedServerDeposit? completed)
+                && (completed.Requester != sender || completed.PayloadHash != payloadHash))
             {
                 return;
             }
@@ -153,6 +168,13 @@ internal static partial class InventoryTransactions
         {
             LogWarning($"server_receipt_ack_invalid sender={sender} error=\"{ex.Message}\"");
         }
+    }
+
+    private static bool RequestBelongsToSender(long sender, long playerId)
+    {
+        Player? requester = Player.GetAllPlayers().Find(
+            player => player && player.GetOwner() == sender);
+        return requester && requester.GetPlayerID() == playerId;
     }
 
     private static void SendClientResult(long requester, byte[] responseBytes)
@@ -192,7 +214,7 @@ internal static partial class InventoryTransactions
         try
         {
             ZPackage request = new ZPackage(requestBytes);
-            if (request.ReadInt() != ProtocolVersion)
+            if (!InventoryTransactionRecoveryPolicy.CanReadRequest(request.ReadInt()))
             {
                 return false;
             }
@@ -216,8 +238,15 @@ internal static partial class InventoryTransactions
 
     private static bool PeerHasProtocol(long peerId)
     {
-        return peerId == ZNet.GetUID()
-            || (PeerProtocols.TryGetValue(peerId, out int version) && version == ProtocolVersion);
+        if (peerId == ZNet.GetUID())
+        {
+            return true;
+        }
+
+        ZNetPeer? peer = ZNet.instance?.GetPeer(peerId);
+        return peer != null
+            && PeerCapabilities.TryGet(peerId, peer, out InventoryPeerAdvertisement advertised)
+            && advertised.ProtocolVersion == ProtocolVersion;
     }
 
     private static byte[] ConflictResponse(string transactionId, string payloadHash)
