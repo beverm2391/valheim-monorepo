@@ -34,7 +34,6 @@ for test_script in "$root"/tests/*-test.sh; do
   "$test_script"
 done
 dotnet run --project "$root/tests/quick-stack-summary/QuickStackSummaryTests.csproj"
-dotnet run --project "$repo_root/tests/inventory-capabilities/InventoryCapabilityTests.csproj"
 
 "$root/scripts/package-macos.sh"
 "$root/scripts/package-windows.sh"
@@ -58,8 +57,7 @@ the new package to update an existing install.
 
 The normal Steam Play button starts vanilla Valheim. Open \`Benheim\` to start
 the modded game. Press Left Shift + B, the only Benheim menu toggle, to open or
-close the menu. Press Escape to close it. The menu shows version $version and
-Put Away compatibility.
+close the menu. Press Escape to close it. The menu shows version $version.
 EOF
 
 gh release create "$tag" \

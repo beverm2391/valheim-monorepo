@@ -8,7 +8,7 @@ internal static partial class ShortcutOverlay
 {
     private static readonly Color ControlsAccent = new(1f, 0.78f, 0.25f, 1f);
     private static readonly Color FeaturesAccent = new(0.48f, 0.88f, 0.58f, 1f);
-    private static readonly Color MultiplayerAccent = new(0.48f, 0.82f, 1f, 1f);
+    private static readonly Color TravelAccent = new(0.48f, 0.82f, 1f, 1f);
 
     private static readonly Section[] ControlSections =
     {
@@ -48,7 +48,7 @@ internal static partial class ShortcutOverlay
     {
         new(
             "World & Travel",
-            MultiplayerAccent,
+            TravelAccent,
             new[]
             {
                 new Entry("Extended reach", "Use stations, cauldrons, chests, and nearby objects from farther away"),

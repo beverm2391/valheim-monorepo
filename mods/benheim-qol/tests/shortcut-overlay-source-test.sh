@@ -50,23 +50,19 @@ grep -Fq 'ResetUiState(destroyRoot: true)' "$source_file"
 grep -Fq 'ShortcutOverlayPlayerInputPatch' "$patches_file"
 grep -Fq 'ShortcutOverlayMenuVisibilityPatch' "$patches_file"
 grep -Fq 'if (!visible)' "$source_file"
-grep -Fq 'InventoryTransactions.GetCapabilitySnapshot()' "$tabs_file"
-grep -Fq 'player.PlayerName' "$tabs_file"
-grep -Fq 'player.ClientVersion' "$tabs_file"
-grep -Fq 'player.ProtocolVersion' "$tabs_file"
-grep -Fq 'player.IsDetected' "$tabs_file"
-grep -Fq 'player.IsCompatible' "$tabs_file"
-grep -Fq 'multiplayerStatus.richText = false' "$tabs_file"
 grep -Fq 'AddTab(buttons, templates, ShortcutTab.Controls, "Controls"' "$tabs_file"
 grep -Fq 'AddTab(buttons, templates, ShortcutTab.Features, "Features"' "$tabs_file"
-grep -Fq 'AddTab(buttons, templates, ShortcutTab.Multiplayer, "Multiplayer"' "$tabs_file"
 grep -Fq 'new Entry("P", "Pocket the hovered stack or item")' "$catalog_file"
 grep -Fq 'new Entry("Rockbreaker"' "$catalog_file"
 grep -Fq 'new Entry("Cleave"' "$catalog_file"
 grep -Fq 'new Entry("Adrenaline"' "$catalog_file"
 grep -Fq 'keySize.preferredWidth = 230f' "$tabs_file"
-grep -Fq 'multiplayerSummary.text = FormatMultiplayerSummary(snapshot)' "$tabs_file"
 grep -Fq 'blocker.color = new Color(0f, 0f, 0f, 0.56f)' "$content_file"
+
+if rg -n 'InventoryTransaction|InventoryCapability|Multiplayer' "${overlay_files[@]}"; then
+  printf 'shortcut panel must not retain Put Away protocol status UI\n' >&2
+  exit 1
+fi
 
 grep -Fq '"Inventory"' "$catalog_file"
 grep -Fq '"Crafting & Repair"' "$catalog_file"
@@ -88,4 +84,4 @@ for file in "${overlay_files[@]}"; do
   fi
 done
 
-printf 'native shortcut menu, input blocking, and dynamic roster checks passed\n'
+printf 'native shortcut menu and input blocking checks passed\n'

@@ -47,6 +47,7 @@ actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 assert_contains "installer pins the first-party plugin checksum" "$expected_checksum" "$installer"
 assert_contains "installer removes the old Jotunn directory" "/BepInEx/plugins/Jotunn" "$installer"
 assert_contains "installer removes the old Eternal Fire directory" "/BepInEx/plugins/EternalFire" "$installer"
+assert_contains "installer removes the obsolete Benheim Inventory directory" "/BepInEx/plugins/BenheimInventory" "$installer"
 assert_not_contains "installer must not download Jotunn" "ValheimModding-Jotunn" "$installer"
 assert_not_contains "installer must not download upstream Eternal Fire" "Digitalroot-Eternal_Fire" "$installer"
 

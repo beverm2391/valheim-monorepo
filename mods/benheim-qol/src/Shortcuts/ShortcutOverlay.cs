@@ -9,7 +9,6 @@ namespace BenheimQoL.Shortcuts;
 internal static partial class ShortcutOverlay
 {
     private const string RootName = "BenheimShortcutsPanel";
-    private const float StatusRefreshInterval = 0.25f;
     private static GameObject? root;
     private static RectTransform? windowRect;
     private static RectTransform? contentRect;
@@ -19,9 +18,7 @@ internal static partial class ShortcutOverlay
     private static bool buildFailureLogged;
     private static bool previousCursorVisible;
     private static CursorLockMode previousCursorLock;
-    private static float nextStatusRefreshAt;
     private static float nextBuildAttemptAt;
-    private static string lastStatusFingerprint = string.Empty;
     private static int lastScreenWidth;
     private static int lastScreenHeight;
 
@@ -61,7 +58,6 @@ internal static partial class ShortcutOverlay
         }
 
         ResizeWindowIfNeeded();
-        RefreshMultiplayerStatus();
     }
 
     internal static void Destroy()
@@ -88,7 +84,6 @@ internal static partial class ShortcutOverlay
         contentScroll = null;
         closeButton = null;
         ResetTabState();
-        lastStatusFingerprint = string.Empty;
     }
 
     private static void Show()
@@ -105,10 +100,7 @@ internal static partial class ShortcutOverlay
         root.transform.SetAsLastSibling();
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-        lastStatusFingerprint = string.Empty;
-        nextStatusRefreshAt = float.NegativeInfinity;
         ResizeWindowIfNeeded(force: true);
-        RefreshMultiplayerStatus(force: true);
         EventSystem.current?.SetSelectedGameObject(closeButton!.gameObject);
         Diagnostics.Event("Shortcuts", "panel_toggled", "visible=true ui=native");
     }
