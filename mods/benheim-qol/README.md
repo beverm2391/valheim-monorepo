@@ -1,9 +1,9 @@
 # Benheim
 
-Benheim is an optional Valheim quality-of-life mod for BepInEx. Most features
-run only on the player's computer. Multiplayer Put Away also requires the
-Benheim Inventory server plugin and a compatible Benheim client for every
-ready player.
+Benheim is an optional Valheim quality-of-life mod for BepInEx. Its features run
+on the player's computer. Put Away uses Valheim's native chest ownership flow,
+so it does not require a server plugin. Players without Benheim can still join
+and use chests normally.
 
 ## Install On A Mac
 
@@ -44,11 +44,9 @@ manages your server. Fully quit Valheim, unzip the package for your computer,
 and run its installer again. The installer updates Benheim without removing
 saves, characters, settings, or pocketed item preferences.
 
-Press `Left Shift + B` in game to confirm the installed version and multiplayer Put Away
-compatibility. The Valheim-styled Benheim menu uses Unity UI and Valheim's loaded
-UI templates to show the server and dynamic ready-player version roster. Exact
-versions appear for diagnosis. Put Away compatibility depends on the transaction
-protocol version.
+Press `Left Shift + B` in game to confirm the installed version and review the
+controls. The Valheim-styled Benheim menu uses Unity UI and Valheim's loaded UI
+templates.
 
 ## Send A Diagnostic Log
 

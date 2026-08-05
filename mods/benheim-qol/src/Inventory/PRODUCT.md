@@ -15,11 +15,6 @@ The Inventory module makes routine item movement faster.
   It works during normal gameplay and while the inventory is open.
 - Put Away does not run while the player edits a portal tag, a map pin name, or
   another text field.
-- In multiplayer, the server routes each deposit to the game instance that
-  currently owns the destination chest. Only that instance validates and
-  changes the chest inventory.
-- Two players see each successful deposit immediately, including when the other
-  player's game instance owns the destination chest.
 - Put Away checks eligible chests from nearest to farthest.
 - Put Away reports the quantity and name of each item type moved.
 - Manually pocketed items stay with the player during Put Away.
@@ -54,33 +49,28 @@ The Inventory module makes routine item movement faster.
 
 - Put Away can cause a brief frame hitch when it scans many nearby chests and
   matches their contents against the player's inventory.
-- Put Away works only when the server and every ready player use the same
-  transaction protocol version. Exact Benheim versions do not decide
-  compatibility.
-- A missing or mismatched client disables only Put Away. It does not disconnect
-  that player or change normal chest use.
-- After an incompatible state remains stable for 8 seconds, show one warning
-  that directs the player to the Benheim menu (`Left Shift + B`). This includes
-  missing server support and missing
-  or mismatched clients. Warn again only after reconnecting, returning to
-  compatibility, or changing the incompatible player or protocol set for
-  another 8 seconds. Semantic-version-only changes do not trigger another
-  warning.
-- The transaction safety contract in
-  `shared/benheim-inventory-protocol/PROTOCOL.md` remains in development. It
-  owns retry identity, duplicate prevention, reservations, item restoration,
-  chest ownership, and recovery.
-- A delayed, retried, interrupted, or partially accepted transfer must not lose
-  or duplicate items. Put Away returns every amount that a chest rejects.
-- Put Away must never produce a chest state that another player cannot see.
+- Put Away requests each chest through Valheim's native Stack All ownership
+  flow. It moves items only after the current chest owner grants the request.
+- During normal gameplay, each completed transfer must move each accepted item
+  once and leave each rejected remainder in the player's inventory. Every
+  connected player must see the same chest state, including after chest
+  ownership changes.
+- Put Away keeps native inventory persistence and interruption behavior. It
+  does not force a character save or add a transfer journal, transaction
+  receipt, retry, or crash recovery.
+- The protected-item filter and result accounting apply only to Put Away.
+  Valheim's ordinary Stack All action must remain unchanged.
+- Put Away should continue to work while a player without Benheim is online.
+  This is useful compatibility evidence, but it is not a release gate.
 
 ## Test Gate
 
-- Repeat the same deposit into one chest and confirm that no items duplicate or
-  disappear.
-- Interrupt a deposit before its response and confirm reconnect recovery neither
-  loses nor duplicates the reserved items.
-- Fill a matching chest almost completely and confirm that Put Away returns any
-  amount the chest cannot accept.
-- Connect one client without the matching protocol version and confirm that Put
-  Away disables itself without affecting normal chest use.
+- With two players, deposit into a chest owned by the other player. Confirm both
+  players see the result. Then change chest ownership and confirm that the
+  completed chest state does not revert.
+- Reverse the requester and chest owner, then repeat the transfer.
+- Fill a matching chest almost completely and confirm that Put Away leaves any
+  amount the chest cannot accept in the player's inventory.
+- Confirm manual-pocket, equipped, and hotbar items stay with the player.
+- Confirm ordinary Stack All still moves matching unprotected items and keeps
+  its native feedback.

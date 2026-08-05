@@ -2,7 +2,8 @@
 
 Benheim is one client mod made from small feature modules. It removes repetitive
 chores without adding custom items or world objects. Most features are
-client-only. Multiplayer Put Away also uses the Benheim Inventory server plugin.
+client-only. Put Away uses Valheim's native chest ownership flow and does not
+need a server plugin. Players without Benheim can still join and use chests.
 
 This file owns the overall product promise. Each feature module has a
 `PRODUCT.md` that owns its behavior and current test status.
@@ -24,17 +25,15 @@ This file owns the overall product promise. Each feature module has a
 - The normal Steam launch stays vanilla on Mac and Windows. `Benheim.app` on
   Mac and the `Benheim` shortcut on Windows are explicit modded launch paths.
 - Keep Benheim compatible with servers and players that do not use it.
-  Multiplayer Put Away must disable itself unless the server and every ready
-  player use the same transaction protocol version. Exact semantic
-  versions help diagnose a mismatch but do not decide compatibility.
+- Put Away must let Valheim's current chest owner grant the transfer. Never
+  write a non-owned local chest or claim ownership as a shortcut.
 - Do not add custom persistent world objects. Store a player's manual pocket
   choice on an item only when no safer representation can preserve that choice.
 - Prefer normal Valheim actions over direct inventory or world mutation.
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
   reason without damaging game state.
 - Keep controls discoverable from the native Valheim-styled Unity menu. `Left
-  Shift + B` opens or closes it. The version roster must update when the
-  ready-player roster or compatibility status changes.
+  Shift + B` opens or closes it.
 - Benheim shortcuts and modifier actions do nothing while the player edits any
   in-game text field, including portal tags and map pin names. In Benheim's
   split-stack dialog, `Backspace`, `Delete`, and `Enter` remain active as
@@ -61,9 +60,10 @@ player-facing promise.
 ## Current Behavior
 
 Benheim `0.1.42` is the current stable client build. Players have confirmed
-installation on Mac and Windows, the native menu, the multiplayer roster,
-diagnostic export, and two-player Put Away deposits. Each feature module records
-its confirmed behavior and remaining limits.
+installation on Mac and Windows, the native menu, and diagnostic export. Native
+Put Away remains in development and will ship only after its focused two-player
+gameplay test passes. Each feature module records its confirmed behavior and
+remaining limits.
 
 ## In Development
 

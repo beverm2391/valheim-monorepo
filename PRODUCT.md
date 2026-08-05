@@ -23,21 +23,18 @@ features that explicitly name that requirement.
 
 | Feature | Product role | Runs on | Required for friends |
 | --- | --- | --- | --- |
-| Benheim | Quality-of-life features we maintain for inventory, farming, repair, portals, and mining. | Client | No, except multiplayer Put Away |
-| Benheim Inventory | Coordinates Put Away with the current owner of each chest. Vanilla players can still join, but their presence disables Put Away. | Server and each Benheim client | Only for multiplayer Put Away |
+| Benheim | Quality-of-life features we maintain for inventory, farming, repair, portals, and mining. | Client | No |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
-BepInEx loads the mods. Benheim Eternal Fire and Benheim Inventory do not
-depend on a shared mod library.
+BepInEx loads the mods. Benheim Eternal Fire does not depend on a shared mod
+library.
 
 Benheim's detailed product behavior is owned by
 [`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Benheim Eternal
 Fire's behavior and player experience are owned by
 [`server-mods/benheim-eternal-fire/PRODUCT.md`](server-mods/benheim-eternal-fire/PRODUCT.md).
-Benheim Inventory's behavior and proof status are owned by
-[`server-mods/benheim-inventory/PRODUCT.md`](server-mods/benheim-inventory/PRODUCT.md).
 Third-party mod behavior remains owned by each upstream project; this document
 records only why the mod belongs in our stack and what compatibility promise it
 must preserve.
@@ -50,9 +47,9 @@ mods produce the same shared effect for modded and unmodded players.
 
 An optional client mod is healthy when players without it remain compatible and
 installing or removing it does not corrupt shared world or character data.
-Multiplayer Put Away must disable itself when the server or any ready player
-lacks the required transaction protocol. This must not reject or disconnect a
-player.
+Put Away must use Valheim's native chest ownership flow so every connected
+player sees the same completed chest state. It must not require a server plugin.
+A player without Benheim must still be able to join and use chests normally.
 
 ## Open Gates
 
@@ -65,6 +62,8 @@ player.
   server-only ship mod was deployed.
 - Test the packaged Windows installer and desktop shortcut on a friend's PC.
   Friends have already tested the shareable Mac installer during gameplay.
+- Prove the native Put Away flow in a focused two-player gameplay test before
+  releasing that implementation.
 - Stabilize Benheim's current behavior before expanding its feature set.
 - Decide whether Benheim should support crafting from nearby containers without
   hiding the resource totals players use to plan.

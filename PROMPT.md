@@ -57,8 +57,7 @@ installed mod files or configuration. `scripts/install-server-mods.sh` owns the
 pinned package versions and checksums, stages downloads before downtime, takes
 a stopped-server backup, and falls back to the vanilla path if installation
 fails. Keep new server mods removable without changing the world save. Benheim
-Inventory is the one server plugin that coordinates a client feature. It must
-not prevent a vanilla client from joining.
+Eternal Fire must not prevent a vanilla client from joining.
 
 `scripts/apply-server-config.sh` owns routine deployment of the launcher and
 `server.env`. It takes a stopped-server backup and restores the previous files
@@ -192,21 +191,20 @@ Expected build caveat:
 
 Client mod rules:
 
-- Keep one Benheim client DLL. Shared inventory protocol source lives under
-  `shared/benheim-inventory-protocol/` and compiles into both BenheimQoL and the
-  Benheim Inventory server plugin.
-- Read `shared/benheim-inventory-protocol/PROTOCOL.md` before changing Put Away.
-  That file owns requirements for protocol versions, chest ownership,
-  transactions, retries, journals, receipts, reservations, item restoration,
-  and recovery. Follow those requirements instead of restating them here.
-- Put Away compatibility depends on the transaction protocol version, not the
-  client or server semantic version. Keep exact semantic versions in capability
-  status for diagnosis.
+- Keep one Benheim client DLL.
+- Put Away must use `Container.StackAll()` so Valheim's current chest owner
+  grants ownership before any transfer. Never write a non-owned local chest or
+  call `ClaimOwnership()` as a shortcut.
+- Apply protected-item filtering and result accounting only after the chest
+  owner grants a Put Away request. Do not change Valheim's ordinary Stack All
+  behavior.
+- Keep Put Away persistence and interruption behavior equal to native inventory
+  movement. Do not add forced character saves, transfer journals, transaction
+  receipts, automatic retries, or custom recovery.
 - Add custom persistent world objects or custom item data only when the product
-  or protocol design explicitly requires them.
+  design explicitly requires them.
 - Build the Valheim-styled Benheim menu with Unity UI and Valheim's loaded UI
-  templates. Keep its controls and dynamic version roster aligned with the
-  owning feature `PRODUCT.md`.
+  templates. Keep its controls aligned with the owning feature `PRODUCT.md`.
 - Bump the visible plugin version when installing a user-testable behavior
   change so testers can verify the loaded DLL after relaunch.
 - Valheim does not hot-reload the plugin DLL; after install, fully quit and
