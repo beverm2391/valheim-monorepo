@@ -5,7 +5,6 @@ using BenheimQoL.InventoryFeature;
 using BenheimQoL.Farming;
 using BenheimQoL.Repair;
 using BenheimQoL.Shortcuts;
-using BenheimInventoryProtocol;
 using HarmonyLib;
 using UnityEngine;
 
@@ -25,7 +24,6 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Log = Logger;
-        InventoryTransactions.Initialize(Logger, PluginVersion);
         harmony = new Harmony(PluginGuid);
         harmony.PatchAll();
         Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
@@ -36,10 +34,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
-        InventoryTransactions.Update();
-        MultiplayerCompatibilityFeedback.Update();
         QuickStackReceiptHud.Update();
-        QuickStack.Update();
         QuickStackHotkey.Update();
     }
 
@@ -48,7 +43,6 @@ public sealed class Plugin : BaseUnityPlugin
         PlantingPreview.DestroyGhosts();
         QuickStackReceiptHud.Destroy();
         ShortcutOverlay.Destroy();
-        InventoryTransactions.Shutdown();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         harmony?.UnpatchSelf();
     }

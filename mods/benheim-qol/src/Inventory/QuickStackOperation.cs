@@ -27,10 +27,39 @@ internal sealed class QuickStackOperation
     internal Player Player { get; }
     internal InventoryGui InventoryGui { get; }
     internal List<Container> Containers { get; }
+    internal HashSet<Container> RequestedContainers { get; } = new HashSet<Container>();
     internal bool InventoryWasOpen { get; }
     internal int NextContainerIndex { get; set; }
     internal Container? CurrentContainer { get; set; }
     internal int MovedItems { get; set; }
     internal int BusyContainers { get; set; }
+    internal bool ResponseInProgress { get; set; }
+    internal bool ResponseGranted { get; set; }
+    internal List<QuickStackItemSnapshot> ResponseItems { get; } = new List<QuickStackItemSnapshot>();
     internal QuickStackSummary Summary { get; } = new QuickStackSummary();
+
+    internal bool ContainsResponseItem(ItemDrop.ItemData item)
+    {
+        foreach (QuickStackItemSnapshot snapshot in ResponseItems)
+        {
+            if (snapshot.Item == item)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+internal sealed class QuickStackItemSnapshot
+{
+    internal QuickStackItemSnapshot(ItemDrop.ItemData item, int stackBefore)
+    {
+        Item = item;
+        StackBefore = stackBefore;
+    }
+
+    internal ItemDrop.ItemData Item { get; }
+    internal int StackBefore { get; }
 }
