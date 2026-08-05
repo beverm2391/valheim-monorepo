@@ -1,5 +1,6 @@
 using BenheimQoL.Farming;
 using BenheimQoL.InventoryFeature;
+using BenheimQoL.Repair;
 using UnityEngine;
 
 namespace BenheimQoL.Shortcuts;
@@ -31,6 +32,7 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("Left Shift + station click", "Repair all eligible gear"),
+                new Entry("Left Shift + hammer repair", $"Repair eligible buildings and structures within {BuildingRepair.RepairRadius:0.#} m"),
                 new Entry("Left Shift + station input", "Fill its available input or fuel capacity"),
             },
             "Stations, cauldrons, chests, and nearby objects have a longer interaction range."),
