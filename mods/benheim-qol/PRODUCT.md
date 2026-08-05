@@ -60,17 +60,15 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.38` is the latest client build that players have confirmed during
-gameplay. Each feature module records its confirmed behavior.
+Benheim `0.1.42` is the current stable client build. Players have confirmed
+installation on Mac and Windows, the native menu, the multiplayer roster,
+diagnostic export, and two-player Put Away deposits. Each feature module records
+its confirmed behavior and remaining limits.
 
 ## In Development
 
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
-
-Benheim `0.1.42` is the next test build. It has not passed gameplay proof. Each
-module document owns its changed behavior and remaining proof gates. The Mac
-and Windows launch paths also require platform testing before release.
 
 ## Later
 
