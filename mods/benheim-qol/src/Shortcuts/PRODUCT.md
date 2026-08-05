@@ -1,35 +1,32 @@
 # Shortcuts
 
-The Shortcuts module gives players one Valheim-styled Benheim menu built with
-Unity UI and Valheim's loaded UI templates for discovering controls, passive
-features, and multiplayer compatibility.
+The Shortcuts module gives players one Valheim-styled Benheim menu. Players can
+use it to find controls, passive features, and multiplayer compatibility
+information.
 
-## In Development
+## Current Behavior
 
-- `Left Shift + B` shows or hides the menu unless the player is typing in a
-  text field or console. This menu has not passed gameplay proof.
-- The title shows the loaded Benheim version. The menu lists active controls
-  and passive features without changing gameplay.
-- Show the Benheim Inventory server version and transaction protocol.
-- Show each ready player's Benheim version, protocol, detection state, and
-  Put Away compatibility.
-- Update the version roster when ready players join or leave, or when reported
-  compatibility changes.
-- Use the transaction protocol version to decide compatibility. Show exact
-  semantic versions only for diagnosis.
-- Preload the menu before the first `Left Shift + B` press.
-- Group features under six color-coded headings: Inventory, Build & Repair,
-  Farming, Travel, Combat & Skills, and Help.
-- Explain which items Put Away always protects and which nearby chests can
-  receive items.
-- Explain that a gold `P` means manually pocketed. Equipped and hotbar items
-  remain protected without showing a marker.
-- Explain that manual pocketing protects every stack of a stackable item type
-  and only the marked non-stackable item.
-- List `Left Shift` + interact for filling production inputs, cooking slots,
-  and fuel.
-- List Wood Cutting cleave as a passive skill feature.
+- `Left Shift + B` shows or hides the menu unless the player is typing.
+  `Escape` and the native Close button also hide it.
+- The dimmed, Valheim-styled menu uses Controls, Features, and Multiplayer tabs.
+- The header shows the loaded Benheim version and a compact Put Away status.
+- The Controls tab uses aligned key and action columns grouped by Inventory,
+  Crafting & Repair, and Farming.
+- The Features tab explains extended reach, faster portal transitions,
+  Rockbreaker, Cleave, adrenaline feedback, and diagnostic export.
+- The Multiplayer tab shows the server and each player who has reported
+  readiness. It includes their version, protocol, detection state, and Put Away
+  compatibility.
+- Transaction protocol versions determine compatibility. Exact semantic
+  versions appear only for diagnosis.
+- The menu explains manual pocketing and how Put Away automatically protects
+  equipped items and hotbar items.
+- The menu lists `Left Shift` actions for production inputs, cooking slots,
+  fuel, harvesting, and planting.
+- The menu lists Wood Cutting cleave as a passive skill feature.
+- The Multiplayer roster updates while the menu is open when players report
+  readiness, leave, or report a new compatibility state.
 - `F7` copies the active Benheim diagnostic log to the player's Desktop with a
   timestamped filename on Mac and Windows.
-- Confirm the exported filename in game so the player can attach it when
-  reporting a problem.
+- The game shows the exported filename so the player can find and attach the
+  diagnostic log when reporting a problem.

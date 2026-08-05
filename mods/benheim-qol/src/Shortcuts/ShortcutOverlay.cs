@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using BenheimQoL.Infrastructure;
 using TMPro;
 using UnityEngine;
@@ -16,7 +13,7 @@ internal static partial class ShortcutOverlay
     private static GameObject? root;
     private static RectTransform? windowRect;
     private static RectTransform? contentRect;
-    private static TMP_Text? multiplayerStatus;
+    private static ScrollRect? contentScroll;
     private static Button? closeButton;
     private static bool visible;
     private static bool buildFailureLogged;
@@ -35,6 +32,7 @@ internal static partial class ShortcutOverlay
         if (root == null && Time.unscaledTime >= nextBuildAttemptAt)
         {
             nextBuildAttemptAt = Time.unscaledTime + 1f;
+            ResetUiState(destroyRoot: false);
             EnsureBuilt();
         }
 
@@ -68,13 +66,18 @@ internal static partial class ShortcutOverlay
 
     internal static void Destroy()
     {
+        ResetUiState(destroyRoot: true);
+    }
+
+    private static void ResetUiState(bool destroyRoot)
+    {
         if (visible)
         {
             RestoreCursor();
         }
 
         visible = false;
-        if (root != null)
+        if (destroyRoot && root != null)
         {
             UnityEngine.Object.Destroy(root);
         }
@@ -82,8 +85,9 @@ internal static partial class ShortcutOverlay
         root = null;
         windowRect = null;
         contentRect = null;
-        multiplayerStatus = null;
+        contentScroll = null;
         closeButton = null;
+        ResetTabState();
         lastStatusFingerprint = string.Empty;
     }
 
@@ -233,7 +237,11 @@ internal static partial class ShortcutOverlay
         return scrollbar;
     }
 
-    private static Button CreateNativeButton(string name, RectTransform parent, NativeTemplates templates)
+    private static Button CreateNativeButton(
+        string name,
+        RectTransform parent,
+        NativeTemplates templates,
+        string labelText)
     {
         RectTransform rect = CreateRectObject(name, parent);
         Image image = rect.gameObject.AddComponent<Image>();
@@ -252,13 +260,17 @@ internal static partial class ShortcutOverlay
             button.navigation = templates.Button.navigation;
         }
 
-        TMP_Text label = CreateText("Label", rect, templates.Text, layoutElement: false);
+        TMP_Text label = CreateText("Label", rect, templates.ButtonText, layoutElement: false);
         RectTransform labelRect = (RectTransform)label.transform;
         Stretch(labelRect, 4f);
-        label.text = "Close";
+        label.text = labelText;
         label.fontSize = 21f;
         label.fontStyle = FontStyles.Bold;
         label.alignment = TextAlignmentOptions.Center;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 14f;
+        label.fontSizeMax = 21f;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
         return button;
     }
 
@@ -284,76 +296,6 @@ internal static partial class ShortcutOverlay
             rect.gameObject.AddComponent<LayoutElement>();
         }
         return text;
-    }
-
-    private static NativeTemplates? FindNativeTemplates()
-    {
-        Image? panel = FindPanelBackground();
-        Button? button = FindNativeComponent<Button>(candidate => candidate.targetGraphic is Image);
-        ScrollRect? scroll = FindNativeComponent<ScrollRect>(candidate => candidate.viewport != null && candidate.content != null);
-        Scrollbar? scrollbar = scroll?.verticalScrollbar
-            ?? FindNativeComponent<Scrollbar>(candidate => candidate.handleRect != null);
-        TMP_Text? text = button?.GetComponentInChildren<TMP_Text>(includeInactive: true)
-            ?? FindNativeComponent<TMP_Text>(candidate => candidate.font != null);
-        return panel != null && text != null
-            ? new NativeTemplates(panel, button, scroll, scrollbar, text)
-            : null;
-    }
-
-    private static Canvas? FindNativeCanvas()
-    {
-        return InventoryGui.instance?.GetComponentInParent<Canvas>()
-            ?? Hud.instance?.GetComponentInParent<Canvas>()
-            ?? FindNativeComponent<Canvas>(_ => true);
-    }
-
-    private static Image? FindPanelBackground()
-    {
-        IEnumerable<Image> candidates = NativeCandidates<Image>();
-        return candidates
-            .Where(candidate => candidate.sprite != null)
-            .Where(candidate => candidate.GetComponent<Button>() == null)
-            .Where(candidate => candidate.GetComponentInParent<Scrollbar>() == null)
-            .OrderByDescending(candidate => candidate.type == Image.Type.Sliced)
-            .ThenByDescending(candidate =>
-            {
-                Rect rect = ((RectTransform)candidate.transform).rect;
-                return Math.Abs(rect.width * rect.height);
-            })
-            .FirstOrDefault();
-    }
-
-    private static T? FindNativeComponent<T>(Func<T, bool> predicate) where T : Component
-    {
-        return NativeCandidates<T>().FirstOrDefault(predicate);
-    }
-
-    private static IEnumerable<T> NativeCandidates<T>() where T : Component
-    {
-        if (InventoryGui.instance != null)
-        {
-            foreach (T component in InventoryGui.instance.GetComponentsInChildren<T>(includeInactive: true))
-            {
-                yield return component;
-            }
-        }
-        if (Hud.instance != null)
-        {
-            foreach (T component in Hud.instance.GetComponentsInChildren<T>(includeInactive: true))
-            {
-                yield return component;
-            }
-        }
-
-        foreach (T component in Resources.FindObjectsOfTypeAll<T>())
-        {
-            if (component != null
-                && component.gameObject.scene.IsValid()
-                && (root == null || !component.transform.IsChildOf(root.transform)))
-            {
-                yield return component;
-            }
-        }
     }
 
     private static void CopyImageStyle(Image source, Image destination)
@@ -417,26 +359,4 @@ internal static partial class ShortcutOverlay
                 || ZInput.GetKey(KeyCode.LeftShift));
     }
 
-    private sealed class NativeTemplates
-    {
-        internal NativeTemplates(
-            Image panelBackground,
-            Button? button,
-            ScrollRect? scroll,
-            Scrollbar? scrollbar,
-            TMP_Text text)
-        {
-            PanelBackground = panelBackground;
-            Button = button;
-            Scroll = scroll;
-            Scrollbar = scrollbar;
-            Text = text;
-        }
-
-        internal Image PanelBackground { get; }
-        internal Button? Button { get; }
-        internal ScrollRect? Scroll { get; }
-        internal Scrollbar? Scrollbar { get; }
-        internal TMP_Text Text { get; }
-    }
 }

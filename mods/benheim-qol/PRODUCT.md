@@ -68,7 +68,7 @@ gameplay. Each feature module records its confirmed behavior.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.41` is the next test build. It has not passed gameplay proof. Each
+Benheim `0.1.42` is the next test build. It has not passed gameplay proof. Each
 module document owns its changed behavior and remaining proof gates. The Mac
 and Windows launch paths also require platform testing before release.
 

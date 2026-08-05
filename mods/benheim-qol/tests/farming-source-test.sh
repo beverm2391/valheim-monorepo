@@ -20,8 +20,8 @@ assert_source 'column == FarmingSettings.GridWidth / 2' 'src/Farming/FarmingGrid
 assert_source 'GetGlobalKey\(anchorPiece.FreeBuildKey\(\)\)' 'src/Farming/MassPlanting.cs'
 assert_source 'ApplyBuildSkill\(player, pieceTable\)' 'src/Farming/MassPlanting.cs'
 assert_source 'InputState\.IsTextEntryActive\(\)' 'src/Farming/FarmingInput.cs'
-assert_source 'Left Shift \+ interact' 'src/Shortcuts/ShortcutOverlayContent.cs'
-assert_source 'Left Shift \+ plant' 'src/Shortcuts/ShortcutOverlayContent.cs'
+assert_source 'Left Shift \+ interact' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
+assert_source 'Left Shift \+ plant' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'MassFarming v1\.12' 'THIRD_PARTY_NOTICES.md'
 
 if grep -Rqs 'xeio\.MassFarming' "$root/src"; then

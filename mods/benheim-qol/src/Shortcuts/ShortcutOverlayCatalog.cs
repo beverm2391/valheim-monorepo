@@ -1,0 +1,105 @@
+using BenheimQoL.Farming;
+using BenheimQoL.InventoryFeature;
+using UnityEngine;
+
+namespace BenheimQoL.Shortcuts;
+
+internal static partial class ShortcutOverlay
+{
+    private static readonly Color ControlsAccent = new(1f, 0.78f, 0.25f, 1f);
+    private static readonly Color FeaturesAccent = new(0.48f, 0.88f, 0.58f, 1f);
+    private static readonly Color MultiplayerAccent = new(0.48f, 0.82f, 1f, 1f);
+
+    private static readonly Section[] ControlSections =
+    {
+        new(
+            "Inventory",
+            ControlsAccent,
+            new[]
+            {
+                new Entry("P", "Pocket the hovered stack or item"),
+                new Entry("Left Alt + click", "Pocket the clicked stack or item"),
+                new Entry("Left Shift + P", $"Put matching items away within {QuickStack.Radius:0.#} m"),
+                new Entry("Backspace / Delete", "Reset the split amount to 1"),
+                new Entry("Enter", "Confirm a split and move it across an open container"),
+            },
+            "A gold P marks manual protection. Stackables protect every stack of that item type; non-stackable gear protects only the marked item. Equipped and hotbar items stay protected without a marker."),
+        new(
+            "Crafting & Repair",
+            new Color(1f, 0.58f, 0.36f, 1f),
+            new[]
+            {
+                new Entry("Left Shift + station click", "Repair all eligible gear"),
+                new Entry("Left Shift + station input", "Fill its available input or fuel capacity"),
+            },
+            "Stations, cauldrons, chests, and nearby objects have a longer interaction range."),
+        new(
+            "Farming",
+            FeaturesAccent,
+            new[]
+            {
+                new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
+                new Entry("Left Shift + plant", $"Plant a centered {FarmingSettings.GridWidth}x{FarmingSettings.GridLength} grid"),
+            },
+            "Normal resource, stamina, spacing, and cultivated-ground rules still apply."),
+    };
+
+    private static readonly Section[] FeatureSections =
+    {
+        new(
+            "World & Travel",
+            MultiplayerAccent,
+            new[]
+            {
+                new Entry("Extended reach", "Use stations, cauldrons, chests, and nearby objects from farther away"),
+                new Entry("Portal travel", "Finish the transition sooner after the destination is ready"),
+            },
+            "These features reduce waiting and positioning friction without automating play."),
+        new(
+            "Skills",
+            new Color(1f, 0.48f, 0.54f, 1f),
+            new[]
+            {
+                new Entry("Rockbreaker", "Pickaxes skill improves mining damage and crits; AOE unlocks at level 25"),
+                new Entry("Cleave", "Wood Cutting can hit nearby parts of the same tree after level 25"),
+                new Entry("Adrenaline", "Perfect defenses show gains and the meter shows decay timing"),
+            },
+            "Skill-based effects grow through normal play instead of granting flat bonus drops."),
+        new(
+            "Diagnostics",
+            new Color(0.74f, 0.7f, 1f, 1f),
+            new[]
+            {
+                new Entry("F7", "Save the active Benheim log to the Desktop"),
+            },
+            "Attach the exported log when reporting behavior another player cannot reproduce."),
+    };
+
+    private readonly struct Entry
+    {
+        internal Entry(string key, string action)
+        {
+            Key = key;
+            Action = action;
+        }
+
+        internal string Key { get; }
+        internal string Action { get; }
+    }
+
+    private sealed class Section
+    {
+        internal Section(string name, Color accent, Entry[] entries, string note)
+        {
+            Name = name;
+            Accent = accent;
+            Entries = entries;
+            Note = note;
+        }
+
+        internal string Name { get; }
+        internal Color Accent { get; }
+        internal Entry[] Entries { get; }
+        internal string Note { get; }
+    }
+}

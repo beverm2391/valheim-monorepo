@@ -52,6 +52,8 @@ The Inventory module makes routine item movement faster.
 
 ## In Development
 
+- Put Away can cause a brief frame hitch when it scans many nearby chests and
+  matches their contents against the player's inventory.
 - Put Away works only when the server and every ready player use the same
   transaction protocol version. Exact Benheim versions do not decide
   compatibility.

@@ -4,7 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fill="$root/src/Production/StationFill.cs"
 patches="$root/src/Production/StationFillPatches.cs"
-overlay="$root/src/Shortcuts/ShortcutOverlayContent.cs"
+overlay="$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 
 grep -Fq 'InputState.IsShiftHeld()' "$fill"
 grep -Fq 'StateUpdateTimeoutSeconds = 1f' "$fill"
