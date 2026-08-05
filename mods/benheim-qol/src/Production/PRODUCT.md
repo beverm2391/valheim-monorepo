@@ -1,0 +1,22 @@
+# Production
+
+The Production module fills routine station inputs without repeated clicks.
+
+## Current Behavior
+
+- Normal station interaction adds one item at a time.
+
+## In Development
+
+- Hold `Left Shift` while interacting with a production-station input or fuel
+  switch to add as much as its capacity and the player's inventory permit.
+- Hold `Left Shift` while adding food or fuel to a cooking station to fill its
+  available capacity.
+- During batch fill, a selected item limits the fill to that item type. Without
+  a selected item, batch fill follows Valheim's compatible-item order.
+- Invoke Valheim's normal add-one action once per item. Each invocation
+  preserves Valheim's capacity checks, inventory changes, effects, skill
+  behavior, and network synchronization.
+- Stop when the station is full, the player runs out of compatible items,
+  Valheim rejects an addition, or synchronization exceeds its timeout.
+- Show one centered summary with the number of items added.

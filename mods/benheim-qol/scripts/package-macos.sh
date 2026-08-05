@@ -3,22 +3,30 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
-dll="$root/src/bin/Release/netstandard2.1/BenheimQoL.dll"
-dist="$root/dist"
-package_name="BenheimQoL-macOS-$version"
+dll="${BENHEIM_QOL_DLL:-$root/src/bin/Release/netstandard2.1/BenheimQoL.dll}"
+dist="${BENHEIM_QOL_DIST:-$root/dist}"
+package_name="Benheim-macOS-$version"
 stage="$dist/$package_name"
 
 if [[ -z "$version" ]]; then
-  echo "Could not determine BenheimQoL version." >&2
+  echo "Could not determine the Benheim version." >&2
   exit 1
 fi
 
-"$root/scripts/build.sh"
+if [[ "${BENHEIM_QOL_SKIP_BUILD:-0}" != "1" ]]; then
+  "$root/scripts/build.sh"
+fi
+
+if [[ ! -f "$dll" ]]; then
+  echo "The Benheim plugin file was not found at: $dll" >&2
+  exit 1
+fi
 rm -rf "$stage" "$dist/$package_name.zip"
 install -d "$stage"
-install -m 0755 "$root/scripts/install-macos.command" "$stage/Install BenheimQoL.command"
+install -m 0755 "$root/scripts/install-macos.command" "$stage/Install Benheim.command"
 install -m 0755 "$root/scripts/macos-launcher.sh" "$stage/macos-launcher.sh"
 install -m 0644 "$dll" "$stage/BenheimQoL.dll"
+printf '%s\n' "$version" > "$stage/VERSION"
 
 (
   cd "$dist"

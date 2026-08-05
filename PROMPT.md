@@ -4,12 +4,13 @@ This repo has three related jobs:
 
 - Provision and operate a Valheim dedicated server on a cloud VM.
 - Support selected server-side mods that remain compatible with vanilla clients.
-- Build optional client-only quality-of-life mods under `mods/`.
+- Build optional quality-of-life mods under `mods/`. Keep server-assisted
+  features explicit.
 
-Keep those boundaries clear. Server work should not assume client mods are
-installed. Client mod work should not depend on server mods unless that product
-direction changes explicitly. Read root `PRODUCT.md` for the overall server and
-mod promise before changing compatibility boundaries.
+Keep those boundaries clear. Most server work must not assume client mods are
+installed. A server-assisted client feature must disable itself when a required
+client component is missing. Read root `PRODUCT.md` before changing
+compatibility boundaries.
 
 ## Public Repo Rules
 
@@ -55,7 +56,9 @@ scripts/set-server-mods.sh disable
 installed mod files or configuration. `scripts/install-server-mods.sh` owns the
 pinned package versions and checksums, stages downloads before downtime, takes
 a stopped-server backup, and falls back to the vanilla path if installation
-fails. Keep new server mods removable without changing the world save.
+fails. Keep new server mods removable without changing the world save. Benheim
+Inventory is the one server plugin that coordinates a client feature. It must
+not prevent a vanilla client from joining.
 
 `scripts/apply-server-config.sh` owns routine deployment of the launcher and
 `server.env`. It takes a stopped-server backup and restores the previous files
@@ -78,9 +81,9 @@ Migration work must preserve a vanilla launch path, prove the world on a
 temporary server before production, back up server world and client characters,
 and restore mods only after vanilla 1.0 is stable.
 
-## BenheimQoL Mod Work
+## Benheim Client Mod Work
 
-BenheimQoL lives under:
+The Benheim client mod lives under:
 
 ```text
 mods/benheim-qol/
@@ -110,18 +113,60 @@ Manual test plans are task-scoped process artifacts, not canonical product
 context. Derive the relevant checklist from the changed behavior, use it for the
 current development pass, and do not accumulate it in `PRODUCT.md`.
 
-Build, install locally, and package for Mac:
+Build and install locally on Mac, then package for Mac and Windows:
 
 ```bash
 mods/benheim-qol/scripts/build.sh
 mods/benheim-qol/scripts/install-local.sh
 mods/benheim-qol/scripts/package-macos.sh
+mods/benheim-qol/scripts/package-windows.sh
 ```
 
-`install-local.sh` must invoke the same idempotent Mac installer shipped to
-players. Keep BepInEx installation, legacy-plugin cleanup, and launcher
-generation in that installer. The generated launcher must start Steam when it
-is closed and wait for Steam IPC readiness before starting Valheim.
+`install-local.sh` must run the same Mac installer shipped to players. The
+installer must be safe to run repeatedly. Keep BepInEx installation,
+legacy-plugin cleanup, and launcher generation in that installer. The Mac
+launcher must start Steam when needed before it starts Valheim.
+
+Share updates as complete platform packages. A player updates by rerunning the
+idempotent installer. Launchers and installers must not check GitHub or another
+network source for updates. The normal Steam launch must remain vanilla on Mac
+and Windows. `Benheim.app` on Mac and the `Benheim` shortcut on Windows are the
+explicit modded launch paths.
+
+The Mac launcher starts the installed BepInEx launch script only after Steam's
+connection log shows a successful login. Do not use the `ipcserver` process as
+the readiness signal because it can remain running after Steam exits.
+
+The Windows installer keeps UnityDoorstop disabled in `doorstop_config.ini`.
+Its managed `Benheim` shortcut starts Steam,
+finds Valheim across configured Steam libraries, and launches `valheim.exe`
+with `--doorstop-enabled true`. Do not rename Doorstop DLLs to switch modes.
+Remove retired updater apps, shortcuts, and state only when their managed
+identifier or marker proves ownership. Leave unrelated paths unchanged.
+
+The Windows installer must:
+
+- find Valheim in configured Steam libraries;
+- verify the pinned BepInEx archive;
+- disable the standalone MassFarming plugin; and
+- refuse to overwrite an unrelated desktop shortcut; and
+- keep the normal Steam launch vanilla after installation.
+
+Use `mods/benheim-qol/tests/windows-installer-test.sh` to verify the installer
+source and packaged files. Keep this test until a Windows CI runner can execute
+the installer.
+
+Publish Benheim with `mods/benheim-qol/scripts/release.sh`. The command must run
+only from a clean local `main` that exactly matches `origin/main`. The script:
+
+- runs the complete client test suite;
+- builds both platform packages;
+- creates the `benheim-v<version>` GitHub release; and
+- uploads the stable `Benheim-macOS.zip` and `Benheim-Windows.zip` assets.
+
+The release assets are distribution artifacts, not an update channel. Send the
+appropriate package to each player and have them rerun its installer while
+Valheim is closed.
 
 Use this development loop for gameplay changes:
 
@@ -147,10 +192,21 @@ Expected build caveat:
 
 Client mod rules:
 
-- Keep BenheimQoL client-only unless the product direction changes explicitly.
-- Do not add custom persistent world objects or custom item data casually.
-- Keep the in-game shortcuts panel and the owning feature `PRODUCT.md` aligned
-  with implemented controls.
+- Keep one Benheim client DLL. Shared inventory protocol source lives under
+  `shared/benheim-inventory-protocol/` and compiles into both BenheimQoL and the
+  Benheim Inventory server plugin.
+- Read `shared/benheim-inventory-protocol/PROTOCOL.md` before changing Put Away.
+  That file owns requirements for protocol versions, chest ownership,
+  transactions, retries, journals, receipts, reservations, item restoration,
+  and recovery. Follow those requirements instead of restating them here.
+- Put Away compatibility depends on the transaction protocol version, not the
+  client or server semantic version. Keep exact semantic versions in capability
+  status for diagnosis.
+- Add custom persistent world objects or custom item data only when the product
+  or protocol design explicitly requires them.
+- Build the Valheim-styled Benheim menu with Unity UI and Valheim's loaded UI
+  templates. Keep its controls and dynamic version roster aligned with the
+  owning feature `PRODUCT.md`.
 - Bump the visible plugin version when installing a user-testable behavior
   change so testers can verify the loaded DLL after relaunch.
 - Valheim does not hot-reload the plugin DLL; after install, fully quit and

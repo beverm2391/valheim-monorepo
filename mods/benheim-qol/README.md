@@ -1,29 +1,68 @@
-# BenheimQoL
+# Benheim
 
-Client-only Valheim quality-of-life mod for BepInEx.
-
-Install this only on the player's machine. BenheimQoL has no server component
-and does not require other players to install it.
+Benheim is an optional Valheim quality-of-life mod for BepInEx. Most features
+run only on the player's computer. Multiplayer Put Away also requires the
+Benheim Inventory server plugin and a compatible Benheim client for every
+ready player.
 
 ## Install On A Mac
 
 Install Valheim through Steam first. Then unzip the Mac package and double-click
-`Install BenheimQoL.command`. The installer adds the pinned BepInEx runtime and
-the current BenheimQoL DLL to Valheim. It creates `Benheim QoL.app` in the
-user's Applications folder.
+`Install Benheim.command`. The installer adds the fixed BepInEx version and the
+current Benheim plugin to Valheim. It creates `Benheim.app` in the user's
+Applications folder.
 
-Open `Benheim QoL.app` to play. The launcher starts Steam when needed, waits for
-it to become ready, and then starts the BepInEx-enabled game. The normal Steam
-Play button remains the unmodded launch path.
+Open `Benheim.app` to play with the mod. The launcher starts Steam when needed
+and then starts the BepInEx-enabled game. The normal Steam Play button remains
+the vanilla launch path.
 
 The installer is safe to run again for an update. It refuses to run while
 Valheim is open and refuses to replace an unrelated app. It also disables the
-old standalone MassFarming plugin because farming is part of BenheimQoL.
+old standalone MassFarming plugin because farming is part of Benheim.
+
+## Install On Windows
+
+Install Valheim through Steam first. Then unzip the Windows package and
+double-click `Install Benheim.cmd`. The installer finds Valheim in your
+configured Steam libraries. It installs the fixed BepInEx version and the
+current Benheim plugin. It also creates a `Benheim` desktop shortcut.
+
+Open the `Benheim` desktop shortcut to play with the mod. The normal Steam Play
+button remains the vanilla launch path. The installer leaves UnityDoorstop
+disabled for normal Steam launches. The shortcut starts Steam when needed,
+finds Valheim across configured Steam libraries, and enables Doorstop for that
+launch only.
+
+The installer stops if Valheim is open. It verifies the BepInEx download. It
+does not replace an unrelated desktop shortcut. It disables the old standalone
+MassFarming plugin.
+
+## Update Benheim
+
+Benheim does not check for updates. Get the new package from the person who
+manages your server. Fully quit Valheim, unzip the package for your computer,
+and run its installer again. The installer updates Benheim without removing
+saves, characters, settings, or pocketed item preferences.
+
+Press `Left Shift + B` in game to confirm the installed version and multiplayer Put Away
+compatibility. The Valheim-styled Benheim menu uses Unity UI and Valheim's loaded
+UI templates to show the server and dynamic ready-player version roster. Exact
+versions appear for diagnosis. Put Away compatibility depends on the transaction
+protocol version.
+
+## Send A Diagnostic Log
+
+Press `F7` in game. Benheim copies the active diagnostic log to your Desktop as
+a timestamped `.txt` file and confirms the filename on screen. Attach that file
+when reporting a problem. This works on both Mac and Windows while the game is
+running. The log can include local paths and player or server identifiers, so
+share it only with people you trust.
 
 ## Features
 
 See [`PRODUCT.md`](PRODUCT.md) for the canonical product promise and detailed
-feature behavior. The in-game `F8` panel is the current shortcut reference.
+feature behavior. The native Benheim menu is the in-game shortcut and version
+reference.
 
 ## Build
 
@@ -50,7 +89,22 @@ players. To create the shareable package, run:
 
 ```bash
 mods/benheim-qol/scripts/package-macos.sh
+mods/benheim-qol/scripts/package-windows.sh
 ```
+
+Publish a tested release from a clean local `main` branch that exactly matches
+`origin/main`:
+
+```bash
+mods/benheim-qol/scripts/release.sh
+```
+
+The release command:
+
+- runs the complete client test suite;
+- builds both packages;
+- creates a versioned GitHub release; and
+- uploads both packages with stable asset names.
 
 The package is written under `mods/benheim-qol/dist/`. The installer copies
 `BenheimQoL.dll` into:
@@ -59,5 +113,5 @@ The package is written under `mods/benheim-qol/dist/`. The installer copies
 <Valheim>/BepInEx/plugins/BenheimQoL/
 ```
 
-Launch `Benheim QoL.app` after installing. Press `F8` in-game to confirm the
-loaded version and open the shortcut reference.
+Launch `Benheim.app` after installing. Press `Left Shift + B` in-game to confirm the
+loaded version and open the native shortcut and version menu.

@@ -31,8 +31,7 @@ internal static class InventoryPatches
         private static void Postfix(InventoryGui __instance)
         {
             if (!InventoryVisibility.IsOpen(__instance)
-                || TextInput.IsVisible()
-                || Console.IsVisible()
+                || InputState.IsTextEntryActive()
                 || Player.m_localPlayer == null)
             {
                 return;
@@ -67,21 +66,4 @@ internal static class InventoryPatches
         }
     }
 
-    [HarmonyPatch(typeof(Container), "RPC_StackResponse")]
-    private static class QuickStackResponsePatch
-    {
-        private static bool Prefix(Container __instance, bool granted)
-        {
-            return !QuickStack.TryHandleStackResponse(__instance, granted);
-        }
-    }
-
-    [HarmonyPatch(typeof(Container), nameof(Container.StackAll))]
-    private static class QuickStackRequestGuardPatch
-    {
-        private static bool Prefix(Container __instance)
-        {
-            return QuickStack.CanSendStackRequest(__instance);
-        }
-    }
 }

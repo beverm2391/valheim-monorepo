@@ -64,7 +64,11 @@ internal static class WoodcuttingProgression
 
             if (applied)
             {
-                WorldFeedback.ShowAt(hit.m_point + Vector3.up * 0.25f, "CLEAVE");
+                DamageText.instance?.ShowText(
+                    DamageText.TextType.Bonus,
+                    hit.m_point + Vector3.up * 0.25f,
+                    "CLEAVE",
+                    player: true);
             }
         }
         finally

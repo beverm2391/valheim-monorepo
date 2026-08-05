@@ -5,9 +5,8 @@ durable shared Valheim world that removes repetitive chores without making
 friends manage a fragile modpack.
 
 The default compatibility promise is simple. Anyone with a vanilla PC or
-console client should still be able to join. Client mods remain optional, and
-server mods should create effects that vanilla clients can observe without
-installing anything.
+console client can join and play normally. Client mods are required only for
+features that explicitly name that requirement.
 
 ## Product Boundaries
 
@@ -24,18 +23,21 @@ installing anything.
 
 | Feature | Product role | Runs on | Required for friends |
 | --- | --- | --- | --- |
-| BenheimQoL | First-party quality-of-life behavior such as inventory, farming, repair, portal, and mining improvements. | Client | No |
+| Benheim | Quality-of-life features we maintain for inventory, farming, repair, portals, and mining. | Client | No, except multiplayer Put Away |
+| Benheim Inventory | Coordinates Put Away with the current owner of each chest. Vanilla players can still join, but their presence disables Put Away. | Server and each Benheim client | Only for multiplayer Put Away |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
-BepInEx loads the mods. Benheim Eternal Fire does not depend on a shared mod
-library.
+BepInEx loads the mods. Benheim Eternal Fire and Benheim Inventory do not
+depend on a shared mod library.
 
-BenheimQoL's detailed product behavior is owned by
+Benheim's detailed product behavior is owned by
 [`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Benheim Eternal
 Fire's behavior and player experience are owned by
 [`server-mods/benheim-eternal-fire/PRODUCT.md`](server-mods/benheim-eternal-fire/PRODUCT.md).
+Benheim Inventory's behavior and proof status are owned by
+[`server-mods/benheim-inventory/PRODUCT.md`](server-mods/benheim-inventory/PRODUCT.md).
 Third-party mod behavior remains owned by each upstream project; this document
 records only why the mod belongs in our stack and what compatibility promise it
 must preserve.
@@ -43,11 +45,14 @@ must preserve.
 ## Acceptance Shape
 
 The server product is healthy when the world survives restarts and restores,
-vanilla clients can join, backups remain usable, and enabled server mods produce
-the same shared effect for modded and unmodded players.
+vanilla clients can join, backups remain usable, and enabled server-only gameplay
+mods produce the same shared effect for modded and unmodded players.
 
 An optional client mod is healthy when players without it remain compatible and
 installing or removing it does not corrupt shared world or character data.
+Multiplayer Put Away must disable itself when the server or any ready player
+lacks the required transaction protocol. This must not reject or disconnect a
+player.
 
 ## Open Gates
 
@@ -58,8 +63,8 @@ installing or removing it does not corrupt shared world or character data.
 - Decide whether faster sailing justifies client installs on both Mac and
   Windows. Every candidate examined so far requires a client install, so no
   server-only ship mod was deployed.
-- Create a Windows installer and launcher for friends who want BenheimQoL.
-  Verify both before sharing them. The shareable Mac installer is complete.
-- Stabilize BenheimQoL's current behavior before expanding its feature set.
-- Decide whether craft-from-nearby-containers belongs in BenheimQoL without
-  removing the resource-budgeting information players use to make decisions.
+- Test the packaged Windows installer and desktop shortcut on a friend's PC.
+  Friends have already tested the shareable Mac installer during gameplay.
+- Stabilize Benheim's current behavior before expanding its feature set.
+- Decide whether Benheim should support crafting from nearby containers without
+  hiding the resource totals players use to plan.

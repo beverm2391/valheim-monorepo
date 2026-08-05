@@ -10,11 +10,8 @@ The Repair module removes repeated repair clicks.
 
 ## In Development
 
-- Mass repair for buildings and structures does not currently work and needs
-  debugging.
-- `Left Shift` + hammer repair click will repair up to 80 eligible damaged
-  pieces within 20 meters.
-- Keep the repaired total in the normal top-left message feed. When mass repair
-  repairs more than one piece, also show `N pieces repaired` in yellow over the
-  originally targeted piece. Do not add this feedback to normal or single-piece
-  repairs.
+- Mass repair for buildings and structures is disabled. The previous `Left
+  Shift` + hammer repair action could report no damaged pieces while the player
+  targeted one.
+- Revisit mass building repair only after tests confirm that it detects the
+  same targeted piece as a normal hammer repair.
