@@ -27,29 +27,35 @@ internal sealed class QuickStackOperation
     internal Player Player { get; }
     internal InventoryGui InventoryGui { get; }
     internal List<Container> Containers { get; }
-    internal HashSet<Container> RequestedContainers { get; } = new HashSet<Container>();
     internal bool InventoryWasOpen { get; }
     internal int NextContainerIndex { get; set; }
     internal Container? CurrentContainer { get; set; }
     internal int MovedItems { get; set; }
     internal int BusyContainers { get; set; }
-    internal bool ResponseInProgress { get; set; }
-    internal bool ResponseGranted { get; set; }
-    internal List<QuickStackItemSnapshot> ResponseItems { get; } = new List<QuickStackItemSnapshot>();
     internal QuickStackSummary Summary { get; } = new QuickStackSummary();
+}
 
-    internal bool ContainsResponseItem(ItemDrop.ItemData item)
+internal sealed class QuickStackBulkScope
+{
+    internal static QuickStackBulkScope? Active { get; set; }
+
+    internal QuickStackBulkScope(Player player, Inventory target, Inventory source, QuickStackOperation? operation, Container? container, bool accountsForPutAway)
     {
-        foreach (QuickStackItemSnapshot snapshot in ResponseItems)
-        {
-            if (snapshot.Item == item)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        Player = player;
+        Target = target;
+        Source = source;
+        Operation = operation;
+        Container = container;
+        AccountsForPutAway = accountsForPutAway;
     }
+
+    internal Player Player { get; }
+    internal Inventory Target { get; }
+    internal Inventory Source { get; }
+    internal QuickStackOperation? Operation { get; }
+    internal Container? Container { get; }
+    internal bool AccountsForPutAway { get; }
+    internal List<QuickStackItemSnapshot> Items { get; } = new List<QuickStackItemSnapshot>();
 }
 
 internal sealed class QuickStackItemSnapshot

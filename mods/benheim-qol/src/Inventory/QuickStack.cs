@@ -135,7 +135,6 @@ internal static class QuickStack
             }
 
             operation.CurrentContainer = container;
-            operation.RequestedContainers.Add(container);
             Diagnostics.Event(
                 "Inventory",
                 "quick_stack_request_container",
@@ -167,95 +166,112 @@ internal static class QuickStack
         return candidates;
     }
 
-    // Container.StackAll performs Valheim's normal access and ownership handshake. The
-    // original response continues into Inventory.StackAll; our scoped patches filter only
-    // the protected source items and collect the resulting native transfer delta.
-    internal static bool BeginNativeStackResponse(Container container, bool granted)
+    internal static bool TryHandleNativeDenial(Container container)
     {
         QuickStackOperation? operation = activeOperation;
-        if (operation == null || !operation.RequestedContainers.Contains(container))
+        if (operation == null || operation.CurrentContainer != container)
+        {
+            return false;
+        }
+
+        operation.CurrentContainer = null;
+        operation.BusyContainers++;
+        Diagnostics.Event(
+            "Inventory",
+            "quick_stack_container_result",
+            $"container=\"{container.gameObject.name}\" status=denied moved=0");
+        RequestNextContainer();
+        return true;
+    }
+
+    internal static QuickStackBulkScope? BeginBulkStack(Inventory target, Inventory source)
+    {
+        QuickStackOperation? operation = activeOperation;
+        Player? player = Player.m_localPlayer;
+        if (!player || source != player.GetInventory())
+        {
+            return null;
+        }
+
+        Container? container = operation?.CurrentContainer;
+        bool accountsForPutAway = operation != null && container && container.GetInventory() == target;
+        QuickStackBulkScope scope = new QuickStackBulkScope(player, target, source, operation, container, accountsForPutAway);
+        if (accountsForPutAway)
+        {
+            foreach (ItemDrop.ItemData item in source.GetAllItemsInGridOrder())
+            {
+                if (item != null && item.m_stack > 0)
+                {
+                    scope.Items.Add(new QuickStackItemSnapshot(item, item.m_stack));
+                }
+            }
+        }
+
+        QuickStackBulkScope.Active = scope;
+        return scope;
+    }
+
+    internal static bool ShouldAllowNativeAdd(Inventory target, ItemDrop.ItemData item)
+    {
+        QuickStackBulkScope? scope = QuickStackBulkScope.Active;
+        if (scope == null || scope.Target != target || !PocketItems.IsPocketed(scope.Player, item))
         {
             return true;
         }
 
-        // Suppress a duplicate response for this operation rather than allowing Valheim's
-        // unfiltered StackAll handler to run after we have already advanced to another chest.
-        if (operation.CurrentContainer != container)
-        {
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_stale_response",
-                $"container=\"{container.gameObject.name}\" granted={Diagnostics.Bool(granted)}");
-            return false;
-        }
-
-        operation.ResponseInProgress = true;
-        operation.ResponseGranted = granted;
-        operation.ResponseItems.Clear();
-        foreach (ItemDrop.ItemData item in operation.Player.GetInventory().GetAllItemsInGridOrder())
-        {
-            if (item != null && item.m_stack > 0)
-            {
-                operation.ResponseItems.Add(new QuickStackItemSnapshot(item, item.m_stack));
-            }
-        }
-
-        Diagnostics.Event(
-            "Inventory",
-            "quick_stack_response",
-            $"container=\"{container.gameObject.name}\" granted={Diagnostics.Bool(granted)}");
-        return true;
+        Diagnostics.Event("Inventory", "quick_stack_item_skipped", $"item={item.m_shared.m_name} reason=pocketed");
+        return false;
     }
 
-    internal static void CompleteNativeStackResponse(Container container)
+    internal static void CompleteBulkStack(QuickStackBulkScope? scope)
     {
-        QuickStackOperation? operation = activeOperation;
-        if (operation == null
-            || operation.CurrentContainer != container
-            || !operation.ResponseInProgress)
+        if (scope == null)
         {
             return;
         }
 
-        operation.ResponseInProgress = false;
+        QuickStackBulkScope.Active = null;
+        if (!scope.AccountsForPutAway
+            || activeOperation != scope.Operation
+            || scope.Operation?.CurrentContainer != scope.Container)
+        {
+            return;
+        }
+
+        QuickStackOperation operation = scope.Operation!;
+        Container container = scope.Container!;
         operation.CurrentContainer = null;
-        string containerDisplayName = Localize(container.GetHoverName());
-        string containerLocation = QuickStackLocation.Format(operation.Player, container);
-        if (!operation.ResponseGranted)
-        {
-            operation.BusyContainers++;
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_container_result",
-                $"container=\"{container.gameObject.name}\" status=denied moved=0");
-            RequestNextContainer();
-            return;
-        }
-
-        int movedItems = RecordNativeTransfer(operation.Player.GetInventory(), container, containerDisplayName, containerLocation, operation);
+        int movedItems = RecordNativeTransfer(scope, operation, container);
         operation.MovedItems += movedItems;
-        Diagnostics.Event(
-            "Inventory",
-            "quick_stack_container_result",
-            $"container=\"{container.gameObject.name}\" status=granted moved={movedItems}");
+        Diagnostics.Event("Inventory", "quick_stack_container_result", $"container=\"{container.gameObject.name}\" status=granted moved={movedItems}");
         RequestNextContainer();
     }
 
-    // This runs after Valheim's Inventory.StackAll. A partial target fills by reducing the
-    // source ItemData stack but does not remove that source item, so the before/after delta
-    // is the only reliable way to report the moved count without rewriting native behavior.
-    private static int RecordNativeTransfer(
-        Inventory source,
-        Container container,
-        string containerDisplayName,
-        string containerLocation,
-        QuickStackOperation operation)
+    internal static System.Exception? FinalizeBulkStack(QuickStackBulkScope? scope, System.Exception? exception)
+    {
+        QuickStackBulkScope.Active = null;
+        if (exception != null && scope?.AccountsForPutAway == true && activeOperation == scope.Operation)
+        {
+            activeOperation = null;
+            Diagnostics.Event("Inventory", "quick_stack_cancelled", "reason=bulk_stack_exception");
+        }
+
+        return exception;
+    }
+
+    internal static bool ShouldSuppressNativeStackMessage(MessageHud.MessageType type, string message)
+    {
+        return QuickStackBulkScope.Active?.AccountsForPutAway == true
+            && type == MessageHud.MessageType.Center
+            && message.StartsWith("$msg_stackall");
+    }
+
+    private static int RecordNativeTransfer(QuickStackBulkScope scope, QuickStackOperation operation, Container container)
     {
         int movedItems = 0;
-        foreach (QuickStackItemSnapshot snapshot in operation.ResponseItems)
+        foreach (QuickStackItemSnapshot snapshot in scope.Items)
         {
-            ItemDrop.ItemData item = snapshot.Item;
-            int remaining = source.ContainsItem(item) ? item.m_stack : 0;
+            int remaining = scope.Source.ContainsItem(snapshot.Item) ? snapshot.Item.m_stack : 0;
             int moved = snapshot.StackBefore - remaining;
             if (moved <= 0)
             {
@@ -263,45 +279,12 @@ internal static class QuickStack
             }
 
             movedItems += moved;
-            operation.Summary.Add(
-                container.GetInstanceID(),
-                containerDisplayName,
-                containerLocation,
-                Localize(item.m_shared.m_name),
-                moved);
-            QuickStackDiagnostics.ItemMoved(item, moved, container, containerLocation);
+            string location = QuickStackLocation.Format(operation.Player, container);
+            operation.Summary.Add(container.GetInstanceID(), Localize(container.GetHoverName()), location, Localize(snapshot.Item.m_shared.m_name), moved);
+            QuickStackDiagnostics.ItemMoved(snapshot.Item, moved, container, location);
         }
 
         return movedItems;
-    }
-
-    internal static bool ShouldAllowNativeAdd(Inventory target, ItemDrop.ItemData item)
-    {
-        QuickStackOperation? operation = activeOperation;
-        if (operation == null
-            || !operation.ResponseInProgress
-            || operation.CurrentContainer == null
-            || operation.CurrentContainer.GetInventory() != target
-            || !operation.ContainsResponseItem(item)
-            || !PocketItems.IsPocketed(operation.Player, item))
-        {
-            return true;
-        }
-
-        Diagnostics.Event(
-            "Inventory",
-            "quick_stack_item_skipped",
-            $"item={item.m_shared.m_name} reason=pocketed");
-        return false;
-    }
-
-    internal static bool ShouldSuppressNativeStackMessage(MessageHud.MessageType type, string message)
-    {
-        QuickStackOperation? operation = activeOperation;
-        return operation != null
-            && operation.ResponseInProgress
-            && type == MessageHud.MessageType.Center
-            && (message.StartsWith("$msg_stackall") || message == "$msg_inuse");
     }
 
     private static void Finish(QuickStackOperation operation)
