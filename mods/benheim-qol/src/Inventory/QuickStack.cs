@@ -12,6 +12,11 @@ internal static class QuickStack
 
     internal static void Run(Player player, InventoryGui inventoryGui, Container? currentContainer)
     {
+        if (activeOperation != null && (!activeOperation.Player || activeOperation.Player != player))
+        {
+            ResetState();
+        }
+
         bool inventoryWasOpen = InventoryVisibility.IsOpen(inventoryGui);
         Diagnostics.Event(
             "Inventory",
@@ -194,8 +199,12 @@ internal static class QuickStack
         }
 
         Container? container = operation?.CurrentContainer;
-        bool accountsForPutAway = operation != null && container && container.GetInventory() == target;
-        QuickStackBulkScope scope = new QuickStackBulkScope(player, target, source, operation, container, accountsForPutAway);
+        bool accountsForPutAway = operation != null
+            && operation.Player == player
+            && container
+            && container.GetInventory() == target;
+        QuickStackBulkScope scope = new QuickStackBulkScope(
+            player, target, source, operation, container, accountsForPutAway, QuickStackBulkScope.Active);
         if (accountsForPutAway)
         {
             foreach (ItemDrop.ItemData item in source.GetAllItemsInGridOrder())
@@ -230,7 +239,7 @@ internal static class QuickStack
             return;
         }
 
-        QuickStackBulkScope.Active = null;
+        RestoreBulkScope(scope);
         if (!scope.AccountsForPutAway
             || activeOperation != scope.Operation
             || scope.Operation?.CurrentContainer != scope.Container)
@@ -249,7 +258,7 @@ internal static class QuickStack
 
     internal static System.Exception? FinalizeBulkStack(QuickStackBulkScope? scope, System.Exception? exception)
     {
-        QuickStackBulkScope.Active = null;
+        RestoreBulkScope(scope);
         if (exception != null && scope?.AccountsForPutAway == true && activeOperation == scope.Operation)
         {
             activeOperation = null;
@@ -257,6 +266,20 @@ internal static class QuickStack
         }
 
         return exception;
+    }
+
+    internal static void ResetState()
+    {
+        activeOperation = null;
+        QuickStackBulkScope.Active = null;
+    }
+
+    private static void RestoreBulkScope(QuickStackBulkScope? scope)
+    {
+        if (scope != null && QuickStackBulkScope.Active == scope)
+        {
+            QuickStackBulkScope.Active = scope.Previous;
+        }
     }
 
     internal static bool ShouldSuppressNativeStackMessage(MessageHud.MessageType type, string message)

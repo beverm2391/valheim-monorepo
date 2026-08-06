@@ -39,7 +39,14 @@ internal sealed class QuickStackBulkScope
 {
     internal static QuickStackBulkScope? Active { get; set; }
 
-    internal QuickStackBulkScope(Player player, Inventory target, Inventory source, QuickStackOperation? operation, Container? container, bool accountsForPutAway)
+    internal QuickStackBulkScope(
+        Player player,
+        Inventory target,
+        Inventory source,
+        QuickStackOperation? operation,
+        Container? container,
+        bool accountsForPutAway,
+        QuickStackBulkScope? previous)
     {
         Player = player;
         Target = target;
@@ -47,6 +54,7 @@ internal sealed class QuickStackBulkScope
         Operation = operation;
         Container = container;
         AccountsForPutAway = accountsForPutAway;
+        Previous = previous;
     }
 
     internal Player Player { get; }
@@ -55,6 +63,7 @@ internal sealed class QuickStackBulkScope
     internal QuickStackOperation? Operation { get; }
     internal Container? Container { get; }
     internal bool AccountsForPutAway { get; }
+    internal QuickStackBulkScope? Previous { get; }
     internal List<QuickStackItemSnapshot> Items { get; } = new List<QuickStackItemSnapshot>();
 }
 

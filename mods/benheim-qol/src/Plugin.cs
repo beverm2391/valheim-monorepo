@@ -43,6 +43,7 @@ public sealed class Plugin : BaseUnityPlugin
         PlantingPreview.DestroyGhosts();
         QuickStackReceiptHud.Destroy();
         ShortcutOverlay.Destroy();
+        QuickStack.ResetState();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         harmony?.UnpatchSelf();
     }
