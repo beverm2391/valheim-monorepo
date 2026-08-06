@@ -112,14 +112,15 @@ The expected build caveat is a `System.Net.Http` version conflict warning from
 Valheim assembly references. It is acceptable when the build exits
 successfully.
 
-Inspect one type from the installed Valheim assembly with cached evidence:
+Inspect one type from the installed Valheim assembly:
 
 ```bash
 mods/benheim-qol/scripts/decompile-valheim.sh Character
 ```
 
-The helper writes source to standard output. It writes the resolved assembly
-path, SHA-256, requested type, and cache result to standard error.
+The helper caches decompiled source by the exact assembly SHA-256 and requested
+type. It writes decompiled source to standard output. It writes the resolved
+assembly path, SHA-256, requested type, and cache hit or miss to standard error.
 
 Build and install locally on Mac, then package for Mac and Windows:
 
