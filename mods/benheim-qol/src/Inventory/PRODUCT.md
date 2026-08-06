@@ -47,6 +47,13 @@ The Inventory module makes routine item movement faster.
 
 ## In Development
 
+- Plain `R` swaps between the items in hotbar slots `1` and `2` equipped
+  together and the item in slot `3` equipped alone.
+- Loadout swap uses Valheim's normal equip and unequip actions. It does nothing
+  during text entry or other UI states that block gameplay shortcuts.
+- `R` keeps Valheim's normal Hide weapons behavior unless slots `1` and `2`
+  can form an equipable paired loadout and slot `3` can form an equipable
+  single-item loadout.
 - Put Away can cause a brief frame hitch when it scans many nearby chests and
   matches their contents against the player's inventory.
 - Put Away asks the current owner for access to each chest through Valheim's
@@ -68,6 +75,11 @@ The Inventory module makes routine item movement faster.
 
 ## Test Gate
 
+- Put a compatible pair in hotbar slots `1` and `2` and one equipable item in
+  slot `3`. Press plain `R` repeatedly and confirm the two loadouts alternate.
+- Confirm modified `R`, text entry, and blocking UI do not trigger the custom
+  swap. Remove or invalidate a required item and confirm native Hide weapons
+  still works.
 - With two players, deposit into a chest owned by the other player. Confirm both
   players see the result. Then change chest ownership and confirm that the
   completed chest state does not revert.

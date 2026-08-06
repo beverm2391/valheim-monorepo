@@ -43,14 +43,14 @@ This file owns the overall product promise. Each feature module has a
 
 | Module | Product responsibility |
 | --- | --- |
-| [Inventory](src/Inventory/PRODUCT.md) | Split stacks, pocket items, and Put Away. |
-| [Production](src/Production/PRODUCT.md) | Fill production and cooking stations without repetitive clicks. |
+| [Inventory](src/Inventory/PRODUCT.md) | Split stacks, pocket items, Put Away, and hotbar loadout swap. |
+| [Production](src/Production/PRODUCT.md) | Fill stations without repetitive clicks and shorten Stone Oven baking. |
 | [Repair](src/Repair/PRODUCT.md) | Batch gear repair and nearby building repair. |
 | [Interaction](src/Interaction/PRODUCT.md) | Less fussy interaction and station range. |
 | [Portals](src/Portals/PRODUCT.md) | Faster transitions after the destination is ready. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
 | [Woodcutting](src/Woodcutting/PRODUCT.md) | Skill-based cleave for trees and logs. |
-| [Adrenaline](src/Adrenaline/PRODUCT.md) | Perfect parry and dodge feedback, plus adrenaline decay timing. |
+| [Adrenaline](src/Adrenaline/PRODUCT.md) | Adrenaline gain, perfect-defense feedback, and decay timing. |
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 
@@ -74,7 +74,5 @@ gameplay proof or fixes.
 
 - Craft from nearby containers with ingredient totals.
 - Make mining progression configurable.
-- Decide whether to increase adrenaline gains. The Adrenaline module changes
-  only feedback and decay visibility.
 - Decide whether batch crafting should go beyond Valheim's native controls.
 - Food or rested HUD only after its gameplay value justifies more UI.

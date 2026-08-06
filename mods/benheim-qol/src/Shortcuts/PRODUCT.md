@@ -25,5 +25,18 @@ use it to find controls and passive features.
 
 ## In Development
 
+- The Controls tab lists plain `R` for Loadout Swap and explains that it
+  replaces Hide weapons when both loadouts are available.
+- When a Benheim shortcut overlaps a different currently configured Valheim
+  action, the Controls tab shows a compact amber Warnings block that names the
+  Benheim action and key, plus the conflicting native action. Loadout Swap
+  sharing `R` with Hide weapons is intentional and does not produce a warning;
+  another native action on `R` does.
+- The warning block stays hidden when there are no actual conflicts.
 - The menu says that **Place stacks**, **Hold to stack**, and Put Away keep
   manually pocketed, equipped, and hotbar items with the player.
+
+## Later
+
+- Let players configure Benheim shortcut keys. Do not add a general binding
+  framework until a feature needs it.

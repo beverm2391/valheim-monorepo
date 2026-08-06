@@ -76,6 +76,7 @@ internal static partial class ShortcutOverlay
     private static void BuildPages(RectTransform parent, NativeTemplates templates)
     {
         GameObject controls = CreatePage("ControlsPage", parent);
+        BuildControlsWarnings((RectTransform)controls.transform);
         foreach (Section section in ControlSections)
         {
             AddSection(controls.transform as RectTransform, section, templates);
@@ -216,6 +217,7 @@ internal static partial class ShortcutOverlay
     {
         Tabs.Clear();
         Pages.Clear();
+        controlsWarnings = null;
         activeTab = ShortcutTab.Controls;
     }
 

@@ -8,6 +8,7 @@ namespace BenheimQoL.Adrenaline;
 internal static class AdrenalineFeedback
 {
     private static string? currentSource;
+    private static Award? pendingAward;
 
     private static readonly FieldInfo BlockTimerField =
         AccessTools.Field(typeof(Humanoid), "m_blockTimer");
@@ -62,32 +63,63 @@ internal static class AdrenalineFeedback
             return null;
         }
 
-        float maximum = player.GetMaxAdrenaline();
-        if (maximum <= 0f)
-        {
-            return null;
-        }
-
         float before = player.GetAdrenaline();
-        float fill = before / maximum;
-        float amount = value * Game.m_adrenalineRate;
-        amount *= player.m_adrenalineGainMultiplier.Evaluate(fill);
-        player.GetSEMan().ModifyAdrenaline(amount, ref amount);
+        float maximum = player.GetMaxAdrenaline();
         Diagnostics.Event(
             "Adrenaline",
             "award_captured",
-            $"source=\"{currentSource}\" requested={value:0.###} applied={amount:0.###} before={before:0.###} maximum={maximum:0.###}");
-        return new Award(currentSource, amount);
+            $"source=\"{currentSource}\" requested={value:0.###} before={before:0.###} maximum={maximum:0.###}");
+        return new Award(currentSource, before, maximum);
     }
 
-    internal static void ShowAward(Player player, Award? award)
+    internal static void BeginModifiedAmountCapture(Award? award, SEMan statusEffects)
     {
-        if (award == null || award.Amount <= 0f)
+        if (award == null)
         {
             return;
         }
 
-        string text = $"{award.Source} +{award.Amount:0.#}";
+        award.StatusEffects = statusEffects;
+        pendingAward = award;
+    }
+
+    internal static void CaptureModifiedAmount(SEMan statusEffects, float amount)
+    {
+        if (pendingAward?.StatusEffects == statusEffects)
+        {
+            pendingAward.NativeModifiedAmount = amount;
+        }
+    }
+
+    internal static void EndModifiedAmountCapture(Award? award)
+    {
+        if (pendingAward == award)
+        {
+            pendingAward = null;
+        }
+    }
+
+    internal static void ShowAward(Player player, Award? award)
+    {
+        if (award == null)
+        {
+            return;
+        }
+
+        if (!award.NativeModifiedAmount.HasValue || award.Maximum <= 0f)
+        {
+            return;
+        }
+
+        float headroom = Mathf.Max(0f, award.Maximum - award.Before);
+        float applied = Mathf.Max(0f, Mathf.Min(award.NativeModifiedAmount.Value, headroom));
+        if (applied <= 0f)
+        {
+            return;
+        }
+
+        float after = player.GetAdrenaline();
+        string text = $"{award.Source} +{applied:0.#}";
         DamageText.instance?.ShowText(
             DamageText.TextType.Bonus,
             player.transform.position + Vector3.up * 1.75f,
@@ -96,18 +128,22 @@ internal static class AdrenalineFeedback
         Diagnostics.Event(
             "Adrenaline",
             "feedback_shown",
-            $"source=\"{award.Source}\" amount={award.Amount:0.###}");
+            $"source=\"{award.Source}\" amount={applied:0.###} before={award.Before:0.###} after={after:0.###}");
     }
 
     internal sealed class Award
     {
-        internal Award(string source, float amount)
+        internal Award(string source, float before, float maximum)
         {
             Source = source;
-            Amount = amount;
+            Before = before;
+            Maximum = maximum;
         }
 
         internal string Source { get; }
-        internal float Amount { get; }
+        internal float Before { get; }
+        internal float Maximum { get; }
+        internal SEMan? StatusEffects { get; set; }
+        internal float? NativeModifiedAmount { get; set; }
     }
 }

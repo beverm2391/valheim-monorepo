@@ -93,6 +93,12 @@ internal static partial class ShortcutOverlay
             return;
         }
 
+        NativeTemplates? templates = NativeTemplates.TryCreate();
+        if (templates != null)
+        {
+            RefreshControlsWarnings(templates);
+        }
+
         previousCursorVisible = Cursor.visible;
         previousCursorLock = Cursor.lockState;
         visible = true;

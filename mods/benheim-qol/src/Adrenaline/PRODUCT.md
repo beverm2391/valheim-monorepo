@@ -1,8 +1,7 @@
 # Adrenaline
 
-The Adrenaline module shows feedback for successful perfect defenses and shows
-the decay timing on Valheim's adrenaline meter. It does not change adrenaline
-balance.
+The Adrenaline module makes adrenaline gains more rewarding, shows feedback for
+successful perfect defenses, and shows decay timing on Valheim's meter.
 
 ## Current Behavior
 
@@ -15,4 +14,19 @@ balance.
 
 ## In Development
 
-- No adrenaline changes are currently in development.
+- Every positive adrenaline grant is doubled. This includes ordinary hits,
+  perfect parries and dodges, staggering an enemy, and Guardian Power.
+- Negative adrenaline changes are not doubled.
+- Valheim still applies its normal adrenaline rate, current-fill curve, status
+  modifiers, meter cap, and full-meter behavior once.
+- The normal 10-second delay and subsequent decay remain unchanged.
+- Perfect-parry and perfect-dodge feedback must show the amount the doubled
+  native grant actually adds to the meter.
+
+## Test Gate
+
+- Confirm representative gains are doubled: an ordinary hit, perfect defense,
+  enemy stagger, and Guardian Power.
+- Confirm negative changes, the 10-second delay, decay, cap, and full-meter
+  effect still behave normally.
+- Confirm perfect-parry and perfect-dodge feedback matches the meter change.

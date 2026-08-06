@@ -20,6 +20,7 @@ internal static partial class ShortcutOverlay
                 new Entry("P", "Pocket the hovered stack or item"),
                 new Entry("Left Alt + click", "Pocket the clicked stack or item"),
                 new Entry("Left Shift + P", $"Put matching items away within {QuickStack.Radius:0.#} m"),
+                new Entry("R", "Swap hotbar loadout (replaces Hide weapons)"),
                 new Entry("Backspace / Delete", "Reset the split amount to 1"),
                 new Entry("Enter", "Confirm a split and move it across an open container"),
             },
@@ -56,13 +57,21 @@ internal static partial class ShortcutOverlay
             },
             "These features reduce waiting and positioning friction without automating play."),
         new(
+            "Production",
+            new Color(1f, 0.58f, 0.36f, 1f),
+            new[]
+            {
+                new Entry("Stone Oven", "Baking and done-to-burn timing are halved; fuel stays normal"),
+            },
+            "Faster baking preserves Valheim's normal fuel use."),
+        new(
             "Skills",
             new Color(1f, 0.48f, 0.54f, 1f),
             new[]
             {
                 new Entry("Rockbreaker", "Pickaxes skill improves mining damage and crits; AOE unlocks at level 25"),
                 new Entry("Cleave", "Wood Cutting can hit nearby parts of the same tree after level 25"),
-                new Entry("Adrenaline", "Perfect defenses show gains and the meter shows decay timing"),
+                new Entry("Adrenaline", "Positive gains are doubled; perfect defenses show the actual gain"),
             },
             "Skill-based effects grow through normal play instead of granting flat bonus drops."),
         new(
@@ -75,6 +84,18 @@ internal static partial class ShortcutOverlay
             "Attach the exported log when reporting behavior another player cannot reproduce."),
     };
 
+    // Valheim's keyboard bindings are single key paths: holding a modifier does
+    // not stop the underlying B or P action from firing. Include only Benheim
+    // shortcuts that can run while native gameplay input is active. Inventory-
+    // only keys are excluded because Player.TakeInput already blocks them.
+    private static readonly NativeBinding[] NativeBindings =
+    {
+        new("Left Shift + B", "Open the Benheim menu", "<Keyboard>/b"),
+        new("Left Shift + P", "Put matching items away", "<Keyboard>/p"),
+        new("R", "Swap hotbar loadout", "<Keyboard>/r", ignoredNativeAction: "Hide"),
+        new("F7", "Save the active Benheim log to the Desktop", "<Keyboard>/f7"),
+    };
+
     private readonly struct Entry
     {
         internal Entry(string key, string action)
@@ -85,6 +106,22 @@ internal static partial class ShortcutOverlay
 
         internal string Key { get; }
         internal string Action { get; }
+    }
+
+    private readonly struct NativeBinding
+    {
+        internal NativeBinding(string key, string action, string path, string? ignoredNativeAction = null)
+        {
+            Key = key;
+            Action = action;
+            Path = path;
+            IgnoredNativeAction = ignoredNativeAction;
+        }
+
+        internal string Key { get; }
+        internal string Action { get; }
+        internal string Path { get; }
+        internal string? IgnoredNativeAction { get; }
     }
 
     private sealed class Section

@@ -13,6 +13,7 @@ actual_raw_input_files="$({
 expected_raw_input_files="$(printf '%s\n' \
   'src/Farming/FarmingInput.cs' \
   'src/Infrastructure/InputState.cs' \
+  'src/Inventory/LoadoutSwap.cs' \
   'src/Inventory/SplitStackPatches.cs' \
   'src/Shortcuts/ShortcutOverlay.cs')"
 
@@ -25,6 +26,8 @@ fi
 
 test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 3
 grep -Fq 'InputState.IsTextEntryActive()' "$farming_input"
+grep -Fq 'InputState.IsTextEntryActive()' \
+  "$root/src/Inventory/LoadoutSwap.cs"
 grep -Fq 'The split dialog is the text-entry surface' "$split_input"
 grep -Fq 'InputState.IsKeyDown(KeyCode.F7)' \
   "$root/src/Infrastructure/DiagnosticLogExporter.cs"

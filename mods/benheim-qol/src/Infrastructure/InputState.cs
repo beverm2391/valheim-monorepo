@@ -44,6 +44,26 @@ internal static class InputState
         return Input.GetKeyDown(key) || ZInput.GetKeyDown(key);
     }
 
+    internal static bool IsModifierHeld()
+    {
+        return Input.GetKey(KeyCode.LeftShift)
+            || Input.GetKey(KeyCode.RightShift)
+            || Input.GetKey(KeyCode.LeftAlt)
+            || Input.GetKey(KeyCode.RightAlt)
+            || Input.GetKey(KeyCode.LeftControl)
+            || Input.GetKey(KeyCode.RightControl)
+            || Input.GetKey(KeyCode.LeftMeta)
+            || Input.GetKey(KeyCode.RightMeta)
+            || ZInput.GetKey(KeyCode.LeftShift)
+            || ZInput.GetKey(KeyCode.RightShift)
+            || ZInput.GetKey(KeyCode.LeftAlt)
+            || ZInput.GetKey(KeyCode.RightAlt)
+            || ZInput.GetKey(KeyCode.LeftControl)
+            || ZInput.GetKey(KeyCode.RightControl)
+            || ZInput.GetKey(KeyCode.LeftMeta)
+            || ZInput.GetKey(KeyCode.RightMeta);
+    }
+
     internal static bool IsTextEntryActive()
     {
         if (ShortcutOverlay.IsOpen
