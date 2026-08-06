@@ -26,7 +26,7 @@ grep -Fq 'QuickStack.ResetState();' "$root/src/Plugin.cs"
 # recognizes a partial remainder that remains in the source inventory.
 grep -Fq 'scope.Source.ContainsItem(snapshot.Item)' "$quick_stack"
 grep -Fq 'int moved = snapshot.StackBefore - remaining;' "$quick_stack"
-if rg -n 'ClaimOwnership|TryBeginDeposit|InventoryTransactions|DepositCandidate|RequestedContainers|ResponseInProgress' "$quick_stack" "$patches" "$operation"; then
+if rg -n 'ClaimOwnership|TryBeginDeposit|InventoryTransactions|DepositCandidate|RequestedContainers|ResponseInProgress|ResponseTimeout|AbandonedStackResponse|OrdinaryStackAllRequest' "$quick_stack" "$patches" "$operation"; then
   printf 'native Put Away must not restore custom ownership or transaction layers\n' >&2
   exit 1
 fi

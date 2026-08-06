@@ -72,9 +72,10 @@ grep -Fq 'QuickStackReceiptHud.Destroy();' "$root/src/Plugin.cs"
 grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack"
 grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack"
 grep -Fq 'container.StackAll();' "$quick_stack"
-grep -Fq 'BeginNativeStackResponse' "$quick_stack"
+grep -Fq 'BeginBulkStack' "$quick_stack"
+grep -Fq 'AccountsForPutAway' "$quick_stack"
 grep -Fq 'RecordNativeTransfer' "$quick_stack"
-grep -Fq 'source.ContainsItem(item) ? item.m_stack : 0' "$quick_stack"
+grep -Fq 'scope.Source.ContainsItem(snapshot.Item)' "$quick_stack"
 if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
   printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
   exit 1

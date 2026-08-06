@@ -145,6 +145,8 @@ internal static class QuickStack
                 "quick_stack_request_container",
                 $"container=\"{container.gameObject.name}\" index={operation.NextContainerIndex}/{operation.Containers.Count} " +
                 $"items={candidates}");
+            // Valheim owns delivery, denial, and interruption for this request. Put Away
+            // deliberately adds no timeout, retry, or abandoned-response state.
             container.StackAll();
             return;
         }
@@ -199,6 +201,9 @@ internal static class QuickStack
         }
 
         Container? container = operation?.CurrentContainer;
+        // Every bulk stack now uses the same protection rule. Any StackAll into the
+        // active chest is therefore equivalent to its granted Put Away response and may
+        // complete this step without tracking which UI action originated the request.
         bool accountsForPutAway = operation != null
             && operation.Player == player
             && container

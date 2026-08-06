@@ -23,7 +23,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Backspace / Delete", "Reset the split amount to 1"),
                 new Entry("Enter", "Confirm a split and move it across an open container"),
             },
-            "A gold P marks manual protection. Stackables protect every stack of that item type; non-stackable gear protects only the marked item. Equipped and hotbar items stay protected without a marker."),
+            "A gold P marks manual protection. Stackables protect every stack of that item type; non-stackable gear protects only the marked item. Place stacks, Hold to stack, and Put Away keep protected items with you. Equipped and hotbar items stay protected without a marker."),
         new(
             "Crafting & Repair",
             new Color(1f, 0.58f, 0.36f, 1f),

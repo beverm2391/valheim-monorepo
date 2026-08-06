@@ -49,8 +49,8 @@ The Inventory module makes routine item movement faster.
 
 - Put Away can cause a brief frame hitch when it scans many nearby chests and
   matches their contents against the player's inventory.
-- Put Away requests each chest through Valheim's native Stack All ownership
-  flow. It moves items only after the current chest owner grants the request.
+- Put Away asks the current owner for access to each chest through Valheim's
+  Stack All action. It moves items only after the owner grants access.
 - During normal gameplay, each completed transfer must move each accepted item
   once and leave each rejected remainder in the player's inventory. Every
   connected player must see the same chest state, including after chest
@@ -58,8 +58,11 @@ The Inventory module makes routine item movement faster.
 - Put Away keeps native inventory persistence and interruption behavior. It
   does not force a character save or add a transfer journal, transaction
   receipt, retry, or crash recovery.
-- The protected-item filter and result accounting apply only to Put Away.
-  Valheim's ordinary Stack All action must remain unchanged.
+- Valheim's **Place stacks** button and **Hold to stack** action must keep
+  manually pocketed, equipped, and hotbar items in the player's inventory.
+  Manual item moves and **Take all** must remain unchanged.
+- For an active Put Away batch, the displayed result must include only items
+  moved into the chest currently being processed.
 - Put Away should continue to work while a player without Benheim is online.
   This is useful compatibility evidence, but it is not a release gate.
 
@@ -71,6 +74,9 @@ The Inventory module makes routine item movement faster.
 - Reverse the requester and chest owner, then repeat the transfer.
 - Fill a matching chest almost completely and confirm that Put Away leaves any
   amount the chest cannot accept in the player's inventory.
-- Confirm manual-pocket, equipped, and hotbar items stay with the player.
-- Confirm ordinary Stack All still moves matching unprotected items and keeps
-  its native feedback.
+- Confirm that manually pocketed, equipped, and hotbar items stay with the
+  player.
+- Use Valheim's **Place stacks** button with protected and unprotected matching
+  items. Confirm that only the unprotected items move.
+- Repeat the protection check with Valheim's **Hold to stack** action. Confirm
+  that manual item moves and **Take all** remain unchanged.

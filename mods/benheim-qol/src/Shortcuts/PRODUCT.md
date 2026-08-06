@@ -13,8 +13,8 @@ use it to find controls and passive features.
   Crafting & Repair, and Farming.
 - The Features tab explains extended reach, faster portal transitions,
   Rockbreaker, Cleave, adrenaline feedback, and diagnostic export.
-- The menu explains manual pocketing and how Put Away automatically protects
-  equipped items and hotbar items.
+- The menu explains manual pocketing and automatic protection for equipped and
+  hotbar items.
 - The menu lists `Left Shift` actions for production inputs, cooking slots,
   fuel, harvesting, and planting.
 - The menu lists Wood Cutting cleave as a passive skill feature.
@@ -22,3 +22,8 @@ use it to find controls and passive features.
   timestamped filename on Mac and Windows.
 - The game shows the exported filename so the player can find and attach the
   diagnostic log when reporting a problem.
+
+## In Development
+
+- The menu says that **Place stacks**, **Hold to stack**, and Put Away keep
+  manually pocketed, equipped, and hotbar items with the player.

@@ -195,12 +195,20 @@ Client mod rules:
 - Put Away must use `Container.StackAll()` so Valheim's current chest owner
   grants ownership before any transfer. Never write a non-owned local chest or
   call `ClaimOwnership()` as a shortcut.
-- Apply protected-item filtering and result accounting only after the chest
-  owner grants a Put Away request. Do not change Valheim's ordinary Stack All
-  behavior.
-- Keep Put Away persistence and interruption behavior equal to native inventory
-  movement. Do not add forced character saves, transfer journals, transaction
-  receipts, automatic retries, or custom recovery.
+- Apply protected-item filtering whenever `Inventory.StackAll()` moves items
+  out of the local player's inventory. The filter applies to Valheim's **Place
+  stacks** and **Hold to stack** actions and to Put Away. All three actions must
+  keep manually pocketed, equipped, and hotbar items in the player's inventory.
+  Manual item moves and **Take all** remain unchanged.
+- Count Put Away results only while `Inventory.StackAll()` handles the current
+  chest in the active batch. Use only Valheim's native `Container.StackAll()`
+  flow for the ownership request and response. Do not record whether **Place
+  stacks**, **Hold to stack**, or Put Away started the transfer. Any
+  `Inventory.StackAll()` call for the current chest can complete the Put Away
+  step while protected-item filtering is active.
+- Put Away must use the same persistence and interruption behavior as Valheim's
+  normal inventory transfers. Do not add forced character saves, transfer
+  journals, transaction receipts, automatic retries, or custom recovery.
 - Add custom persistent world objects or custom item data only when the product
   design explicitly requires them.
 - Build the Valheim-styled Benheim menu with Unity UI and Valheim's loaded UI
