@@ -8,7 +8,7 @@ internal static class QuickStackPatches
     [HarmonyPatch(typeof(Container), "RPC_StackResponse")]
     private static class StackResponsePatch
     {
-        private static bool Prefix(Container __instance, long uid, bool granted)
+        private static bool Prefix(Container __instance, bool granted)
         {
             return granted || !QuickStack.TryHandleNativeDenial(__instance);
         }

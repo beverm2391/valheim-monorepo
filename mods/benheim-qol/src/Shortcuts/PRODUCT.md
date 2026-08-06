@@ -33,6 +33,10 @@ use it to find controls and passive features.
   sharing `R` with Hide weapons is intentional and does not produce a warning;
   another native action on `R` does.
 - The warning block stays hidden when there are no actual conflicts.
+- If Benheim disables its gameplay actions because a required hook did not
+  load, the Warnings block keeps that failure visible. If native keybind
+  inspection fails, the block explains that collision warnings are unavailable
+  without interrupting unrelated gameplay.
 - The menu says that **Place stacks**, **Hold to stack**, and Put Away keep
   manually pocketed, equipped, and hotbar items with the player.
 

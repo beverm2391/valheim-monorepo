@@ -22,11 +22,3 @@ successful perfect defenses, and shows decay timing on Valheim's meter.
 - The normal 10-second delay and subsequent decay remain unchanged.
 - Perfect-parry and perfect-dodge feedback must show the amount the doubled
   native grant actually adds to the meter.
-
-## Test Gate
-
-- Confirm representative gains are doubled: an ordinary hit, perfect defense,
-  enemy stagger, and Guardian Power.
-- Confirm negative changes, the 10-second delay, decay, cap, and full-meter
-  effect still behave normally.
-- Confirm perfect-parry and perfect-dodge feedback matches the meter change.

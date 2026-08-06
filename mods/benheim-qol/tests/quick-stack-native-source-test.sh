@@ -13,7 +13,6 @@ grep -Fq 'HarmonyPatch(typeof(Inventory), nameof(Inventory.StackAll)' "$patches"
 grep -Fq 'HarmonyPatch(typeof(Inventory), nameof(Inventory.AddItem)' "$patches"
 grep -Fq 'QuickStackBulkScope.Active' "$quick_stack"
 grep -Fq 'PocketItems.IsPocketed(scope.Player, item)' "$quick_stack"
-grep -Fq 'AccountsForPutAway' "$quick_stack"
 grep -Fq 'operation.Player == player' "$quick_stack"
 grep -Fq 'RestoreBulkScope(scope);' "$quick_stack"
 grep -Fq 'QuickStackBulkScope.Active == scope' "$quick_stack"
@@ -24,7 +23,7 @@ grep -Fq 'QuickStack.ResetState();' "$root/src/Plugin.cs"
 
 # Native AddItem/RemoveItem owns transfer semantics. Delta calculation deliberately
 # recognizes a partial remainder that remains in the source inventory.
-grep -Fq 'scope.Source.ContainsItem(snapshot.Item)' "$quick_stack"
+grep -Fq 'scope.Player.GetInventory().ContainsItem(snapshot.Item)' "$quick_stack"
 grep -Fq 'int moved = snapshot.StackBefore - remaining;' "$quick_stack"
 if rg -n 'ClaimOwnership|TryBeginDeposit|InventoryTransactions|DepositCandidate|RequestedContainers|ResponseInProgress|ResponseTimeout|AbandonedStackResponse|OrdinaryStackAllRequest' "$quick_stack" "$patches" "$operation"; then
   printf 'native Put Away must not restore custom ownership or transaction layers\n' >&2

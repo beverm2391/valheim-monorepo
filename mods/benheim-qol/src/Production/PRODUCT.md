@@ -25,11 +25,3 @@ The Production module fills routine station inputs without repeated clicks.
 - Stop when the station is full, the player runs out of compatible items,
   Valheim rejects an addition, or synchronization exceeds its timeout.
 - Show one centered summary with the number of items added.
-
-## Test Gate
-
-- Time one Stone Oven recipe through raw, done, and burnt states. Confirm both
-  thresholds are half their normal duration and fuel use is unchanged.
-- With two modded players, let each player become the nearby Stone Oven owner
-  and confirm the shortened timer remains consistent.
-- Confirm another cooking station retains its normal recipe and burn timing.

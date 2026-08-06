@@ -30,13 +30,9 @@ if git show-ref --tags --verify --quiet "refs/tags/$tag" || gh release view "$ta
   fail "Release $tag already exists."
 fi
 
-for test_script in "$root"/tests/*-test.sh; do
-  "$test_script"
-done
-dotnet run --project "$root/tests/quick-stack-summary/QuickStackSummaryTests.csproj"
-
-"$root/scripts/package-macos.sh"
-"$root/scripts/package-windows.sh"
+"$root/scripts/verify.sh"
+BENHEIM_QOL_SKIP_BUILD=1 "$root/scripts/package-macos.sh"
+BENHEIM_QOL_SKIP_BUILD=1 "$root/scripts/package-windows.sh"
 
 mac_package="$root/dist/Benheim-macOS-$version.zip"
 windows_package="$root/dist/Benheim-Windows-$version.zip"

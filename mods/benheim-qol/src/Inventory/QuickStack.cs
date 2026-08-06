@@ -209,8 +209,12 @@ internal static class QuickStack
             && container
             && container.GetInventory() == target;
         QuickStackBulkScope scope = new QuickStackBulkScope(
-            player, target, source, operation, container, accountsForPutAway, QuickStackBulkScope.Active);
-        if (accountsForPutAway)
+            player,
+            target,
+            accountsForPutAway ? operation : null,
+            accountsForPutAway ? container : null,
+            QuickStackBulkScope.Active);
+        if (scope.Operation != null)
         {
             foreach (ItemDrop.ItemData item in source.GetAllItemsInGridOrder())
             {
@@ -245,7 +249,7 @@ internal static class QuickStack
         }
 
         RestoreBulkScope(scope);
-        if (!scope.AccountsForPutAway
+        if (scope.Operation == null
             || activeOperation != scope.Operation
             || scope.Operation?.CurrentContainer != scope.Container)
         {
@@ -264,7 +268,7 @@ internal static class QuickStack
     internal static System.Exception? FinalizeBulkStack(QuickStackBulkScope? scope, System.Exception? exception)
     {
         RestoreBulkScope(scope);
-        if (exception != null && scope?.AccountsForPutAway == true && activeOperation == scope.Operation)
+        if (exception != null && scope?.Operation != null && activeOperation == scope.Operation)
         {
             activeOperation = null;
             Diagnostics.Event("Inventory", "quick_stack_cancelled", "reason=bulk_stack_exception");
@@ -289,7 +293,7 @@ internal static class QuickStack
 
     internal static bool ShouldSuppressNativeStackMessage(MessageHud.MessageType type, string message)
     {
-        return QuickStackBulkScope.Active?.AccountsForPutAway == true
+        return QuickStackBulkScope.Active?.Operation != null
             && type == MessageHud.MessageType.Center
             && message.StartsWith("$msg_stackall");
     }
@@ -299,7 +303,7 @@ internal static class QuickStack
         int movedItems = 0;
         foreach (QuickStackItemSnapshot snapshot in scope.Items)
         {
-            int remaining = scope.Source.ContainsItem(snapshot.Item) ? snapshot.Item.m_stack : 0;
+            int remaining = scope.Player.GetInventory().ContainsItem(snapshot.Item) ? snapshot.Item.m_stack : 0;
             int moved = snapshot.StackBefore - remaining;
             if (moved <= 0)
             {

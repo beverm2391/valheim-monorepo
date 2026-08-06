@@ -1,45 +1,54 @@
-# valheim-server Agent Context
+# valheim-server development, testing, and operations
+
+[`AGENTS.md`](AGENTS.md) owns agent behavior and the shared safety defaults.
+This file owns the commands, development workflow, tests, and operating rules
+for this repository. Read the root [`PRODUCT.md`](PRODUCT.md) before changing
+the product promise or a compatibility boundary.
+
+## Product boundaries
 
 This repo has three related jobs:
 
 - Provision and operate a Valheim dedicated server on a cloud VM.
-- Support selected server-side mods that remain compatible with vanilla clients.
+- Support selected server-side mods that remain compatible with vanilla
+  clients.
 - Build optional quality-of-life mods under `mods/`. Keep server-assisted
   features explicit.
 
-Keep those boundaries clear. Most server work must not assume client mods are
-installed. A server-assisted client feature must disable itself when a required
-client component is missing. Read root `PRODUCT.md` before changing
-compatibility boundaries.
+Most server work must not assume client mods are installed. A server-assisted
+client feature must disable itself when a required client component is missing.
+The default promise is that vanilla PC or console clients can join and play
+normally.
 
-## Public Repo Rules
+The root `PRODUCT.md` owns the overall server and mod promise. The client mod
+at `mods/benheim-qol/` owns its promise in `PRODUCT.md`, each user-facing
+feature module owns its behavior and proof status in its own `PRODUCT.md`, and
+each first-party server mod owns its behavior in a `PRODUCT.md` at the mod
+root. Do not duplicate detailed feature behavior in the root product doc.
 
-- Do not commit secrets, passwords, tokens, private IPs, world files, character
-  files, Steam IDs, local save paths, or generated backup archives.
-- Treat `server.env`, `r2.env`, downloaded backups, and Valheim world/character
-  files as local-only operator data.
-- Keep docs generic enough for other people to use the repo.
-- Prefer small, explicit scripts over hidden local machine assumptions.
-- Do not rely on ambient `hcloud` context. Valheim provider scripts should get
-  Hetzner auth from ignored `server.env` via `HETZNER_TOKEN`/`HCLOUD_TOKEN`, or
-  an explicit repo-owned `HCLOUD_CONTEXT` only when the operator intentionally
-  configured one.
+## Public repository rules
 
-## Server Work
+Follow the safety rules in `AGENTS.md`. Keep public documentation generic and
+keep operator data local. Do not use ambient `hcloud` context: provider scripts
+must get Hetzner auth from ignored `server.env` through `HETZNER_TOKEN` or
+`HCLOUD_TOKEN`, or from an explicit repo-owned `HCLOUD_CONTEXT` when the
+operator intentionally configured one.
+
+Prefer small, explicit scripts over hidden local-machine assumptions. Keep
+provider lifecycle, server installation, world upload and download, and backup
+logic separate.
+
+## Server development and operation
 
 The server path provisions a cloud VM, installs SteamCMD and the official
 Valheim Dedicated Server, manages systemd units, and backs up world files.
+Provider lifecycle belongs under `providers/`. Server installation and
+operations belong under `scripts/`, `systemd/`, and `backups/`.
 
-- Provider lifecycle belongs under `providers/`.
-- Server installation and operations belong under `scripts/`, `systemd/`, and
-  `backups/`.
-- Keep provider lifecycle, server installation, world upload/download, and
-  backup logic separate.
-- Before destructive server operations, download or verify backups first.
-- Preserve vanilla-client compatibility for server-side mods unless the user
-  explicitly changes that product promise.
+Before a destructive server operation, follow the backup and compatibility
+rules in `AGENTS.md`.
 
-Useful scripts:
+Useful operator commands are:
 
 ```bash
 scripts/status.sh
@@ -51,66 +60,57 @@ scripts/install-server-mods.sh
 scripts/set-server-mods.sh disable
 ```
 
-`server/valheim-start` owns the vanilla and modded launch paths.
-`VALHEIM_MODDED=0` is the recovery path: it bypasses BepInEx without deleting
-installed mod files or configuration. `scripts/install-server-mods.sh` owns the
-pinned package versions and checksums, stages downloads before downtime, takes
-a stopped-server backup, and falls back to the vanilla path if installation
-fails. Keep new server mods removable without changing the world save. Benheim
-Eternal Fire must not prevent a vanilla client from joining.
+`server/valheim-start` owns vanilla and modded launch paths. Set
+`VALHEIM_MODDED=0` for recovery: it bypasses BepInEx without deleting installed
+mod files or configuration. `scripts/install-server-mods.sh` owns pinned
+package versions and checksums, stages downloads before downtime, takes a
+stopped-server backup, and falls back to the vanilla path if installation
+fails. New server mods must be removable without changing the world save.
+Benheim Eternal Fire must not prevent a vanilla client from joining.
 
 `scripts/apply-server-config.sh` owns routine deployment of the launcher and
 `server.env`. It takes a stopped-server backup and restores the previous files
 if deployment fails. Native world settings belong in the launcher environment,
-not in a replacement mod; `VALHEIM_PORTALS=casual` enables Valheim's own
-metal-through-portals rule. `VALHEIM_SKILL_GAIN_RATE` controls skill gain.
+not in a replacement mod. `VALHEIM_PORTALS=casual` enables Valheim's native
+metal-through-portals rule. `VALHEIM_SKILL_GAIN_RATE` controls skill gain and
 `VALHEIM_SKILL_REDUCTION_RATE` controls skill loss on death for every player.
 
-Mark a server-mod gate complete in `PRODUCT.md` only after every named condition
-passes. Record one-time rollout evidence in `MIGRATION-1.0.md`.
+Mark a server-mod gate complete in `PRODUCT.md` only after every named
+condition passes. Record one-time rollout evidence in `MIGRATION-1.0.md`.
 
-## Valheim 1.0 Migration
+## Valheim 1.0 migration
 
 Until the migration is closed and archived, `MIGRATION-1.0.md` is the canonical
-one-time runbook for the September 9, 2026 upgrade. Update it when migration
-decisions, gates, commands, or proof change. Do not duplicate its process in
-`PRODUCT.md` or treat it as permanent server doctrine.
+one-time runbook for the September 9, 2026 upgrade. Update that runbook when
+migration decisions, gates, commands, or proof change. Do not duplicate its
+process in `PRODUCT.md` or treat it as permanent server doctrine.
 
 Migration work must preserve a vanilla launch path, prove the world on a
-temporary server before production, back up server world and client characters,
-and restore mods only after vanilla 1.0 is stable.
+temporary server before production, back up server worlds and client
+characters, and restore mods only after vanilla 1.0 is stable.
 
-## Benheim Client Mod Work
+## Benheim development and testing
 
-The Benheim client mod lives under:
+The Benheim client mod lives under `mods/benheim-qol/`. Product behavior,
+controls, player feedback, acceptance meaning, and proof status belong in the
+owning product document. Keep implementation details in code or a deeper
+technical document.
 
-```text
-mods/benheim-qol/
+Build and test a client-only change with the canonical verification entrypoint:
+
+```bash
+mods/benheim-qol/scripts/verify.sh
 ```
 
-`mods/benheim-qol/PRODUCT.md` owns the overall mod promise and feature index.
-The `PRODUCT.md` in each user-facing feature folder owns that feature's behavior
-and current test status. Product behavior includes lightweight player-facing UI,
-feedback, and interaction expectations; keep implementation details in code or
-deeper technical docs. Update the owning feature document when behavior,
-controls, player experience, test results, or development status changes.
+`verify.sh` runs every `mods/benheim-qol/tests/*-test.sh` source/installer
+check, the quick-stack summary checks, and the Release DLL build. It does not
+install files, touch a Valheim game directory, create a platform package, or
+publish a release. The build and quick-stack checks may write ignored `bin/`
+and `obj/` outputs. Use `verify.sh` instead of running its checks separately.
 
-Each first-party server mod with player-facing behavior owns one `PRODUCT.md` at
-the mod root. That document owns the mod's behavior, player experience, and
-proof status.
-
-When the player reports gameplay results, update the owning feature document
-before completing the task. Move confirmed behavior to **Current Behavior**.
-Keep failed or unproven behavior in **In Development**. Delete behavior the
-player no longer wants.
-
-Update the repository `PRODUCT.md` when a mod moves between the client and
-server or changes its compatibility requirements. Do not duplicate each mod's
-detailed behavior there.
-
-Manual test plans are task-scoped process artifacts, not canonical product
-context. Derive the relevant checklist from the changed behavior, use it for the
-current development pass, and do not accumulate it in `PRODUCT.md`.
+The expected build caveat is a `System.Net.Http` version conflict warning from
+Valheim assembly references. It is acceptable when the build exits
+successfully.
 
 Build and install locally on Mac, then package for Mac and Windows:
 
@@ -126,48 +126,44 @@ installer must be safe to run repeatedly. Keep BepInEx installation,
 legacy-plugin cleanup, and launcher generation in that installer. The Mac
 launcher must start Steam when needed before it starts Valheim.
 
-Share updates as complete platform packages. A player updates by rerunning the
-idempotent installer. Launchers and installers must not check GitHub or another
-network source for updates. The normal Steam launch must remain vanilla on Mac
-and Windows. `Benheim.app` on Mac and the `Benheim` shortcut on Windows are the
-explicit modded launch paths.
+The normal Steam launch remains vanilla on Mac and Windows. `Benheim.app` on
+Mac and the managed `Benheim` shortcut on Windows are the explicit modded launch
+paths. Launchers and installers must not check GitHub or another network source
+for updates. Share updates as complete platform packages; a player updates by
+rerunning the installer while Valheim is closed.
 
 The Mac launcher starts the installed BepInEx launch script only after Steam's
 connection log shows a successful login. Do not use the `ipcserver` process as
-the readiness signal because it can remain running after Steam exits.
+the readiness signal because it can remain after Steam exits.
 
 The Windows installer keeps UnityDoorstop disabled in `doorstop_config.ini`.
-Its managed `Benheim` shortcut starts Steam,
-finds Valheim across configured Steam libraries, and launches `valheim.exe`
-with `--doorstop-enabled true`. Do not rename Doorstop DLLs to switch modes.
-Remove retired updater apps, shortcuts, and state only when their managed
-identifier or marker proves ownership. Leave unrelated paths unchanged.
+Its managed shortcut starts Steam, finds Valheim across configured Steam
+libraries, and launches `valheim.exe` with `--doorstop-enabled true`. Do not
+rename Doorstop DLLs to switch modes. Remove retired updater apps, shortcuts,
+and state only when a managed identifier or marker proves ownership. Leave
+unrelated paths unchanged.
 
 The Windows installer must:
 
 - find Valheim in configured Steam libraries;
 - verify the pinned BepInEx archive;
-- disable the standalone MassFarming plugin; and
+- disable the standalone MassFarming plugin;
 - refuse to overwrite an unrelated desktop shortcut; and
 - keep the normal Steam launch vanilla after installation.
 
-Use `mods/benheim-qol/tests/windows-installer-test.sh` to verify the installer
+Use `mods/benheim-qol/tests/windows-installer-test.sh` to verify installer
 source and packaged files. Keep this test until a Windows CI runner can execute
 the installer.
 
-Publish Benheim with `mods/benheim-qol/scripts/release.sh`. The command must run
-only from a clean local `main` that exactly matches `origin/main`. The script:
+When `release.sh` publishes Benheim, it must run only from a clean local `main`
+that exactly matches `origin/main`. It runs `verify.sh`, packages both
+platforms from that verified build, creates the `benheim-v<version>` GitHub
+release, and uploads stable `Benheim-macOS.zip` and `Benheim-Windows.zip`
+assets. Release assets are distribution artifacts, not an update channel.
 
-- runs the complete client test suite;
-- builds both platform packages;
-- creates the `benheim-v<version>` GitHub release; and
-- uploads the stable `Benheim-macOS.zip` and `Benheim-Windows.zip` assets.
+## Gameplay development loop
 
-The release assets are distribution artifacts, not an update channel. Send the
-appropriate package to each player and have them rerun its installer while
-Valheim is closed.
-
-Use this development loop for gameplay changes:
+For a gameplay change:
 
 1. Add concise diagnostic events for the changed action and the decisions that
    control it.
@@ -176,20 +172,16 @@ Use this development loop for gameplay changes:
 3. Ask the player to relaunch, reproduce the behavior, and report what they
    tried.
 4. Read `<Valheim>/BepInEx/LogOutput.log` and filter for `[diag]` events.
-5. Read the server journal only when code for the behavior runs on the server or
-   the behavior depends on a server response.
-6. Fix the observed failure, reinstall, and repeat until gameplay and logs agree.
+5. Read the server journal only when changed code runs on the server or the
+   behavior depends on a server response.
+6. Fix the observed failure, reinstall, and repeat until gameplay and logs
+   agree.
 
 Diagnostic events use `[diag][Feature] action key=value`. Log player actions,
 important decisions, and results. Do not log every frame. Keep normal BepInEx
 warning and error logging enabled.
 
-Expected build caveat:
-
-- `System.Net.Http` version conflict warnings can appear from Valheim assembly
-  references. They are known and acceptable when the build exits successfully.
-
-Client mod rules:
+## Client mod rules
 
 - Keep one Benheim client DLL.
 - Put Away must use `Container.StackAll()` so Valheim's current chest owner
@@ -197,8 +189,8 @@ Client mod rules:
   call `ClaimOwnership()` as a shortcut.
 - Apply protected-item filtering whenever `Inventory.StackAll()` moves items
   out of the local player's inventory. The filter applies to Valheim's **Place
-  stacks** and **Hold to stack** actions and to Put Away. All three actions must
-  keep manually pocketed, equipped, and hotbar items in the player's inventory.
+  stacks**, **Hold to stack**, and Put Away actions. All three actions must keep
+  manually pocketed, equipped, and hotbar items in the player's inventory.
   Manual item moves and **Take all** remain unchanged.
 - Count Put Away results only while `Inventory.StackAll()` handles the current
   chest in the active batch. Use only Valheim's native `Container.StackAll()`
@@ -206,23 +198,23 @@ Client mod rules:
   stacks**, **Hold to stack**, or Put Away started the transfer. Any
   `Inventory.StackAll()` call for the current chest can complete the Put Away
   step while protected-item filtering is active.
-- Put Away must use the same persistence and interruption behavior as Valheim's
-  normal inventory transfers. Do not add forced character saves, transfer
-  journals, transaction receipts, automatic retries, or custom recovery.
+- Put Away must use Valheim's normal inventory persistence and interruption
+  behavior. Do not add forced character saves, transfer journals, transaction
+  receipts, automatic retries, or custom recovery.
 - Add custom persistent world objects or custom item data only when the product
   design explicitly requires them.
 - Build the Valheim-styled Benheim menu with Unity UI and Valheim's loaded UI
   templates. Keep its controls aligned with the owning feature `PRODUCT.md`.
 - Bump the visible plugin version when installing a user-testable behavior
   change so testers can verify the loaded DLL after relaunch.
-- Valheim does not hot-reload the plugin DLL; after install, fully quit and
+- Valheim does not hot-reload the plugin DLL. After installation, fully quit and
   relaunch the BepInEx-enabled game.
 
-## Documentation
+## Documentation map
 
 - `README.md` is the public entrypoint.
 - `PRODUCT.md` owns the overall server and mod product promise.
-- `MIGRATION-1.0.md` temporarily owns the 1.0 cutover and mod-recovery process.
+- `MIGRATION-1.0.md` temporarily owns the 1.0 cutover and mod-recovery
+  process.
 - `AGENT_SETUP.md` is for an AI agent helping a human set up a server.
-- `PROMPT.md` is the repo-wide development context for agents.
-- `AGENTS.md` should point at `PROMPT.md` so both conventions stay in sync.
+- `AGENTS.md` owns agent behavior and points here for local workflow.

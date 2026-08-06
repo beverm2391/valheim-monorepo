@@ -59,7 +59,6 @@ grep -Fq 'if (inventoryWasOpen)' "$quick_stack_feedback"
 grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedback"
 ! grep -Fq 'ShowDestinationSummaries' "$quick_stack_feedback"
 ! grep -Fq 'ShowDestinationSummaries' "$quick_stack"
-grep -Fq 'FormatItemsForContainer' "$quick_stack_summary"
 grep -Fq 'MessageHud.MessageType.Center' "$quick_stack_feedback"
 grep -Fq 'QuickStackReceiptHud.Show(message)' "$quick_stack_feedback"
 grep -Fq 'Object.Instantiate(template, template.transform.parent)' "$quick_stack_receipt_hud"
@@ -73,14 +72,13 @@ grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack"
 grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack"
 grep -Fq 'container.StackAll();' "$quick_stack"
 grep -Fq 'BeginBulkStack' "$quick_stack"
-grep -Fq 'AccountsForPutAway' "$quick_stack"
 grep -Fq 'RecordNativeTransfer' "$quick_stack"
-grep -Fq 'scope.Source.ContainsItem(snapshot.Item)' "$quick_stack"
+grep -Fq 'scope.Player.GetInventory().ContainsItem(snapshot.Item)' "$quick_stack"
 if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
   printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
   exit 1
 fi
-grep -Fq 'PluginVersion = "0.1.46"' "$client_plugin"
+grep -Fq 'PluginVersion = "0.1.47"' "$client_plugin"
 if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol' "$root/src"; then
   printf 'client Put Away must not retain protocol machinery\n' >&2
   exit 1

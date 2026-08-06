@@ -6,7 +6,7 @@ client-only. Put Away uses Valheim's native chest ownership flow and does not
 need a server plugin. Players without Benheim can still join and use chests.
 
 This file owns the overall product promise. Each feature module has a
-`PRODUCT.md` that owns its behavior and current test status.
+`PRODUCT.md` that owns its behavior and proof status.
 
 ## Product Rules
 
@@ -59,7 +59,7 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.42` is the current stable client build. Players have confirmed
+Benheim `0.1.47` is the current client build. Players have confirmed
 installation on Mac and Windows, the native menu, and diagnostic export. Native
 Put Away remains in development and will ship only after its focused two-player
 gameplay test passes. Each feature module records its confirmed behavior and
@@ -69,6 +69,13 @@ remaining limits.
 
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
+
+If Benheim cannot attach a required gameplay hook, it disables all Benheim
+gameplay actions. It logs the exact failure and a `[diag][Health]` event. It
+keeps the problem visible in the menu Warnings block and shows one prominent
+message per session that directs the player to `Left Shift + B`. If only
+keybind inspection fails, Benheim reports the problem in logs and Warnings
+without interrupting unrelated gameplay.
 
 ## Later
 

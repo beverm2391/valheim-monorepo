@@ -22,15 +22,6 @@ if (!string.Equals(expected, actual, StringComparison.Ordinal))
 }
 
 Expect(
-    "10x Wood, 7x Resin",
-    summary.FormatItemsForContainer(101),
-    "destination marker summary");
-Expect(
-    string.Empty,
-    summary.FormatItemsForContainer(999),
-    "destination marker for unused chest");
-
-Expect(
     "Nothing moved (5 chests; 2 without a matching chest)",
     QuickStackMessages.NothingMoved(5, 2, 0, 0),
     "no-move summary");

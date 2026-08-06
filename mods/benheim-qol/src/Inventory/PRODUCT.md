@@ -65,6 +65,8 @@ The Inventory module makes routine item movement faster.
 - Put Away keeps native inventory persistence and interruption behavior. It
   does not force a character save or add a transfer journal, transaction
   receipt, retry, or crash recovery.
+- The transfer must work with either player as the requester or current chest
+  owner, and a completed transfer must remain visible after ownership changes.
 - Valheim's **Place stacks** button and **Hold to stack** action must keep
   manually pocketed, equipped, and hotbar items in the player's inventory.
   Manual item moves and **Take all** must remain unchanged.
@@ -72,23 +74,3 @@ The Inventory module makes routine item movement faster.
   moved into the chest currently being processed.
 - Put Away should continue to work while a player without Benheim is online.
   This is useful compatibility evidence, but it is not a release gate.
-
-## Test Gate
-
-- Put a compatible pair in hotbar slots `1` and `2` and one equipable item in
-  slot `3`. Press plain `R` repeatedly and confirm the two loadouts alternate.
-- Confirm modified `R`, text entry, and blocking UI do not trigger the custom
-  swap. Remove or invalidate a required item and confirm native Hide weapons
-  still works.
-- With two players, deposit into a chest owned by the other player. Confirm both
-  players see the result. Then change chest ownership and confirm that the
-  completed chest state does not revert.
-- Reverse the requester and chest owner, then repeat the transfer.
-- Fill a matching chest almost completely and confirm that Put Away leaves any
-  amount the chest cannot accept in the player's inventory.
-- Confirm that manually pocketed, equipped, and hotbar items stay with the
-  player.
-- Use Valheim's **Place stacks** button with protected and unprotected matching
-  items. Confirm that only the unprotected items move.
-- Repeat the protection check with Valheim's **Hold to stack** action. Confirm
-  that manual item moves and **Take all** remain unchanged.

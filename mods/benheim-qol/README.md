@@ -67,13 +67,21 @@ reference.
 Install BepInExPack Valheim locally, then run:
 
 ```bash
+mods/benheim-qol/scripts/verify.sh
+```
+
+`verify.sh` runs all client source and installer checks, the Put Away summary
+checks, and the Release DLL build. It does not install, package, or publish
+anything. To build only the DLL, run:
+
+```bash
 mods/benheim-qol/scripts/build.sh
 ```
 
 If Valheim is not in the default Steam path, set:
 
 ```bash
-VALHEIM_GAME_DIR="/path/to/Valheim" mods/benheim-qol/scripts/build.sh
+VALHEIM_GAME_DIR="/path/to/Valheim" mods/benheim-qol/scripts/verify.sh
 ```
 
 ## Install Locally
