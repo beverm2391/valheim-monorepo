@@ -51,6 +51,7 @@ This file owns the overall product promise. Each feature module has a
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
 | [Woodcutting](src/Woodcutting/PRODUCT.md) | Skill-based cleave for trees and logs. |
 | [Adrenaline](src/Adrenaline/PRODUCT.md) | Adrenaline gain, perfect-defense feedback, and decay timing. |
+| [Archery](src/Archery/PRODUCT.md) | Global arrow headshots and collision-time feedback. |
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 
@@ -59,7 +60,7 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.47` is the current client build. Players have confirmed
+Benheim `0.1.48` is the current local gameplay candidate. Players have confirmed
 installation on Mac and Windows, the native menu, and diagnostic export. Native
 Put Away remains in development and will ship only after its focused two-player
 gameplay test passes. Each feature module records its confirmed behavior and

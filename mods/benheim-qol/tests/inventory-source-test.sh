@@ -78,7 +78,7 @@ if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
   printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
   exit 1
 fi
-grep -Fq 'PluginVersion = "0.1.47"' "$client_plugin"
+grep -Fq 'PluginVersion = "0.1.48"' "$client_plugin"
 if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol' "$root/src"; then
   printf 'client Put Away must not retain protocol machinery\n' >&2
   exit 1
