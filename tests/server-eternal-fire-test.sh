@@ -48,6 +48,9 @@ assert_contains "installer pins the first-party plugin checksum" "$expected_chec
 assert_contains "installer removes the old Jotunn directory" "/BepInEx/plugins/Jotunn" "$installer"
 assert_contains "installer removes the old Eternal Fire directory" "/BepInEx/plugins/EternalFire" "$installer"
 assert_contains "installer removes the obsolete Benheim Inventory directory" "/BepInEx/plugins/BenheimInventory" "$installer"
+assert_contains "mod staging is restricted before transfer" 'install -d -m 0700 /tmp/valheim-server-mods' "$installer"
+assert_contains "password-bearing rollback archive is root-only" 'chmod 0600 "$work/rollback/system.tar.gz.tmp"' "$installer"
+assert_contains "mod staging is removed after recovery or success" 'rm -rf "$work"' "$installer"
 assert_not_contains "installer must not download Jotunn" "ValheimModding-Jotunn" "$installer"
 assert_not_contains "installer must not download upstream Eternal Fire" "Digitalroot-Eternal_Fire" "$installer"
 

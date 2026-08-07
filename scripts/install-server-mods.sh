@@ -44,7 +44,7 @@ else
   done < "$tmp_dir/SHA256SUMS"
 fi
 
-remote_ssh "rm -rf /tmp/valheim-server-mods && mkdir -p /tmp/valheim-server-mods"
+remote_ssh "rm -rf /tmp/valheim-server-mods && install -d -m 0700 /tmp/valheim-server-mods"
 for file in "$bepinex_file" "$eternal_fire_file" SHA256SUMS; do
   remote_scp "$tmp_dir/$file" "/tmp/valheim-server-mods/$file"
 done
@@ -106,10 +106,11 @@ recover_server() {
       if ! VALHEIM_WAIT_READY="$work/wait-for-valheim" \
         "$work/recover-valheim-vanilla"; then
         echo "Mod installation failed and neither recovery path reached readiness." >&2
-        exit 1
+        status=1
       fi
     fi
   fi
+  rm -rf "$work"
   exit "$status"
 }
 trap recover_server EXIT
@@ -140,6 +141,7 @@ for path in \
   fi
 done
 tar -czf "$work/rollback/system.tar.gz.tmp" -C / "${snapshot_paths[@]}"
+chmod 0600 "$work/rollback/system.tar.gz.tmp"
 tar -tzf "$work/rollback/system.tar.gz.tmp" >/dev/null
 mv "$work/rollback/system.tar.gz.tmp" "$work/rollback/system.tar.gz"
 recovery_armed=1
@@ -173,5 +175,6 @@ valheim-wait-ready "$started_at"
 "$work/verify-benheim-eternal-fire" "$started_at"
 
 trap - EXIT
+rm -rf "$work"
 echo "Installed BepInEx 5.4.2333 and Benheim Eternal Fire 0.1.1."
 REMOTE

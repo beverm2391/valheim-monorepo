@@ -52,7 +52,8 @@ If R2 is configured, the same tarball is uploaded off-box.
 
 ## Requirements
 
-- `hcloud`, authenticated with a Hetzner Cloud project.
+- `hcloud`. Authenticate it with either a Hetzner token supplied through your
+  secret manager or an explicit `HCLOUD_CONTEXT` in `server.env`.
 - An SSH key already added to Hetzner Cloud.
 - `ssh`, `scp`, and `rsync`.
 - A Valheim world pair for initial legacy import, or a full `worlds_local`
@@ -70,7 +71,7 @@ Copy the example config:
 cp examples/server.env.example server.env
 ```
 
-Edit `server.env`:
+Edit the non-secret settings in `server.env`:
 
 ```bash
 HETZNER_SERVER_NAME=valheim
@@ -78,21 +79,33 @@ HETZNER_LOCATION=ash
 HETZNER_SERVER_TYPE=cpx21
 HETZNER_SSH_KEY=your-hetzner-ssh-key-name
 
-VALHEIM_SERVER_NAME=My Server
+VALHEIM_SERVER_NAME="My Server"
 VALHEIM_WORLD_NAME=MyWorld
-VALHEIM_PASSWORD=change-me-min-5-chars
 ```
+
+`server.env` is configuration, not a credential file. The scripts reject
+secret assignments before they source it. Supply secrets through the process
+environment with your secret manager:
+
+| Operation | Required process secret |
+| --- | --- |
+| Create or delete a Hetzner VM without `HCLOUD_CONTEXT` | `HETZNER_TOKEN` or `HCLOUD_TOKEN` |
+| Install or apply server configuration | `VALHEIM_PASSWORD` |
+| Install with R2 enabled | `VALHEIM_R2_ACCESS_KEY_ID` and `VALHEIM_R2_SECRET_ACCESS_KEY` |
+
+Use your secret manager to inject only the variables required by each command.
+Do not export credentials into shell startup files or add them to `server.env`.
 
 Create the VM and firewall:
 
 ```bash
-providers/hetzner/create.sh
+your-secret-manager run -- providers/hetzner/create.sh
 ```
 
 Install the server:
 
 ```bash
-scripts/install-server.sh
+your-secret-manager run -- scripts/install-server.sh
 ```
 
 Upload your world:
@@ -116,12 +129,13 @@ scripts/logs.sh
 Apply later launcher or server-setting changes without rerunning provisioning:
 
 ```bash
-scripts/apply-server-config.sh
+your-secret-manager run -- scripts/apply-server-config.sh
 ```
 
-This stops Valheim, takes a backup, installs the repo launcher and local
-`server.env`, then restarts the service. A failed deployment restores the
-previous launcher and environment.
+`scripts/apply-server-config.sh` combines the non-secret local settings with the
+injected password. It stops Valheim, takes a backup, and installs the restricted
+runtime files. A failed deployment restores the previous launcher and
+environment.
 
 ## Using An AI Agent
 
@@ -245,31 +259,33 @@ losing the VM.
 
 R2 backups are optional but recommended for worlds you care about.
 
-Create an R2 bucket and S3-compatible credentials, then configure `r2.env`
-locally:
-
-```bash
-cp examples/r2.env.example r2.env
-```
-
-Required values:
+Create an R2 bucket and S3-compatible credentials. Request an R2 configuration
+deployment and add its non-secret routing settings to `server.env`:
 
 ```text
+VALHEIM_R2_CONFIGURE=1
 VALHEIM_R2_ACCOUNT_ID=
 VALHEIM_R2_BUCKET=valheim-backups
-VALHEIM_R2_ACCESS_KEY_ID=
-VALHEIM_R2_SECRET_ACCESS_KEY=
 VALHEIM_R2_PREFIX=my-server
 ```
+
+`VALHEIM_R2_CONFIGURE=0` leaves any existing server runtime file unchanged. It
+does not disable an R2 target that is already configured.
+
+Supply `VALHEIM_R2_ACCESS_KEY_ID` and `VALHEIM_R2_SECRET_ACCESS_KEY` through
+your secret manager when you install the server. The installer fails before
+contacting the server if either credential or a required routing setting is
+missing.
 
 Run the installer again:
 
 ```bash
-scripts/install-server.sh
+your-secret-manager run -- scripts/install-server.sh
 ```
 
-The installer copies `r2.env` to `/etc/valheim/r2.env` with restricted
-permissions. The nightly backup timer uploads tarballs to:
+The installer generates `/etc/valheim/r2.env` with restricted permissions. It
+does not use a local credential file. The nightly backup timer uploads tarballs
+to:
 
 ```text
 s3://<bucket>/<prefix>/worlds-YYYYMMDDTHHMMSSZ.tar.gz

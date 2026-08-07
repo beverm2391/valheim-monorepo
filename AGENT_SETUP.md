@@ -3,8 +3,8 @@
 Use this guide when you want an AI coding agent to help you set up this repo.
 
 Paste this file into your agent, then give it access to the repo and your
-terminal. Do not paste secrets into chat unless you are comfortable with that.
-Prefer local files, environment variables, or your secret manager.
+terminal. Do not paste secrets into chat. Keep local files non-secret. Inject
+credentials into each command from your secret manager.
 
 ## Goal
 
@@ -30,7 +30,8 @@ Before changing infrastructure, ask me for:
 - Hetzner SSH key name.
 - Valheim server display name.
 - Valheim world name.
-- Valheim server password.
+- Confirmation that the Valheim server password is available in a secret
+  manager. Do not ask the human to paste it into chat.
 - Whether I have an existing world save to upload.
 - Whether I want private admin SSH through Tailscale or another private network.
 - Whether I want Cloudflare R2 backups.
@@ -56,7 +57,6 @@ HETZNER_SSH_KEY=
 
 VALHEIM_SERVER_NAME=
 VALHEIM_WORLD_NAME=
-VALHEIM_PASSWORD=
 ```
 
 If admin SSH should use a private network, set:
@@ -65,15 +65,27 @@ If admin SSH should use a private network, set:
 SSH_HOST=
 ```
 
-Do not commit `server.env`.
+`server.env` contains only non-secret operator settings. Do not add passwords,
+cloud tokens, Tailscale keys, or R2 credentials. The scripts reject those
+assignments before they source the file. Keep `server.env` ignored because it
+can still contain private hostnames, IPs, and local paths.
+
+The agent must use the operator's secret manager to inject only the required
+process variables:
+
+| Operation | Required process secret |
+| --- | --- |
+| Create or destroy a Hetzner VM without `HCLOUD_CONTEXT` | `HETZNER_TOKEN` or `HCLOUD_TOKEN` |
+| Install the server or deploy server configuration | `VALHEIM_PASSWORD` |
+| Server install with R2 enabled | `VALHEIM_R2_ACCESS_KEY_ID` and `VALHEIM_R2_SECRET_ACCESS_KEY` |
 
 ## Setup Steps
 
-Run:
+Run each command through the secret manager with only its required variables:
 
 ```bash
-providers/hetzner/create.sh
-scripts/install-server.sh
+your-secret-manager run -- providers/hetzner/create.sh
+your-secret-manager run -- scripts/install-server.sh
 ```
 
 If there is an existing world, upload both files:
@@ -122,38 +134,34 @@ The backup archive should be created under:
 /var/backups/valheim/
 ```
 
-For R2 backups, create `r2.env` from the example:
-
-```bash
-cp examples/r2.env.example r2.env
-```
-
-Fill in:
+For R2 backups, request an R2 configuration deployment and add its non-secret
+routing settings to `server.env`:
 
 ```text
+VALHEIM_R2_CONFIGURE=1
 VALHEIM_R2_ACCOUNT_ID=
 VALHEIM_R2_BUCKET=
-VALHEIM_R2_ACCESS_KEY_ID=
-VALHEIM_R2_SECRET_ACCESS_KEY=
 VALHEIM_R2_PREFIX=
 ```
 
-Then run:
+`VALHEIM_R2_CONFIGURE=0` preserves an existing server runtime file. It does not
+disable an R2 target that is already configured.
+
+Inject the two R2 credential variables from the secret manager, then run:
 
 ```bash
-scripts/install-server.sh
+your-secret-manager run -- scripts/install-server.sh
 ssh root@<server> 'valheim-backup-and-upload'
 ```
 
 Verify the object exists in R2.
 
-Do not commit `r2.env`.
-
 ## Safety Notes
 
-- Do not commit world files, passwords, R2 credentials, cloud tokens, or SSH keys.
+- Do not store passwords, R2 credentials, cloud tokens, or Tailscale keys in
+  local config, fixtures, logs, or chat.
+- Do not commit world files, SSH private keys, private IPs, or local paths.
 - Do not delete the VM until a recent backup has been downloaded or verified off-box.
 - Do not enable automatic Valheim updates unless the human explicitly wants surprise restarts.
 - Public SSH is optional; public Valheim UDP is required for normal player access.
 - If a private network is added for SSH, keep UDP `2456-2458` public unless all players are also on that private network.
-

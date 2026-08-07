@@ -11,6 +11,9 @@ features that explicitly name that requirement.
 ## Product Boundaries
 
 - The world must remain recoverable through tested local and off-box backups.
+- Operator secrets must stay out of local configuration. Deployment may create
+  restricted runtime files on the server, but those files are never sources of
+  truth.
 - Server-side mods should preserve vanilla-client compatibility unless that
   tradeoff is changed deliberately.
 - Client-side mods should not add custom persistent world objects or item data.

@@ -28,15 +28,24 @@ root. Do not duplicate detailed feature behavior in the root product doc.
 
 ## Public repository rules
 
-Follow the safety rules in `AGENTS.md`. Keep public documentation generic and
-keep operator data local. Do not use ambient `hcloud` context: provider scripts
-must get Hetzner auth from ignored `server.env` through `HETZNER_TOKEN` or
-`HCLOUD_TOKEN`, or from an explicit repo-owned `HCLOUD_CONTEXT` when the
-operator intentionally configured one.
+Follow the safety rules in `AGENTS.md`.
 
-Prefer small, explicit scripts over hidden local-machine assumptions. Keep
-provider lifecycle, server installation, world upload and download, and backup
-logic separate.
+- Do not commit secrets, passwords, tokens, private IPs, world files, character
+  files, Steam IDs, local save paths, or generated backup archives.
+- Keep `server.env` non-secret. It may contain operator settings, private
+  hostnames, IPs, and local paths, so it remains ignored.
+- Secrets enter generic scripts only through the process environment. The
+  scripts reject secret assignments in `server.env` before they source it.
+- Treat restricted files under `/etc/valheim` as generated deployment
+  artifacts, never secret sources of truth.
+- Keep docs generic enough for other people to use the repo.
+- Prefer small, explicit scripts over hidden local machine assumptions.
+- Do not rely on ambient `hcloud` context. Inject `HETZNER_TOKEN` or
+  `HCLOUD_TOKEN` into the provider process. Use a repo-owned `HCLOUD_CONTEXT`
+  only when the operator intentionally configured it in `server.env`.
+
+Keep provider lifecycle, server installation, world upload and download, and
+backup logic separate.
 
 ## Server development and operation
 
@@ -69,14 +78,36 @@ fails. New server mods must be removable without changing the world save.
 Benheim Eternal Fire must not prevent a vanilla client from joining.
 
 `scripts/apply-server-config.sh` owns routine deployment of the launcher and
-`server.env`. It takes a stopped-server backup and restores the previous files
-if deployment fails. Native world settings belong in the launcher environment,
-not in a replacement mod. `VALHEIM_PORTALS=casual` enables Valheim's native
-metal-through-portals rule. `VALHEIM_SKILL_GAIN_RATE` controls skill gain and
+the generated `/etc/valheim/server.env`. It combines non-secret local settings
+with the process `VALHEIM_PASSWORD`, takes a stopped-server backup, and restores
+the previous files if deployment fails. `scripts/install-server.sh` generates
+`/etc/valheim/r2.env` only when configuration is requested and both process
+credentials are present. A normal install leaves any existing R2 runtime file
+unchanged. Native world settings belong in the launcher environment, not in a
+replacement mod; `VALHEIM_PORTALS=casual` enables Valheim's own
+metal-through-portals rule. `VALHEIM_SKILL_GAIN_RATE` controls skill gain.
 `VALHEIM_SKILL_REDUCTION_RATE` controls skill loss on death for every player.
 
-Mark a server-mod gate complete in `PRODUCT.md` only after every named
-condition passes. Record one-time rollout evidence in `MIGRATION-1.0.md`.
+Ben's secrets live only in Doppler `valheim/prd`. Use the scoped wrapper instead
+of calling a generic mutating script directly:
+
+```bash
+scripts/with-ben-secrets.sh config
+scripts/with-ben-secrets.sh install
+scripts/with-ben-secrets.sh hetzner create
+scripts/with-ben-secrets.sh hetzner destroy
+```
+
+Each wrapper profile calls `safe b secrets run` with explicit key names. The
+wrapper must fail before remote work when Doppler lacks a required key. Do not
+run raw Doppler commands, pull secrets into local files, or print injected
+values. Use `tests/secret-flow-test.sh` when changing this boundary.
+`TAILSCALE_AUTHKEY` also belongs only in Doppler. The repo has no current
+Tailscale provisioning command, so do not invent a generic wrapper that merely
+injects the key without passing it to a real consumer.
+
+Mark a server-mod gate complete in `PRODUCT.md` only after every named condition
+passes. Record one-time rollout evidence in `MIGRATION-1.0.md`.
 
 ## Valheim 1.0 migration
 

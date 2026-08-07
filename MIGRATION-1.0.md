@@ -170,23 +170,27 @@ Create an ignored migration environment:
 
 ```bash
 mkdir -p tmp/migration-1.0
-cp server.env tmp/migration-1.0/server.env
+cp examples/server.env.example tmp/migration-1.0/server.env
 ```
 
-Edit the copy before running anything:
+Copy the required non-secret settings from the ordinary `server.env` into the
+migration file. Then edit the migration file before you run anything:
 
 - Give `HETZNER_SERVER_NAME` a unique migration-only name.
 - Give `VALHEIM_SERVER_NAME` a visibly temporary display name.
 - Keep `VALHEIM_WORLD_NAME` unchanged so the uploaded pair still matches.
 - Clear `SSH_HOST` so scripts cannot accidentally target production.
-- Confirm the Hetzner location, size, SSH key, and token source.
+- Confirm the Hetzner location, size, SSH key, and the Doppler `valheim/prd`
+  profile.
+- Keep passwords, cloud tokens, Tailscale keys, and R2 credentials out of the
+  migration file.
 
 Resolve the environment and inspect the target before creating anything:
 
 ```bash
 export VALHEIM_ENV_FILE="$PWD/tmp/migration-1.0/server.env"
-providers/hetzner/create.sh
-scripts/install-server.sh
+scripts/with-ben-secrets.sh hetzner create
+scripts/with-ben-secrets.sh install
 scripts/status.sh
 ```
 
@@ -205,7 +209,7 @@ Join the temporary server, verify the expected world, disconnect, and destroy
 the migration VM. Read the resolved server name before confirming deletion:
 
 ```bash
-providers/hetzner/destroy.sh
+scripts/with-ben-secrets.sh hetzner destroy
 unset VALHEIM_ENV_FILE
 ```
 
