@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# shellcheck source=valheim-source-lib.sh
+source "$script_dir/valheim-source-lib.sh"
+
 fail() {
   printf 'decompile-valheim: %s\n' "$1" >&2
   exit 1
@@ -16,28 +20,15 @@ if [[ -z "$requested_type" || ! "$requested_type" =~ $type_pattern ]]; then
   fail "invalid type '$requested_type'; provide one exact Valheim type such as Character"
 fi
 
-game_dir="${VALHEIM_GAME_DIR:-$HOME/Library/Application Support/Steam/steamapps/common/Valheim}"
-assembly_input="${VALHEIM_ASSEMBLY_PATH:-$game_dir/valheim.app/Contents/Resources/Data/Managed/assembly_valheim.dll}"
-if [[ ! -f "$assembly_input" ]]; then
-  fail "Valheim assembly not found at: $assembly_input"
-fi
-
-assembly_dir="$(cd "$(dirname "$assembly_input")" && pwd -P)" \
-  || fail "could not resolve the Valheim assembly directory: $assembly_input"
-assembly_path="$assembly_dir/$(basename "$assembly_input")"
-
-if command -v shasum >/dev/null 2>&1; then
-  assembly_sha="$(shasum -a 256 "$assembly_path" | awk '{print $1}')"
-  type_sha="$(printf '%s' "$requested_type" | shasum -a 256 | awk '{print $1}')"
-elif command -v sha256sum >/dev/null 2>&1; then
-  assembly_sha="$(sha256sum "$assembly_path" | awk '{print $1}')"
-  type_sha="$(printf '%s' "$requested_type" | sha256sum | awk '{print $1}')"
-else
-  fail "SHA-256 tool not found; install shasum or sha256sum"
-fi
-
-cache_root="${VALHEIM_DECOMPILE_CACHE_DIR:-${TMPDIR:-/tmp}/benheim-valheim-decompile}"
-assembly_cache="$cache_root/$assembly_sha"
+valheim_source_resolve_assembly || fail "$VALHEIM_SOURCE_ERROR"
+assembly_path="$VALHEIM_SOURCE_ASSEMBLY_PATH"
+assembly_sha="$VALHEIM_SOURCE_ASSEMBLY_SHA"
+type_sha="$(valheim_source_sha256_text "$requested_type")" || fail "$VALHEIM_SOURCE_ERROR"
+valheim_source_cache_root || fail "$VALHEIM_SOURCE_ERROR"
+cache_root="$VALHEIM_SOURCE_CACHE_ROOT"
+valheim_source_resolve_ilspy || fail "$VALHEIM_SOURCE_ERROR"
+valheim_source_decompiler_identity --no-version || fail "$VALHEIM_SOURCE_ERROR"
+assembly_cache="$cache_root/$assembly_sha/types/$VALHEIM_SOURCE_ILSPY_ID"
 cached_source="$assembly_cache/$type_sha.cs"
 
 cache_status="miss"
@@ -48,6 +39,7 @@ fi
 printf 'decompile-valheim: assembly=%s\n' "$assembly_path" >&2
 printf 'decompile-valheim: sha256=%s\n' "$assembly_sha" >&2
 printf 'decompile-valheim: type=%s\n' "$requested_type" >&2
+printf 'decompile-valheim: decompiler=%s\n' "$VALHEIM_SOURCE_ILSPY_ID" >&2
 printf 'decompile-valheim: cache=%s\n' "$cache_status" >&2
 
 if [[ "$cache_status" == "hit" ]]; then
@@ -55,18 +47,7 @@ if [[ "$cache_status" == "hit" ]]; then
   exit 0
 fi
 
-if [[ -n "${VALHEIM_ILSPY_PATH:-}" ]]; then
-  ilspy="$VALHEIM_ILSPY_PATH"
-  if [[ ! -x "$ilspy" ]]; then
-    fail "ILSpy override is not executable: $ilspy"
-  fi
-elif command -v ilspycmd >/dev/null 2>&1; then
-  ilspy="$(command -v ilspycmd)"
-elif [[ -x "$HOME/.dotnet/tools/ilspycmd" ]]; then
-  ilspy="$HOME/.dotnet/tools/ilspycmd"
-else
-  fail "ilspycmd not found; set VALHEIM_ILSPY_PATH, add ilspycmd to PATH, or install it under \$HOME/.dotnet/tools"
-fi
+ilspy="$VALHEIM_SOURCE_ILSPY_PATH"
 
 mkdir -p "$assembly_cache"
 stage_file="$(mktemp "$assembly_cache/.${type_sha}.stage.XXXXXX")" \

@@ -122,6 +122,15 @@ The helper caches decompiled source by the exact assembly SHA-256 and requested
 type. It writes decompiled source to standard output. It writes the resolved
 assembly path, SHA-256, requested type, and cache hit or miss to standard error.
 
+Cache and search the complete installed assembly:
+
+```bash
+mods/benheim-qol/scripts/ensure-valheim-source.sh
+mods/benheim-qol/scripts/search-valheim-source.sh -n 'StackAll\('
+mods/benheim-qol/scripts/list-valheim-types.sh projectile
+mods/benheim-qol/scripts/diff-valheim-types.sh --help
+```
+
 Build and install locally on Mac, then package for Mac and Windows:
 
 ```bash
