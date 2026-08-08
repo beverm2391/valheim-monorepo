@@ -22,6 +22,15 @@ grep -Fq 'hit.m_ranged' "$logic"
 grep -Fq 'hit.m_skill != Skills.SkillType.Bows' "$logic"
 grep -Fq 'hit.GetAttacker()' "$logic"
 grep -Fq 'weakSpot.m_collider == collider' "$logic"
+grep -Fq 'struckCollider.ClosestPoint(headPoint)' "$logic"
+grep -Fq 'head_collider_inspection_failed' "$logic"
+if grep -Fq 'struckBounds.Contains(headPoint)' "$logic"; then
+  printf 'head collider qualification must use the collider shape, not its AABB\n' >&2
+  exit 1
+fi
+grep -Fq '"outside_head_tolerance"' "$logic"
+grep -Fq '"head_point_missing"' "$logic"
+grep -Fq '"skill_not_bows"' "$logic"
 
 # Damage is modified once and native stagger remains at its baseline.
 grep -Fq 'hit.m_damage.Modify(multiplier)' "$logic"
@@ -31,6 +40,12 @@ grep -Fq 'if (!target.IsStaggering())' "$logic"
 grep -Fq 'WorldFeedback.ShowAbove' "$logic"
 grep -Fq 'Diagnostics.Event("Headshots"' "$logic"
 grep -Fq 'HeadTolerance' "$rules"
+
+# Qualification is one prefab-agnostic rule derived from live geometry.
+if rg -ni 'lox|GetPrefabName|PrefabName|allowlist' "$logic" "$rules"; then
+  printf 'headshot qualification must not special-case mobs or prefabs\n' >&2
+  exit 1
+fi
 
 # The stateless slice must not introduce per-shot result/adrenaline protocols.
 if rg -n 'AddAdrenaline|SNIPED|nonce|timeout|RPC_|Character\.Damage' "$logic" "$patch" "$rules"; then

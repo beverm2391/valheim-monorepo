@@ -13,12 +13,12 @@ The Repair module removes repeated repair clicks.
   repair path accepts in that area.
 - Each repair keeps Valheim's native eligibility checks and effects, including
   station, ward, ownership, stamina, eitr, durability, and tool costs.
-- After successful repairs, a top-left receipt groups results by the localized
-  displayed structure type. Each type uses one line, such as `Repaired 4 Wood
-  walls`.
+- After successful repairs, a receipt groups results by the localized displayed
+  structure type. Each type uses one line, such as `Repaired 4 Wood walls`.
 - Version `0.1.43` passed the build, full automated client suite, and independent
   native-path review. Ben confirmed mixed batch repair and grouped receipts in
-  gameplay. Diagnostics confirmed stamina exhaustion.
+  gameplay. Ben confirmed Mass Repair again in `0.1.48`. Diagnostics confirmed
+  stamina exhaustion.
 
 ## In Development
 
@@ -26,3 +26,8 @@ The Repair module removes repeated repair clicks.
   Gameplay has not yet exercised either case.
 - Gameplay has not yet exercised native station or ward denials or hammer
   durability exhaustion.
+- During a `Left Shift` + hammer batch, missing-station messages from collateral
+  pieces stay hidden. When Ben directly targets a piece that lacks its station,
+  Valheim's native message remains visible.
+- The grouped receipt appears beside the hotbar so it does not cover Valheim's
+  normal top-left status text. The new placement still needs gameplay proof.

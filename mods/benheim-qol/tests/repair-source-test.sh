@@ -18,6 +18,8 @@ grep -Fq 'private const float RepairRadius = 20f' "$repair" || grep -Fq 'interna
 grep -Fq 'NativeRepairMethod.Invoke' "$repair"
 grep -Fq 'HoveringPieceField.SetValue(player, piece)' "$repair"
 grep -Fq 'ReferenceEquals(nativeRepairTarget, repairTarget)' "$repair"
+grep -Fq 'RecordNativeMissingStationDenial' "$repair"
+grep -Fq 'missing_station_denials={nativeMissingStationDenials}' "$repair"
 grep -Fq 'toolItem.m_shared.m_useDurability && toolItem.m_durability <= 0f' "$repair"
 if grep -Fq 'GetHealthPercentage()' "$repair"; then
   printf 'native WearNTear.Repair must decide authoritative damaged state\n' >&2
@@ -28,9 +30,14 @@ grep -Fq 'Localization.instance.Localize(name)' "$repair"
 grep -Fq '.OrderByDescending(pair => pair.Value)' "$repair"
 grep -Fq 'QuickStackReceiptHud.Show(FormatReceipt(repairedByDisplayName))' "$repair"
 grep -Fq '$"Repaired {pair.Value} {Pluralize(pair.Key, pair.Value)}"' "$repair"
+grep -Fq 'private static bool Prefix(MessageHud.MessageType type, string msg)' "$patches"
+grep -Fq 'if (!BuildingRepair.IsInvokingNativeRepair)' "$patches"
+grep -Fq 'type == MessageHud.MessageType.Center' "$patches"
+grep -Fq 'string.Equals(msg, "$msg_missingstation", StringComparison.Ordinal)' "$patches"
+grep -Fq 'BuildingRepair.RecordNativeMissingStationDenial()' "$patches"
 grep -Fq 'type != MessageHud.MessageType.TopLeft' "$patches"
 if grep -Fq 'WorldFeedback' "$repair"; then
-  printf 'mass building repair must use the shared top-left receipt instead of world feedback\n' >&2
+  printf 'mass building repair must use the shared HUD receipt instead of world feedback\n' >&2
   exit 1
 fi
 if grep -Fq 'wearNTear.Repair()' "$repair"; then

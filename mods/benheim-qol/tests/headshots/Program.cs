@@ -23,10 +23,46 @@ float tinyColliderTolerance = HeadshotRules.HeadTolerance(
     rootDiameter: 1.0f,
     rootHeight: 2.0f,
     creatureScale: 1.0f);
+float largeHeadColliderTolerance = HeadshotRules.HeadTolerance(
+    struckDiameter: 3.0f,
+    rootDiameter: 3.0f,
+    rootHeight: 3.5f,
+    creatureScale: 1.0f,
+    struckColliderContainsHead: true);
+float humanoidHeadColliderTolerance = HeadshotRules.HeadTolerance(
+    struckDiameter: 0.45f,
+    rootDiameter: 1.0f,
+    rootHeight: 2.0f,
+    creatureScale: 1.0f,
+    struckColliderContainsHead: true);
+float smallCreatureHeadColliderTolerance = HeadshotRules.HeadTolerance(
+    struckDiameter: 0.3f,
+    rootDiameter: 0.8f,
+    rootHeight: 1.2f,
+    creatureScale: 0.4f,
+    struckColliderContainsHead: true);
+float broadChildColliderTolerance = HeadshotRules.HeadTolerance(
+    struckDiameter: 10.0f,
+    rootDiameter: 1.0f,
+    rootHeight: 2.0f,
+    creatureScale: 1.0f,
+    struckColliderContainsHead: true);
 
 ExpectTrue(ordinaryTolerance > 0f, "ordinary collider has a tolerance");
 ExpectTrue(scaledTolerance > ordinaryTolerance, "creature scale expands tolerance");
 ExpectTrue(tinyColliderTolerance < ordinaryTolerance, "struck collider dimensions constrain tolerance");
+ExpectTrue(
+    MathF.Abs(largeHeadColliderTolerance - 0.9f) < 0.0001f,
+    "large head collider may replace the height cap but remains root-width capped");
+ExpectTrue(
+    MathF.Abs(humanoidHeadColliderTolerance - 0.3f) < 0.0001f,
+    "humanoid head collider uses the owning character root-width cap");
+ExpectTrue(
+    smallCreatureHeadColliderTolerance < humanoidHeadColliderTolerance,
+    "small scaled creature receives a smaller world-space head tolerance");
+ExpectTrue(
+    MathF.Abs(broadChildColliderTolerance - 0.3f) < 0.0001f,
+    "broad child collider cannot bypass the owning character root-width cap");
 ExpectTrue(
     HeadshotRules.IsWithinTolerance(ordinaryTolerance, ordinaryTolerance),
     "boundary impact qualifies");

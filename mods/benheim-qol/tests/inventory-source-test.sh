@@ -64,6 +64,13 @@ grep -Fq 'QuickStackReceiptHud.Show(message)' "$quick_stack_feedback"
 grep -Fq 'Object.Instantiate(template, template.transform.parent)' "$quick_stack_receipt_hud"
 grep -Fq 'ElementGameObjectField' "$quick_stack_receipt_hud"
 grep -Fq 'rect.GetWorldCorners' "$quick_stack_receipt_hud"
+grep -Fq 'PlaceBesideHotbar(receiptText)' "$quick_stack_receipt_hud"
+grep -Fq 'FindVisibleHotbarBounds' "$quick_stack_receipt_hud"
+grep -Fq 'Mathf.Max(rect.rect.width, text.preferredWidth)' "$quick_stack_receipt_hud"
+grep -Fq 'Screen.width - margin - receiptWidth' "$quick_stack_receipt_hud"
+grep -Fq 'targetScreen.y = hotbarBounds.Value.yMin - gap' "$quick_stack_receipt_hud"
+grep -Fq 'hotkeyBar.transform is RectTransform hotbarRect' "$quick_stack_receipt_hud"
+grep -Fq 'corners[2]' "$quick_stack_receipt_hud"
 grep -Fq 'rect.pivot = new Vector2(0f, 1f)' "$quick_stack_receipt_hud"
 grep -Fq 'TextAlignmentOptions.TopLeft' "$quick_stack_receipt_hud"
 grep -Fq 'QuickStackReceiptHud.Update();' "$root/src/Plugin.cs"
@@ -78,7 +85,7 @@ if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
   printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
   exit 1
 fi
-grep -Fq 'PluginVersion = "0.1.48"' "$client_plugin"
+grep -Fq 'PluginVersion = "0.1.49"' "$client_plugin"
 if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol' "$root/src"; then
   printf 'client Put Away must not retain protocol machinery\n' >&2
   exit 1

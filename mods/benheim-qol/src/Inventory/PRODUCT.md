@@ -25,9 +25,8 @@ The Inventory module makes routine item movement faster.
   the player for 3 seconds. The summary says `Put away N items`, `Put away 1
   item`, or `Nothing to put away`. No receipt appears above a destination chest.
 - When Put Away starts with the inventory closed, it also shows a dedicated
-  top-left receipt. The receipt matches Valheim's native message styling
-  without moving or replacing Valheim's message feed. It starts below the
-  visible hotbar slots, and additional lines extend downward.
+  receipt. The receipt matches Valheim's native message styling without moving
+  or replacing Valheim's message feed.
 - When Put Away starts with the inventory open, its detailed result appears in
   Valheim's center message area so the inventory cannot cover it. No
   above-player summary appears.
@@ -44,6 +43,8 @@ The Inventory module makes routine item movement faster.
   protection applies and show the same manual `P` again when it no longer
   applies.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing.
+- Ben confirmed that the `0.1.48` solo Put Away flow was otherwise correct.
+  Receipt placement and the focused multiplayer gate remain unproven.
 
 ## In Development
 
@@ -56,6 +57,8 @@ The Inventory module makes routine item movement faster.
   single-item loadout.
 - Put Away can cause a brief frame hitch when it scans many nearby chests and
   matches their contents against the player's inventory.
+- The dedicated receipt appears beside the visible hotbar and extends downward.
+  It must not overlap native top-left status text such as exposed or sheltered.
 - Put Away asks the current owner for access to each chest through Valheim's
   Stack All action. It moves items only after the owner grants access.
 - During normal gameplay, each completed transfer must move each accepted item

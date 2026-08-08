@@ -27,10 +27,12 @@ internal static class BuildingRepair
 
     private static bool nativeRepairSucceeded;
     private static WearNTear? nativeRepairTarget;
+    private static int nativeMissingStationDenials;
 
     internal static int RepairNearby(Player player, ItemDrop.ItemData toolItem, Piece anchor)
     {
         NearbyPieces.Clear();
+        nativeMissingStationDenials = 0;
         Piece.GetAllPiecesInRadius(anchor.transform.position, RepairRadius, NearbyPieces);
         NearbyPieces.Sort((left, right) =>
             Vector3.SqrMagnitude(left.transform.position - anchor.transform.position)
@@ -83,7 +85,7 @@ internal static class BuildingRepair
         Diagnostics.Event(
             "Repair",
             "building_repair_finished",
-            $"anchor=\"{anchor.gameObject.name}\" candidates={NearbyPieces.Count} structures={structures} attempted={attempted} repaired={repaired} types={repairedByDisplayName.Count} stamina_exhausted={Diagnostics.Bool(staminaExhausted)} tool_exhausted={Diagnostics.Bool(toolExhausted)}");
+            $"anchor=\"{anchor.gameObject.name}\" candidates={NearbyPieces.Count} structures={structures} attempted={attempted} repaired={repaired} types={repairedByDisplayName.Count} missing_station_denials={nativeMissingStationDenials} stamina_exhausted={Diagnostics.Bool(staminaExhausted)} tool_exhausted={Diagnostics.Bool(toolExhausted)}");
 
         if (repaired > 0)
         {
@@ -91,6 +93,16 @@ internal static class BuildingRepair
         }
 
         return repaired;
+    }
+
+    internal static int RecordNativeMissingStationDenial()
+    {
+        if (!IsInvokingNativeRepair)
+        {
+            return 0;
+        }
+
+        return ++nativeMissingStationDenials;
     }
 
     internal static void RecordNativeRepairResult(WearNTear repairTarget, bool repaired)

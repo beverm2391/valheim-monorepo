@@ -47,7 +47,8 @@ internal static class HeadshotRules
         float struckDiameter,
         float rootDiameter,
         float rootHeight,
-        float creatureScale)
+        float creatureScale,
+        bool struckColliderContainsHead = false)
     {
         if (!IsFinite(struckDiameter)
             || !IsFinite(rootDiameter)
@@ -76,7 +77,21 @@ internal static class HeadshotRules
         float rootBound = Math.Min(
             rootRadius * MaximumRootRadiusRatio,
             worldRootHeight * MaximumRootHeightRatio);
-        return Math.Min(collisionSupport, rootBound);
+        float tolerance = Math.Min(collisionSupport, rootBound);
+        if (struckColliderContainsHead)
+        {
+            // Some large creatures use a dedicated child capsule for the head
+            // while their root capsule stays centered on the torso. When the
+            // collider's real shape contains the animated Head point, let the
+            // owning Character's root width replace the root-height cap. The
+            // actual impact still has to fall inside this capped radius around
+            // the Head point, so broad child colliders gain no extra support.
+            tolerance = Math.Max(
+                tolerance,
+                rootRadius * MaximumRootRadiusRatio);
+        }
+
+        return tolerance;
     }
 
     internal static bool IsWithinTolerance(float headDistance, float tolerance)

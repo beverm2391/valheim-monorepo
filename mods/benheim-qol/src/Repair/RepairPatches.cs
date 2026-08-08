@@ -89,8 +89,27 @@ internal static class BuildingRepairResultPatch
 })]
 internal static class BuildingRepairMessagePatch
 {
-    private static bool Prefix(MessageHud.MessageType type)
+    private static bool Prefix(MessageHud.MessageType type, string msg)
     {
-        return !BuildingRepair.IsInvokingNativeRepair || type != MessageHud.MessageType.TopLeft;
+        if (!BuildingRepair.IsInvokingNativeRepair)
+        {
+            return true;
+        }
+
+        // Player.CheckCanRemovePiece reports a missing required station as a
+        // Center message (the native UI renders it prominently near the top
+        // left). Suppress only that collateral batch denial; direct hammer
+        // repairs run outside this scope and retain the vanilla feedback.
+        if (type == MessageHud.MessageType.Center
+            && string.Equals(msg, "$msg_missingstation", StringComparison.Ordinal))
+        {
+            BuildingRepair.RecordNativeMissingStationDenial();
+            return false;
+        }
+
+        // Successful and no-op native repair messages would otherwise flood
+        // the feed once per collateral piece; the grouped batch receipt owns
+        // that feedback.
+        return type != MessageHud.MessageType.TopLeft;
     }
 }

@@ -19,42 +19,84 @@ internal static class HeadshotLogic
             || hit == null
             || projectile.m_aoe > 0f
             || (projectile.m_type & ProjectileType.Arrow) == 0
-            || (projectile.m_type & ProjectileType.AOE) != 0
-            || !hit.m_ranged
-            || hit.m_skill != Skills.SkillType.Bows
-            || hit.m_hitCollider != collider
-            || hit.m_point != hitPoint)
+            || (projectile.m_type & ProjectileType.AOE) != 0)
         {
             return;
         }
 
-        if (!(destructible is Character target)
-            || target is Player
-            || target.IsPlayer())
+        // Only log decisions for arrow collisions with a Character. Terrain,
+        // props, and other projectile types are not headshot candidates and
+        // would turn a useful trace into collision spam.
+        if (!(destructible is Character target))
         {
+            return;
+        }
+
+        if (target is Player || target.IsPlayer())
+        {
+            Skip("player_target", target, collider);
+            return;
+        }
+
+        if (!hit.m_ranged)
+        {
+            Skip("not_ranged", target, collider);
+            return;
+        }
+
+        if (hit.m_skill != Skills.SkillType.Bows)
+        {
+            Skip("skill_not_bows", target, collider, $"skill={hit.m_skill}");
+            return;
+        }
+
+        if (hit.m_hitCollider != collider)
+        {
+            Skip("collider_mismatch", target, collider);
+            return;
+        }
+
+        if (hit.m_point != hitPoint)
+        {
+            Skip("point_mismatch", target, collider);
             return;
         }
 
         Character attacker = hit.GetAttacker();
         if (!(attacker is Player))
         {
+            Skip("attacker_not_player", target, collider);
             return;
         }
 
         if (IsNativeWeakSpot(target, collider))
         {
-            Diagnostics.Event("Headshots", "skipped", "reason=native_weak_spot");
+            Skip("native_weak_spot", target, collider);
             return;
         }
 
-        if (!TryGetHeadQualification(target, collider, hitPoint, out float tolerance))
+        if (!TryGetHeadQualification(
+            target,
+            collider,
+            hitPoint,
+            out float tolerance,
+            out float headDistance,
+            out bool struckHeadCollider,
+            out string qualificationReason))
         {
+            Skip(
+                qualificationReason,
+                target,
+                collider,
+                $"head_distance_m={headDistance:0.###} tolerance={tolerance:0.###} "
+                + $"head_collider={Diagnostics.Bool(struckHeadCollider)}");
             return;
         }
 
         float distance = Vector3.Distance(projectile.m_startPoint, hitPoint);
         if (float.IsNaN(distance) || float.IsInfinity(distance))
         {
+            Skip("invalid_projectile_distance", target, collider);
             return;
         }
 
@@ -112,7 +154,42 @@ internal static class HeadshotLogic
         Diagnostics.Event(
             "Headshots",
             "applied",
-            $"distance_m={distance:0.##} multiplier={multiplier:0.00} tolerance={tolerance:0.###}");
+            $"target={Describe(target)} collider={Describe(collider)} "
+            + $"distance_m={distance:0.##} multiplier={multiplier:0.00} "
+            + $"head_distance_m={headDistance:0.###} tolerance={tolerance:0.###} "
+            + $"head_collider={Diagnostics.Bool(struckHeadCollider)}");
+    }
+
+    private static void Skip(
+        string reason,
+        Character target,
+        Collider collider,
+        string details = "")
+    {
+        string suffix = $"reason={reason} target={Describe(target)} collider={Describe(collider)}";
+        if (!string.IsNullOrWhiteSpace(details))
+        {
+            suffix += $" {details}";
+        }
+
+        Diagnostics.Event("Headshots", "skipped", suffix);
+    }
+
+    private static string Describe(UnityEngine.Object value)
+    {
+        if (value == null)
+        {
+            return "none";
+        }
+
+        try
+        {
+            return Diagnostics.Flatten(value.name);
+        }
+        catch (Exception)
+        {
+            return "unknown";
+        }
     }
 
     private static bool IsNativeWeakSpot(Character target, Collider collider)
@@ -139,17 +216,25 @@ internal static class HeadshotLogic
         Character target,
         Collider struckCollider,
         Vector3 hitPoint,
-        out float tolerance)
+        out float tolerance,
+        out float headDistance,
+        out bool struckHeadCollider,
+        out string reason)
     {
         tolerance = 0f;
+        headDistance = 0f;
+        struckHeadCollider = false;
+        reason = "head_qualification_failed";
         if (target.transform == null)
         {
+            reason = "target_transform_missing";
             return false;
         }
 
         CapsuleCollider rootCollider = target.GetComponent<CapsuleCollider>();
         if (rootCollider == null)
         {
+            reason = "root_collider_missing";
             return false;
         }
 
@@ -162,6 +247,7 @@ internal static class HeadshotLogic
         {
             // Characters without an initialized Head bone are not eligible;
             // do not substitute a transform or a guessed world-space point.
+            reason = "head_point_missing";
             return false;
         }
 
@@ -171,18 +257,43 @@ internal static class HeadshotLogic
             Mathf.Abs(rootScale.x),
             Mathf.Max(Mathf.Abs(rootScale.y), Mathf.Abs(rootScale.z)));
         float struckDiameter = Mathf.Max(struckBounds.size.x, struckBounds.size.z);
+        float containmentEpsilon = Mathf.Max(creatureScale * 0.001f, 0.0001f);
+        Vector3 closestHeadPoint;
+        try
+        {
+            // Collider.ClosestPoint is shape- and rotation-aware. Unity returns
+            // the input point when it lies inside the collider, unlike the
+            // world-axis-aligned Bounds check that can include empty corners.
+            closestHeadPoint = struckCollider.ClosestPoint(headPoint);
+        }
+        catch (Exception)
+        {
+            reason = "head_collider_inspection_failed";
+            return false;
+        }
+
+        struckHeadCollider = struckCollider != rootCollider
+            && Vector3.Distance(closestHeadPoint, headPoint) <= containmentEpsilon;
         tolerance = HeadshotRules.HeadTolerance(
             struckDiameter,
             rootCollider.radius * 2f,
             rootCollider.height,
-            creatureScale);
+            creatureScale,
+            struckHeadCollider);
 
         if (tolerance <= 0f)
         {
+            reason = "invalid_head_tolerance";
             return false;
         }
 
-        float headDistance = Vector3.Distance(hitPoint, headPoint);
-        return HeadshotRules.IsWithinTolerance(headDistance, tolerance);
+        headDistance = Vector3.Distance(hitPoint, headPoint);
+        if (!HeadshotRules.IsWithinTolerance(headDistance, tolerance))
+        {
+            reason = "outside_head_tolerance";
+            return false;
+        }
+
+        return true;
     }
 }

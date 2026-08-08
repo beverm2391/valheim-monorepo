@@ -1,3 +1,4 @@
+using BenheimQoL.Archery;
 using BenheimQoL.Farming;
 using BenheimQoL.InventoryFeature;
 using BenheimQoL.Repair;
@@ -54,7 +55,7 @@ internal static partial class ShortcutOverlay
             TravelAccent,
             new[]
             {
-                new Entry("Extended reach", "Use stations, cauldrons, chests, and nearby objects from farther away"),
+                new Entry("Extended reach", "Use interactable objects from up to 8 m; open containers stay available to 10 m"),
                 new Entry("Portal travel", "Finish the transition sooner after the destination is ready"),
             },
             "These features reduce waiting and positioning friction without automating play."),
@@ -71,11 +72,21 @@ internal static partial class ShortcutOverlay
             new Color(1f, 0.48f, 0.54f, 1f),
             new[]
             {
-                new Entry("Rockbreaker", "Pickaxes skill improves mining damage and crits; AOE unlocks at level 25"),
-                new Entry("Cleave", "Wood Cutting can hit nearby parts of the same tree after level 25"),
+                new Entry("Rockbreaker", "Pickaxes adds scaling damage; crits and AOE unlock at level 25"),
+                new Entry("Cleave", "After level 25, axe hits can add one half-damage hit to the same tree or log"),
+            },
+            "Skill-based effects grow through normal play without granting bonus drops."),
+        new(
+            "Combat",
+            new Color(1f, 0.48f, 0.54f, 1f),
+            new[]
+            {
+                new Entry(
+                    "Headshots",
+                    $"Bow arrows deal ×{HeadshotRules.NearMultiplier:0.##} through {HeadshotRules.NearDistanceMeters:0.#} m, scaling to ×{HeadshotRules.CapMultiplier:0.##} at {HeadshotRules.CapDistanceMeters:0.#} m"),
                 new Entry("Adrenaline", "Positive gains are doubled; perfect defenses show the actual gain"),
             },
-            "Skill-based effects grow through normal play instead of granting flat bonus drops."),
+            "Headshot text confirms local collision-time qualification. Native WeakSpot hits stay native."),
         new(
             "Diagnostics",
             new Color(0.74f, 0.7f, 1f, 1f),

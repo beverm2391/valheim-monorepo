@@ -10,9 +10,10 @@ internal static class QuickStackReceiptHud
 {
     private const float DurationSeconds = 5f;
     private const float FadeSeconds = 0.5f;
-    private const float LeftFallback = 24f;
-    private const float TopFallback = 120f;
+    private const float LeftFallback = 560f;
+    private const float TopFallback = 48f;
     private const float HotbarGap = 8f;
+    private const float ScreenMargin = 16f;
 
     private static readonly FieldInfo MessageTextField =
         AccessTools.Field(typeof(MessageHud), "m_messageText");
@@ -34,7 +35,7 @@ internal static class QuickStackReceiptHud
 
         receiptText.text = message;
         receiptText.alpha = 1f;
-        PlaceBelowHotbar(receiptText);
+        PlaceBesideHotbar(receiptText);
         receiptText.gameObject.SetActive(true);
         hideAt = Time.unscaledTime + DurationSeconds;
     }
@@ -87,7 +88,7 @@ internal static class QuickStackReceiptHud
         receiptText.gameObject.SetActive(false);
     }
 
-    private static void PlaceBelowHotbar(TMP_Text text)
+    private static void PlaceBesideHotbar(TMP_Text text)
     {
         RectTransform rect = text.rectTransform;
         if (rect.parent is not RectTransform parent)
@@ -100,9 +101,37 @@ internal static class QuickStackReceiptHud
             ? canvas.worldCamera
             : null;
         float scaleFactor = canvas ? Mathf.Max(canvas.scaleFactor, 0.01f) : 1f;
-        Vector2 targetScreen = FindVisibleHotbarBottomLeft(uiCamera)
-            ?? new Vector2(LeftFallback * scaleFactor, Screen.height - TopFallback * scaleFactor);
-        targetScreen.y -= HotbarGap * scaleFactor;
+        Rect? hotbarBounds = FindVisibleHotbarBounds(uiCamera);
+        float margin = ScreenMargin * scaleFactor;
+        float gap = HotbarGap * scaleFactor;
+        float receiptWidth = Mathf.Min(
+            Mathf.Max(rect.rect.width, text.preferredWidth) * scaleFactor,
+            Mathf.Max(0f, Screen.width - margin * 2f));
+        float receiptHeight = Mathf.Min(
+            Mathf.Max(rect.rect.height, text.preferredHeight) * scaleFactor,
+            Mathf.Max(0f, Screen.height - margin * 2f));
+        Vector2 targetScreen = hotbarBounds.HasValue
+            ? new Vector2(hotbarBounds.Value.xMax + gap, hotbarBounds.Value.yMax)
+            : new Vector2(LeftFallback * scaleFactor, Screen.height - TopFallback * scaleFactor);
+
+        // Keep the receipt in a separate right-side column. If it cannot fit
+        // beside a wide hotbar, move it below the bar instead of sliding it
+        // left over the slots or Valheim's top-left status lane.
+        if (hotbarBounds.HasValue
+            && targetScreen.x + receiptWidth + margin > Screen.width)
+        {
+            targetScreen.x = Screen.width - margin - receiptWidth;
+            targetScreen.y = hotbarBounds.Value.yMin - gap;
+        }
+
+        targetScreen.x = Mathf.Clamp(
+            targetScreen.x,
+            margin,
+            Mathf.Max(margin, Screen.width - margin - receiptWidth));
+        targetScreen.y = Mathf.Clamp(
+            targetScreen.y,
+            margin + receiptHeight,
+            Mathf.Max(margin + receiptHeight, Screen.height - margin));
         if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
             parent,
             targetScreen,
@@ -118,7 +147,7 @@ internal static class QuickStackReceiptHud
         rect.anchoredPosition = localPoint;
     }
 
-    private static Vector2? FindVisibleHotbarBottomLeft(Camera? uiCamera)
+    private static Rect? FindVisibleHotbarBounds(Camera? uiCamera)
     {
         HotkeyBar hotkeyBar = Object.FindFirstObjectByType<HotkeyBar>();
         if (!hotkeyBar || ElementsField.GetValue(hotkeyBar) is not IEnumerable elements)
@@ -126,6 +155,8 @@ internal static class QuickStackReceiptHud
             return null;
         }
 
+        float right = float.NegativeInfinity;
+        float top = float.NegativeInfinity;
         float left = float.PositiveInfinity;
         float bottom = float.PositiveInfinity;
         var corners = new Vector3[4];
@@ -139,12 +170,30 @@ internal static class QuickStackReceiptHud
 
             rect.GetWorldCorners(corners);
             Vector2 bottomLeft = RectTransformUtility.WorldToScreenPoint(uiCamera, corners[0]);
+            Vector2 topRight = RectTransformUtility.WorldToScreenPoint(uiCamera, corners[2]);
             left = Mathf.Min(left, bottomLeft.x);
             bottom = Mathf.Min(bottom, bottomLeft.y);
+            right = Mathf.Max(right, topRight.x);
+            top = Mathf.Max(top, topRight.y);
         }
 
-        return float.IsPositiveInfinity(left)
+        // With an empty hotbar there may be no active element. The bar's own
+        // live RectTransform still gives a UI-scale-aware anchor and avoids a
+        // resolution-specific fallback.
+        if (float.IsNegativeInfinity(right)
+            && hotkeyBar.transform is RectTransform hotbarRect)
+        {
+            hotbarRect.GetWorldCorners(corners);
+            Vector2 bottomLeft = RectTransformUtility.WorldToScreenPoint(uiCamera, corners[0]);
+            Vector2 topRight = RectTransformUtility.WorldToScreenPoint(uiCamera, corners[2]);
+            left = bottomLeft.x;
+            bottom = bottomLeft.y;
+            right = topRight.x;
+            top = topRight.y;
+        }
+
+        return float.IsNegativeInfinity(right)
             ? null
-            : new Vector2(left, bottom);
+            : Rect.MinMaxRect(left, bottom, right, top);
     }
 }

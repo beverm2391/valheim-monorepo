@@ -60,11 +60,12 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.48` is the current local gameplay candidate. Players have confirmed
-installation on Mac and Windows, the native menu, and diagnostic export. Native
-Put Away remains in development and will ship only after its focused two-player
-gameplay test passes. Each feature module records its confirmed behavior and
-remaining limits.
+Benheim `0.1.49` is the current local gameplay candidate. Players have confirmed
+installation on Mac and Windows, the native menu, diagnostic export, Mass
+Repair, and doubled adrenaline with its native decay delay. Native Put Away
+remains in development and will ship only after its focused two-player gameplay
+test passes. Each feature module records its confirmed behavior and remaining
+limits.
 
 ## In Development
 

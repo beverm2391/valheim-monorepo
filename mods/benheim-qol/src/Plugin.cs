@@ -16,7 +16,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.48";
+    public const string PluginVersion = "0.1.49";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 

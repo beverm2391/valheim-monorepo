@@ -11,9 +11,6 @@ successful perfect defenses, and shows decay timing on Valheim's meter.
   gameplay, and disappears at zero.
 - Ordinary blocks and rolls show no adrenaline feedback. Valheim's full-meter
   effect remains unchanged.
-
-## In Development
-
 - Every positive adrenaline grant is doubled. This includes ordinary hits,
   perfect parries and dodges, staggering an enemy, and Guardian Power.
 - Negative adrenaline changes are not doubled.
@@ -22,3 +19,9 @@ successful perfect defenses, and shows decay timing on Valheim's meter.
 - The normal 10-second delay and subsequent decay remain unchanged.
 - Perfect-parry and perfect-dodge feedback must show the amount the doubled
   native grant actually adds to the meter.
+- `0.1.48` gameplay diagnostics confirmed doubled positive grants, actual
+  perfect-parry feedback, and the unchanged 10-second delay.
+
+## In Development
+
+No adrenaline changes are currently in development.

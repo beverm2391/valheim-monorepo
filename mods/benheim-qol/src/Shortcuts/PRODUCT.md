@@ -12,7 +12,8 @@ use it to find controls and passive features.
 - The Controls tab uses aligned key and action columns grouped by Inventory,
   Crafting & Repair, and Farming.
 - The Features tab explains extended reach, faster portal transitions,
-  Rockbreaker, Cleave, adrenaline feedback, and diagnostic export.
+  Rockbreaker, Cleave, global Bow-arrow headshots, adrenaline feedback, and
+  diagnostic export.
 - The menu explains manual pocketing and automatic protection for equipped and
   hotbar items.
 - The menu lists `Left Shift` actions for production inputs, cooking slots,
@@ -22,6 +23,7 @@ use it to find controls and passive features.
   timestamped filename on Mac and Windows.
 - The game shows the exported filename so the player can find and attach the
   diagnostic log when reporting a problem.
+- Ben confirmed that the `0.1.48` menu presentation looks good.
 
 ## In Development
 
@@ -39,6 +41,11 @@ use it to find controls and passive features.
   without interrupting unrelated gameplay.
 - The menu says that **Place stacks**, **Hold to stack**, and Put Away keep
   manually pocketed, equipped, and hotbar items with the player.
+- The headshot description must stay aligned with the Archery module's proven
+  behavior and remain explicit about collision-time feedback and native
+  WeakSpot handling.
+- Extended reach, Rockbreaker, and Cleave descriptions must match their current
+  ranges, unlocks, and target behavior.
 
 ## Later
 

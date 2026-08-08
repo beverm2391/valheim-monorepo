@@ -29,11 +29,14 @@ None yet. The first headshot slice still needs gameplay proof.
   path. Benheim adds no headshot result protocol, marker, retry, timeout, or
   persistent shot state.
 - Ordinary arrow adrenaline remains unchanged.
+- Ben reported that attempted Bow headshots on a Lox produced no feedback. The
+  `0.1.48` log contained no Headshots diagnostic event. The next candidate must
+  log the qualification decision and accept real Lox head hits.
 
 ## Open Product Decision
 
-- `SNIPED` kill feedback and headshot-specific adrenaline rewards are
-  deliberately omitted from `0.1.48`. Decide after the first gameplay test
+- `SNIPED` kill feedback and headshot-specific adrenaline rewards remain
+  deliberately omitted. Decide after the first successful gameplay test
   whether they are valuable enough to justify a custom multiplayer result
   protocol and transient shot lifecycle. Valheim does not return accepted
   damage, authoritative death, full-health state, or the shooter's actual meter
