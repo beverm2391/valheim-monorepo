@@ -88,23 +88,12 @@ replacement mod; `VALHEIM_PORTALS=casual` enables Valheim's own
 metal-through-portals rule. `VALHEIM_SKILL_GAIN_RATE` controls skill gain.
 `VALHEIM_SKILL_REDUCTION_RATE` controls skill loss on death for every player.
 
-Ben's secrets live only in Doppler `valheim/prd`. Use the scoped wrapper instead
-of calling a generic mutating script directly:
-
-```bash
-scripts/with-ben-secrets.sh config
-scripts/with-ben-secrets.sh install
-scripts/with-ben-secrets.sh hetzner create
-scripts/with-ben-secrets.sh hetzner destroy
-```
-
-Each wrapper profile calls `safe b secrets run` with explicit key names. The
-wrapper must fail before remote work when Doppler lacks a required key. Do not
-run raw Doppler commands, pull secrets into local files, or print injected
-values. Use `tests/secret-flow-test.sh` when changing this boundary.
-`TAILSCALE_AUTHKEY` also belongs only in Doppler. The repo has no current
-Tailscale provisioning command, so do not invent a generic wrapper that merely
-injects the key without passing it to a real consumer.
+Keep the repository's mutating scripts secret-manager agnostic. Operators must
+inject only the process variables required by the selected command. Do not add
+an operator-specific credential wrapper, pull secrets into local files, or
+print injected values. Scripts must finish credential preflight before their
+first remote mutation. Use `tests/secret-flow-test.sh` when changing this
+boundary.
 
 Mark a server-mod gate complete in `PRODUCT.md` only after every named condition
 passes. Record one-time rollout evidence in `MIGRATION-1.0.md`.

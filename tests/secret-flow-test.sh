@@ -112,8 +112,6 @@ VALHEIM_R2_BUCKET=valheim-backups
 VALHEIM_R2_PREFIX=
 EOF
 
-sed '/^SSH_HOST=/d' "$test_root/base.env" > "$test_root/discovered-host.env"
-
 VALHEIM_ENV_FILE="$test_root/r2.env" \
 VALHEIM_PASSWORD=server-secret-sentinel \
 VALHEIM_R2_ACCESS_KEY_ID=r2-access-sentinel \
@@ -141,7 +139,8 @@ EOF
 chmod 0755 "$test_root/fake-bin/ssh" "$test_root/fake-bin/scp"
 : > "$test_root/remote.log"
 set +e
-REMOTE_LOG="$test_root/remote.log" \
+env -u VALHEIM_R2_ACCESS_KEY_ID -u VALHEIM_R2_SECRET_ACCESS_KEY \
+  REMOTE_LOG="$test_root/remote.log" \
   PATH="$test_root/fake-bin:$PATH" \
   VALHEIM_ENV_FILE="$test_root/r2.env" \
   VALHEIM_PASSWORD=server-secret-sentinel \
@@ -197,58 +196,27 @@ assert_contains "config deployment cleans staging after a failed transfer" \
 assert_not_contains "failed config transfer does not print the password" \
   transfer-secret-sentinel "$test_root/config-transfer.out" "$test_root/remote.log"
 
-cat > "$test_root/fake-bin/safe" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-printf '%s\n' "$*" > "$SAFE_LOG"
-EOF
-chmod 0755 "$test_root/fake-bin/safe"
+: > "$test_root/remote.log"
+if env -u VALHEIM_PASSWORD \
+  REMOTE_LOG="$test_root/remote.log" \
+  PATH="$test_root/fake-bin:$PATH" \
+  VALHEIM_ENV_FILE="$test_root/base.env" \
+  "$repo_root/scripts/install-server.sh" > "$test_root/install-missing-password.out" 2>&1; then
+  fail "install rejects a missing process password"
+fi
+[[ ! -s "$test_root/remote.log" ]] || fail "install password preflight fails before remote calls"
+pass "install password preflight fails before remote calls"
 
-run_wrapper() {
-  local env_file=$1
-  shift
-  : > "$test_root/safe.log"
-  SAFE_LOG="$test_root/safe.log" \
-    PATH="$test_root/fake-bin:$PATH" \
-    VALHEIM_ENV_FILE="$env_file" \
-    "$repo_root/scripts/with-ben-secrets.sh" "$@"
-}
-
-run_wrapper "$test_root/base.env" config
-assert_contains "config profile scopes the password" \
-  "b secrets run --project valheim --config prd --secret VALHEIM_PASSWORD -- $repo_root/scripts/apply-server-config.sh" \
-  "$test_root/safe.log"
-assert_not_contains "config profile does not scope R2 credentials" VALHEIM_R2_ACCESS_KEY_ID "$test_root/safe.log"
-assert_not_contains "config profile does not scope Hetzner credentials" HETZNER_TOKEN "$test_root/safe.log"
-
-run_wrapper "$test_root/discovered-host.env" config
-assert_contains "config profile scopes Hetzner auth when it must discover the host" \
-  "b secrets run --project valheim --config prd --secret VALHEIM_PASSWORD --secret HETZNER_TOKEN -- $repo_root/scripts/apply-server-config.sh" \
-  "$test_root/safe.log"
-
-run_wrapper "$test_root/base.env" install
-assert_contains "install profile without R2 scopes only the password" \
-  "b secrets run --project valheim --config prd --secret VALHEIM_PASSWORD -- $repo_root/scripts/install-server.sh" \
-  "$test_root/safe.log"
-assert_not_contains "install profile without R2 does not scope R2 credentials" \
-  VALHEIM_R2_ACCESS_KEY_ID "$test_root/safe.log"
-
-run_wrapper "$test_root/discovered-host.env" install
-assert_contains "install profile scopes Hetzner auth when it must discover the host" \
-  "b secrets run --project valheim --config prd --secret VALHEIM_PASSWORD --secret HETZNER_TOKEN -- $repo_root/scripts/install-server.sh" \
-  "$test_root/safe.log"
-
-run_wrapper "$test_root/r2.env" install
-assert_contains "install profile with R2 scopes the password and R2 keys" \
-  "b secrets run --project valheim --config prd --secret VALHEIM_PASSWORD --secret VALHEIM_R2_ACCESS_KEY_ID --secret VALHEIM_R2_SECRET_ACCESS_KEY -- $repo_root/scripts/install-server.sh" \
-  "$test_root/safe.log"
-assert_not_contains "install profile does not scope Hetzner credentials" HETZNER_TOKEN "$test_root/safe.log"
-
-run_wrapper "$test_root/base.env" hetzner create
-assert_contains "Hetzner profile scopes only its token" \
-  "b secrets run --project valheim --config prd --secret HETZNER_TOKEN -- $repo_root/providers/hetzner/create.sh" \
-  "$test_root/safe.log"
-assert_not_contains "Hetzner profile does not scope the server password" VALHEIM_PASSWORD "$test_root/safe.log"
+: > "$test_root/remote.log"
+if env -u VALHEIM_PASSWORD \
+  REMOTE_LOG="$test_root/remote.log" \
+  PATH="$test_root/fake-bin:$PATH" \
+  VALHEIM_ENV_FILE="$test_root/base.env" \
+  "$repo_root/scripts/apply-server-config.sh" > "$test_root/config-missing-password.out" 2>&1; then
+  fail "config deployment rejects a missing process password"
+fi
+[[ ! -s "$test_root/remote.log" ]] || fail "config password preflight fails before remote calls"
+pass "config password preflight fails before remote calls"
 
 assert_contains "config rollback snapshots the readiness helper" \
   'old_waiter="$work/wait-for-valheim.previous"' "$repo_root/scripts/apply-server-config.sh"
