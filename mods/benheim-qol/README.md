@@ -91,12 +91,15 @@ mods/benheim-qol/scripts/install-local.sh
 ```
 
 `install-local.sh` builds the DLL and invokes the same Mac installer shipped to
-players. To create the shareable package, run:
+players. To create the shareable Mac and Windows packages, run:
 
 ```bash
-mods/benheim-qol/scripts/package-macos.sh
-mods/benheim-qol/scripts/package-windows.sh
+mods/benheim-qol/scripts/package-all.sh
 ```
+
+`package-all.sh` runs `verify.sh` once, then creates the versioned Mac and
+Windows packages from the same verified Release DLL. It does not install files,
+create a release, or upload either package.
 
 Publish a tested release from a clean local `main` branch that exactly matches
 `origin/main`:
@@ -107,12 +110,12 @@ mods/benheim-qol/scripts/release.sh
 
 The release command:
 
-- runs the complete client test suite;
-- builds both packages;
+- runs `verify.sh`;
+- builds both packages from that verified Release DLL;
 - creates a versioned GitHub release; and
 - uploads both packages with stable asset names.
 
-The package is written under `mods/benheim-qol/dist/`. The installer copies
+The packages are written under `mods/benheim-qol/dist/`. The installer copies
 `BenheimQoL.dll` into:
 
 ```text

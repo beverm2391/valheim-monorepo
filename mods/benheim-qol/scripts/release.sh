@@ -30,9 +30,7 @@ if git show-ref --tags --verify --quiet "refs/tags/$tag" || gh release view "$ta
   fail "Release $tag already exists."
 fi
 
-"$root/scripts/verify.sh"
-BENHEIM_QOL_SKIP_BUILD=1 "$root/scripts/package-macos.sh"
-BENHEIM_QOL_SKIP_BUILD=1 "$root/scripts/package-windows.sh"
+"$root/scripts/package-all.sh"
 
 mac_package="$root/dist/Benheim-macOS-$version.zip"
 windows_package="$root/dist/Benheim-Windows-$version.zip"
