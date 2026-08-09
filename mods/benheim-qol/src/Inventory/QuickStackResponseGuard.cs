@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace BenheimQoL.InventoryFeature;
 
 /// <summary>
-/// Tracks the one native response that each Put Away chest request must produce.
-/// Valheim's response carries only a container, not a request identifier. If a
-/// request times out, the container stays unavailable until that one response is
-/// observed and discarded, so it cannot be mistaken for a later Put Away request.
+/// Tracks the response expected from the current Put Away chest request.
+/// Valheim identifies the chest but not the request in its response. After a
+/// timeout, the chest stays unavailable until the next response for that chest
+/// is discarded, so no response can attach to a later Put Away operation.
 /// </summary>
 internal sealed class QuickStackResponseGuard<TContainer> where TContainer : class
 {

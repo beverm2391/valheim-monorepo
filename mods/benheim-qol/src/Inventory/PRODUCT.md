@@ -69,7 +69,25 @@ The Inventory module makes routine item movement faster.
   ownership changes.
 - Put Away keeps native inventory persistence and interruption behavior. It
   does not force a character save or add a transfer journal, transaction
-  receipt, retry, or crash recovery.
+  receipt, automatic retry, or crash recovery.
+- If a chest does not answer Put Away within 5 seconds, Put Away cancels the
+  batch and clears the in-progress state. It does not retry the chest or
+  continue to another chest in that batch. It logs the timeout and tells the
+  player to try again in the shared top-left lane.
+- A timed-out chest stays unavailable to Put Away until one native Stack All
+  response for that chest arrives. Benheim discards exactly that one response.
+  Later Put Away attempts can use other chests. Put Away can use the timed-out
+  chest again after Benheim discards the response.
+- Valheim does not identify Stack All responses by request. If the timed-out
+  response never arrives, the next manual Stack All response for that chest can
+  be the response that Benheim discards. This releases the chest for later
+  attempts without moving items or creating a Put Away receipt.
+- Automated lifecycle checks prove:
+  - timeout cancellation;
+  - late-response discard;
+  - cleanup after a normal grant or denial; and
+  - later use of other chests.
+  The recovery feedback and gameplay flow still need player proof.
 - The transfer must work with either player as the requester or current chest
   owner, and a completed transfer must remain visible after ownership changes.
 - Valheim's **Place stacks** button and **Hold to stack** action must keep

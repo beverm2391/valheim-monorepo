@@ -10,6 +10,7 @@ internal static class QuickStack
 
     private static QuickStackOperation? activeOperation;
     private static readonly QuickStackResponseGuard<Container> ResponseGuard = new QuickStackResponseGuard<Container>();
+
     internal static void Run(Player player, InventoryGui inventoryGui, Container? currentContainer)
     {
         if (activeOperation != null && (!activeOperation.Player || activeOperation.Player != player))
@@ -341,14 +342,13 @@ internal static class QuickStack
             return false;
         }
 
-        LogDiscardedTimedOutResponse(container, granted);
+        Diagnostics.Event(
+            "Inventory",
+            "quick_stack_late_response_discarded",
+            $"container=\"{container.gameObject.name}\" status={(granted ? "granted" : "denied")}");
         return true;
     }
 
-    private static void LogDiscardedTimedOutResponse(Container container, bool granted)
-    {
-        Diagnostics.Event("Inventory", "quick_stack_late_response_discarded", $"container=\"{container.gameObject.name}\" status={(granted ? "granted" : "denied")}");
-    }
     private static void RestoreBulkScope(QuickStackBulkScope? scope)
     {
         if (scope != null && QuickStackBulkScope.Active == scope)
