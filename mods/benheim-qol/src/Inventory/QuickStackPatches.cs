@@ -10,6 +10,11 @@ internal static class QuickStackPatches
     {
         private static bool Prefix(Container __instance, bool granted)
         {
+            if (QuickStack.TryHandleTimedOutResponse(__instance, granted))
+            {
+                return false;
+            }
+
             return granted || !QuickStack.TryHandleNativeDenial(__instance);
         }
     }

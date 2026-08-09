@@ -66,6 +66,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         TopLeftFeedbackHud.Update();
+        QuickStack.Update();
         QuickStackHotkey.Update();
     }
 

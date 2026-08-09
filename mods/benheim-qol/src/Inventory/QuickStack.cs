@@ -9,7 +9,7 @@ internal static class QuickStack
     internal const float Radius = 30f;
 
     private static QuickStackOperation? activeOperation;
-
+    private static readonly QuickStackResponseGuard<Container> ResponseGuard = new QuickStackResponseGuard<Container>();
     internal static void Run(Player player, InventoryGui inventoryGui, Container? currentContainer)
     {
         if (activeOperation != null && (!activeOperation.Player || activeOperation.Player != player))
@@ -133,9 +133,24 @@ internal static class QuickStack
                 continue;
             }
 
+            if (ResponseGuard.IsWaitingForTimedOutResponse(container))
+            {
+                Diagnostics.Event(
+                    "Inventory",
+                    "quick_stack_container_skipped",
+                    $"container=\"{container.gameObject.name}\" reason=awaiting_timed_out_response");
+                continue;
+            }
+
             int candidates = CountCandidates(operation.Player, container);
             if (candidates == 0)
             {
+                continue;
+            }
+
+            if (!ResponseGuard.TryBeginRequest(container, Time.unscaledTime))
+            {
+                Diagnostics.Event("Inventory", "quick_stack_container_skipped", $"container=\"{container.gameObject.name}\" reason=response_guard_busy");
                 continue;
             }
 
@@ -145,8 +160,6 @@ internal static class QuickStack
                 "quick_stack_request_container",
                 $"container=\"{container.gameObject.name}\" index={operation.NextContainerIndex}/{operation.Containers.Count} " +
                 $"items={candidates}");
-            // Valheim owns delivery, denial, and interruption for this request. Put Away
-            // deliberately adds no timeout, retry, or abandoned-response state.
             container.StackAll();
             return;
         }
@@ -181,6 +194,7 @@ internal static class QuickStack
             return false;
         }
 
+        ResponseGuard.CompleteCurrentResponse(container);
         operation.CurrentContainer = null;
         operation.BusyContainers++;
         Diagnostics.Event(
@@ -258,6 +272,7 @@ internal static class QuickStack
 
         QuickStackOperation operation = scope.Operation!;
         Container container = scope.Container!;
+        ResponseGuard.CompleteCurrentResponse(container);
         operation.CurrentContainer = null;
         int movedItems = RecordNativeTransfer(scope, operation, container);
         operation.MovedItems += movedItems;
@@ -270,6 +285,11 @@ internal static class QuickStack
         RestoreBulkScope(scope);
         if (exception != null && scope?.Operation != null && activeOperation == scope.Operation)
         {
+            if (scope.Container)
+            {
+                ResponseGuard.CompleteCurrentResponse(scope.Container);
+            }
+
             activeOperation = null;
             Diagnostics.Event("Inventory", "quick_stack_cancelled", "reason=bulk_stack_exception");
         }
@@ -281,8 +301,54 @@ internal static class QuickStack
     {
         activeOperation = null;
         QuickStackBulkScope.Active = null;
+        ResponseGuard.Reset();
     }
 
+    internal static void Update()
+    {
+        ResponseGuard.PruneTimedOutResponses(container => !container);
+
+        QuickStackOperation? operation = activeOperation;
+        if (operation == null || !ResponseGuard.TryTimeoutRequest(Time.unscaledTime, out Container? container))
+        {
+            return;
+        }
+
+        if (operation.CurrentContainer != container)
+        {
+            // Requests are serial; a mismatch must not attach a callback to this batch.
+            activeOperation = null;
+            QuickStackBulkScope.Active = null;
+            Diagnostics.Event("Inventory", "quick_stack_cancelled", "reason=response_guard_mismatch");
+            TopLeftFeedbackHud.ShowTransient("Put Away timed out; try again");
+            return;
+        }
+
+        activeOperation = null;
+        QuickStackBulkScope.Active = null;
+        string containerName = container != null && container ? container.gameObject.name : "destroyed";
+        Diagnostics.Event(
+            "Inventory",
+            "quick_stack_cancelled",
+            $"reason=response_timeout container=\"{containerName}\" wait_seconds={QuickStackResponseGuard<Container>.WaitSeconds:0.#}");
+        TopLeftFeedbackHud.ShowTransient("Put Away timed out; try again");
+    }
+
+    internal static bool TryHandleTimedOutResponse(Container container, bool granted)
+    {
+        if (!ResponseGuard.TryDiscardTimedOutResponse(container))
+        {
+            return false;
+        }
+
+        LogDiscardedTimedOutResponse(container, granted);
+        return true;
+    }
+
+    private static void LogDiscardedTimedOutResponse(Container container, bool granted)
+    {
+        Diagnostics.Event("Inventory", "quick_stack_late_response_discarded", $"container=\"{container.gameObject.name}\" status={(granted ? "granted" : "denied")}");
+    }
     private static void RestoreBulkScope(QuickStackBulkScope? scope)
     {
         if (scope != null && QuickStackBulkScope.Active == scope)

@@ -11,4 +11,5 @@ for test_script in "$root"/tests/*-test.sh; do
 done
 
 dotnet run --project "$root/tests/quick-stack-summary/QuickStackSummaryTests.csproj"
+dotnet run --project "$root/tests/quick-stack-recovery/QuickStackRecoveryTests.csproj"
 "$root/scripts/build.sh"
