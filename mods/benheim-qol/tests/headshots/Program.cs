@@ -71,6 +71,56 @@ ExpectTrue(
     "outside impact does not qualify");
 ExpectClose(0f, HeadshotRules.HeadTolerance(0f, 1f, 2f, 1f), "invalid struck collider");
 
+// A direct head volume qualifies by the collision shape itself, even when its
+// surface lies outside the intentionally smaller fallback point tolerance.
+ExpectTrue(
+    HeadshotRules.IsDirectHeadCollider(
+        isRootCollider: false,
+        isTrigger: false,
+        containsHead: true,
+        headCenterDistance: 0.40f,
+        minimumBoundsExtent: 0.858f),
+    "head-centered child collider is a direct head volume");
+ExpectTrue(
+    !HeadshotRules.IsWithinTolerance(1.059f, 0.9f),
+    "direct head-volume test is outside old point tolerance");
+
+float broadContainingChildTolerance = HeadshotRules.HeadTolerance(
+    struckDiameter: 10f,
+    rootDiameter: 1f,
+    rootHeight: 2f,
+    creatureScale: 1f,
+    struckColliderContainsHead: true);
+ExpectTrue(
+    !HeadshotRules.IsDirectHeadCollider(
+        isRootCollider: false,
+        isTrigger: false,
+        containsHead: true,
+        headCenterDistance: 2.89f,
+        minimumBoundsExtent: 1.29f),
+    "broad containing child is not a direct head volume");
+ExpectTrue(
+    !HeadshotRules.IsWithinTolerance(4.72f, broadContainingChildTolerance),
+    "broad containing child remains rejected by the unchanged fallback");
+ExpectTrue(
+    !HeadshotRules.IsDirectHeadCollider(false, false, true, float.NaN, 1f),
+    "invalid head center distance fails closed");
+ExpectTrue(
+    !HeadshotRules.IsDirectHeadCollider(false, false, true, 0f, float.PositiveInfinity),
+    "non-finite bounds fail closed");
+ExpectTrue(
+    !HeadshotRules.IsDirectHeadCollider(false, false, false, 0f, 1f),
+    "near-outside shape point is not a direct head volume");
+ExpectTrue(
+    !HeadshotRules.IsDirectHeadCollider(false, false, true, 0f, 0f),
+    "degenerate bounds fail closed");
+ExpectTrue(
+    !HeadshotRules.IsDirectHeadCollider(true, false, true, 0f, 1f),
+    "root collider is never a direct head volume");
+ExpectTrue(
+    !HeadshotRules.IsDirectHeadCollider(false, true, true, 0f, 1f),
+    "trigger collider is never a direct head volume");
+
 ExpectClose(
     4.5f,
     3f * 1.25f * HeadshotRules.CompensatedStaggerMultiplier(1.5f, 1.25f),

@@ -24,6 +24,17 @@ grep -Fq 'hit.GetAttacker()' "$logic"
 grep -Fq 'weakSpot.m_collider == collider' "$logic"
 grep -Fq 'struckCollider.ClosestPoint(headPoint)' "$logic"
 grep -Fq 'head_collider_inspection_failed' "$logic"
+grep -Fq 'struckCollider.isTrigger' "$logic"
+grep -Fq 'IsDirectHeadCollider' "$logic"
+grep -Fq 'qualification_path=' "$logic"
+grep -Fq 'contains_head=' "$logic"
+grep -Fq 'head_center_distance_m=' "$logic"
+grep -Fq 'head_center_limit_m=' "$logic"
+grep -Fq 'root_collider=' "$logic"
+grep -Fq 'trigger_collider=' "$logic"
+grep -Fq 'containsHead = closestHeadPoint.Equals(headPoint);' "$logic"
+grep -Fq 'bool fallbackContainsHead = !struckRootCollider' "$logic"
+grep -Fq 'Vector3.Distance(closestHeadPoint, headPoint) <= containmentEpsilon;' "$logic"
 if grep -Fq 'struckBounds.Contains(headPoint)' "$logic"; then
   printf 'head collider qualification must use the collider shape, not its AABB\n' >&2
   exit 1
@@ -40,6 +51,20 @@ grep -Fq 'if (!target.IsStaggering())' "$logic"
 grep -Fq 'WorldFeedback.ShowAbove' "$logic"
 grep -Fq 'Diagnostics.Event("Headshots"' "$logic"
 grep -Fq 'HeadTolerance' "$rules"
+grep -Fq 'minimumBoundsExtent' "$rules"
+
+# Direct head volumes must not widen the established point-tolerance fallback.
+grep -Fq 'private const float MinimumRootSupportRatio = 0.12f;' "$rules"
+grep -Fq 'private const float MaximumRootRadiusRatio = 0.60f;' "$rules"
+grep -Fq 'private const float MaximumRootHeightRatio = 0.20f;' "$rules"
+
+# A direct head collider must bypass the fallback comparison, not merely be
+# given a larger tolerance. Keep the direct return before IsWithinTolerance.
+awk '
+  /if \(directHeadCollider\)/ { direct = NR }
+  /if \(!HeadshotRules\.IsWithinTolerance/ { fallback = NR }
+  END { exit !(direct && fallback && direct < fallback) }
+' "$logic"
 
 # Qualification is one prefab-agnostic rule derived from live geometry.
 if rg -ni 'lox|GetPrefabName|PrefabName|allowlist' "$logic" "$rules"; then

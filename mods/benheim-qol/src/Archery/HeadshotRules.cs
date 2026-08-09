@@ -103,6 +103,38 @@ internal static class HeadshotRules
             && headDistance <= tolerance;
     }
 
+    /// <summary>
+    /// Identifies a collider that is itself the character's usable head
+    /// volume. A collider may contain the Head point while spanning a torso or
+    /// the whole creature, so containment alone is deliberately insufficient.
+    /// The Head must also sit no farther from the collider's bounds center than
+    /// its smallest half-extent, which keeps the direct path inside the
+    /// collider's central, head-sized volume.
+    /// </summary>
+    internal static bool IsDirectHeadCollider(
+        bool isRootCollider,
+        bool isTrigger,
+        bool containsHead,
+        float headCenterDistance,
+        float minimumBoundsExtent)
+    {
+        return !isRootCollider
+            && !isTrigger
+            && containsHead
+            && IsHeadCenteredInBounds(headCenterDistance, minimumBoundsExtent);
+    }
+
+    internal static bool IsHeadCenteredInBounds(
+        float headCenterDistance,
+        float minimumBoundsExtent)
+    {
+        return IsFinite(headCenterDistance)
+            && IsFinite(minimumBoundsExtent)
+            && headCenterDistance >= 0f
+            && minimumBoundsExtent > 0f
+            && headCenterDistance <= minimumBoundsExtent;
+    }
+
     internal static float CompensatedStaggerMultiplier(
         float originalMultiplier,
         float damageMultiplier)

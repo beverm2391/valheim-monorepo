@@ -81,7 +81,13 @@ internal static class HeadshotLogic
             hitPoint,
             out float tolerance,
             out float headDistance,
-            out bool struckHeadCollider,
+            out bool directHeadCollider,
+            out bool containsHead,
+            out bool headCentered,
+            out bool struckRootCollider,
+            out bool struckTriggerCollider,
+            out float headCenterDistance,
+            out float headCenterLimit,
             out string qualificationReason))
         {
             Skip(
@@ -89,7 +95,13 @@ internal static class HeadshotLogic
                 target,
                 collider,
                 $"head_distance_m={headDistance:0.###} tolerance={tolerance:0.###} "
-                + $"head_collider={Diagnostics.Bool(struckHeadCollider)}");
+                + $"qualification_path=fallback head_collider={Diagnostics.Bool(directHeadCollider)} "
+                + $"contains_head={Diagnostics.Bool(containsHead)} "
+                + $"head_centered={Diagnostics.Bool(headCentered)} "
+                + $"root_collider={Diagnostics.Bool(struckRootCollider)} "
+                + $"trigger_collider={Diagnostics.Bool(struckTriggerCollider)} "
+                + $"head_center_distance_m={headCenterDistance:0.###} "
+                + $"head_center_limit_m={headCenterLimit:0.###}");
             return;
         }
 
@@ -157,7 +169,14 @@ internal static class HeadshotLogic
             $"target={Describe(target)} collider={Describe(collider)} "
             + $"distance_m={distance:0.##} multiplier={multiplier:0.00} "
             + $"head_distance_m={headDistance:0.###} tolerance={tolerance:0.###} "
-            + $"head_collider={Diagnostics.Bool(struckHeadCollider)}");
+            + $"qualification_path={(directHeadCollider ? "head_collider" : "fallback")} "
+            + $"head_collider={Diagnostics.Bool(directHeadCollider)} "
+            + $"contains_head={Diagnostics.Bool(containsHead)} "
+            + $"head_centered={Diagnostics.Bool(headCentered)} "
+            + $"root_collider={Diagnostics.Bool(struckRootCollider)} "
+            + $"trigger_collider={Diagnostics.Bool(struckTriggerCollider)} "
+            + $"head_center_distance_m={headCenterDistance:0.###} "
+            + $"head_center_limit_m={headCenterLimit:0.###}");
     }
 
     private static void Skip(
@@ -218,12 +237,24 @@ internal static class HeadshotLogic
         Vector3 hitPoint,
         out float tolerance,
         out float headDistance,
-        out bool struckHeadCollider,
+        out bool directHeadCollider,
+        out bool containsHead,
+        out bool headCentered,
+        out bool struckRootCollider,
+        out bool struckTriggerCollider,
+        out float headCenterDistance,
+        out float headCenterLimit,
         out string reason)
     {
         tolerance = 0f;
         headDistance = 0f;
-        struckHeadCollider = false;
+        directHeadCollider = false;
+        containsHead = false;
+        headCentered = false;
+        struckRootCollider = false;
+        struckTriggerCollider = false;
+        headCenterDistance = 0f;
+        headCenterLimit = 0f;
         reason = "head_qualification_failed";
         if (target.transform == null)
         {
@@ -272,14 +303,45 @@ internal static class HeadshotLogic
             return false;
         }
 
-        struckHeadCollider = struckCollider != rootCollider
+        // Collider.ClosestPoint returns its input point for a point inside the
+        // real shape. Use that containment result directly: a near miss must
+        // not enter the exact-volume path just because it is within a scale
+        // epsilon of the collider surface.
+        containsHead = closestHeadPoint.Equals(headPoint);
+        struckRootCollider = struckCollider == rootCollider;
+        struckTriggerCollider = struckCollider.isTrigger;
+        headCenterDistance = Vector3.Distance(headPoint, struckBounds.center);
+        headCenterLimit = Mathf.Min(
+            struckBounds.extents.x,
+            Mathf.Min(struckBounds.extents.y, struckBounds.extents.z));
+        headCentered = HeadshotRules.IsHeadCenteredInBounds(
+            headCenterDistance,
+            headCenterLimit);
+        directHeadCollider = HeadshotRules.IsDirectHeadCollider(
+            isRootCollider: struckRootCollider,
+            isTrigger: struckTriggerCollider,
+            containsHead: containsHead,
+            headCenterDistance: headCenterDistance,
+            minimumBoundsExtent: headCenterLimit);
+
+        // The old point-and-tolerance path intentionally remains in place for
+        // every other collider. Keep its original scale-relative containment
+        // input and conservative caps; neither is a proxy for the exact direct
+        // head-volume decision above.
+        bool fallbackContainsHead = !struckRootCollider
             && Vector3.Distance(closestHeadPoint, headPoint) <= containmentEpsilon;
         tolerance = HeadshotRules.HeadTolerance(
             struckDiameter,
             rootCollider.radius * 2f,
             rootCollider.height,
             creatureScale,
-            struckHeadCollider);
+            fallbackContainsHead);
+
+        headDistance = Vector3.Distance(hitPoint, headPoint);
+        if (directHeadCollider)
+        {
+            return true;
+        }
 
         if (tolerance <= 0f)
         {
@@ -287,7 +349,6 @@ internal static class HeadshotLogic
             return false;
         }
 
-        headDistance = Vector3.Distance(hitPoint, headPoint);
         if (!HeadshotRules.IsWithinTolerance(headDistance, tolerance))
         {
             reason = "outside_head_tolerance";
