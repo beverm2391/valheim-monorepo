@@ -25,6 +25,10 @@ This file owns the overall product promise. Each feature module has a
 - The normal Steam launch stays vanilla on Mac and Windows. `Benheim.app` on
   Mac and the `Benheim` shortcut on Windows are explicit modded launch paths.
 - Keep Benheim compatible with servers and players that do not use it.
+- For features that depend on the zone owner, every client in the expected
+  playgroup must run the same Benheim version for consistent behavior. Vanilla
+  clients may still join, but zones they own use Valheim's native behavior for
+  those features.
 - Put Away must let Valheim's current chest owner grant the transfer. Never
   write a non-owned local chest or claim ownership as a shortcut.
 - Do not add custom persistent world objects. Store a player's manual pocket
@@ -53,6 +57,7 @@ This file owns the overall product promise. Each feature module has a
 | [Adrenaline](src/Adrenaline/PRODUCT.md) | Adrenaline gain, perfect-defense feedback, and decay timing. |
 | [Archery](src/Archery/PRODUCT.md) | Global arrow headshots and collision-time feedback. |
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |
+| [Spawning](src/Spawning/PRODUCT.md) | Adjust spawn opportunities for selected native creatures. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 
 `Infrastructure` contains shared implementation support and has no independent
@@ -60,7 +65,7 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.50` is the current local gameplay candidate. Players have confirmed
+Benheim `0.1.51` is the current local gameplay candidate. Players have confirmed
 installation on Mac and Windows, the native menu, diagnostic export, Mass
 Repair, and doubled adrenaline with its native decay delay. Ben confirmed
 global Bow headshots on a Berserker and a Shaman in `0.1.49`. Ben confirmed the

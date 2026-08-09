@@ -52,6 +52,29 @@ internal static class StationFillPatches
     }
 
     [HarmonyPrefix]
+    [HarmonyPatch(typeof(ShieldGenerator), "OnAddFuel")]
+    private static bool ShieldGeneratorFuelPrefix(
+        ShieldGenerator __instance,
+        Switch sw,
+        Humanoid user,
+        ItemDrop.ItemData? item,
+        ref bool __result)
+    {
+        if (StationFill.IsInvokingVanilla)
+        {
+            return true;
+        }
+
+        if (!StationFill.TryStartShieldGeneratorFuel(__instance, sw, user, item))
+        {
+            return true;
+        }
+
+        __result = true;
+        return false;
+    }
+
+    [HarmonyPrefix]
     [HarmonyPatch(typeof(CookingStation), "OnAddFoodSwitch")]
     private static bool CookingFoodPrefix(
         CookingStation __instance,

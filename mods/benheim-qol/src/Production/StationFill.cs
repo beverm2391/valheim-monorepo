@@ -20,8 +20,18 @@ internal static class StationFill
         AccessTools.Method(typeof(Smelter), "GetQueueSize");
     private static readonly MethodInfo SmelterGetFuel =
         AccessTools.Method(typeof(Smelter), "GetFuel");
+    private static readonly FieldInfo SmelterNetView =
+        AccessTools.Field(typeof(Smelter), "m_nview");
+    private static readonly MethodInfo ShieldGeneratorAddFuel =
+        AccessTools.Method(typeof(ShieldGenerator), "OnAddFuel");
+    private static readonly MethodInfo ShieldGeneratorGetFuel =
+        AccessTools.Method(typeof(ShieldGenerator), "GetFuel");
+    private static readonly FieldInfo ShieldGeneratorNetView =
+        AccessTools.Field(typeof(ShieldGenerator), "m_nview");
     private static readonly MethodInfo CookingAddFood =
         AccessTools.Method(typeof(CookingStation), "OnAddFoodSwitch");
+    private static readonly MethodInfo CookingHaveDoneItem =
+        AccessTools.Method(typeof(CookingStation), "HaveDoneItem");
     private static readonly MethodInfo CookingAddFuel =
         AccessTools.Method(typeof(CookingStation), "OnAddFuelSwitch");
     private static readonly MethodInfo CookingGetFuel =
@@ -46,7 +56,9 @@ internal static class StationFill
             "smelter_input",
             () => Convert.ToSingle(SmelterGetQueueSize.Invoke(station, null)),
             station.m_maxOre,
-            CreateAddOne(SmelterAddOre, station, switchRef, user, item));
+            CreateAddOne(SmelterAddOre, station, switchRef, user, item),
+            () => ReadSyncState(station, SmelterNetView),
+            item?.m_shared?.m_name);
     }
 
     internal static bool TryStartSmelterFuel(
@@ -61,7 +73,26 @@ internal static class StationFill
             "smelter_fuel",
             () => Convert.ToSingle(SmelterGetFuel.Invoke(station, null)),
             station.m_maxFuel,
-            CreateAddOne(SmelterAddFuel, station, switchRef, user, item));
+            CreateAddOne(SmelterAddFuel, station, switchRef, user, item),
+            () => ReadSyncState(station, SmelterNetView),
+            item?.m_shared?.m_name);
+    }
+
+    internal static bool TryStartShieldGeneratorFuel(
+        ShieldGenerator station,
+        Switch switchRef,
+        Humanoid user,
+        ItemDrop.ItemData? item)
+    {
+        return TryStart(
+            station,
+            user,
+            "shield_generator_fuel",
+            () => Convert.ToSingle(ShieldGeneratorGetFuel.Invoke(station, null)),
+            station.m_maxFuel,
+            CreateAddOne(ShieldGeneratorAddFuel, station, switchRef, user, item),
+            () => ReadSyncState(station, ShieldGeneratorNetView),
+            item?.m_shared?.m_name);
     }
 
     internal static bool TryStartCookingFood(
@@ -70,13 +101,24 @@ internal static class StationFill
         Humanoid user,
         ItemDrop.ItemData? item)
     {
+        // Leave the player's direct ready-food interaction entirely native.
+        // During an active auto-fill, CreateCookingAddOne repeats the same gate
+        // so food that finishes mid-batch is never taken as a side effect.
+        if (item == null && InputState.IsShiftHeld() && user == Player.m_localPlayer &&
+            CookingHaveDoneItem.Invoke(station, null) is true)
+        {
+            return false;
+        }
+
         return TryStart(
             station,
             user,
             "cooking_input",
             () => CountOccupiedCookingSlots(station),
             station.m_slots.Length,
-            CreateAddOne(CookingAddFood, station, switchRef, user, item));
+            CreateCookingAddOne(station, switchRef, user, item),
+            () => ReadSyncState(station, CookingNetView),
+            item?.m_shared?.m_name);
     }
 
     internal static bool TryStartCookingFuel(
@@ -91,7 +133,9 @@ internal static class StationFill
             "cooking_fuel",
             () => Convert.ToSingle(CookingGetFuel.Invoke(station, null)),
             station.m_maxFuel,
-            CreateAddOne(CookingAddFuel, station, switchRef, user, item));
+            CreateAddOne(CookingAddFuel, station, switchRef, user, item),
+            () => ReadSyncState(station, CookingNetView),
+            item?.m_shared?.m_name);
     }
 
     private static bool TryStart(
@@ -100,12 +144,17 @@ internal static class StationFill
         string inputKind,
         Func<float> getLevel,
         float capacity,
-        Func<bool> addOne)
+        Func<bool> addOne,
+        Func<StationSyncState> getSyncState,
+        string? selectedItemName)
     {
-        if (invokingVanilla
-            || !InputState.IsShiftHeld()
-            || user != Player.m_localPlayer
-            || getLevel() >= capacity)
+        if (invokingVanilla || !InputState.IsShiftHeld())
+        {
+            return false;
+        }
+
+        float level = getLevel();
+        if (user != Player.m_localPlayer || level >= capacity)
         {
             return false;
         }
@@ -116,12 +165,34 @@ internal static class StationFill
             return true;
         }
 
-        Diagnostics.Event(
-            "Production",
-            "station_fill_started",
-            $"station={station.GetType().Name} input={inputKind} " +
-            $"level={getLevel():0.###} capacity={capacity:0.###}");
-        station.StartCoroutine(Fill(station, user, activeKey, inputKind, getLevel, capacity, addOne));
+        try
+        {
+            StationSyncState sync = getSyncState();
+            string stationIdentity = GetStationIdentity(station);
+
+            Diagnostics.Event(
+                "Production",
+                "station_fill_started",
+                $"station={stationIdentity} input={inputKind} " +
+                $"level={level:0.###} capacity={capacity:0.###} " +
+                $"selected={(selectedItemName == null ? "auto" : Diagnostics.Flatten(selectedItemName))} " +
+                sync.Describe());
+            station.StartCoroutine(Fill(
+                station,
+                user,
+                activeKey,
+                inputKind,
+                stationIdentity,
+                getLevel,
+                capacity,
+                addOne,
+                getSyncState));
+        }
+        catch
+        {
+            ActiveInputs.Remove(activeKey);
+            throw;
+        }
         return true;
     }
 
@@ -130,36 +201,57 @@ internal static class StationFill
         Humanoid user,
         string activeKey,
         string inputKind,
+        string stationIdentity,
         Func<float> getLevel,
         float capacity,
-        Func<bool> addOne)
+        Func<bool> addOne,
+        Func<StationSyncState> getSyncState)
     {
-        int added = 0;
+        float startedAt = Time.unscaledTime;
+        int attempted = 0;
+        int confirmed = 0;
         string result = "complete";
+        float lastLevel = 0f;
+        StationSyncState lastSync = default;
 
         try
         {
+            lastLevel = getLevel();
+            lastSync = getSyncState();
             while (station && getLevel() < capacity)
             {
                 float before = getLevel();
                 if (!addOne())
                 {
+                    lastLevel = getLevel();
+                    lastSync = getSyncState();
                     result = "vanilla_rejected";
                     break;
                 }
 
-                added++;
-                float deadline = Time.unscaledTime + StateUpdateTimeoutSeconds;
+                attempted++;
+                float waitStartedAt = Time.unscaledTime;
+                float deadline = waitStartedAt + StateUpdateTimeoutSeconds;
                 while (station && getLevel() <= before && Time.unscaledTime < deadline)
                 {
                     yield return null;
                 }
 
-                if (!station || getLevel() <= before)
+                if (!station)
+                {
+                    result = "station_destroyed";
+                    break;
+                }
+
+                lastLevel = getLevel();
+                lastSync = getSyncState();
+                if (lastLevel <= before)
                 {
                     result = "state_update_timeout";
                     break;
                 }
+
+                confirmed++;
             }
         }
         finally
@@ -167,18 +259,20 @@ internal static class StationFill
             ActiveInputs.Remove(activeKey);
         }
 
-        if (added > 0 && user)
+        if (confirmed > 0 && user)
         {
             user.Message(
                 MessageHud.MessageType.Center,
-                added == 1 ? "Filled 1 item" : $"Filled {added} items");
+                confirmed == 1 ? "Filled 1 item" : $"Filled {confirmed} items");
         }
 
         Diagnostics.Event(
             "Production",
             "station_fill_finished",
-            $"station={(station ? station.GetType().Name : "destroyed")} input={inputKind} " +
-            $"added={added} result={result}");
+            $"station={stationIdentity} input={inputKind} " +
+            $"attempted={attempted} confirmed={confirmed} result={result} " +
+            $"level={lastLevel:0.###}/{capacity:0.###} " +
+            $"elapsed={Time.unscaledTime - startedAt:0.###} {lastSync.Describe()}");
     }
 
     private static bool InvokeVanilla(
@@ -215,11 +309,70 @@ internal static class StationFill
         string? selectedItemName = firstItem?.m_shared?.m_name;
         return () =>
         {
-            ItemDrop.ItemData? item = selectedItemName == null
-                ? null
-                : user.GetInventory().GetItem(selectedItemName);
+            ItemDrop.ItemData? item = selectedItemName != null
+                ? user.GetInventory().GetItem(selectedItemName)
+                : null;
+            if (selectedItemName != null && item == null)
+            {
+                return false;
+            }
             return InvokeVanilla(method, station, switchRef, user, item);
         };
+    }
+
+    private static Func<bool> CreateCookingAddOne(
+        CookingStation station,
+        Switch switchRef,
+        Humanoid user,
+        ItemDrop.ItemData? firstItem)
+    {
+        string? selectedItemName = firstItem?.m_shared?.m_name;
+        return () =>
+        {
+            ItemDrop.ItemData? item = selectedItemName != null
+                ? user.GetInventory().GetItem(selectedItemName)
+                : null;
+            if (selectedItemName != null && item == null)
+            {
+                return false;
+            }
+
+            // Valheim's null-item path both chooses the first compatible food
+            // and awards the native Cooking skill gain. It also takes a ready
+            // output, so stop the batch before invoking that path when any
+            // finished food is waiting. The player's ordinary interaction is
+            // left untouched when the batch never starts.
+            if (item == null && CookingHaveDoneItem.Invoke(station, null) is true)
+            {
+                return false;
+            }
+
+            return InvokeVanilla(CookingAddFood, station, switchRef, user, item);
+        };
+    }
+
+    private static StationSyncState ReadSyncState(
+        MonoBehaviour station,
+        FieldInfo netViewField)
+    {
+        ZNetView? netView = netViewField.GetValue(station) as ZNetView;
+        ZDO? zdo = netView?.GetZDO();
+        return new StationSyncState(netView, zdo);
+    }
+
+    private static string GetStationIdentity(MonoBehaviour station)
+    {
+        string fallback = station.gameObject.name;
+        try
+        {
+            string prefabName = Utils.GetPrefabName(station.gameObject);
+            string identity = string.IsNullOrEmpty(prefabName) ? fallback : prefabName;
+            return $"{Diagnostics.Flatten(identity)}#{station.GetInstanceID()}";
+        }
+        catch
+        {
+            return $"{Diagnostics.Flatten(fallback)}#{station.GetInstanceID()}";
+        }
     }
 
     private static float CountOccupiedCookingSlots(CookingStation station)
@@ -241,5 +394,30 @@ internal static class StationFill
         }
 
         return occupied;
+    }
+
+    private readonly struct StationSyncState
+    {
+        private readonly bool valid;
+        private readonly bool owner;
+        private readonly bool hasOwner;
+        private readonly long ownerId;
+        private readonly uint dataRevision;
+
+        internal StationSyncState(ZNetView? netView, ZDO? zdo)
+        {
+            valid = netView?.IsValid() == true;
+            owner = netView?.IsOwner() == true;
+            hasOwner = zdo?.HasOwner() == true;
+            ownerId = zdo?.GetOwner() ?? 0L;
+            dataRevision = zdo?.DataRevision ?? 0u;
+        }
+
+        internal string Describe()
+        {
+            string ownerKind = !hasOwner ? "none" : owner ? "local" : "remote";
+            return $"owner={ownerKind} owner_id={ownerId} zdo_valid={Diagnostics.Bool(valid)} " +
+                $"data_revision={dataRevision}";
+        }
     }
 }
