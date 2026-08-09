@@ -8,6 +8,10 @@ The Production module fills routine station inputs without repeated clicks.
 - The `0.1.50` log proves one ordinary Smelter ore case: one `Left Shift`
   interaction filled the input from `0` to `50`. The result does not prove
   every station or ownership case.
+- Ben observed a different `0.1.50` result at the Windmill: one `Left Shift`
+  interaction added only one Barley instead of filling the input. That session
+  contains no Production diagnostics, so it does not establish why the action
+  added only one Barley.
 
 ## In Development
 
@@ -28,10 +32,16 @@ The Production module fills routine station inputs without repeated clicks.
 - Stop when the station is full, the player runs out of compatible items,
   Valheim rejects an addition, or synchronization exceeds its timeout.
 - Show one centered summary with the number of items added.
-- Focused `0.1.51` gameplay tests still need to prove two cases: `Left Shift`
-  batch-fills Shield Generator fuel, and batch fill works when another player
-  owns the station. Diagnostics identify the station, input, owner, attempted
-  additions, and confirmed station updates.
+- `0.1.51` has no proven Windmill-specific fix. It adds Production diagnostics
+  that record the station, input, owner, attempted additions, confirmed station
+  updates, result, and elapsed time.
+- Windmill behavior remains unproven when the local player owns it and when
+  another player owns it. Acceptance requires one `Left Shift` interaction to
+  add Barley until the Windmill reaches native capacity or the player's
+  inventory has no compatible Barley left. Normal interaction must still add
+  one item.
+- `0.1.51` adds Shield Generator fuel handling separately, but focused gameplay
+  proof is still required.
 - In `0.1.48`, diagnostics confirmed ten Stone Oven conversions were multiplied
   by `0.5` and the player Valheim assigned as owner ran the timer. Bread still
   felt long. The next test must report each recipe's native and effective bake
