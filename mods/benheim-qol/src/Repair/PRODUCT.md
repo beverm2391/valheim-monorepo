@@ -29,5 +29,6 @@ The Repair module removes repeated repair clicks.
 - During a `Left Shift` + hammer batch, missing-station messages from collateral
   pieces stay hidden. When Ben directly targets a piece that lacks its station,
   Valheim's native message remains visible.
-- The grouped receipt appears beside the hotbar so it does not cover Valheim's
-  normal top-left status text. The new placement still needs gameplay proof.
+- Mass Repair's grouped receipt follows the shared top-left feedback lane
+  defined in the root product document. Its new placement still needs gameplay
+  proof.

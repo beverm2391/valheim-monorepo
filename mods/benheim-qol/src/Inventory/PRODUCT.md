@@ -24,14 +24,12 @@ The Inventory module makes routine item movement faster.
 - When Put Away starts with the inventory closed, it shows a short summary above
   the player for 3 seconds. The summary says `Put away N items`, `Put away 1
   item`, or `Nothing to put away`. No receipt appears above a destination chest.
-- When Put Away starts with the inventory closed, it also shows a dedicated
+- When Put Away starts with the inventory closed, it also shows a grouped
   receipt. The receipt matches Valheim's native message styling without moving
-  or replacing Valheim's message feed.
+  or replacing Valheim's native message feed.
 - When Put Away starts with the inventory open, its detailed result appears in
   Valheim's center message area so the inventory cannot cover it. No
   above-player summary appears.
-- Pocket and unpocket confirmations appear only in the normal top-left message
-  feed.
 - A gold `P` in the top-left of an item slot marks manual pocketing, which the
   player can toggle.
 - Pocketing a stackable item protects every stack of that item type. Pocketing
@@ -43,8 +41,8 @@ The Inventory module makes routine item movement faster.
   protection applies and show the same manual `P` again when it no longer
   applies.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing.
-- Ben confirmed that the `0.1.48` solo Put Away flow was otherwise correct.
-  Receipt placement and the focused multiplayer gate remain unproven.
+- Ben confirmed the `0.1.49` solo Put Away behavior except for the dedicated
+  receipt placement. The focused multiplayer gate remains unproven.
 
 ## In Development
 
@@ -57,8 +55,12 @@ The Inventory module makes routine item movement faster.
   single-item loadout.
 - Put Away can cause a brief frame hitch when it scans many nearby chests and
   matches their contents against the player's inventory.
-- The dedicated receipt appears beside the visible hotbar and extends downward.
-  It must not overlap native top-left status text such as exposed or sheltered.
+- Put Away's grouped receipt keeps every destination line and every item line.
+  Its placement follows the shared top-left feedback lane defined in the root
+  product document and still needs gameplay proof.
+- Pocket and unpocket confirmations and Put Away's already-in-progress message
+  use that same lane. They never enter Valheim's native top-left status-message
+  feed.
 - Put Away asks the current owner for access to each chest through Valheim's
   Stack All action. It moves items only after the owner grants access.
 - During normal gameplay, each completed transfer must move each accepted item

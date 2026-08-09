@@ -25,7 +25,7 @@ internal static class QuickStack
         if (activeOperation != null)
         {
             Diagnostics.Event("Inventory", "quick_stack_rejected", "reason=already_in_progress");
-            player.Message(MessageHud.MessageType.TopLeft, "Put Away already in progress");
+            TopLeftFeedbackHud.ShowTransient("Put Away already in progress");
             return;
         }
 

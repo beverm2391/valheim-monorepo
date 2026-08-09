@@ -12,7 +12,8 @@ quick_stack_diagnostics="$root/src/Inventory/QuickStackDiagnostics.cs"
 quick_stack_location="$root/src/Inventory/QuickStackLocation.cs"
 quick_stack_feedback="$root/src/Inventory/QuickStackFeedback.cs"
 quick_stack_summary="$root/src/Inventory/QuickStackSummary.cs"
-quick_stack_receipt_hud="$root/src/Inventory/QuickStackReceiptHud.cs"
+top_left_feedback_hud="$root/src/TopLeftFeedbackHud.cs"
+top_left_feedback_layout="$root/src/TopLeftFeedbackLayout.cs"
 visibility="$root/src/Inventory/InventoryVisibility.cs"
 client_plugin="$root/src/Plugin.cs"
 
@@ -60,21 +61,49 @@ grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedb
 ! grep -Fq 'ShowDestinationSummaries' "$quick_stack_feedback"
 ! grep -Fq 'ShowDestinationSummaries' "$quick_stack"
 grep -Fq 'MessageHud.MessageType.Center' "$quick_stack_feedback"
-grep -Fq 'QuickStackReceiptHud.Show(message)' "$quick_stack_feedback"
-grep -Fq 'Object.Instantiate(template, template.transform.parent)' "$quick_stack_receipt_hud"
-grep -Fq 'ElementGameObjectField' "$quick_stack_receipt_hud"
-grep -Fq 'rect.GetWorldCorners' "$quick_stack_receipt_hud"
-grep -Fq 'PlaceBesideHotbar(receiptText)' "$quick_stack_receipt_hud"
-grep -Fq 'FindVisibleHotbarBounds' "$quick_stack_receipt_hud"
-grep -Fq 'Mathf.Max(rect.rect.width, text.preferredWidth)' "$quick_stack_receipt_hud"
-grep -Fq 'Screen.width - margin - receiptWidth' "$quick_stack_receipt_hud"
-grep -Fq 'targetScreen.y = hotbarBounds.Value.yMin - gap' "$quick_stack_receipt_hud"
-grep -Fq 'hotkeyBar.transform is RectTransform hotbarRect' "$quick_stack_receipt_hud"
-grep -Fq 'corners[2]' "$quick_stack_receipt_hud"
-grep -Fq 'rect.pivot = new Vector2(0f, 1f)' "$quick_stack_receipt_hud"
-grep -Fq 'TextAlignmentOptions.TopLeft' "$quick_stack_receipt_hud"
-grep -Fq 'QuickStackReceiptHud.Update();' "$root/src/Plugin.cs"
-grep -Fq 'QuickStackReceiptHud.Destroy();' "$root/src/Plugin.cs"
+grep -Fq 'TopLeftFeedbackHud.ShowGrouped(message)' "$quick_stack_feedback"
+grep -Fq 'TopLeftFeedbackHud.ShowTransient(message)' "$controller"
+grep -Fq 'TopLeftFeedbackHud.ShowTransient("Put Away already in progress")' "$quick_stack"
+grep -Fq 'Object.Instantiate(template, parent)' "$top_left_feedback_hud"
+grep -Fq 'Entry' "$top_left_feedback_hud"
+grep -Fq 'Entries.Add' "$top_left_feedback_hud"
+grep -Fq 'GroupedDurationSeconds = 5f' "$top_left_feedback_hud"
+grep -Fq 'TransientDurationSeconds = 4f' "$top_left_feedback_hud"
+grep -Fq 'entry.HideAt - now' "$top_left_feedback_hud"
+grep -Fq 'entry.Text.alpha = Mathf.Clamp01(remaining / entry.FadeSeconds)' "$top_left_feedback_hud"
+grep -Fq 'FindVisibleHotbarBounds' "$top_left_feedback_hud"
+grep -Fq 'FindVisibleNativeStatusBounds' "$top_left_feedback_hud"
+grep -Fq 'm_statusEffectListRoot' "$top_left_feedback_hud"
+grep -Fq 'statusRoot.childCount' "$top_left_feedback_hud"
+if grep -Fq 'GetComponentsInChildren' "$top_left_feedback_hud"; then
+  printf 'visible feedback placement must not allocate a status-child array each frame\n' >&2
+  exit 1
+fi
+grep -Fq 'Mathf.Max(rect.rect.width, text.preferredWidth)' "$top_left_feedback_hud"
+grep -Fq 'TopLeftFeedbackLayout.Calculate' "$top_left_feedback_hud"
+grep -Fq 'ToLayoutRect(hotbarBounds.Value)' "$top_left_feedback_hud"
+grep -Fq 'nativeStatusBounds.Value' "$top_left_feedback_hud"
+grep -Fq 'hotbarRect.GetWorldCorners' "$top_left_feedback_hud"
+grep -Fq 'WorldCorners[2]' "$top_left_feedback_hud"
+grep -Fq 'rect.pivot = new Vector2(0f, 1f)' "$top_left_feedback_hud"
+grep -Fq 'TextAlignmentOptions.TopLeft' "$top_left_feedback_hud"
+grep -Fq 'TopLeftFeedbackHud.Update();' "$root/src/Plugin.cs"
+grep -Fq 'TopLeftFeedbackHud.Destroy();' "$root/src/Plugin.cs"
+grep -Fq 'internal static TopLeftFeedbackPlacement Calculate' "$top_left_feedback_layout"
+layout_block="$(sed -n '/internal static TopLeftFeedbackPlacement Calculate/,/private static float Clamp/p' "$top_left_feedback_layout")"
+printf '%s\n' "$layout_block" | grep -Fq 'hotbarBounds.XMin'
+printf '%s\n' "$layout_block" | grep -Fq 'hotbarBounds.YMin - gap'
+printf '%s\n' "$layout_block" | grep -Fq 'nativeStatusBounds.YMin - gap'
+if printf '%s\n' "$layout_block" | grep -Fq 'hotbarBounds.XMax'; then
+  printf 'Benheim top-left lane must never anchor to the hotbar right edge\n' >&2
+  exit 1
+fi
+grep -Fq 'scaleFactor' "$top_left_feedback_layout"
+grep -Fq 'screenHeight - fallbackTopOffset * scaleFactor' "$top_left_feedback_layout"
+if grep -Fq 'MessageHud.MessageType.TopLeft' "$controller" "$quick_stack"; then
+  printf 'Benheim-owned top-left feedback must use the shared lane\n' >&2
+  exit 1
+fi
 grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack"
 grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack"
 grep -Fq 'container.StackAll();' "$quick_stack"
@@ -85,7 +114,7 @@ if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
   printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
   exit 1
 fi
-grep -Fq 'PluginVersion = "0.1.49"' "$client_plugin"
+grep -Fq 'PluginVersion = "0.1.50"' "$client_plugin"
 if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol' "$root/src"; then
   printf 'client Put Away must not retain protocol machinery\n' >&2
   exit 1

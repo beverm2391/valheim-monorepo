@@ -32,7 +32,7 @@ internal static class PocketItemController
             $"pocketed={Diagnostics.Bool(pocketed)}");
         string verb = pocketed ? "Pocketed" : "Unpocketed";
         string message = $"{verb} {PocketItems.GetDisplayName(item)}";
-        player.Message(MessageHud.MessageType.TopLeft, message);
+        TopLeftFeedbackHud.ShowTransient(message);
         return true;
     }
 }

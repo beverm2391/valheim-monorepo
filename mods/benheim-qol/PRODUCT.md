@@ -60,17 +60,30 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.49` is the current local gameplay candidate. Players have confirmed
+Benheim `0.1.50` is the current local gameplay candidate. Players have confirmed
 installation on Mac and Windows, the native menu, diagnostic export, Mass
-Repair, and doubled adrenaline with its native decay delay. Native Put Away
-remains in development and will ship only after its focused two-player gameplay
-test passes. Each feature module records its confirmed behavior and remaining
-limits.
+Repair, and doubled adrenaline with its native decay delay. Ben confirmed
+global Bow headshots on a Berserker and a Shaman in `0.1.49`. Ben confirmed the
+`0.1.49` solo Put Away behavior except for its receipt placement. Benheim Put
+Away remains in development until the new grouped-receipt placement passes
+retest and the focused two-player gameplay test passes. Each feature module
+records its confirmed behavior and remaining limits.
 
 ## In Development
 
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
+
+All Benheim feedback that belongs in the top-left area shares one Benheim-owned
+lane directly beneath the live hotbar. The lane carries grouped receipts for
+Put Away and Mass Repair, pocket and unpocket confirmations, and Put Away's
+already-in-progress message. It never moves to the hotbar's right side or into
+a separate right-side column. When Valheim shows visible native top-left status
+text, the lane moves farther down to avoid overlap while staying directly
+beneath the live hotbar and on screen. It never intercepts or restyles
+Valheim's messages. Short confirmations do not replace an active Put Away or
+Mass Repair grouped receipt. Center messages and world feedback keep their
+existing UI locations. This unified lane still needs gameplay proof.
 
 If Benheim cannot attach a required gameplay hook, it disables all Benheim
 gameplay actions. It logs the exact failure and a `[diag][Health]` event. It

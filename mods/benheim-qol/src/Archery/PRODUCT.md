@@ -5,7 +5,7 @@ while leaving Valheim's native damage ownership and acceptance rules in charge.
 
 ## Current Behavior
 
-None yet. The first headshot slice still needs gameplay proof.
+- Ben confirmed global Bow headshots on a Berserker and a Shaman in `0.1.49`.
 
 ## In Development
 
@@ -29,9 +29,9 @@ None yet. The first headshot slice still needs gameplay proof.
   path. Benheim adds no headshot result protocol, marker, retry, timeout, or
   persistent shot state.
 - Ordinary arrow adrenaline remains unchanged.
-- Ben reported that attempted Bow headshots on a Lox produced no feedback. The
-  `0.1.48` log contained no Headshots diagnostic event. The next candidate must
-  log the qualification decision and accept real Lox head hits.
+- Ben's earlier Lox shots produced no feedback, and the `0.1.48` log contained
+  no Headshots diagnostic event. Lox qualification still needs a focused retest
+  using the same headshot rule as other creature types.
 
 ## Open Product Decision
 

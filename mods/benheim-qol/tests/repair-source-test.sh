@@ -28,7 +28,7 @@ fi
 grep -Fq 'new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)' "$repair"
 grep -Fq 'Localization.instance.Localize(name)' "$repair"
 grep -Fq '.OrderByDescending(pair => pair.Value)' "$repair"
-grep -Fq 'QuickStackReceiptHud.Show(FormatReceipt(repairedByDisplayName))' "$repair"
+grep -Fq 'TopLeftFeedbackHud.ShowGrouped(FormatReceipt(repairedByDisplayName))' "$repair"
 grep -Fq '$"Repaired {pair.Value} {Pluralize(pair.Key, pair.Value)}"' "$repair"
 grep -Fq 'private static bool Prefix(MessageHud.MessageType type, string msg)' "$patches"
 grep -Fq 'if (!BuildingRepair.IsInvokingNativeRepair)' "$patches"

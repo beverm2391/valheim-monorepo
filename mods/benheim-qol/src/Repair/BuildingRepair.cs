@@ -89,7 +89,7 @@ internal static class BuildingRepair
 
         if (repaired > 0)
         {
-            QuickStackReceiptHud.Show(FormatReceipt(repairedByDisplayName));
+            TopLeftFeedbackHud.ShowGrouped(FormatReceipt(repairedByDisplayName));
         }
 
         return repaired;

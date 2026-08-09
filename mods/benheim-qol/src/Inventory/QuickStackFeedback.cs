@@ -15,7 +15,7 @@ internal static class QuickStackFeedback
             return;
         }
 
-        QuickStackReceiptHud.Show(message);
+        TopLeftFeedbackHud.ShowGrouped(message);
     }
 
     internal static void ShowAbovePlayerSummaryIfInventoryWasClosed(
