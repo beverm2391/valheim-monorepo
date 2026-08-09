@@ -50,6 +50,14 @@ templates.
 
 ## Send A Diagnostic Log
 
+Each managed Mac or Windows modded launch archives the full
+`BepInEx/LogOutput.log` from the previous run before BepInEx starts. Benheim
+keeps the 10 newest archives it created in `BepInEx/BenheimLogArchive` and the
+current active log. If the previous run crashed, the next managed launch
+archives the leftover log too. If archiving fails, the launcher shows a visible
+warning that does not block the managed launch. Normal Steam launches remain
+vanilla and do not run this archive step.
+
 Press `F7` in game. Benheim copies the active diagnostic log to your Desktop as
 a timestamped `.txt` file and confirms the filename on screen. Attach that file
 when reporting a problem. This works on both Mac and Windows while the game is

@@ -24,6 +24,13 @@ This file owns the overall product promise. Each feature module has a
   needs to test the installer on a Windows PC.
 - The normal Steam launch stays vanilla on Mac and Windows. `Benheim.app` on
   Mac and the `Benheim` shortcut on Windows are explicit modded launch paths.
+- On each managed Mac or Windows modded launch, the launcher archives the full
+  `BepInEx/LogOutput.log` from the previous run before BepInEx starts. The
+  launcher keeps the 10 newest archives that Benheim created and the current
+  active log. If the previous run crashed, the next managed launch archives
+  the leftover log. If archiving fails, the launcher shows a visible warning
+  that does not block the managed launch.
+- `F7` remains the manual way to export the active log for sharing.
 - Keep Benheim compatible with servers and players that do not use it.
 - For features that depend on the zone owner, every client in the expected
   playgroup must run the same Benheim version for consistent behavior. Vanilla
@@ -65,7 +72,7 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.51` is the current local gameplay candidate. Players have confirmed
+Benheim `0.1.52` is the current local gameplay candidate. Players have confirmed
 installation on Mac and Windows, the native menu, diagnostic export, Mass
 Repair, and doubled adrenaline with its native decay delay. Ben confirmed
 global Bow headshots on a Berserker and a Shaman in `0.1.49`. Ben confirmed the
