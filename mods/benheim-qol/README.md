@@ -1,6 +1,6 @@
 # Benheim
 
-Benheim is an optional Valheim quality-of-life mod for BepInEx. Its features run
+Benheim is a curated Valheim gameplay mod for BepInEx. Its features run
 on the player's computer. Put Away uses Valheim's native chest ownership flow,
 so it does not require a server plugin. Players without Benheim can still join
 and use chests normally.

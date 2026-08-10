@@ -1,12 +1,42 @@
 # Benheim
 
-Benheim is one client mod made from small feature modules. It removes repetitive
-chores without adding custom items or world objects. Most features are
-client-only. Put Away uses Valheim's native chest ownership flow and does not
-need a server plugin. Players without Benheim can still join and use chests.
+Benheim is our curated Valheim gameplay mod. It combines quality-of-life
+features, balance changes, gameplay adjustments, and selected new mechanics to
+make the game more fun for our group. It is neither a total overhaul nor only a
+quality-of-life mod.
+
+Benheim should feel continuous with Valheim. It should first deepen or improve
+Valheim through familiar actions, progression, resources, structures,
+creatures, and its look and feel instead of creating a parallel system. Most
+current features are client-only. Players without Benheim can still join. Our
+regular group should run the same Benheim version when a feature needs
+consistent shared behavior.
 
 This file owns the overall product promise. Each feature module has a
 `PRODUCT.md` that owns its behavior and proof status.
+
+## Product Philosophy
+
+Benheim exists to improve our actual play, not to satisfy a mod category. A
+small convenience can belong beside a substantial new mechanic when both make
+the game better. Existing quality-of-life features remain part of Benheim and
+support larger gameplay systems, but they do not define the whole product.
+
+Choose work where the gameplay we want, continuity with Valheim, and a clean,
+feasible implementation meet. Reuse mature upstream infrastructure when it
+fits. Own the product decisions, configuration, balance, and connections
+between systems instead of inheriting another mod's assumptions.
+
+Complexity and variation are welcome when players can learn them through the
+world and use that knowledge to make meaningful choices. Prefer connected
+systems that create new plans, builds, discoveries, and stories. Avoid feature
+soup, configuration complexity that players must manage, and breadth that does
+not improve play.
+
+Preserve the current world, characters, and recognizable Valheim progression
+unless a deliberate product decision justifies a compatibility cost. Benheim
+is not trying to replace Valheim. It is a practical, evolving version of the
+game that is more fun for our group.
 
 ## Product Rules
 

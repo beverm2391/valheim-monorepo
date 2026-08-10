@@ -12,8 +12,8 @@ This repo has three related jobs:
 - Provision and operate a Valheim dedicated server on a cloud VM.
 - Support selected server-side mods that remain compatible with vanilla
   clients.
-- Build optional quality-of-life mods under `mods/`. Keep server-assisted
-  features explicit.
+- Build optional client mods under `mods/`, including quality-of-life and
+  gameplay features. Keep server-assisted features explicit.
 
 Most server work must not assume client mods are installed. A server-assisted
 client feature must disable itself when a required client component is missing.
