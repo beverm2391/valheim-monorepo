@@ -72,14 +72,19 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.52` is the current local gameplay candidate. Players have confirmed
-installation on Mac and Windows, the native menu, diagnostic export, Mass
-Repair, and doubled adrenaline with its native decay delay. Ben confirmed
-global Bow headshots on a Berserker and a Shaman in `0.1.49`. Ben confirmed the
-`0.1.49` solo Put Away behavior except for its receipt placement. Benheim Put
-Away remains in development until the new grouped-receipt placement passes
-retest and the focused two-player gameplay test passes. Each feature module
-records its confirmed behavior and remaining limits.
+Benheim `0.1.52` is the current stable client. Ben gameplay-tested this combined
+client and accepted it as stable. That session confirms only the behavior Ben
+exercised. It does not prove feature-specific multiplayer, ownership,
+installer, or rare failure paths that the session did not exercise.
+
+Players have confirmed installation on Mac and Windows, the native menu,
+diagnostic export, Mass Repair, and doubled adrenaline with its native decay
+delay. Ben confirmed global Bow headshots on a Berserker and a Shaman in
+`0.1.49`. Ben confirmed the `0.1.49` solo Put Away behavior except for its
+receipt placement. Benheim Put Away remains in development until the new
+grouped-receipt placement passes retest and the focused two-player gameplay
+test passes. Each feature module records its confirmed behavior and remaining
+limits.
 
 ## In Development
 
