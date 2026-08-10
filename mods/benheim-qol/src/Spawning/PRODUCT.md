@@ -12,7 +12,8 @@ while preserving Valheim's normal spawn gates and zone ownership.
 - The change applies only to ordinary Leech spawns in the world. It does not
   change spawns created by events or local creature spawners.
 - Valheim runs ordinary world spawning on the client that owns each zone. The
-  three-times-as-frequent Leech opportunities are consistent only when every
-  active zone owner runs the same Benheim version.
+  three-times-as-frequent Leech opportunities are consistent only when all
+  active zone owners use mutually compatible Benheim versions for that feature.
 - Focused multiplayer gameplay still needs to prove the adjusted interval as
-  zone ownership changes between active clients using the same Benheim version.
+  zone ownership changes between active clients using compatible Benheim
+  versions.

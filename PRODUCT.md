@@ -4,10 +4,12 @@ This repo treats the dedicated server and its mods as one product: a durable
 shared Valheim world with curated changes that make the game more fun for our
 group without turning it into a total overhaul or a fragile modpack.
 
-Our regular group runs the same Benheim version. The product does not promise
-that an unmodded PC or console client can join a Benheim session. Keep the
-vanilla launch path for recovery and the Valheim 1.0 migration, not as a
-multiplayer compatibility promise.
+Our regular group runs compatible Benheim versions. Versions need not be
+identical if they preserve the behavior and shared data of every Benheim
+feature the group uses. The product does not promise that an unmodded PC or
+console client can join a Benheim session. Keep the vanilla launch path for
+recovery and the Valheim 1.0 migration, not as a multiplayer compatibility
+promise.
 
 ## Product Boundaries
 
@@ -34,7 +36,7 @@ multiplayer compatibility promise.
 
 | Feature | Product role | Runs on | Required for friends |
 | --- | --- | --- | --- |
-| Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use the same version. |
+| Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use a version compatible with those used by every other member. |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
@@ -56,9 +58,9 @@ The server product is healthy when the world survives restarts and restores,
 backups remain usable, and the required client and server components work
 together to produce the same shared behavior for the regular group.
 
-Benheim is healthy when every member of our regular group has the required
-version and the shared world and characters remain recoverable across updates
-or removal.
+Benheim is healthy when every member of our regular group has a version
+compatible with those used by every other member. The shared world and
+characters must remain recoverable across updates or removal.
 Put Away must use Valheim's native chest ownership flow so every connected
 player sees the same completed chest state. It must not require a server plugin.
 

@@ -8,9 +8,10 @@ quality-of-life mod.
 Benheim should feel continuous with Valheim. It should first deepen or improve
 Valheim through familiar actions, progression, resources, structures,
 creatures, and its look and feel instead of creating a parallel system. Most
-current features are client-only. Our regular group runs the same Benheim
-version. Benheim does not promise multiplayer compatibility for players who do
-not run it.
+current features are client-only. Our regular group runs compatible Benheim
+versions. Versions need not be identical if they preserve the behavior and
+shared data of every Benheim feature the group uses. Benheim does not promise
+multiplayer compatibility for players who do not run it.
 
 This file owns the overall product promise. Each feature module has a
 `PRODUCT.md` that owns its behavior and proof status.
@@ -61,10 +62,10 @@ game that is more fun for our group.
   the leftover log. If archiving fails, the launcher shows a visible warning
   that does not block the managed launch.
 - `F7` remains the manual way to export the active log for sharing.
-- Make each required client and server component explicit. Every active player
-  in our regular group must run the same Benheim version.
-- For features that depend on zone ownership, every active zone owner must run
-  the same Benheim version for consistent behavior.
+- Make each required client and server component explicit. Active players in
+  our regular group must use mutually compatible Benheim versions.
+- For features that depend on zone ownership, all active zone owners must use
+  mutually compatible Benheim versions for that feature.
 - Put Away must let Valheim's current chest owner grant the transfer. Never
   write a non-owned local chest or claim ownership as a shortcut.
 - Defer custom persistent world objects until a specific feature needs them.

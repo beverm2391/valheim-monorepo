@@ -3,7 +3,7 @@
 Benheim is a curated Valheim gameplay mod for BepInEx. Its current features run
 on the player's computer. Put Away uses Valheim's native chest ownership flow,
 so the current release does not require a server plugin. Our regular group
-must install and run the same Benheim version.
+must install and run Benheim versions compatible with one another.
 
 ## Install On A Mac
 
