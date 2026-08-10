@@ -6,23 +6,49 @@ load_config
 
 root="$(repo_root)"
 tmp_env="$(mktemp)"
-trap 'rm -f "$tmp_env"' EXIT
+tmp_r2=""
+remote_stage_created=0
+cleanup_local() {
+  local status=$?
+  rm -f "$tmp_env"
+  [[ -z "$tmp_r2" ]] || rm -f "$tmp_r2"
+  if (( remote_stage_created == 1 )); then
+    remote_ssh "rm -rf /tmp/valheim-server" >/dev/null 2>&1 || true
+  fi
+  return "$status"
+}
+trap cleanup_local EXIT
 
 render_server_env "$tmp_env"
 
-remote_ssh "mkdir -p /tmp/valheim-server"
+r2_configured=0
+if r2_config_requested; then
+  require_r2_config
+  tmp_r2="$(mktemp)"
+  render_r2_env "$tmp_r2"
+  r2_configured=1
+fi
+
+remote_ssh "install -d -m 0700 /tmp/valheim-server"
+remote_stage_created=1
 remote_scp "$root/systemd/valheim.service" "/tmp/valheim-server/valheim.service"
 remote_scp "$root/server/valheim-start" "/tmp/valheim-server/valheim-start"
 remote_scp "$root/server/wait-for-valheim" "/tmp/valheim-server/wait-for-valheim"
 remote_scp "$tmp_env" "/tmp/valheim-server/server.env"
-if [[ -f "$root/r2.env" ]]; then
-  remote_scp "$root/r2.env" "/tmp/valheim-server/r2.env"
+if (( r2_configured == 1 )); then
+  remote_scp "$tmp_r2" "/tmp/valheim-server/r2.env"
 else
   remote_ssh "rm -f /tmp/valheim-server/r2.env"
 fi
 
 remote_ssh 'bash -s' <<'REMOTE'
 set -euo pipefail
+
+work=/tmp/valheim-server
+cleanup_stage() {
+  rm -rf "$work"
+}
+trap cleanup_stage EXIT
 
 export DEBIAN_FRONTEND=noninteractive
 dpkg --add-architecture i386
@@ -41,13 +67,13 @@ install -d -o valheim -g valheim /var/lib/valheim/worlds_local
 install -d -o valheim -g valheim /var/backups/valheim
 install -d -m 0755 /etc/valheim
 
-install -m 0640 -o root -g valheim /tmp/valheim-server/server.env /etc/valheim/server.env
-if [[ -f /tmp/valheim-server/r2.env ]]; then
-  install -m 0640 -o root -g valheim /tmp/valheim-server/r2.env /etc/valheim/r2.env
+install -m 0640 -o root -g valheim "$work/server.env" /etc/valheim/server.env
+if [[ -f "$work/r2.env" ]]; then
+  install -m 0600 -o root -g root "$work/r2.env" /etc/valheim/r2.env
 fi
-install -m 0644 /tmp/valheim-server/valheim.service /etc/systemd/system/valheim.service
-install -m 0755 /tmp/valheim-server/valheim-start /usr/local/bin/valheim-start
-install -m 0755 /tmp/valheim-server/wait-for-valheim /usr/local/bin/valheim-wait-ready
+install -m 0644 "$work/valheim.service" /etc/systemd/system/valheim.service
+install -m 0755 "$work/valheim-start" /usr/local/bin/valheim-start
+install -m 0755 "$work/wait-for-valheim" /usr/local/bin/valheim-wait-ready
 
 cat > /usr/local/bin/valheim-update <<'EOF'
 #!/usr/bin/env bash
@@ -146,5 +172,6 @@ systemctl daemon-reload
 systemctl enable valheim.service valheim-backup.timer
 systemctl restart valheim-backup.timer
 REMOTE
+remote_stage_created=0
 
 echo "Installed Valheim server on $(ssh_target)"

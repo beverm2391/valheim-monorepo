@@ -8,8 +8,9 @@ patches_file="$root/src/Shortcuts/ShortcutOverlayInputPatches.cs"
 templates_file="$root/src/Shortcuts/NativeTemplates.cs"
 tabs_file="$root/src/Shortcuts/ShortcutOverlayTabs.cs"
 catalog_file="$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
+warnings_file="$root/src/Shortcuts/ShortcutOverlayWarnings.cs"
 plugin="$root/src/Plugin.cs"
-overlay_files=("$source_file" "$content_file" "$patches_file" "$templates_file" "$tabs_file" "$catalog_file")
+overlay_files=("$source_file" "$content_file" "$patches_file" "$templates_file" "$tabs_file" "$catalog_file" "$warnings_file")
 
 if rg -n 'OnGUI|GUIStyle|GUILayout|GUI\.Label|Texture2D|PreloadTextOnce' "${overlay_files[@]}" "$plugin"; then
   printf 'shortcut panel must not retain the obsolete IMGUI implementation\n' >&2
@@ -50,32 +51,40 @@ grep -Fq 'ResetUiState(destroyRoot: true)' "$source_file"
 grep -Fq 'ShortcutOverlayPlayerInputPatch' "$patches_file"
 grep -Fq 'ShortcutOverlayMenuVisibilityPatch' "$patches_file"
 grep -Fq 'if (!visible)' "$source_file"
-grep -Fq 'InventoryTransactions.GetCapabilitySnapshot()' "$tabs_file"
-grep -Fq 'player.PlayerName' "$tabs_file"
-grep -Fq 'player.ClientVersion' "$tabs_file"
-grep -Fq 'player.ProtocolVersion' "$tabs_file"
-grep -Fq 'player.IsDetected' "$tabs_file"
-grep -Fq 'player.IsCompatible' "$tabs_file"
-grep -Fq 'multiplayerStatus.richText = false' "$tabs_file"
 grep -Fq 'AddTab(buttons, templates, ShortcutTab.Controls, "Controls"' "$tabs_file"
 grep -Fq 'AddTab(buttons, templates, ShortcutTab.Features, "Features"' "$tabs_file"
-grep -Fq 'AddTab(buttons, templates, ShortcutTab.Multiplayer, "Multiplayer"' "$tabs_file"
 grep -Fq 'new Entry("P", "Pocket the hovered stack or item")' "$catalog_file"
+grep -Fq 'new Entry("R", "Swap hotbar loadout (replaces Hide weapons)")' "$catalog_file"
 grep -Fq 'new Entry("Rockbreaker"' "$catalog_file"
 grep -Fq 'new Entry("Cleave"' "$catalog_file"
-grep -Fq 'new Entry("Adrenaline"' "$catalog_file"
+grep -Fq '"Headshots"' "$catalog_file"
+grep -Fq '"Combat"' "$catalog_file"
+grep -Fq 'HeadshotRules.NearMultiplier' "$catalog_file"
+grep -Fq 'Native WeakSpot hits stay native.' "$catalog_file"
+grep -Fq 'one half-damage hit to the same tree or log' "$catalog_file"
+grep -Fq 'Positive gains are doubled; perfect defenses show the actual gain' "$catalog_file"
+grep -Fq 'Baking and done-to-burn timing are halved; fuel stays normal' "$catalog_file"
 grep -Fq 'keySize.preferredWidth = 230f' "$tabs_file"
-grep -Fq 'multiplayerSummary.text = FormatMultiplayerSummary(snapshot)' "$tabs_file"
 grep -Fq 'blocker.color = new Color(0f, 0f, 0f, 0.56f)' "$content_file"
+
+if rg -n 'InventoryTransaction|InventoryCapability|Multiplayer' "${overlay_files[@]}"; then
+  printf 'shortcut panel must not retain Put Away protocol status UI\n' >&2
+  exit 1
+fi
 
 grep -Fq '"Inventory"' "$catalog_file"
 grep -Fq '"Crafting & Repair"' "$catalog_file"
 grep -Fq '"Farming"' "$catalog_file"
 grep -Fq '"World & Travel"' "$catalog_file"
 grep -Fq '"Skills"' "$catalog_file"
+grep -Fq '"Combat"' "$catalog_file"
 grep -Fq 'new Entry("F7", "Save the active Benheim log to the Desktop")' "$catalog_file"
+grep -Fq 'controlsWarnings.SetActive(warnings.Count > 0)' "$warnings_file"
+grep -Fq 'conflicts with native {EscapeMarkup(warning.NativeAction)}' "$warnings_file"
+grep -Fq 'new Entry("Left Shift + hammer repair", $"Repair eligible buildings and structures within {BuildingRepair.RepairRadius:0.#} m")' "$catalog_file"
 grep -Fq 'new Entry("Left Shift + station input", "Fill its available input or fuel capacity")' "$catalog_file"
 grep -Fq 'Equipped and hotbar items stay protected without a marker.' "$catalog_file"
+grep -Fq 'Place stacks, Hold to stack, and Put Away keep protected items with you.' "$catalog_file"
 grep -Fq 'Stackables protect every stack of that item type; non-stackable gear protects only the marked item.' "$catalog_file"
 grep -Fq 'Left Shift + B / Escape' "$content_file"
 grep -Fq 'ShortcutOverlay.Destroy();' "$plugin"
@@ -88,4 +97,4 @@ for file in "${overlay_files[@]}"; do
   fi
 done
 
-printf 'native shortcut menu, input blocking, and dynamic roster checks passed\n'
+printf 'native shortcut menu and input blocking checks passed\n'

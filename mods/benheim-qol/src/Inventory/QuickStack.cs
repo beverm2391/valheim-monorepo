@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using BenheimInventoryProtocol;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
 
@@ -10,28 +9,24 @@ internal static class QuickStack
     internal const float Radius = 30f;
 
     private static QuickStackOperation? activeOperation;
-
-    internal static void Update()
-    {
-        // Network retries are owned by InventoryTransactions.Update().
-    }
+    private static readonly QuickStackResponseGuard<Container> ResponseGuard = new QuickStackResponseGuard<Container>();
 
     internal static void Run(Player player, InventoryGui inventoryGui, Container? currentContainer)
     {
+        if (activeOperation != null && (!activeOperation.Player || activeOperation.Player != player))
+        {
+            ResetState();
+        }
+
         bool inventoryWasOpen = InventoryVisibility.IsOpen(inventoryGui);
         Diagnostics.Event(
             "Inventory",
             "quick_stack_requested",
             $"radius={Radius:0.#} inventory_open={Diagnostics.Bool(inventoryWasOpen)}");
-        if (!QuickStackAvailability.CanRun(player, inventoryWasOpen))
-        {
-            return;
-        }
-
         if (activeOperation != null)
         {
             Diagnostics.Event("Inventory", "quick_stack_rejected", "reason=already_in_progress");
-            player.Message(MessageHud.MessageType.TopLeft, "Put Away already in progress");
+            TopLeftFeedbackHud.ShowTransient("Put Away already in progress");
             return;
         }
 
@@ -97,10 +92,7 @@ internal static class QuickStack
                 }
 
                 foundRoom = true;
-                if (seen.Add(container))
-                {
-                    eligibility.Containers.Add(container);
-                }
+                seen.Add(container);
             }
 
             if (!foundMatch)
@@ -110,6 +102,16 @@ internal static class QuickStack
             else if (!foundRoom)
             {
                 eligibility.SkippedFull++;
+            }
+        }
+
+        // NearbyContainerIndex has already ordered this list nearest-first. Preserve that
+        // order even when a farther chest happens to match the first inventory item.
+        foreach (Container container in containers)
+        {
+            if (seen.Contains(container))
+            {
+                eligibility.Containers.Add(container);
             }
         }
 
@@ -132,9 +134,24 @@ internal static class QuickStack
                 continue;
             }
 
-            List<DepositCandidate> candidates = FindCandidates(operation.Player, container);
-            if (candidates.Count == 0)
+            if (ResponseGuard.IsWaitingForTimedOutResponse(container))
             {
+                Diagnostics.Event(
+                    "Inventory",
+                    "quick_stack_container_skipped",
+                    $"container=\"{container.gameObject.name}\" reason=awaiting_timed_out_response");
+                continue;
+            }
+
+            int candidates = CountCandidates(operation.Player, container);
+            if (candidates == 0)
+            {
+                continue;
+            }
+
+            if (!ResponseGuard.TryBeginRequest(container, Time.unscaledTime))
+            {
+                Diagnostics.Event("Inventory", "quick_stack_container_skipped", $"container=\"{container.gameObject.name}\" reason=response_guard_busy");
                 continue;
             }
 
@@ -143,27 +160,18 @@ internal static class QuickStack
                 "Inventory",
                 "quick_stack_request_container",
                 $"container=\"{container.gameObject.name}\" index={operation.NextContainerIndex}/{operation.Containers.Count} " +
-                $"items={candidates.Count}");
-            if (InventoryTransactions.TryBeginDeposit(
-                    operation.Player,
-                    container,
-                    candidates,
-                    result => CompleteContainer(operation, container, result)))
-            {
-                return;
-            }
-
-            operation.CurrentContainer = null;
-            operation.BusyContainers++;
+                $"items={candidates}");
+            container.StackAll();
+            return;
         }
 
         Finish(operation);
     }
 
-    private static List<DepositCandidate> FindCandidates(Player player, Container container)
+    private static int CountCandidates(Player player, Container container)
     {
         Inventory target = container.GetInventory();
-        List<DepositCandidate> candidates = new List<DepositCandidate>();
+        int candidates = 0;
         foreach (ItemDrop.ItemData item in player.GetInventory().GetAllItemsInGridOrder())
         {
             if (item != null
@@ -172,59 +180,209 @@ internal static class QuickStack
                 && target.ContainsItemByName(item.m_shared.m_name)
                 && target.CanAddItem(item, 1))
             {
-                candidates.Add(new DepositCandidate(item));
+                candidates++;
             }
         }
 
         return candidates;
     }
 
-    private static void CompleteContainer(
-        QuickStackOperation operation,
-        Container container,
-        DepositResult result)
+    internal static bool TryHandleNativeDenial(Container container)
     {
-        if (activeOperation != operation || operation.CurrentContainer != container)
+        QuickStackOperation? operation = activeOperation;
+        if (operation == null || operation.CurrentContainer != container)
         {
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_stale_result",
-                $"container=\"{container.gameObject.name}\" status={result.Status}");
+            return false;
+        }
+
+        ResponseGuard.CompleteCurrentResponse(container);
+        operation.CurrentContainer = null;
+        operation.BusyContainers++;
+        Diagnostics.Event(
+            "Inventory",
+            "quick_stack_container_result",
+            $"container=\"{container.gameObject.name}\" status=denied moved=0");
+        RequestNextContainer();
+        return true;
+    }
+
+    internal static QuickStackBulkScope? BeginBulkStack(Inventory target, Inventory source)
+    {
+        QuickStackOperation? operation = activeOperation;
+        Player? player = Player.m_localPlayer;
+        if (!player || source != player.GetInventory())
+        {
+            return null;
+        }
+
+        Container? container = operation?.CurrentContainer;
+        // Every bulk stack now uses the same protection rule. Any StackAll into the
+        // active chest is therefore equivalent to its granted Put Away response and may
+        // complete this step without tracking which UI action originated the request.
+        bool accountsForPutAway = operation != null
+            && operation.Player == player
+            && container
+            && container.GetInventory() == target;
+        QuickStackBulkScope scope = new QuickStackBulkScope(
+            player,
+            target,
+            accountsForPutAway ? operation : null,
+            accountsForPutAway ? container : null,
+            QuickStackBulkScope.Active);
+        if (scope.Operation != null)
+        {
+            foreach (ItemDrop.ItemData item in source.GetAllItemsInGridOrder())
+            {
+                if (item != null && item.m_stack > 0)
+                {
+                    scope.Items.Add(new QuickStackItemSnapshot(item, item.m_stack));
+                }
+            }
+        }
+
+        QuickStackBulkScope.Active = scope;
+        return scope;
+    }
+
+    internal static bool ShouldAllowNativeAdd(Inventory target, ItemDrop.ItemData item)
+    {
+        QuickStackBulkScope? scope = QuickStackBulkScope.Active;
+        if (scope == null || scope.Target != target || !PocketItems.IsPocketed(scope.Player, item))
+        {
+            return true;
+        }
+
+        Diagnostics.Event("Inventory", "quick_stack_item_skipped", $"item={item.m_shared.m_name} reason=pocketed");
+        return false;
+    }
+
+    internal static void CompleteBulkStack(QuickStackBulkScope? scope)
+    {
+        if (scope == null)
+        {
             return;
         }
 
-        string containerDisplayName = Localize(container.GetHoverName());
-        string containerLocation = QuickStackLocation.Format(operation.Player, container);
-        int movedItems = 0;
-        foreach (DepositResultEntry entry in result.Entries)
+        RestoreBulkScope(scope);
+        if (scope.Operation == null
+            || activeOperation != scope.Operation
+            || scope.Operation?.CurrentContainer != scope.Container)
         {
-            if (entry.Accepted <= 0)
-            {
-                continue;
-            }
-
-            movedItems += entry.Accepted;
-            operation.Summary.Add(
-                container.GetInstanceID(),
-                containerDisplayName,
-                containerLocation,
-                Localize(entry.Item.m_shared.m_name),
-                entry.Accepted);
-            QuickStackDiagnostics.ItemMoved(entry.Item, entry.Accepted, container, containerLocation);
+            return;
         }
 
+        QuickStackOperation operation = scope.Operation!;
+        Container container = scope.Container!;
+        ResponseGuard.CompleteCurrentResponse(container);
+        operation.CurrentContainer = null;
+        int movedItems = RecordNativeTransfer(scope, operation, container);
         operation.MovedItems += movedItems;
-        if (!result.Succeeded)
+        Diagnostics.Event("Inventory", "quick_stack_container_result", $"container=\"{container.gameObject.name}\" status=granted moved={movedItems}");
+        RequestNextContainer();
+    }
+
+    internal static System.Exception? FinalizeBulkStack(QuickStackBulkScope? scope, System.Exception? exception)
+    {
+        RestoreBulkScope(scope);
+        if (exception != null && scope?.Operation != null && activeOperation == scope.Operation)
         {
-            operation.BusyContainers++;
+            if (scope.Container)
+            {
+                ResponseGuard.CompleteCurrentResponse(scope.Container);
+            }
+
+            activeOperation = null;
+            Diagnostics.Event("Inventory", "quick_stack_cancelled", "reason=bulk_stack_exception");
+        }
+
+        return exception;
+    }
+
+    internal static void ResetState()
+    {
+        activeOperation = null;
+        QuickStackBulkScope.Active = null;
+        ResponseGuard.Reset();
+    }
+
+    internal static void Update()
+    {
+        ResponseGuard.PruneTimedOutResponses(container => !container);
+
+        QuickStackOperation? operation = activeOperation;
+        if (operation == null || !ResponseGuard.TryTimeoutRequest(Time.unscaledTime, out Container? container))
+        {
+            return;
+        }
+
+        if (operation.CurrentContainer != container)
+        {
+            // Requests are serial; a mismatch must not attach a callback to this batch.
+            activeOperation = null;
+            QuickStackBulkScope.Active = null;
+            Diagnostics.Event("Inventory", "quick_stack_cancelled", "reason=response_guard_mismatch");
+            TopLeftFeedbackHud.ShowTransient("Put Away timed out; try again");
+            return;
+        }
+
+        activeOperation = null;
+        QuickStackBulkScope.Active = null;
+        string containerName = container != null && container ? container.gameObject.name : "destroyed";
+        Diagnostics.Event(
+            "Inventory",
+            "quick_stack_cancelled",
+            $"reason=response_timeout container=\"{containerName}\" wait_seconds={QuickStackResponseGuard<Container>.WaitSeconds:0.#}");
+        TopLeftFeedbackHud.ShowTransient("Put Away timed out; try again");
+    }
+
+    internal static bool TryHandleTimedOutResponse(Container container, bool granted)
+    {
+        if (!ResponseGuard.TryDiscardTimedOutResponse(container))
+        {
+            return false;
         }
 
         Diagnostics.Event(
             "Inventory",
-            "quick_stack_container_result",
-            $"container=\"{container.gameObject.name}\" status={result.Status} moved={movedItems}");
-        operation.CurrentContainer = null;
-        RequestNextContainer();
+            "quick_stack_late_response_discarded",
+            $"container=\"{container.gameObject.name}\" status={(granted ? "granted" : "denied")}");
+        return true;
+    }
+
+    private static void RestoreBulkScope(QuickStackBulkScope? scope)
+    {
+        if (scope != null && QuickStackBulkScope.Active == scope)
+        {
+            QuickStackBulkScope.Active = scope.Previous;
+        }
+    }
+
+    internal static bool ShouldSuppressNativeStackMessage(MessageHud.MessageType type, string message)
+    {
+        return QuickStackBulkScope.Active?.Operation != null
+            && type == MessageHud.MessageType.Center
+            && message.StartsWith("$msg_stackall");
+    }
+
+    private static int RecordNativeTransfer(QuickStackBulkScope scope, QuickStackOperation operation, Container container)
+    {
+        int movedItems = 0;
+        foreach (QuickStackItemSnapshot snapshot in scope.Items)
+        {
+            int remaining = scope.Player.GetInventory().ContainsItem(snapshot.Item) ? snapshot.Item.m_stack : 0;
+            int moved = snapshot.StackBefore - remaining;
+            if (moved <= 0)
+            {
+                continue;
+            }
+
+            movedItems += moved;
+            string location = QuickStackLocation.Format(operation.Player, container);
+            operation.Summary.Add(container.GetInstanceID(), Localize(container.GetHoverName()), location, Localize(snapshot.Item.m_shared.m_name), moved);
+            QuickStackDiagnostics.ItemMoved(snapshot.Item, moved, container, location);
+        }
+
+        return movedItems;
     }
 
     private static void Finish(QuickStackOperation operation)

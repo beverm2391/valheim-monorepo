@@ -1,6 +1,5 @@
 using System.IO;
 using BepInEx;
-using BenheimInventoryProtocol;
 using UnityEngine;
 
 namespace BenheimQoL.Infrastructure;
@@ -41,10 +40,6 @@ internal static class DiagnosticLogExporter
                 FileShare.Read))
             {
                 CopyLog(destination, sourcePath, "Active BepInEx log");
-                foreach (string auditPath in InventoryTransactionAudit.GetExistingPaths())
-                {
-                    CopyLog(destination, auditPath, Path.GetFileName(auditPath));
-                }
             }
 
             Diagnostics.Event("Core", "log_exported", $"file=\"{fileName}\"");

@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
-using BenheimInventoryProtocol;
 using BenheimQoL.Infrastructure;
-using BenheimQoL.InventoryFeature;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,8 +11,6 @@ internal static partial class ShortcutOverlay
     private static readonly List<TabState> Tabs = new();
     private static readonly Dictionary<ShortcutTab, GameObject> Pages = new();
     private static ShortcutTab activeTab = ShortcutTab.Controls;
-    private static TMP_Text? multiplayerSummary;
-    private static TMP_Text? multiplayerStatus;
 
     private static void BuildTabBar(RectTransform parent, NativeTemplates templates)
     {
@@ -28,7 +23,7 @@ internal static partial class ShortcutOverlay
 
         RectTransform buttons = CreateRectObject("TabButtons", bar);
         buttons.anchorMin = Vector2.zero;
-        buttons.anchorMax = new Vector2(0.62f, 1f);
+        buttons.anchorMax = Vector2.one;
         buttons.offsetMin = Vector2.zero;
         buttons.offsetMax = new Vector2(-10f, 0f);
         HorizontalLayoutGroup layout = buttons.gameObject.AddComponent<HorizontalLayoutGroup>();
@@ -40,18 +35,6 @@ internal static partial class ShortcutOverlay
 
         AddTab(buttons, templates, ShortcutTab.Controls, "Controls", ControlsAccent);
         AddTab(buttons, templates, ShortcutTab.Features, "Features", FeaturesAccent);
-        AddTab(buttons, templates, ShortcutTab.Multiplayer, "Multiplayer", MultiplayerAccent);
-
-        multiplayerSummary = CreateText("PutAwaySummary", bar, templates.Text, layoutElement: false);
-        RectTransform summaryRect = (RectTransform)multiplayerSummary.transform;
-        summaryRect.anchorMin = new Vector2(0.64f, 0f);
-        summaryRect.anchorMax = Vector2.one;
-        summaryRect.offsetMin = new Vector2(8f, 0f);
-        summaryRect.offsetMax = Vector2.zero;
-        multiplayerSummary.text = "Put Away: Checking...";
-        multiplayerSummary.fontSize = 19f;
-        multiplayerSummary.fontStyle = FontStyles.Bold;
-        multiplayerSummary.alignment = TextAlignmentOptions.Right;
 
         RectTransform divider = CreateRectObject("Divider", parent);
         divider.anchorMin = new Vector2(0f, 1f);
@@ -93,6 +76,7 @@ internal static partial class ShortcutOverlay
     private static void BuildPages(RectTransform parent, NativeTemplates templates)
     {
         GameObject controls = CreatePage("ControlsPage", parent);
+        BuildControlsWarnings((RectTransform)controls.transform);
         foreach (Section section in ControlSections)
         {
             AddSection(controls.transform as RectTransform, section, templates);
@@ -105,20 +89,6 @@ internal static partial class ShortcutOverlay
             AddSection(features.transform as RectTransform, section, templates);
         }
         Pages.Add(ShortcutTab.Features, features);
-
-        GameObject multiplayer = CreatePage("MultiplayerPage", parent);
-        RectTransform multiplayerRect = (RectTransform)multiplayer.transform;
-        AddSectionHeading(multiplayerRect, "Put Away Compatibility", MultiplayerAccent, templates.Text);
-        multiplayerStatus = CreateText("MultiplayerStatus", multiplayerRect, templates.Text, layoutElement: true);
-        multiplayerStatus.fontSize = 20f;
-        multiplayerStatus.color = Color.white;
-        multiplayerStatus.richText = false;
-        multiplayerStatus.text = "Checking the server and player roster...";
-        TMP_Text note = CreateText("MultiplayerNote", multiplayerRect, templates.Text, layoutElement: true);
-        note.fontSize = 18f;
-        note.color = new Color(0.78f, 0.8f, 0.82f, 1f);
-        note.text = "Put Away is disabled when the server or a ready player uses an incompatible transaction protocol.";
-        Pages.Add(ShortcutTab.Multiplayer, multiplayer);
 
         SelectTab(activeTab, force: true);
     }
@@ -243,106 +213,11 @@ internal static partial class ShortcutOverlay
         Diagnostics.Event("Shortcuts", "tab_selected", $"tab={tab.ToString().ToLowerInvariant()}");
     }
 
-    private static void RefreshMultiplayerStatus(bool force = false)
-    {
-        if (multiplayerSummary == null || multiplayerStatus == null || contentRect == null)
-        {
-            return;
-        }
-
-        float now = Time.realtimeSinceStartup;
-        if (!force && now < nextStatusRefreshAt)
-        {
-            return;
-        }
-
-        nextStatusRefreshAt = now + StatusRefreshInterval;
-        InventoryCapabilitySnapshot snapshot = InventoryTransactions.GetCapabilitySnapshot();
-        string fingerprint = snapshot.GetDisplayFingerprint();
-        if (!force && string.Equals(fingerprint, lastStatusFingerprint, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        lastStatusFingerprint = fingerprint;
-        multiplayerSummary.text = FormatMultiplayerSummary(snapshot);
-        multiplayerSummary.color = SummaryColor(snapshot);
-        multiplayerStatus.text = FormatMultiplayerStatus(snapshot);
-        LayoutRebuilder.MarkLayoutForRebuild(contentRect);
-    }
-
-    private static string FormatMultiplayerSummary(InventoryCapabilitySnapshot snapshot)
-    {
-        return snapshot.State switch
-        {
-            InventoryCapabilityState.Disconnected => "Put Away: Offline",
-            InventoryCapabilityState.Checking => "Put Away: Checking...",
-            _ => snapshot.IsReady ? "Put Away: Ready" : "Put Away: Disabled",
-        };
-    }
-
-    private static Color SummaryColor(InventoryCapabilitySnapshot snapshot)
-    {
-        if (snapshot.IsReady)
-        {
-            return new Color(0.5f, 0.9f, 0.55f, 1f);
-        }
-        if (snapshot.State == InventoryCapabilityState.Checking)
-        {
-            return ControlsAccent;
-        }
-        return new Color(1f, 0.5f, 0.45f, 1f);
-    }
-
-    private static string FormatMultiplayerStatus(InventoryCapabilitySnapshot snapshot)
-    {
-        if (snapshot.State == InventoryCapabilityState.Disconnected)
-        {
-            return "Not connected to a multiplayer server.";
-        }
-        if (snapshot.State == InventoryCapabilityState.Checking)
-        {
-            return "Checking the server and player roster...";
-        }
-        if (snapshot.State == InventoryCapabilityState.ServerMissing)
-        {
-            return "Disabled\n\nServer\nBenheim Inventory not detected\nProtocol: unknown\nCompatibility: incompatible";
-        }
-
-        string serverCompatibility = snapshot.ServerProtocol == InventoryTransactions.ProtocolVersion
-            ? "compatible"
-            : "incompatible";
-        List<string> lines = new()
-        {
-            snapshot.IsReady ? "Ready" : "Disabled",
-            string.Empty,
-            "Server",
-            $"Benheim Inventory v{snapshot.ServerVersion}  |  Protocol {snapshot.ServerProtocol}  |  {serverCompatibility}",
-            string.Empty,
-            "Players",
-        };
-        if (snapshot.Players.Count == 0)
-        {
-            lines.Add("No ready multiplayer peers");
-        }
-        else
-        {
-            foreach (InventoryPeerCapability player in snapshot.Players)
-            {
-                lines.Add(player.IsDetected
-                    ? $"{player.PlayerName}  |  Benheim v{player.ClientVersion}  |  Protocol {player.ProtocolVersion}  |  {(player.IsCompatible ? "compatible" : "incompatible")}"
-                    : $"{player.PlayerName}  |  Benheim not detected  |  incompatible");
-            }
-        }
-        return string.Join("\n", lines);
-    }
-
     private static void ResetTabState()
     {
         Tabs.Clear();
         Pages.Clear();
-        multiplayerSummary = null;
-        multiplayerStatus = null;
+        controlsWarnings = null;
         activeTab = ShortcutTab.Controls;
     }
 
@@ -350,7 +225,6 @@ internal static partial class ShortcutOverlay
     {
         Controls,
         Features,
-        Multiplayer,
     }
 
     private readonly struct TabState

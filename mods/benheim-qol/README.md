@@ -1,9 +1,9 @@
 # Benheim
 
-Benheim is an optional Valheim quality-of-life mod for BepInEx. Most features
-run only on the player's computer. Multiplayer Put Away also requires the
-Benheim Inventory server plugin and a compatible Benheim client for every
-ready player.
+Benheim is an optional Valheim quality-of-life mod for BepInEx. Its features run
+on the player's computer. Put Away uses Valheim's native chest ownership flow,
+so it does not require a server plugin. Players without Benheim can still join
+and use chests normally.
 
 ## Install On A Mac
 
@@ -44,13 +44,19 @@ manages your server. Fully quit Valheim, unzip the package for your computer,
 and run its installer again. The installer updates Benheim without removing
 saves, characters, settings, or pocketed item preferences.
 
-Press `Left Shift + B` in game to confirm the installed version and multiplayer Put Away
-compatibility. The Valheim-styled Benheim menu uses Unity UI and Valheim's loaded
-UI templates to show the server and dynamic ready-player version roster. Exact
-versions appear for diagnosis. Put Away compatibility depends on the transaction
-protocol version.
+Press `Left Shift + B` in game to confirm the installed version and review the
+controls. The Valheim-styled Benheim menu uses Unity UI and Valheim's loaded UI
+templates.
 
 ## Send A Diagnostic Log
+
+Each managed Mac or Windows modded launch archives the full
+`BepInEx/LogOutput.log` from the previous run before BepInEx starts. Benheim
+keeps the 10 newest archives it created in `BepInEx/BenheimLogArchive` and the
+current active log. If the previous run crashed, the next managed launch
+archives the leftover log too. If archiving fails, the launcher shows a visible
+warning that does not block the managed launch. Normal Steam launches remain
+vanilla and do not run this archive step.
 
 Press `F7` in game. Benheim copies the active diagnostic log to your Desktop as
 a timestamped `.txt` file and confirms the filename on screen. Attach that file
@@ -69,13 +75,21 @@ reference.
 Install BepInExPack Valheim locally, then run:
 
 ```bash
+mods/benheim-qol/scripts/verify.sh
+```
+
+`verify.sh` runs all client source and installer checks, the Put Away summary
+checks, and the Release DLL build. It does not install, package, or publish
+anything. To build only the DLL, run:
+
+```bash
 mods/benheim-qol/scripts/build.sh
 ```
 
 If Valheim is not in the default Steam path, set:
 
 ```bash
-VALHEIM_GAME_DIR="/path/to/Valheim" mods/benheim-qol/scripts/build.sh
+VALHEIM_GAME_DIR="/path/to/Valheim" mods/benheim-qol/scripts/verify.sh
 ```
 
 ## Install Locally
@@ -85,12 +99,15 @@ mods/benheim-qol/scripts/install-local.sh
 ```
 
 `install-local.sh` builds the DLL and invokes the same Mac installer shipped to
-players. To create the shareable package, run:
+players. To create the shareable Mac and Windows packages, run:
 
 ```bash
-mods/benheim-qol/scripts/package-macos.sh
-mods/benheim-qol/scripts/package-windows.sh
+mods/benheim-qol/scripts/package-all.sh
 ```
+
+`package-all.sh` runs `verify.sh` once, then creates the versioned Mac and
+Windows packages from the same verified Release DLL. It does not install files,
+create a release, or upload either package.
 
 Publish a tested release from a clean local `main` branch that exactly matches
 `origin/main`:
@@ -101,12 +118,12 @@ mods/benheim-qol/scripts/release.sh
 
 The release command:
 
-- runs the complete client test suite;
-- builds both packages;
+- runs `verify.sh`;
+- builds both packages from that verified Release DLL;
 - creates a versioned GitHub release; and
 - uploads both packages with stable asset names.
 
-The package is written under `mods/benheim-qol/dist/`. The installer copies
+The packages are written under `mods/benheim-qol/dist/`. The installer copies
 `BenheimQoL.dll` into:
 
 ```text

@@ -34,3 +34,41 @@ internal sealed class QuickStackOperation
     internal int BusyContainers { get; set; }
     internal QuickStackSummary Summary { get; } = new QuickStackSummary();
 }
+
+internal sealed class QuickStackBulkScope
+{
+    internal static QuickStackBulkScope? Active { get; set; }
+
+    internal QuickStackBulkScope(
+        Player player,
+        Inventory target,
+        QuickStackOperation? operation,
+        Container? container,
+        QuickStackBulkScope? previous)
+    {
+        Player = player;
+        Target = target;
+        Operation = operation;
+        Container = container;
+        Previous = previous;
+    }
+
+    internal Player Player { get; }
+    internal Inventory Target { get; }
+    internal QuickStackOperation? Operation { get; }
+    internal Container? Container { get; }
+    internal QuickStackBulkScope? Previous { get; }
+    internal List<QuickStackItemSnapshot> Items { get; } = new List<QuickStackItemSnapshot>();
+}
+
+internal sealed class QuickStackItemSnapshot
+{
+    internal QuickStackItemSnapshot(ItemDrop.ItemData item, int stackBefore)
+    {
+        Item = item;
+        StackBefore = stackBefore;
+    }
+
+    internal ItemDrop.ItemData Item { get; }
+    internal int StackBefore { get; }
+}

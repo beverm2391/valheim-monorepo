@@ -8,27 +8,14 @@ marker="$root/src/Inventory/PocketMarker.cs"
 controller="$root/src/Inventory/PocketItemController.cs"
 protection="$root/src/Inventory/PocketItems.cs"
 quick_stack="$root/src/Inventory/QuickStack.cs"
-quick_stack_availability="$root/src/Inventory/QuickStackAvailability.cs"
 quick_stack_diagnostics="$root/src/Inventory/QuickStackDiagnostics.cs"
 quick_stack_location="$root/src/Inventory/QuickStackLocation.cs"
 quick_stack_feedback="$root/src/Inventory/QuickStackFeedback.cs"
 quick_stack_summary="$root/src/Inventory/QuickStackSummary.cs"
-quick_stack_receipt_hud="$root/src/Inventory/QuickStackReceiptHud.cs"
+top_left_feedback_hud="$root/src/TopLeftFeedbackHud.cs"
+top_left_feedback_layout="$root/src/TopLeftFeedbackLayout.cs"
 visibility="$root/src/Inventory/InventoryVisibility.cs"
-protocol_root="$root/../../shared/benheim-inventory-protocol"
-protocol_core="$protocol_root/InventoryTransactions.cs"
-protocol_client="$protocol_root/InventoryTransactionClient.cs"
-protocol_server="$protocol_root/InventoryTransactionServer.cs"
-protocol_owner="$protocol_root/InventoryTransactionOwner.cs"
-protocol_receipts="$protocol_root/InventoryTransactionReceipts.cs"
-protocol_audit="$protocol_root/InventoryTransactionAudit.cs"
-protocol_capabilities="$protocol_root/InventoryTransactionCapabilities.cs"
-protocol_models="$protocol_root/InventoryCapabilityModels.cs"
-protocol_recovery_policy="$protocol_root/InventoryTransactionRecoveryPolicy.cs"
-compatibility_feedback="$root/src/Inventory/MultiplayerCompatibilityFeedback.cs"
 client_plugin="$root/src/Plugin.cs"
-server_plugin="$root/../../server-mods/benheim-inventory/src/Plugin.cs"
-server_project="$root/../../server-mods/benheim-inventory/src/BenheimInventory.csproj"
 
 grep -Fq 'internal static bool IsTextEntryActive()' "$input_state"
 grep -Fq 'Minimap.InTextInput()' "$input_state"
@@ -73,60 +60,67 @@ grep -Fq 'if (inventoryWasOpen)' "$quick_stack_feedback"
 grep -Fq 'QuickStackMessages.AbovePlayerSummary(movedItems)' "$quick_stack_feedback"
 ! grep -Fq 'ShowDestinationSummaries' "$quick_stack_feedback"
 ! grep -Fq 'ShowDestinationSummaries' "$quick_stack"
-grep -Fq 'FormatItemsForContainer' "$quick_stack_summary"
 grep -Fq 'MessageHud.MessageType.Center' "$quick_stack_feedback"
-grep -Fq 'QuickStackReceiptHud.Show(message)' "$quick_stack_feedback"
-grep -Fq 'Object.Instantiate(template, template.transform.parent)' "$quick_stack_receipt_hud"
-grep -Fq 'ElementGameObjectField' "$quick_stack_receipt_hud"
-grep -Fq 'rect.GetWorldCorners' "$quick_stack_receipt_hud"
-grep -Fq 'rect.pivot = new Vector2(0f, 1f)' "$quick_stack_receipt_hud"
-grep -Fq 'TextAlignmentOptions.TopLeft' "$quick_stack_receipt_hud"
-grep -Fq 'QuickStackReceiptHud.Update();' "$root/src/Plugin.cs"
-grep -Fq 'QuickStackReceiptHud.Destroy();' "$root/src/Plugin.cs"
-grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack"
-grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack"
-grep -Fq 'QuickStackAvailability.CanRun' "$quick_stack"
-grep -Fq 'InventoryTransactions.TryBeginDeposit' "$quick_stack"
-grep -Fq 'InventoryTransactions.IsAvailable' "$quick_stack_availability"
-grep -Fq 'internal const int ProtocolVersion = InventoryTransactionRecoveryPolicy.CurrentProtocolVersion;' "$protocol_core"
-grep -Fq 'internal const int CurrentProtocolVersion = 2;' "$protocol_recovery_policy"
-grep -Fq 'internal const int LegacyJournalProtocolVersion = 1;' "$protocol_recovery_policy"
-grep -Fq 'Benheim.Inventory.v2.Hello' "$protocol_core"
-grep -Fq 'matching Benheim protocols on the server and every player' "$protocol_core"
-grep -Fq 'PluginVersion = "0.1.42"' "$client_plugin"
-grep -Fq 'PluginVersion = "0.1.2"' "$server_plugin"
-grep -Fq 'Benheim Inventory 0.1.2 loaded with protocol 2.' "$server_plugin"
-grep -Fq '<Version>0.1.2</Version>' "$server_project"
-grep -Fq 'source.RemoveItem(sourceItem, sourceItem.m_stack)' "$protocol_client"
-grep -Fq 'new ZPackage(pending.RequestBytes)' "$protocol_client"
-grep -Fq 'ZRoutedRpc.instance.InvokeRoutedRPC(owner, OwnerExecuteRpc' "$protocol_server"
-grep -Fq 'InventoryTransactionJournal.WritePrepared' "$protocol_client"
-grep -Fq 'InventoryTransactionJournal.MarkReserved' "$protocol_client"
-grep -Fq 'InventoryTransactionJournal.MarkCompleted' "$protocol_client"
-grep -Fq 'Game.instance.SavePlayerProfile' "$protocol_client"
-grep -Fq 'RestoreMissingPreparedItems' "$protocol_root/InventoryTransactionRecovery.cs"
-grep -Fq 'InventoryTransactionReceipts.TryRead' "$protocol_owner"
-grep -Fq 'InventoryTransactionReceipts.Record' "$protocol_owner"
-grep -Fq 'CheckAccessMethod.Invoke' "$protocol_owner"
-grep -Fq 'MaxDistance * MaxDistance' "$protocol_owner"
-grep -Fq 'namesPresentBefore.Contains' "$protocol_owner"
-grep -Fq 'deposit_receipts' "$protocol_receipts"
-grep -Fq 'BenheimInventoryAudit.log' "$protocol_audit"
-grep -Fq 'InventoryTransactionAudit.Write' "$protocol_core"
-grep -Fq 'if (changed)' "$protocol_capabilities"
-grep -Fq 'reason=status_stale' "$protocol_capabilities"
-grep -Fq 'status.Write(player.IsDetected)' "$protocol_capabilities"
-grep -Fq 'isCompatible != (isDetected && playerProtocol == protocol)' "$protocol_capabilities"
-grep -Fq 'Semantic versions deliberately do not participate in this key.' "$protocol_models"
-grep -Fq 'InventoryCompatibilityWarningTracker' "$compatibility_feedback"
-grep -Fq 'Press Left Shift + B for details.' "$compatibility_feedback"
-if rg -n 'ClientVersion\s*==|ServerVersion\s*==' "$protocol_root"; then
-  printf 'semantic versions must remain diagnostic rather than capability gates\n' >&2
+grep -Fq 'TopLeftFeedbackHud.ShowGrouped(message)' "$quick_stack_feedback"
+grep -Fq 'TopLeftFeedbackHud.ShowTransient(message)' "$controller"
+grep -Fq 'TopLeftFeedbackHud.ShowTransient("Put Away already in progress")' "$quick_stack"
+grep -Fq 'Object.Instantiate(template, parent)' "$top_left_feedback_hud"
+grep -Fq 'Entry' "$top_left_feedback_hud"
+grep -Fq 'Entries.Add' "$top_left_feedback_hud"
+grep -Fq 'GroupedDurationSeconds = 5f' "$top_left_feedback_hud"
+grep -Fq 'TransientDurationSeconds = 4f' "$top_left_feedback_hud"
+grep -Fq 'entry.HideAt - now' "$top_left_feedback_hud"
+grep -Fq 'entry.Text.alpha = Mathf.Clamp01(remaining / entry.FadeSeconds)' "$top_left_feedback_hud"
+grep -Fq 'FindVisibleHotbarBounds' "$top_left_feedback_hud"
+grep -Fq 'FindVisibleNativeStatusBounds' "$top_left_feedback_hud"
+grep -Fq 'm_statusEffectListRoot' "$top_left_feedback_hud"
+grep -Fq 'statusRoot.childCount' "$top_left_feedback_hud"
+if grep -Fq 'GetComponentsInChildren' "$top_left_feedback_hud"; then
+  printf 'visible feedback placement must not allocate a status-child array each frame\n' >&2
   exit 1
 fi
-grep -Fq 'LogServerBlock' "$protocol_server"
-if rg -F -g '*.cs' 'ClaimOwnership' "$protocol_root" "$quick_stack"; then
-  printf 'authoritative Put Away must never claim chest ownership\n' >&2
+grep -Fq 'Mathf.Max(rect.rect.width, text.preferredWidth)' "$top_left_feedback_hud"
+grep -Fq 'TopLeftFeedbackLayout.Calculate' "$top_left_feedback_hud"
+grep -Fq 'ToLayoutRect(hotbarBounds.Value)' "$top_left_feedback_hud"
+grep -Fq 'nativeStatusBounds.Value' "$top_left_feedback_hud"
+grep -Fq 'hotbarRect.GetWorldCorners' "$top_left_feedback_hud"
+grep -Fq 'WorldCorners[2]' "$top_left_feedback_hud"
+grep -Fq 'rect.pivot = new Vector2(0f, 1f)' "$top_left_feedback_hud"
+grep -Fq 'TextAlignmentOptions.TopLeft' "$top_left_feedback_hud"
+grep -Fq 'TopLeftFeedbackHud.Update();' "$root/src/Plugin.cs"
+grep -Fq 'TopLeftFeedbackHud.Destroy();' "$root/src/Plugin.cs"
+grep -Fq 'internal static TopLeftFeedbackPlacement Calculate' "$top_left_feedback_layout"
+layout_block="$(sed -n '/internal static TopLeftFeedbackPlacement Calculate/,/private static float Clamp/p' "$top_left_feedback_layout")"
+printf '%s\n' "$layout_block" | grep -Fq 'hotbarBounds.XMin'
+printf '%s\n' "$layout_block" | grep -Fq 'hotbarBounds.YMin - gap'
+printf '%s\n' "$layout_block" | grep -Fq 'nativeStatusBounds.YMin - gap'
+if printf '%s\n' "$layout_block" | grep -Fq 'hotbarBounds.XMax'; then
+  printf 'Benheim top-left lane must never anchor to the hotbar right edge\n' >&2
+  exit 1
+fi
+grep -Fq 'scaleFactor' "$top_left_feedback_layout"
+grep -Fq 'screenHeight - fallbackTopOffset * scaleFactor' "$top_left_feedback_layout"
+if grep -Fq 'MessageHud.MessageType.TopLeft' "$controller" "$quick_stack"; then
+  printf 'Benheim-owned top-left feedback must use the shared lane\n' >&2
+  exit 1
+fi
+grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack"
+grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack"
+grep -Fq 'container.StackAll();' "$quick_stack"
+grep -Fq 'BeginBulkStack' "$quick_stack"
+grep -Fq 'RecordNativeTransfer' "$quick_stack"
+grep -Fq 'scope.Player.GetInventory().ContainsItem(snapshot.Item)' "$quick_stack"
+if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
+  printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
+  exit 1
+fi
+grep -Fq 'PluginVersion = "0.1.52"' "$client_plugin"
+if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol' "$root/src"; then
+  printf 'client Put Away must not retain protocol machinery\n' >&2
+  exit 1
+fi
+if rg -F -g '*.cs' 'ClaimOwnership' "$quick_stack"; then
+  printf 'native Put Away must never claim chest ownership\n' >&2
   exit 1
 fi
 grep -Fq 'position=(' "$quick_stack_diagnostics"

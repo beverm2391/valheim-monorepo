@@ -6,6 +6,9 @@ osascript_command="${BENHEIM_OSASCRIPT_COMMAND:-/usr/bin/osascript}"
 log_dir="$HOME/Library/Logs/BenheimQoL"
 log_file="$log_dir/launch.log"
 steam_connection_log="${BENHEIM_STEAM_CONNECTION_LOG:-$HOME/Library/Application Support/Steam/logs/connection_log.txt}"
+bepinex_log_file="$game_dir/BepInEx/LogOutput.log"
+archive_dir="$game_dir/BepInEx/BenheimLogArchive"
+archive_prefix='Benheim-session-'
 
 mkdir -p "$log_dir"
 
@@ -14,6 +17,73 @@ fail() {
   printf '%s\n' "$message" >> "$log_file"
   "$osascript_command" -e "display dialog \"$message\" with title \"Benheim\" buttons {\"OK\"} default button \"OK\"" >/dev/null 2>&1 || true
   exit 1
+}
+
+warn() {
+  message=$1
+  printf '%s\n' "Warning: $message" >> "$log_file" 2>/dev/null || true
+  "$osascript_command" -e "display notification \"$message\" with title \"Benheim\"" >/dev/null 2>&1 || true
+}
+
+prune_archives() {
+  if ! candidates="$({
+    for candidate in "$archive_dir"/$archive_prefix*.log; do
+      [ -f "$candidate" ] && printf '%s\n' "$candidate"
+    done
+  } | LC_ALL=C sort -r)"; then
+    warn "Could not inspect Benheim session archives; continuing launch."
+    return 0
+  fi
+
+  [ -n "$candidates" ] || return 0
+  kept=0
+  while IFS= read -r candidate; do
+    [ -n "$candidate" ] || continue
+    kept=$((kept + 1))
+    if [ "$kept" -gt 10 ] && ! rm -f "$candidate"; then
+      warn "Could not prune a Benheim session archive; continuing launch."
+    fi
+  done <<EOF
+$candidates
+EOF
+}
+
+archive_previous_session() {
+  [ -f "$bepinex_log_file" ] || return 0
+
+  if ! mkdir -p "$archive_dir"; then
+    warn "Could not create the Benheim session archive directory; continuing launch."
+    return 0
+  fi
+
+  session_stamp="$(date -u '+%Y%m%dT%H%M%SZ' 2>/dev/null || printf 'unknown')"
+  archive_index=1
+  for candidate in "$archive_dir/$archive_prefix$session_stamp-"*.log; do
+    [ -f "$candidate" ] || continue
+    archive_suffix="${candidate##*-}"
+    archive_suffix="${archive_suffix%.log}"
+    case "$archive_suffix" in
+      ''|*[!0-9]*) continue ;;
+    esac
+    archive_number="$(printf '%s\n' "$archive_suffix" | awk '{sub(/^0+/, "", $0); print ($0 == "" ? 0 : $0)}')"
+    if [ "$archive_number" -ge "$archive_index" ]; then
+      archive_index=$((archive_number + 1))
+    fi
+  done
+  while :; do
+    archive_suffix="$(printf '%03d' "$archive_index")"
+    archive_path="$archive_dir/$archive_prefix$session_stamp-$archive_suffix.log"
+    [ ! -e "$archive_path" ] && break
+    archive_index=$((archive_index + 1))
+  done
+
+  if ! cp "$bepinex_log_file" "$archive_path"; then
+    rm -f "$archive_path" 2>/dev/null || true
+    warn "Could not archive the previous BepInEx log; continuing launch."
+    return 0
+  fi
+
+  prune_archives
 }
 
 if [ ! -x "$game_dir/start_game_bepinex.sh" ] || [ ! -d "$game_dir/valheim.app" ]; then
@@ -57,6 +127,11 @@ if ! pgrep -x steam_osx >/dev/null 2>&1 || ! steam_logged_on; then
 fi
 
 cd "$game_dir"
+
+# Archive only after Steam is ready, at the last safe point before BepInEx can
+# overwrite LogOutput.log. A failed Steam preflight therefore does not create a
+# duplicate archive on the next attempt.
+archive_previous_session
 
 # BepInEx's current macOS Doorstop loader is x86_64, so Apple Silicon Macs run
 # Valheim's matching slice under Rosetta. Detach so the Dock app can exit.

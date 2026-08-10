@@ -46,13 +46,6 @@ internal sealed class QuickStackSummary
         return string.Join("\n", lines);
     }
 
-    internal string FormatItemsForContainer(int containerInstanceId)
-    {
-        return containersByInstanceId.TryGetValue(containerInstanceId, out ContainerSummary? container)
-            ? FormatItems(container)
-            : string.Empty;
-    }
-
     private static string FormatItems(ContainerSummary container)
     {
         List<string> parts = container.MovedByItemName

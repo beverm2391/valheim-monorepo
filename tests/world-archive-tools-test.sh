@@ -213,16 +213,17 @@ cat > "$test_root/server.env" <<'EOF'
 HETZNER_SERVER_NAME=test-server
 VALHEIM_SERVER_NAME=Test-Server
 VALHEIM_WORLD_NAME=FriendWorld
-VALHEIM_PASSWORD=test-only-password
 SSH_HOST=test-host
 SSH_USER=root
 EOF
 
 : > "$test_root/remote-commands.log"
 COMMAND_LOG="$test_root/remote-commands.log" \
-VALHEIM_ENV_FILE="$test_root/server.env" \
-PATH="$test_root/fake-remote-bin:$PATH" \
+  VALHEIM_ENV_FILE="$test_root/server.env" \
+  PATH="$test_root/fake-remote-bin:$PATH" \
   "$restore" "$test_root/legacy.tar.gz" > "$test_root/remote.out"
+
+pass "remote wrapper does not require the server password"
 
 [[ $(grep -c '^scp' "$test_root/remote-commands.log") -eq 3 ]] || fail "remote wrapper uploads the archive and two tools"
 pass "remote wrapper uploads the archive and two tools"

@@ -11,6 +11,82 @@ function Write-LaunchLog {
     Add-Content -LiteralPath $LogFile -Value ("{0:u} {1}" -f (Get-Date), $Message)
 }
 
+function Write-LaunchWarning {
+    param([Parameter(Mandatory = $true)][string]$Message)
+
+    try {
+        Write-LaunchLog "Warning: $Message"
+    }
+    catch {
+        Write-Warning $Message
+    }
+
+    try {
+        $messageCommand = Get-Command 'msg.exe' -ErrorAction Stop
+        $recipient = if ($env:USERNAME) { $env:USERNAME } else { '*' }
+        & $messageCommand.Source $recipient ("Benheim: " + $Message) 2>$null | Out-Null
+    }
+    catch {
+        # The launch log and PowerShell warning remain the fallback when the
+        # optional native session notification command is unavailable.
+    }
+}
+
+function Archive-PreviousSession {
+    param([Parameter(Mandatory = $true)][string]$GameDir)
+
+    $bepInExLog = Join-Path $GameDir 'BepInEx\LogOutput.log'
+    if (-not (Test-Path -LiteralPath $bepInExLog -PathType Leaf)) {
+        return
+    }
+
+    $archiveDir = Join-Path $GameDir 'BepInEx\BenheimLogArchive'
+    $archivePath = $null
+    try {
+        New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
+        $stamp = [DateTime]::UtcNow.ToString(
+            'yyyyMMddTHHmmssZ',
+            [Globalization.CultureInfo]::InvariantCulture
+        )
+        $index = 1
+        foreach ($existingArchive in @(
+            Get-ChildItem -LiteralPath $archiveDir -Filter "Benheim-session-$stamp-*.log" -File
+        )) {
+            if ($existingArchive.BaseName -match '-(?<suffix>\d+)$') {
+                $existingNumber = [int]$Matches['suffix']
+                if ($existingNumber -ge $index) {
+                    $index = $existingNumber + 1
+                }
+            }
+        }
+        do {
+            $suffix = $index.ToString('000', [Globalization.CultureInfo]::InvariantCulture)
+            $archivePath = Join-Path $archiveDir "Benheim-session-$stamp-$suffix.log"
+            $index++
+        } while (Test-Path -LiteralPath $archivePath)
+
+        # Copy before BepInEx starts so the prior complete log survives either
+        # a normal shutdown or a crash that left LogOutput.log behind.
+        Copy-Item -LiteralPath $bepInExLog -Destination $archivePath
+
+        $archives = @(
+            Get-ChildItem -LiteralPath $archiveDir -Filter 'Benheim-session-*.log' -File |
+                Sort-Object -Property Name -Descending
+        )
+        if ($archives.Count -gt 10) {
+            $archives | Select-Object -Skip 10 | Remove-Item -Force
+        }
+    }
+    catch {
+        if ($archivePath -and (Test-Path -LiteralPath $archivePath)) {
+            Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
+        }
+        # A full or unavailable archive directory must not unexpectedly block
+        # the modded launch. The warning remains in launch.log when possible.
+        Write-LaunchWarning "Could not archive the previous BepInEx log; continuing launch."
+    }
+}
+
 function Get-SteamRoots {
     $roots = New-Object System.Collections.Generic.List[string]
     $registryPaths = @(
@@ -138,6 +214,8 @@ try {
 
     Write-LaunchLog 'Launching Benheim.'
     Wait-ForSteamReady
+    # Archive at the last safe point before BepInEx can overwrite LogOutput.log.
+    Archive-PreviousSession -GameDir $gameDir
     Start-Process `
         -FilePath $valheimExecutable `
         -ArgumentList '--doorstop-enabled', 'true' `

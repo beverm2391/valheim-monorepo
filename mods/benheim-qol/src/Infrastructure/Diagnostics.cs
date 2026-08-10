@@ -12,4 +12,12 @@ internal static class Diagnostics
     {
         return value ? "true" : "false";
     }
+
+    internal static string Flatten(string value)
+    {
+        return value
+            .Replace('\r', ' ')
+            .Replace('\n', ' ')
+            .Replace(' ', '_');
+    }
 }
