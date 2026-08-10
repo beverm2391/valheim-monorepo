@@ -10,15 +10,13 @@ the product promise or a compatibility boundary.
 This repo has three related jobs:
 
 - Provision and operate a Valheim dedicated server on a cloud VM.
-- Support selected server-side mods that remain compatible with vanilla
-  clients.
-- Build optional client mods under `mods/`, including quality-of-life and
-  gameplay features. Keep server-assisted features explicit.
+- Support selected server-side mods with explicit player requirements.
+- Build client mods under `mods/`, including quality-of-life and gameplay
+  features. Keep server-assisted features explicit.
 
-Most server work must not assume client mods are installed. A server-assisted
-client feature must disable itself when a required client component is missing.
-The default promise is that vanilla PC or console clients can join and play
-normally.
+The root `PRODUCT.md` owns which clients and server components a shared feature
+requires. A server-assisted feature must fail visibly when a required component
+is missing or incompatible.
 
 The root `PRODUCT.md` owns the overall server and mod promise. The client mod
 at `mods/benheim-qol/` owns its promise in `PRODUCT.md`, each user-facing
@@ -75,7 +73,6 @@ mod files or configuration. `scripts/install-server-mods.sh` owns pinned
 package versions and checksums, stages downloads before downtime, takes a
 stopped-server backup, and falls back to the vanilla path if installation
 fails. New server mods must be removable without changing the world save.
-Benheim Eternal Fire must not prevent a vanilla client from joining.
 
 `scripts/apply-server-config.sh` owns routine deployment of the launcher and
 the generated `/etc/valheim/server.env`. It combines non-secret local settings
@@ -240,8 +237,10 @@ warning and error logging enabled.
 - Put Away must use Valheim's normal inventory persistence and interruption
   behavior. Do not add forced character saves, transfer journals, transaction
   receipts, automatic retries, or custom recovery.
-- Add custom persistent world objects or custom item data only when the product
-  design explicitly requires them.
+- Defer custom persistent world objects until a specific feature needs them.
+  That feature design must cover their effects on the world, recovery,
+  migration, and removal. Add custom item data only when the product design
+  requires it and removal cannot corrupt a character.
 - Build the Valheim-styled Benheim menu with Unity UI and Valheim's loaded UI
   templates. Keep its controls aligned with the owning feature `PRODUCT.md`.
 - Bump the visible plugin version when installing a user-testable behavior

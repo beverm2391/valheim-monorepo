@@ -8,9 +8,9 @@ quality-of-life mod.
 Benheim should feel continuous with Valheim. It should first deepen or improve
 Valheim through familiar actions, progression, resources, structures,
 creatures, and its look and feel instead of creating a parallel system. Most
-current features are client-only. Players without Benheim can still join. Our
-regular group should run the same Benheim version when a feature needs
-consistent shared behavior.
+current features are client-only. Our regular group runs the same Benheim
+version. Benheim does not promise multiplayer compatibility for players who do
+not run it.
 
 This file owns the overall product promise. Each feature module has a
 `PRODUCT.md` that owns its behavior and proof status.
@@ -61,15 +61,16 @@ game that is more fun for our group.
   the leftover log. If archiving fails, the launcher shows a visible warning
   that does not block the managed launch.
 - `F7` remains the manual way to export the active log for sharing.
-- Keep Benheim compatible with servers and players that do not use it.
-- For features that depend on the zone owner, every client in the expected
-  playgroup must run the same Benheim version for consistent behavior. Vanilla
-  clients may still join, but zones they own use Valheim's native behavior for
-  those features.
+- Make each required client and server component explicit. Every active player
+  in our regular group must run the same Benheim version.
+- For features that depend on zone ownership, every active zone owner must run
+  the same Benheim version for consistent behavior.
 - Put Away must let Valheim's current chest owner grant the transfer. Never
   write a non-owned local chest or claim ownership as a shortcut.
-- Do not add custom persistent world objects. Store a player's manual pocket
-  choice on an item only when no safer representation can preserve that choice.
+- Defer custom persistent world objects until a specific feature needs them.
+  Approve their world, recovery, migration, and removal behavior as part of
+  that feature design. Store a player's manual pocket choice on an item only
+  when no safer representation can preserve that choice.
 - Prefer normal Valheim actions over direct inventory or world mutation.
 - If Valheim rejects an action, preserve vanilla behavior or explain the local
   reason without damaging game state.

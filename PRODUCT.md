@@ -4,9 +4,10 @@ This repo treats the dedicated server and its mods as one product: a durable
 shared Valheim world with curated changes that make the game more fun for our
 group without turning it into a total overhaul or a fragile modpack.
 
-The default compatibility promise is simple. Anyone with a vanilla PC or
-console client can join and play normally. Client mods are required only for
-features that explicitly name that requirement.
+Our regular group runs the same Benheim version. The product does not promise
+that an unmodded PC or console client can join a Benheim session. Keep the
+vanilla launch path for recovery and the Valheim 1.0 migration, not as a
+multiplayer compatibility promise.
 
 ## Product Boundaries
 
@@ -14,9 +15,11 @@ features that explicitly name that requirement.
 - Operator secrets must stay out of local configuration. Deployment may create
   restricted runtime files on the server, but those files are never sources of
   truth.
-- Server-side mods should preserve vanilla-client compatibility unless that
-  tradeoff is changed deliberately.
-- Client-side mods should not add custom persistent world objects or item data.
+- Make required client and server components explicit for each shared feature.
+- Defer custom persistent world objects until a specific feature needs them.
+  Approve their world, recovery, migration, and removal behavior as part of
+  that feature design. Add custom item data only when the product design needs
+  it and removal cannot corrupt a character.
 - Benheim may combine quality-of-life features, balance changes, gameplay
   adjustments, and selected new mechanics. Quality of life is part of the mod,
   not its whole identity.
@@ -31,7 +34,7 @@ features that explicitly name that requirement.
 
 | Feature | Product role | Runs on | Required for friends |
 | --- | --- | --- | --- |
-| Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | No to join; regular players should use the same version for a consistent Benheim session. |
+| Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use the same version. |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
@@ -50,14 +53,14 @@ must preserve.
 ## Acceptance Shape
 
 The server product is healthy when the world survives restarts and restores,
-vanilla clients can join, backups remain usable, and enabled server-only gameplay
-mods produce the same shared effect for modded and unmodded players.
+backups remain usable, and the required client and server components work
+together to produce the same shared behavior for the regular group.
 
-An optional client mod is healthy when players without it remain compatible and
-installing or removing it does not corrupt shared world or character data.
+Benheim is healthy when every member of our regular group has the required
+version and the shared world and characters remain recoverable across updates
+or removal.
 Put Away must use Valheim's native chest ownership flow so every connected
 player sees the same completed chest state. It must not require a server plugin.
-A player without Benheim must still be able to join and use chests normally.
 
 ## Open Gates
 

@@ -24,7 +24,7 @@ The server and optional mod product direction is tracked in
 - Scripts to upload an existing legacy world save or restore a complete backup.
 - Local nightly backups on the VM.
 - Optional Cloudflare R2 uploads for off-box backups.
-- Optional pinned server mods with a vanilla-client compatibility requirement.
+- Optional pinned server and client mods with explicit player requirements.
 - No bundled game files, world saves, passwords, or cloud credentials.
 
 ## How It Works
@@ -320,8 +320,8 @@ session are worse than a manual update before game night.
 
 ## Server Mods
 
-The server can run a small, pinned mod stack. Server mods must remain
-compatible with vanilla clients. The repo-managed stack is:
+The server can run a small, pinned mod stack. Each mod states which client and
+server components it requires. The repo-managed stack is:
 
 - BepInEx, the plugin loader.
 - Benheim Eternal Fire, a first-party server plugin that makes ordinary fires,

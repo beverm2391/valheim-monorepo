@@ -95,5 +95,3 @@ The Inventory module makes routine item movement faster.
   Manual item moves and **Take all** must remain unchanged.
 - For an active Put Away batch, the displayed result must include only items
   moved into the chest currently being processed.
-- Put Away should continue to work while a player without Benheim is online.
-  This is useful compatibility evidence, but it is not a release gate.
