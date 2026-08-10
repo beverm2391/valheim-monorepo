@@ -41,17 +41,43 @@ Higher tiers should remain durable and able to kill an unprepared player
 quickly. Players should overcome them through skill, preparation, builds,
 equipment, tools, and knowledge.
 
-Players must recognize a tier immediately. Benheim can use a consistent color
-or emission progression with the native HUD stars. Size can change for selected
-creatures when the change remains visually clear and does not break the
-creature's physical behavior.
+Players must recognize a tier immediately. Native stars and existing prefab
+styling are sufficient for now. Defer added color, emission, or size changes
+until gameplay shows that this signal is insufficient.
 
 Creature-specific tier rules can change AI, attack patterns, and resistance
 profiles. Each change must extend that creature's existing combat identity and
 give the player a readable reason to change tactics.
 
-Benheim is likely to change how often eligible variants spawn. Exact rates,
-progression gates, and creature exceptions remain open.
+Location should be the main input for tier distribution. Biome, distance from
+the world center, and encounter locations such as structures or dungeons should
+create stable areas of danger. Time should enable recognizable special
+encounters instead of invisibly strengthening every creature at night.
+
+Exact location rules, night encounters, spawn rates, and creature exceptions
+remain open pending research into the location and time information Valheim
+makes available.
+
+## Idea: Species Retaliation
+
+Killing many creatures of one species within a short period could provoke a
+temporary response from that species. Benheim would show the group a visible
+warning before it triggered one temporary response:
+
+- starred hunters;
+- an elite pack;
+- an alpha candidate; or
+- a native-style raid.
+
+Species Retaliation would make repeated kills of one species matter without
+permanently scaling that species. The response would end, then Species
+Retaliation would enter a cooldown.
+
+The following details remain undecided:
+
+- the kill threshold and time window;
+- the exact warning, response, and reward; and
+- which client or server controls the event.
 
 Future alpha monsters can feel like rare minibosses. No alpha rules, first
 creature, exact visual treatment, spawn distribution, or tier mechanic is
