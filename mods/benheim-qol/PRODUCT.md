@@ -34,6 +34,12 @@ systems that create new plans, builds, discoveries, and stories. Avoid feature
 soup, configuration complexity that players must manage, and breadth that does
 not improve play.
 
+Benheim can create deliberately brutal challenges and give players satisfying
+ways to overcome them. Severe threats should reward skill, preparation, builds,
+equipment, tools, knowledge, and satisfying counters. Difficulty without
+meaningful player agency is incomplete. Do not remove a threat merely because
+it is oppressive; connect it to satisfying ways for players to overcome it.
+
 Preserve the current world, characters, and recognizable Valheim progression
 unless a deliberate product decision justifies a compatibility cost. Benheim
 is not trying to replace Valheim. It is a practical, evolving version of the
