@@ -62,6 +62,12 @@ passes.
 
 ### Now Through August 31
 
+Continue product design, source-code research, and upstream-mod evaluation for
+future Benheim systems. Limit pre-1.0 implementation to important stability
+work and migration preparation. Do not begin large gameplay-system
+implementation until the vanilla Valheim 1.0 migration is complete and
+Benheim's stable behavior has been ported and retested.
+
 - [ ] Keep every server mod removable without changing the world save.
 - [ ] Keep a tested vanilla launch path on the server.
 - [ ] Keep a tested vanilla launch path on every Mac and Windows client.
@@ -99,7 +105,7 @@ is required to keep the server playable.
 
 - [ ] Keep production vanilla through a normal session and nightly backup.
 - [ ] Reintroduce server dependencies and mods in the order defined below.
-- [ ] Reintroduce the shared client profile only after explicit 1.0 proof.
+- [ ] Port and prove stable Benheim behavior before adding new gameplay systems.
 - [ ] Record restored, replaced, and deferred decisions below.
 - [ ] Close and archive this runbook when the archive condition is satisfied.
 
@@ -116,7 +122,7 @@ files, not this table, own exact versions.
 | Benheim Eternal Fire | Server | Disabled | Vanilla clients see existing zero-fuel pieces relight and burning pieces refill before they extinguish. This behavior survives a server restart and client reconnect. | Benheim Eternal Fire `0.1.1` is deployed on Valheim `0.221.12`. Existing empty fires and torches relit for a client that did not have Benheim Eternal Fire installed. Low-fuel and restart proof is pending. |
 | Metal portals | Server, native | Reapply after vanilla proof | Restricted items pass through portals for vanilla clients after restart. | Passed portal traversal with a normally restricted metal item; restart proof pending. |
 | BepInEx | Clients | Use vanilla launch | Mac and Windows clients launch and join with the compatible loader. | Pending |
-| BenheimQoL | Clients | Disabled | The current product behavior passes a focused 1.0 test pass. | Pre-1.0 `0.1.13` passed farming, quick stack, extended chest interaction, and adrenaline UI checks. Final 1.0 proof pending. |
+| Benheim | Clients | Disabled | Benheim's stable behavior passes focused 1.0 testing. | Benheim `0.1.52` is the accepted stable pre-1.0 client on Valheim `0.221.12`. All regular players use version `0.1.52`. Final 1.0 proof is pending. |
 | Future gameplay mods | To classify | Not admitted | Source audit identifies network ownership, persistence, and platform support. | Deferred |
 
 ## Character Backups
@@ -358,7 +364,7 @@ Restore in this order:
 1. Server BepInEx.
 2. Benheim Eternal Fire.
 3. Client BepInEx on Mac and Windows.
-4. BenheimQoL.
+4. Benheim.
 5. Any newly selected gameplay mods.
 
 For every layer:
