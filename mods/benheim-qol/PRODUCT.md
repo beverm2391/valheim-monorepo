@@ -39,6 +39,20 @@ unless a deliberate product decision justifies a compatibility cost. Benheim
 is not trying to replace Valheim. It is a practical, evolving version of the
 game that is more fun for our group.
 
+## Combat Direction
+
+Benheim deepens skill-based combat, game depth, and variation by extending
+Valheim's existing combat behavior, mechanics, and abstractions. Three
+connected domains own this work: Enemy Tiers, Affinities, and Weapon Rhythm.
+
+Enemy Tiers is the conceptual starting point, but development is not a strict
+sequence. Make small playable changes across all three domains
+instead of completing one full system before starting another. Begin with a
+specific mechanic and generalize it only after gameplay proves a reusable
+pattern. Judge a mechanic by gameplay value first. Then choose the
+implementation that fits Valheim and returns the most gameplay value for its
+technical cost.
+
 ## Product Rules
 
 - Keep one client DLL and one simple install.
@@ -97,6 +111,9 @@ game that is more fun for our group.
 | [Archery](src/Archery/PRODUCT.md) | Global arrow headshots and collision-time feedback. |
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |
 | [Spawning](src/Spawning/PRODUCT.md) | Adjust spawn opportunities for selected native creatures. |
+| [Enemy Tiers](src/EnemyTiers/PRODUCT.md) | Extend native stars and creature behavior with coherent mechanical and AI variation. |
+| [Affinities](src/Affinities/PRODUCT.md) | Create weapon variation through existing combat properties and meaningful tradeoffs. |
+| [Weapon Rhythm](src/WeaponRhythm/PRODUCT.md) | Reward weapon mastery through timing, charge, cadence, spacing, and existing animations. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 
 `Infrastructure` contains shared implementation support and has no independent
