@@ -2,7 +2,7 @@ namespace BenheimQoL.EnemyTiers;
 
 internal enum WildernessDanger
 {
-    Familiar,
+    Safe,
     Sketchy,
     Dangerous,
     Deadly,
@@ -31,12 +31,19 @@ internal static class WildernessDangerScale
             return WildernessDanger.Sketchy;
         }
 
-        return WildernessDanger.Familiar;
+        return WildernessDanger.Safe;
     }
 
-    internal static string Label(WildernessDanger danger)
+    internal static string StyledLabel(WildernessDanger danger)
     {
-        return danger.ToString();
+        return danger switch
+        {
+            WildernessDanger.Safe => "<color=#A8D8A0>SAFE</color>",
+            WildernessDanger.Sketchy => "<color=#F0D36B>SKETCHY</color>",
+            WildernessDanger.Dangerous => "<color=#FF9B4A><b>DANGEROUS</b></color>",
+            WildernessDanger.Deadly => "<color=#FF5C5C><b>DEADLY</b></color>",
+            _ => throw new System.ArgumentOutOfRangeException(nameof(danger), danger, null),
+        };
     }
 
     internal static bool IsVisible(bool locallyExplored, bool sharedExplored, bool showSharedMapData)

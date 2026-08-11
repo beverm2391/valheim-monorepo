@@ -23,7 +23,8 @@ rg -Fq '___m_explored' "$map_hover"
 rg -Fq '___m_exploredOthers' "$map_hover"
 rg -Fq '___m_showSharedMapData' "$map_hover"
 rg -Uq '\[HarmonyPatch\]\ninternal static class WildernessMapHover' "$map_hover"
-rg -Fq 'WildernessDangerScale.Label(hovered.Danger)' "$map_hover"
+rg -Fq 'WildernessDangerScale.StyledLabel(hovered.Danger)' "$map_hover"
+rg -Fq '$"\n{WildernessDangerScale.StyledLabel(hovered.Danger)}"' "$map_hover"
 rg -Fq 'ComposeChance(' "$map_hover"
 rg -Fq 'wilderness_map_hover' "$map_hover"
 rg -Fq 'wilderness_map_hover_probe' "$map_hover"
@@ -39,7 +40,7 @@ rg -Fq 'local_explored=' "$map_hover"
 rg -Fq 'shared_explored=' "$map_hover"
 rg -Fq 'show_shared=' "$map_hover"
 
-if rg -n 'percent|%|dungeon|raid|alpha|event' "$map_hover"; then
+if rg -n 'percent|%|dungeon|raid|alpha|event| · | wilderness"| threat"|star risk' "$map_hover"; then
   printf 'map presentation must stay qualitative and ordinary-wilderness scoped\n' >&2
   exit 1
 fi

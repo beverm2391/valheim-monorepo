@@ -52,7 +52,8 @@ internal static class WildernessMapHover
             return;
         }
 
-        __instance.m_biomeNameLarge.text += $" · {WildernessDangerScale.Label(hovered.Danger)} wilderness";
+        __instance.m_biomeNameLarge.text +=
+            $"\n{WildernessDangerScale.StyledLabel(hovered.Danger)}";
         LogHover(hovered);
     }
 

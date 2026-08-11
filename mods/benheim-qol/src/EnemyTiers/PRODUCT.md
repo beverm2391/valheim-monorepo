@@ -116,10 +116,14 @@ the biome name. The label uses the same final per-step ordinary-wilderness
 chance that spawning uses. Benheim computes it only for the explored point
 under the cursor. It does not precompute or tint the world map.
 
+The category appears alone on a second line beneath the native biome name.
+Color and weight show the danger level: `SAFE` uses calm green, `SKETCHY` uses
+warning gold, `DANGEROUS` uses bold orange, and `DEADLY` uses bold red.
+
 The labels split the constructed `10%` to `40%` range into four equal fixed
 bands:
 
-- **Familiar:** below `17.5%`;
+- **Safe:** below `17.5%`;
 - **Sketchy:** from `17.5%` to below `25%`;
 - **Dangerous:** from `25%` to below `32.5%`; and
 - **Deadly:** `32.5%` or higher.

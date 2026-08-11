@@ -60,14 +60,25 @@ ExpectClose(
 var maximumBiome = new BiomeChanceCurve(30f, 30f);
 ExpectClose(40f, WildernessStarChance.AdjustEffectiveChance(10f, 1f, maximumBiome, WorldSize, WorldSize), "constructed maximum has no hard cap");
 
-ExpectTrue(WildernessDangerScale.Classify(0f) == WildernessDanger.Familiar, "zero pressure is familiar");
-ExpectTrue(WildernessDangerScale.Classify(17.499f) == WildernessDanger.Familiar, "familiar upper edge");
+ExpectTrue(WildernessDangerScale.Classify(0f) == WildernessDanger.Safe, "zero pressure is safe");
+ExpectTrue(WildernessDangerScale.Classify(17.499f) == WildernessDanger.Safe, "safe upper edge");
 ExpectTrue(WildernessDangerScale.Classify(17.5f) == WildernessDanger.Sketchy, "sketchy lower edge");
 ExpectTrue(WildernessDangerScale.Classify(24.999f) == WildernessDanger.Sketchy, "sketchy upper edge");
 ExpectTrue(WildernessDangerScale.Classify(25f) == WildernessDanger.Dangerous, "dangerous lower edge");
 ExpectTrue(WildernessDangerScale.Classify(32.499f) == WildernessDanger.Dangerous, "dangerous upper edge");
 ExpectTrue(WildernessDangerScale.Classify(32.5f) == WildernessDanger.Deadly, "deadly lower edge");
-ExpectTrue(WildernessDangerScale.Label(WildernessDanger.Sketchy) == "Sketchy", "danger label is player-facing");
+ExpectTrue(
+    WildernessDangerScale.StyledLabel(WildernessDanger.Safe) == "<color=#A8D8A0>SAFE</color>",
+    "safe label uses calm color");
+ExpectTrue(
+    WildernessDangerScale.StyledLabel(WildernessDanger.Sketchy) == "<color=#F0D36B>SKETCHY</color>",
+    "sketchy label uses warning color");
+ExpectTrue(
+    WildernessDangerScale.StyledLabel(WildernessDanger.Dangerous) == "<color=#FF9B4A><b>DANGEROUS</b></color>",
+    "dangerous label uses bold orange treatment");
+ExpectTrue(
+    WildernessDangerScale.StyledLabel(WildernessDanger.Deadly) == "<color=#FF5C5C><b>DEADLY</b></color>",
+    "deadly label uses bold red treatment");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, false, false), "unexplored point stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explored point is visible");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, true, false), "hidden shared exploration stays hidden");
