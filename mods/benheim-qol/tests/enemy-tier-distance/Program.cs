@@ -10,11 +10,11 @@ ExpectClose(1f, WildernessStarChance.NormalizeDistance(WorldSize, WorldSize), "w
 ExpectClose(0f, WildernessStarChance.NormalizeDistance(-100f, WorldSize), "negative distance clamps to center");
 ExpectClose(1f, WildernessStarChance.NormalizeDistance(12_000f, WorldSize), "distance beyond world edge clamps");
 
-ExpectClose(1f, WildernessStarChance.DistanceMultiplier(0f), "center multiplier");
-ExpectClose(1.375f, WildernessStarChance.DistanceMultiplier(0.5f), "midpoint multiplier");
-ExpectClose(1.75f, WildernessStarChance.DistanceMultiplier(1f), "world-edge multiplier");
-ExpectClose(1f, WildernessStarChance.DistanceMultiplier(-1f), "negative multiplier input clamps");
-ExpectClose(1.75f, WildernessStarChance.DistanceMultiplier(2f), "multiplier input beyond edge clamps");
+ExpectClose(0f, WildernessStarChance.GlobalDistanceAddition(0f), "center global addition");
+ExpectClose(5f, WildernessStarChance.GlobalDistanceAddition(0.5f), "midpoint global addition");
+ExpectClose(10f, WildernessStarChance.GlobalDistanceAddition(1f), "world-edge global addition");
+ExpectClose(0f, WildernessStarChance.GlobalDistanceAddition(-1f), "negative global-addition input clamps");
+ExpectClose(10f, WildernessStarChance.GlobalDistanceAddition(2f), "global-addition input beyond edge clamps");
 
 ExpectClose(8f, exampleBiome.ChanceAt(-1f), "biome curve clamps below center");
 ExpectClose(8f, exampleBiome.ChanceAt(0f), "biome curve center");
@@ -27,21 +27,21 @@ ExpectClose(
     WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, 0f, WorldSize),
     "biome minimum applies at center");
 ExpectClose(
-    16.5f,
+    17f,
     WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, 5_000f, WorldSize),
-    "biome midpoint composes with global distance");
+    "biome midpoint adds global distance");
 ExpectClose(
-    28f,
+    26f,
     WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, WorldSize, WorldSize),
-    "biome maximum composes with world-edge multiplier");
+    "biome maximum adds world-edge term");
 
 ExpectClose(
-    1.369f,
-    WildernessStarChance.DistanceMultiplier(WildernessStarChance.NormalizeDistance(4_920f, WorldSize)),
+    4.92f,
+    WildernessStarChance.GlobalDistanceAddition(WildernessStarChance.NormalizeDistance(4_920f, WorldSize)),
     "Bonemass-distance global calibration");
 ExpectClose(
-    1.59115f,
-    WildernessStarChance.DistanceMultiplier(WildernessStarChance.NormalizeDistance(7_882f, WorldSize)),
+    7.882f,
+    WildernessStarChance.GlobalDistanceAddition(WildernessStarChance.NormalizeDistance(7_882f, WorldSize)),
     "known-frontier global calibration");
 
 ExpectClose(
@@ -49,22 +49,24 @@ ExpectClose(
     WildernessStarChance.AdjustEffectiveChance(0f, 1f, exampleBiome, WorldSize, WorldSize),
     "native zero chance remains zero");
 ExpectClose(
-    35f,
+    26f,
     WildernessStarChance.AdjustEffectiveChance(35f, 1f, exampleBiome, WorldSize, WorldSize),
-    "native chance above cap is not reduced");
+    "native chance above the previous cap does not bypass the resolved formula");
 ExpectClose(
-    28f,
+    26f,
     WildernessStarChance.AdjustEffectiveChance(10f, 2f, exampleBiome, WorldSize, WorldSize),
-    "biome composition defines the final chance below the cap");
+    "biome composition defines the final chance");
 
-var cappedBiome = new BiomeChanceCurve(20f, 20f);
-ExpectClose(30f, WildernessStarChance.AdjustEffectiveChance(10f, 1f, cappedBiome, WorldSize, WorldSize), "composed chance is capped");
+var maximumBiome = new BiomeChanceCurve(30f, 30f);
+ExpectClose(40f, WildernessStarChance.AdjustEffectiveChance(10f, 1f, maximumBiome, WorldSize, WorldSize), "constructed maximum has no hard cap");
 
 ExpectTrue(WildernessDangerScale.Classify(0f) == WildernessDanger.Familiar, "zero pressure is familiar");
-ExpectTrue(WildernessDangerScale.Classify(11.999f) == WildernessDanger.Familiar, "familiar upper edge");
-ExpectTrue(WildernessDangerScale.Classify(12f) == WildernessDanger.Sketchy, "sketchy lower edge");
-ExpectTrue(WildernessDangerScale.Classify(18f) == WildernessDanger.Dangerous, "dangerous lower edge");
-ExpectTrue(WildernessDangerScale.Classify(24f) == WildernessDanger.Deadly, "deadly lower edge");
+ExpectTrue(WildernessDangerScale.Classify(17.499f) == WildernessDanger.Familiar, "familiar upper edge");
+ExpectTrue(WildernessDangerScale.Classify(17.5f) == WildernessDanger.Sketchy, "sketchy lower edge");
+ExpectTrue(WildernessDangerScale.Classify(24.999f) == WildernessDanger.Sketchy, "sketchy upper edge");
+ExpectTrue(WildernessDangerScale.Classify(25f) == WildernessDanger.Dangerous, "dangerous lower edge");
+ExpectTrue(WildernessDangerScale.Classify(32.499f) == WildernessDanger.Dangerous, "dangerous upper edge");
+ExpectTrue(WildernessDangerScale.Classify(32.5f) == WildernessDanger.Deadly, "deadly lower edge");
 ExpectTrue(WildernessDangerScale.Label(WildernessDanger.Sketchy) == "Sketchy", "danger label is player-facing");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, false, false), "unexplored point stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explored point is visible");
@@ -94,13 +96,14 @@ ExpectTrue(!BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.DeepNorth, out _),
 ExpectTrue(!BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.None, out _), "non-biome input stays native");
 
 ExpectClose(10f, WildernessStarChance.ComposeChance(meadows, 0f, WorldSize), "Meadows center chance");
-ExpectClose(15.125f, WildernessStarChance.ComposeChance(meadows, 5_000f, WorldSize), "Meadows midpoint chance");
-ExpectClose(21f, WildernessStarChance.ComposeChance(meadows, WorldSize, WorldSize), "Meadows world-edge chance");
-ExpectClose(14.25f, WildernessStarChance.ComposeChance(blackForest, 2_500f, WorldSize), "Black Forest quarter-world chance");
-ExpectClose(26.1f, WildernessStarChance.ComposeChance(swamp, 6_000f, WorldSize), "Swamp current-world distance chance");
-ExpectClose(26.125f, WildernessStarChance.ComposeChance(mountain, 5_000f, WorldSize), "Mountain midpoint chance");
-ExpectClose(30f, WildernessStarChance.ComposeChance(plains, 8_000f, WorldSize), "Plains remote chance caps");
-ExpectClose(30f, WildernessStarChance.ComposeChance(mistlands, 6_000f, WorldSize), "Mistlands current-world distance caps");
+ExpectClose(16f, WildernessStarChance.ComposeChance(meadows, 5_000f, WorldSize), "Meadows midpoint chance");
+ExpectClose(22f, WildernessStarChance.ComposeChance(meadows, WorldSize, WorldSize), "Meadows world-edge chance");
+ExpectClose(14.5f, WildernessStarChance.ComposeChance(blackForest, 2_500f, WorldSize), "Black Forest quarter-world chance");
+ExpectClose(24f, WildernessStarChance.ComposeChance(swamp, 6_000f, WorldSize), "Swamp current-world distance chance");
+ExpectClose(24f, WildernessStarChance.ComposeChance(mountain, 5_000f, WorldSize), "Mountain midpoint chance");
+ExpectClose(32.8f, WildernessStarChance.ComposeChance(plains, 8_000f, WorldSize), "Plains remote chance");
+ExpectClose(31.2f, WildernessStarChance.ComposeChance(mistlands, 6_000f, WorldSize), "Mistlands current-world distance chance");
+ExpectClose(40f, WildernessStarChance.ComposeChance(mistlands, WorldSize, WorldSize), "Mistlands constructed maximum");
 
 ExpectThrows<ArgumentOutOfRangeException>(
     () => WildernessStarChance.NormalizeDistance(0f, 0f),

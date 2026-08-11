@@ -4,8 +4,7 @@ namespace BenheimQoL.EnemyTiers;
 
 internal static class WildernessStarChance
 {
-    internal const float MaxChancePercent = 30f;
-    internal const float WorldEdgeBonus = 0.75f;
+    internal const float WorldEdgeAdditionPercent = 10f;
 
     internal static float NormalizeDistance(float distanceFromWorldCenter, float worldSize)
     {
@@ -17,10 +16,10 @@ internal static class WildernessStarChance
         return MathF.Max(0f, MathF.Min(distanceFromWorldCenter / worldSize, 1f));
     }
 
-    internal static float DistanceMultiplier(float normalizedDistance)
+    internal static float GlobalDistanceAddition(float normalizedDistance)
     {
         normalizedDistance = MathF.Max(0f, MathF.Min(normalizedDistance, 1f));
-        return 1f + (WorldEdgeBonus * normalizedDistance);
+        return WorldEdgeAdditionPercent * normalizedDistance;
     }
 
     internal static float AdjustEffectiveChance(
@@ -36,12 +35,6 @@ internal static class WildernessStarChance
             return 0f;
         }
 
-        // An authored or native modifier above Benheim's cap remains authoritative.
-        if (nativeEffectiveChance > MaxChancePercent)
-        {
-            return nativeEffectiveChance;
-        }
-
         return ComposeChance(biomeCurve, distanceFromWorldCenter, worldSize);
     }
 
@@ -51,9 +44,8 @@ internal static class WildernessStarChance
         float worldSize)
     {
         float normalizedDistance = NormalizeDistance(distanceFromWorldCenter, worldSize);
-        float adjustedChance = biomeCurve.ChanceAt(normalizedDistance)
-            * DistanceMultiplier(normalizedDistance);
-        return MathF.Min(adjustedChance, MaxChancePercent);
+        return biomeCurve.ChanceAt(normalizedDistance)
+            + GlobalDistanceAddition(normalizedDistance);
     }
 
     internal static bool ShouldAdjust(bool eventSpawner, bool inInterior, bool hasBiomeTuning)

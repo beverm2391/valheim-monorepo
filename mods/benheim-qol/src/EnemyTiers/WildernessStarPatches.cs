@@ -105,7 +105,7 @@ internal static class WildernessStarPatches
 
             // Spawn() applies this native multiplier immediately after the
             // patched call. Divide it out here so that its final per-step chance
-            // equals the capped calculation above.
+            // equals the resolved calculation above.
             __result = adjustedEffectiveChance / context.NativeLevelUpMultiplier;
             LogAdjustment(context, nativeEffectiveChance, adjustedEffectiveChance);
         }
@@ -135,7 +135,7 @@ internal static class WildernessStarPatches
             $"biome_min_chance={context.BiomeCurve.MinimumChance:0.###} " +
             $"biome_max_chance={context.BiomeCurve.MaximumChance:0.###} " +
             $"biome_chance={context.BiomeCurve.ChanceAt(normalizedDistance):0.###} " +
-            $"distance_multiplier={WildernessStarChance.DistanceMultiplier(normalizedDistance):0.###} " +
+            $"global_distance_addition={WildernessStarChance.GlobalDistanceAddition(normalizedDistance):0.###} " +
             $"native_chance={nativeEffectiveChance:0.###} " +
             $"adjusted_chance={adjustedEffectiveChance:0.###}");
     }

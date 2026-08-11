@@ -5,7 +5,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 chance="$root/src/EnemyTiers/WildernessStarChance.cs"
 patches="$root/src/EnemyTiers/WildernessStarPatches.cs"
 tuning="$root/src/EnemyTiers/BiomeStarChanceTuning.cs"
-map_overlay="$root/src/EnemyTiers/WildernessMapOverlay.cs"
+map_hover="$root/src/EnemyTiers/WildernessMapHover.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_spawn="$source_tree/SpawnSystem.cs"
 
@@ -15,20 +15,24 @@ rg -Fq 'zoneSystem.GetGroundData(' "$patches"
 rg -Fq 'eventSpawner' "$patches"
 rg -Fq 'Character.InInterior(spawnPoint)' "$patches"
 rg -Fq 'source=ordinary_wilderness' "$patches"
-rg -Fq 'distance_multiplier=' "$patches"
+rg -Fq 'global_distance_addition=' "$patches"
 rg -Fq 'TryGetCurve' "$tuning"
-rg -Fq 'WorldEdgeBonus = 0.75f' "$chance"
-rg -Fq 'MaxChancePercent = 30f' "$chance"
+rg -Fq 'WorldEdgeAdditionPercent = 10f' "$chance"
 rg -Fq 'NormalizeDistance(' "$chance"
-rg -Fq '___m_explored' "$map_overlay"
-rg -Fq '___m_exploredOthers' "$map_overlay"
-rg -Fq '___m_showSharedMapData' "$map_overlay"
-rg -Fq 'overlayImage.raycastTarget = false' "$map_overlay"
-rg -Fq 'WildernessDangerScale.Label(danger)' "$map_overlay"
-rg -Fq 'ComposeChance(' "$map_overlay"
+rg -Fq '___m_explored' "$map_hover"
+rg -Fq '___m_exploredOthers' "$map_hover"
+rg -Fq '___m_showSharedMapData' "$map_hover"
+rg -Fq 'WildernessDangerScale.Label(hovered.Danger)' "$map_hover"
+rg -Fq 'ComposeChance(' "$map_hover"
+rg -Fq 'wilderness_map_hover' "$map_hover"
 
-if rg -n 'percent|%|dungeon|raid|alpha|event' "$map_overlay"; then
+if rg -n 'percent|%|dungeon|raid|alpha|event' "$map_hover"; then
   printf 'map presentation must stay qualitative and ordinary-wilderness scoped\n' >&2
+  exit 1
+fi
+
+if rg -n 'Texture2D|RawImage|GeneratePressureColors|SetPixel|GetPixels|for \(' "$map_hover"; then
+  printf 'map hover must not precompute or incrementally render pressure pixels\n' >&2
   exit 1
 fi
 

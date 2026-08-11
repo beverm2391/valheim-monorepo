@@ -70,16 +70,19 @@ and maximum chance. Harder biomes use higher minimum and maximum chances.
 Within a biome, its base chance increases for spawns farther from the world
 center.
 
-An independent world-distance multiplier increases linearly from `1x` at the
-world center to `1.75x` at Valheim's `10,000`-meter world edge. Benheim
-multiplies the biome chance by this value and caps the final chance at `30%`.
+An independent world-distance term adds from `0` percentage points at the
+world center to `10` percentage points at Valheim's `10,000`-meter world edge.
+Benheim adds this term to the biome chance. It does not compound the two inputs
+or apply a hard cap. The approved inputs construct a final range from `10%` to
+`40%`.
+
 The biome-specific chance ranges can create a sawtooth tendency, but the
 combined result does not need to form a perfect sawtooth. A biome transition
-can raise, lower, or preserve the final chance. Do not tune the biome chance or
-world-distance multiplier solely to force a perfect sawtooth.
+can raise, lower, or preserve the final chance. Do not tune either input solely
+to force a perfect sawtooth.
 
 The first playable tuning uses these per-step biome base chances before it
-applies the world-distance multiplier:
+adds the world-distance term:
 
 | Biome | Base chance at world center | Base chance at world edge |
 | --- | ---: | ---: |
@@ -108,18 +111,24 @@ recognizable special encounters instead of invisibly strengthening every
 creature at night.
 
 Players read ordinary wilderness danger from the world map instead of reading
-the underlying percentages. An explored-only map layer uses the same final
-ordinary-wilderness chance that spawning uses after it combines the biome
-chance and world-distance multiplier. Its hover label names the biome and
-classifies ordinary wilderness danger as **Familiar**, **Sketchy**,
-**Dangerous**, or **Deadly**. The layer does not reveal unexplored areas. The
-layer covers ordinary wilderness only. It does not estimate danger for
-dungeons, events, Alphas, or other authored encounters.
+the underlying percentages. The large map adds an explored-only hover label to
+the biome name. The label uses the same final per-step ordinary-wilderness
+chance that spawning uses. Benheim computes it only for the explored point
+under the cursor. It does not precompute or tint the world map.
 
-The following remain open:
+The labels split the constructed `10%` to `40%` range into four equal fixed
+bands:
 
-- the thresholds for the four map labels and the layer's visual treatment;
-- creature exceptions.
+- **Familiar:** below `17.5%`;
+- **Sketchy:** from `17.5%` to below `25%`;
+- **Dangerous:** from `25%` to below `32.5%`; and
+- **Deadly:** `32.5%` or higher.
+
+The label does not reveal unexplored areas. It covers ordinary wilderness
+only. It does not estimate danger for dungeons, events, Alphas, or other
+authored encounters.
+
+Creature exceptions remain open.
 
 ## Planned Alpha Variants
 

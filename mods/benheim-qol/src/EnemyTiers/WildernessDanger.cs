@@ -10,9 +10,9 @@ internal enum WildernessDanger
 
 internal static class WildernessDangerScale
 {
-    internal const float SketchyThreshold = 12f;
-    internal const float DangerousThreshold = 18f;
-    internal const float DeadlyThreshold = 24f;
+    internal const float SketchyThreshold = 17.5f;
+    internal const float DangerousThreshold = 25f;
+    internal const float DeadlyThreshold = 32.5f;
 
     internal static WildernessDanger Classify(float perStepChance)
     {
