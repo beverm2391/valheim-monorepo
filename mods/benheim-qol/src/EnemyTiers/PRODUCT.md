@@ -132,6 +132,26 @@ The label does not reveal unexplored areas. It covers ordinary wilderness
 only. It does not estimate danger for dungeons, events, Alphas, or other
 authored encounters.
 
+The minimap shows the current ordinary-wilderness category beside the native
+biome name. It uses the same `SAFE`, `SKETCHY`, `DANGEROUS`, and `DEADLY`
+vocabulary and styling as the large-map hover label. An unlisted biome keeps
+the native biome name without a Benheim category.
+
+When the current category stably rises to `DANGEROUS` or `DEADLY`, Benheim
+shows `Entering a DANGEROUS area...` or `Entering a DEADLY area...`. The
+message uses Valheim's biome-discovery presentation and one-shot stinger. A
+brief red edge flash is stronger for `DEADLY` than for `DANGEROUS`.
+
+Benheim establishes the first category after login or respawn without an
+arrival message. It suppresses category changes during teleporting, cutscenes,
+and sleep. It waits for a stable category, ignores brief crossings near a
+category boundary, and uses a shared arrival cooldown. These rules prevent
+repeated messages while the player remains in one category or moves near a
+category boundary.
+
+This presentation does not control music or weather. It does not create an
+event, spawn an object, damage the player, or change the world.
+
 Creature exceptions remain open.
 
 ## Planned Alpha Variants

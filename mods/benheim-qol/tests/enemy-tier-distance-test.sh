@@ -7,6 +7,8 @@ patches="$root/src/EnemyTiers/WildernessStarPatches.cs"
 tuning="$root/src/EnemyTiers/BiomeStarChanceTuning.cs"
 map_hover="$root/src/EnemyTiers/WildernessMapHover.cs"
 map_label_layout="$root/src/EnemyTiers/WildernessMapLabelLayout.cs"
+danger_presentation="$root/src/EnemyTiers/WildernessDangerPresentation.cs"
+danger_transition="$root/src/EnemyTiers/WildernessDangerTransition.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_spawn="$source_tree/SpawnSystem.cs"
 
@@ -43,6 +45,34 @@ rg -Fq 'stage=classified' "$map_hover"
 rg -Fq 'local_explored=' "$map_hover"
 rg -Fq 'shared_explored=' "$map_hover"
 rg -Fq 'show_shared=' "$map_hover"
+rg -Uq '\[HarmonyPatch\]\ninternal static class WildernessDangerPresentationPatches' "$danger_presentation"
+rg -Fq '[HarmonyPatch(typeof(Minimap), "UpdateBiome")]' "$danger_presentation"
+rg -Fq 'player.GetCurrentBiome()' "$danger_presentation"
+rg -Fq 'Utils.LengthXZ(player.transform.position)' "$danger_presentation"
+rg -Fq 'WildernessStarChance.ComposeChance(' "$danger_presentation"
+rg -Fq 'm_biomeNameSmall.text' "$danger_presentation"
+rg -Fq '<size=70%>{WildernessDangerScale.StyledLabel(danger)}</size>' "$danger_presentation"
+rg -Fq 'ShowBiomeFoundMsg(' "$danger_presentation"
+rg -Fq '$"Entering a {WildernessDangerScale.StyledLabel(danger)} area..."' "$danger_presentation"
+rg -Fq 'm_biomeFoundStinger' "$danger_presentation"
+rg -Fq 'Tracker.PauseObservation();' "$danger_presentation"
+rg -Fq 'MessageHud.instance.m_biomeFoundStinger != null' "$danger_presentation"
+rg -Fq 'm_damageScreen' "$danger_presentation"
+rg -Fq 'wilderness_danger_state' "$danger_presentation"
+rg -Fq 'wilderness_danger_arrival' "$danger_presentation"
+rg -Fq 'outcome=queued' "$danger_presentation"
+rg -Fq 'outcome=rejected reason=cooldown' "$danger_presentation"
+rg -Fq 'outcome=rejected reason=presentation_unavailable' "$danger_presentation"
+rg -Fq 'wilderness_minimap_indicator' "$danger_presentation"
+rg -Fq 'outcome=rendered' "$danger_presentation"
+rg -Fq 'DebounceSeconds = 2f' "$danger_transition"
+rg -Fq 'HysteresisPercent = 0.75f' "$danger_transition"
+rg -Fq 'ArrivalCooldownSeconds = 60f' "$danger_transition"
+
+if rg -n 'MusicMan|EnvMan|RandEventSystem|ZNetScene|ZDO|EffectList|SetForceEnvironment' "$danger_presentation"; then
+  printf 'danger presentation must not control music, weather, events, or world state\n' >&2
+  exit 1
+fi
 
 if rg -n 'percent|%|dungeon|raid|alpha|event| · | wilderness"| threat"|star risk' "$map_hover"; then
   printf 'map presentation must stay qualitative and ordinary-wilderness scoped\n' >&2

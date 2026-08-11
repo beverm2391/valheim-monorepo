@@ -84,6 +84,74 @@ ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explore
 ExpectTrue(!WildernessDangerScale.IsVisible(false, true, false), "hidden shared exploration stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(false, true, true), "enabled shared exploration is visible");
 
+var transitions = new WildernessDangerTransitionTracker();
+WildernessDangerTransition baseline = transitions.Observe(16f, now: 0f, presentationAvailable: true);
+ExpectTrue(baseline.BaselineEstablished, "login establishes a silent danger baseline");
+ExpectTrue(baseline.ArrivalDanger == null, "login baseline does not present an arrival");
+ExpectTrue(transitions.StableDanger == WildernessDanger.Safe, "safe login baseline becomes current");
+
+WildernessDangerTransition dangerCandidate = transitions.Observe(26f, now: 1f, presentationAvailable: true);
+ExpectTrue(dangerCandidate.CandidateStarted, "danger escalation starts debounce");
+ExpectTrue(!transitions.Observe(26f, now: 2.99f, presentationAvailable: true).StableChanged, "danger does not stabilize before debounce");
+WildernessDangerTransition dangerousArrival = transitions.Observe(26f, now: 3f, presentationAvailable: true);
+ExpectTrue(dangerousArrival.StableChanged, "danger stabilizes after debounce");
+ExpectTrue(dangerousArrival.ArrivalDanger == WildernessDanger.Dangerous, "stable dangerous escalation presents once");
+ExpectTrue(transitions.Observe(26f, now: 4f, presentationAvailable: true).ArrivalDanger == null, "remaining dangerous does not repeat arrival");
+
+ExpectTrue(
+    !transitions.Observe(24.5f, now: 5f, presentationAvailable: true).CandidateStarted,
+    "hysteresis ignores a small dangerous-boundary retreat");
+WildernessDangerTransition retreatCandidate = transitions.Observe(24f, now: 6f, presentationAvailable: true);
+ExpectTrue(retreatCandidate.CandidateStarted, "crossing beyond hysteresis starts retreat debounce");
+WildernessDangerTransition cancelledRetreat = transitions.Observe(26f, now: 7f, presentationAvailable: true);
+ExpectTrue(cancelledRetreat.CandidateCancelled, "returning before debounce cancels boundary retreat");
+
+transitions.Observe(24f, now: 8f, presentationAvailable: true);
+WildernessDangerTransition stableRetreat = transitions.Observe(24f, now: 10f, presentationAvailable: true);
+ExpectTrue(stableRetreat.StableChanged, "retreat stabilizes after debounce");
+transitions.Observe(26f, now: 11f, presentationAvailable: true);
+WildernessDangerTransition cooldownReentry = transitions.Observe(26f, now: 13f, presentationAvailable: true);
+ExpectTrue(cooldownReentry.ArrivalBlock == WildernessDangerArrivalBlock.Cooldown, "arrival cooldown rejects quick reentry");
+ExpectTrue(cooldownReentry.ArrivalDanger == null, "cooldown rejection does not present");
+
+var pausedTransition = new WildernessDangerTransitionTracker();
+pausedTransition.Observe(16f, now: 0f, presentationAvailable: true);
+pausedTransition.Observe(26f, now: 1f, presentationAvailable: true);
+pausedTransition.PauseObservation();
+WildernessDangerTransition resumedCandidate = pausedTransition.Observe(26f, now: 20f, presentationAvailable: true);
+ExpectTrue(resumedCandidate.CandidateStarted, "resume restarts a pending transition debounce");
+ExpectTrue(
+    !pausedTransition.Observe(26f, now: 21.99f, presentationAvailable: true).StableChanged,
+    "paused time does not satisfy transition debounce");
+ExpectTrue(
+    pausedTransition.Observe(26f, now: 22f, presentationAvailable: true).ArrivalDanger == WildernessDanger.Dangerous,
+    "resumed danger must remain stable for a full debounce before arrival");
+
+var unavailablePresentation = new WildernessDangerTransitionTracker();
+unavailablePresentation.Observe(16f, now: 0f, presentationAvailable: true);
+unavailablePresentation.Observe(34f, now: 1f, presentationAvailable: false);
+WildernessDangerTransition unavailableArrival = unavailablePresentation.Observe(34f, now: 3f, presentationAvailable: false);
+ExpectTrue(
+    unavailableArrival.ArrivalBlock == WildernessDangerArrivalBlock.PresentationUnavailable,
+    "hidden or missing HUD rejects presentation");
+
+var respawnSuppression = new WildernessDangerTransitionTracker();
+respawnSuppression.Observe(16f, now: 0f, presentationAvailable: true);
+respawnSuppression.Observe(34f, now: 1f, presentationAvailable: true);
+respawnSuppression.Observe(34f, now: 3f, presentationAvailable: true);
+respawnSuppression.ResetForLifecycle();
+WildernessDangerTransition respawnBaseline = respawnSuppression.Observe(34f, now: 10f, presentationAvailable: true);
+ExpectTrue(respawnBaseline.BaselineEstablished, "respawn establishes a new baseline");
+ExpectTrue(respawnBaseline.ArrivalDanger == null, "respawning in deadly does not present arrival noise");
+
+var untunedEntry = new WildernessDangerTransitionTracker();
+untunedEntry.Observe(16f, now: 0f, presentationAvailable: true);
+untunedEntry.LeaveTunedWilderness();
+WildernessDangerTransition tunedEntryCandidate = untunedEntry.Observe(34f, now: 5f, presentationAvailable: true);
+ExpectTrue(tunedEntryCandidate.CandidateStarted, "return from untuned biome requires stable entry");
+WildernessDangerTransition tunedEntryArrival = untunedEntry.Observe(34f, now: 7f, presentationAvailable: true);
+ExpectTrue(tunedEntryArrival.ArrivalDanger == WildernessDanger.Deadly, "stable untuned-to-deadly entry presents");
+
 ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0f, addedHeight: 30f);
 ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 30f);
 ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 1f, addedHeight: 30f);

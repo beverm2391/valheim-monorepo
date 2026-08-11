@@ -4,6 +4,7 @@ using BepInEx.Logging;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.InventoryFeature;
 using BenheimQoL.Farming;
+using BenheimQoL.EnemyTiers;
 using BenheimQoL.Repair;
 using BenheimQoL.Shortcuts;
 using HarmonyLib;
@@ -16,7 +17,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.53";
+    public const string PluginVersion = "0.1.54";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -66,6 +67,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         TopLeftFeedbackHud.Update();
+        WildernessDangerPresentation.Update();
         QuickStack.Update();
         QuickStackHotkey.Update();
     }
@@ -74,6 +76,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         PlantingPreview.DestroyGhosts();
         TopLeftFeedbackHud.Destroy();
+        WildernessDangerPresentation.Reset();
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
