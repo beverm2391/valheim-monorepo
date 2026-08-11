@@ -23,6 +23,11 @@ from character_map_format import (
 
 SUPPORTED_WORLD_META_VERSION = 37
 MAX_WORLD_META_BYTES = 1024 * 1024
+PROVENANCE_NOTICE = (
+    "Local character and world files identify only the inspected local world. "
+    "They do not identify the active dedicated-server world; server-location "
+    "conclusions require an explicit identity match to that server world."
+)
 
 
 def parse_world_meta(path: Path) -> dict[str, Any]:
@@ -110,6 +115,7 @@ def print_summary(report: dict[str, Any]) -> None:
     calibration = report["calibration"]
     print(f'Character format: v{report["characterVersion"]}')
     print(f'World entries: {report["worldCount"]}')
+    print(f"Provenance: {report['provenance']['notice']}")
     print(
         "Calibration: "
         f'{calibration["pixelSizeMeters"]:g} m/pixel, '
@@ -208,6 +214,11 @@ def run(arguments: Iterable[str]) -> int:
         )
         if args.world_meta:
             match_world_meta(report, world_uids, parse_world_meta(args.world_meta))
+        report["provenance"] = {
+            "scope": "local-files-only",
+            "dedicatedServerWorldMatched": False,
+            "notice": PROVENANCE_NOTICE,
+        }
     except InspectionError as error:
         print(f"inspect-character-map: {error}", file=sys.stderr)
         return 1

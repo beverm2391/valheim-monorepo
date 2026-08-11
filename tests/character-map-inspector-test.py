@@ -164,6 +164,12 @@ class CharacterMapInspectorTest(unittest.TestCase):
         self.assertEqual(hashlib.sha256(self.character.read_bytes()).hexdigest(), before)
         report = json.loads(result.stdout)
         self.assertEqual(report["characterVersion"], 43)
+        self.assertEqual(report["provenance"]["scope"], "local-files-only")
+        self.assertFalse(report["provenance"]["dedicatedServerWorldMatched"])
+        self.assertIn(
+            "do not identify the active dedicated-server world",
+            report["provenance"]["notice"],
+        )
         self.assertEqual(report["worldMetadata"]["name"], "first")
         world = report["worlds"][0]
         self.assertEqual(world["label"], "first")
@@ -193,6 +199,15 @@ class CharacterMapInspectorTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Calibration: 12 m/pixel, 10000 m world radius", result.stdout)
+        self.assertIn(
+            "Provenance: Local character and world files identify only the inspected "
+            "local world.",
+            result.stdout,
+        )
+        self.assertIn(
+            "do not identify the active dedicated-server world",
+            result.stdout,
+        )
         self.assertIn("Personal frontier: 1.200 km (12.00%)", result.stdout)
         self.assertIn("Saved pins: 2 (1 local/game, 1 shared-player)", result.stdout)
         self.assertIn("Personal route", result.stdout)
