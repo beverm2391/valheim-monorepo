@@ -63,6 +63,26 @@ combined result does not need to form a perfect sawtooth. A biome transition
 can raise, lower, or preserve the final chance. Do not tune the biome chance or
 world-distance multiplier solely to force a perfect sawtooth.
 
+The first playable tuning uses these per-step biome base chances before it
+applies the world-distance multiplier:
+
+| Biome | Base chance at world center | Base chance at world edge |
+| --- | ---: | ---: |
+| Meadows | 10% | 12% |
+| Black Forest | 10% | 18% |
+| Swamp | 12% | 22% |
+| Mountain | 14% | 24% |
+| Plains | 16% | 27% |
+| Mistlands | 18% | 30% |
+
+Benheim samples the biome at each spawn point. It linearly interpolates that
+biome's approved base-chance range by normalized absolute distance from the
+world center: `0` at the center and `1` at Valheim's `10,000`-meter edge. This
+calculation does not inspect or mirror procedural biome-generation boundaries.
+Ocean, Ashlands, Deep North, and every other unlisted biome keep native star
+chances in this first tuning pass. These values are starter balance for
+gameplay testing, not permanent balance.
+
 Player progression and first visits do not change ordinary wilderness star
 chances. Shared world progression can control separate encounters and rewards
 when their product design needs it.
@@ -83,7 +103,6 @@ dungeons, events, Alphas, or other authored encounters.
 
 The following remain open:
 
-- biome chances and distance ranges;
 - the thresholds for the four map labels and the layer's visual treatment;
 - creature exceptions.
 
