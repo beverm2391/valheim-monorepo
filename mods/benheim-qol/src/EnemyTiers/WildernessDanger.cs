@@ -38,10 +38,10 @@ internal static class WildernessDangerScale
     {
         return danger switch
         {
-            WildernessDanger.Safe => "<color=#A8D8A0>SAFE</color>",
-            WildernessDanger.Sketchy => "<color=#F0D36B>SKETCHY</color>",
-            WildernessDanger.Dangerous => "<color=#FF9B4A><b>DANGEROUS</b></color>",
-            WildernessDanger.Deadly => "<color=#FF5C5C><b>DEADLY</b></color>",
+            WildernessDanger.Safe => "<color=#6F9F6A>SAFE</color>",
+            WildernessDanger.Sketchy => "<color=#B59A45>SKETCHY</color>",
+            WildernessDanger.Dangerous => "<color=#C8753B><b>DANGEROUS</b></color>",
+            WildernessDanger.Deadly => "<color=#C94F55><b>DEADLY</b></color>",
             _ => throw new System.ArgumentOutOfRangeException(nameof(danger), danger, null),
         };
     }

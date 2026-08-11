@@ -68,21 +68,29 @@ ExpectTrue(WildernessDangerScale.Classify(25f) == WildernessDanger.Dangerous, "d
 ExpectTrue(WildernessDangerScale.Classify(32.499f) == WildernessDanger.Dangerous, "dangerous upper edge");
 ExpectTrue(WildernessDangerScale.Classify(32.5f) == WildernessDanger.Deadly, "deadly lower edge");
 ExpectTrue(
-    WildernessDangerScale.StyledLabel(WildernessDanger.Safe) == "<color=#A8D8A0>SAFE</color>",
+    WildernessDangerScale.StyledLabel(WildernessDanger.Safe) == "<color=#6F9F6A>SAFE</color>",
     "safe label uses calm color");
 ExpectTrue(
-    WildernessDangerScale.StyledLabel(WildernessDanger.Sketchy) == "<color=#F0D36B>SKETCHY</color>",
+    WildernessDangerScale.StyledLabel(WildernessDanger.Sketchy) == "<color=#B59A45>SKETCHY</color>",
     "sketchy label uses warning color");
 ExpectTrue(
-    WildernessDangerScale.StyledLabel(WildernessDanger.Dangerous) == "<color=#FF9B4A><b>DANGEROUS</b></color>",
+    WildernessDangerScale.StyledLabel(WildernessDanger.Dangerous) == "<color=#C8753B><b>DANGEROUS</b></color>",
     "dangerous label uses bold orange treatment");
 ExpectTrue(
-    WildernessDangerScale.StyledLabel(WildernessDanger.Deadly) == "<color=#FF5C5C><b>DEADLY</b></color>",
+    WildernessDangerScale.StyledLabel(WildernessDanger.Deadly) == "<color=#C94F55><b>DEADLY</b></color>",
     "deadly label uses bold red treatment");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, false, false), "unexplored point stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explored point is visible");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, true, false), "hidden shared exploration stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(false, true, true), "enabled shared exploration is visible");
+
+ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0f, addedHeight: 30f);
+ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 30f);
+ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 1f, addedHeight: 30f);
+ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 0f);
+ExpectThrows<ArgumentOutOfRangeException>(
+    () => WildernessMapLabelLayout.ExpandDownward(0f, 40f, 0.5f, -1f),
+    "negative map-label growth is rejected");
 
 ExpectTrue(WildernessStarChance.ShouldAdjust(eventSpawner: false, inInterior: false, hasBiomeTuning: true), "ordinary tuned wilderness adjusts");
 ExpectTrue(!WildernessStarChance.ShouldAdjust(eventSpawner: true, inInterior: false, hasBiomeTuning: true), "random-event spawn is excluded");
@@ -146,6 +154,26 @@ static void ExpectCurve(BiomeChanceCurve curve, float minimumChance, float maxim
 {
     ExpectClose(minimumChance, curve.MinimumChance, $"{scenario} minimum chance");
     ExpectClose(maximumChance, curve.MaximumChance, $"{scenario} maximum chance");
+}
+
+static void ExpectExpandedLabelBounds(
+    float nativeAnchoredY,
+    float nativeHeight,
+    float pivotY,
+    float addedHeight)
+{
+    WildernessMapLabelBounds expanded = WildernessMapLabelLayout.ExpandDownward(
+        nativeAnchoredY,
+        nativeHeight,
+        pivotY,
+        addedHeight);
+    float nativeTop = nativeAnchoredY + ((1f - pivotY) * nativeHeight);
+    float expandedTop = expanded.AnchoredY + ((1f - pivotY) * expanded.SizeDeltaY);
+    ExpectClose(nativeTop, expandedTop, $"map label pivot {pivotY}: top edge remains fixed");
+    ExpectClose(
+        nativeHeight + addedHeight,
+        expanded.SizeDeltaY,
+        $"map label pivot {pivotY}: bounds grow downward");
 }
 
 static void ExpectThrows<TException>(Action action, string scenario) where TException : Exception

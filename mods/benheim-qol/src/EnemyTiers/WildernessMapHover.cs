@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using BenheimQoL.Infrastructure;
 using HarmonyLib;
+using TMPro;
 using UnityEngine;
 
 namespace BenheimQoL.EnemyTiers;
@@ -14,6 +15,18 @@ internal static class WildernessMapHover
     private static readonly HashSet<Heightmap.Biome> LoggedUnsupportedBiomes = new();
     private static readonly HashSet<string> LoggedClassifications = new();
 
+    private static TMP_Text? expandedLabel;
+    private static Vector2 nativeAnchoredPosition;
+    private static Vector2 nativeSizeDelta;
+    private static bool labelBoundsExpanded;
+
+    private static TMP_Text? measuredLabel;
+    private static string measuredNativeText = "";
+    private static WildernessDanger measuredDanger;
+    private static float measuredFontSize;
+    private static float measuredWidth;
+    private static float measuredAddedHeight;
+
     [HarmonyPostfix]
     [HarmonyPatch(typeof(Minimap), "UpdateBiome")]
     private static void UpdateBiomePostfix(
@@ -22,6 +35,9 @@ internal static class WildernessMapHover
         bool[] ___m_exploredOthers,
         bool ___m_showSharedMapData)
     {
+        TMP_Text label = __instance.m_biomeNameLarge;
+        RestoreNativeLabelBounds(label);
+
         LogProbeStageOnce(HoverProbeStage.PatchInvoked, $"map_mode={__instance.m_mode}");
         if (__instance.m_mode != Minimap.MapMode.Large)
         {
@@ -36,7 +52,7 @@ internal static class WildernessMapHover
             return;
         }
 
-        if (string.IsNullOrEmpty(__instance.m_biomeNameLarge.text))
+        if (string.IsNullOrEmpty(label.text))
         {
             LogProbeStageOnce(HoverProbeStage.NativeBiomeLabelEmpty);
             return;
@@ -52,9 +68,82 @@ internal static class WildernessMapHover
             return;
         }
 
-        __instance.m_biomeNameLarge.text +=
-            $"\n{WildernessDangerScale.StyledLabel(hovered.Danger)}";
+        string nativeText = label.text;
+        string combinedText = $"{nativeText}\n{WildernessDangerScale.StyledLabel(hovered.Danger)}";
+        float addedHeight = GetAddedHeight(label, nativeText, combinedText, hovered.Danger);
+        label.text = combinedText;
+        ExpandLabelBoundsDownward(label, addedHeight);
         LogHover(hovered);
+    }
+
+    private static void RestoreNativeLabelBounds(TMP_Text label)
+    {
+        RectTransform rect = label.rectTransform;
+        if (expandedLabel != label)
+        {
+            if (expandedLabel && labelBoundsExpanded)
+            {
+                expandedLabel.rectTransform.anchoredPosition = nativeAnchoredPosition;
+                expandedLabel.rectTransform.sizeDelta = nativeSizeDelta;
+            }
+
+            expandedLabel = label;
+            nativeAnchoredPosition = rect.anchoredPosition;
+            nativeSizeDelta = rect.sizeDelta;
+            labelBoundsExpanded = false;
+            return;
+        }
+
+        if (!labelBoundsExpanded)
+        {
+            nativeAnchoredPosition = rect.anchoredPosition;
+            nativeSizeDelta = rect.sizeDelta;
+            return;
+        }
+
+        rect.anchoredPosition = nativeAnchoredPosition;
+        rect.sizeDelta = nativeSizeDelta;
+        labelBoundsExpanded = false;
+    }
+
+    private static float GetAddedHeight(
+        TMP_Text label,
+        string nativeText,
+        string combinedText,
+        WildernessDanger danger)
+    {
+        float width = label.rectTransform.rect.width;
+        if (measuredLabel == label
+            && measuredNativeText == nativeText
+            && measuredDanger == danger
+            && Mathf.Approximately(measuredFontSize, label.fontSize)
+            && Mathf.Approximately(measuredWidth, width))
+        {
+            return measuredAddedHeight;
+        }
+
+        float nativeHeight = label.GetPreferredValues(nativeText, width, Mathf.Infinity).y;
+        float combinedHeight = label.GetPreferredValues(combinedText, width, Mathf.Infinity).y;
+        measuredLabel = label;
+        measuredNativeText = nativeText;
+        measuredDanger = danger;
+        measuredFontSize = label.fontSize;
+        measuredWidth = width;
+        measuredAddedHeight = Mathf.Max(0f, combinedHeight - nativeHeight);
+        return measuredAddedHeight;
+    }
+
+    private static void ExpandLabelBoundsDownward(TMP_Text label, float addedHeight)
+    {
+        RectTransform rect = label.rectTransform;
+        WildernessMapLabelBounds bounds = WildernessMapLabelLayout.ExpandDownward(
+            nativeAnchoredPosition.y,
+            nativeSizeDelta.y,
+            rect.pivot.y,
+            addedHeight);
+        rect.anchoredPosition = new Vector2(nativeAnchoredPosition.x, bounds.AnchoredY);
+        rect.sizeDelta = new Vector2(nativeSizeDelta.x, bounds.SizeDeltaY);
+        labelBoundsExpanded = true;
     }
 
     private static bool TryGetHoveredDanger(

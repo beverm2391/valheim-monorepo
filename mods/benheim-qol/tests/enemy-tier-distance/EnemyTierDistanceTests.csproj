@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="../../src/EnemyTiers/WildernessStarChance.cs" Link="WildernessStarChance.cs" />
     <Compile Include="../../src/EnemyTiers/WildernessDanger.cs" Link="WildernessDanger.cs" />
+    <Compile Include="../../src/EnemyTiers/WildernessMapLabelLayout.cs" Link="WildernessMapLabelLayout.cs" />
     <Compile Include="../../src/EnemyTiers/BiomeStarChanceTuning.cs" Link="BiomeStarChanceTuning.cs" />
   </ItemGroup>
 </Project>
