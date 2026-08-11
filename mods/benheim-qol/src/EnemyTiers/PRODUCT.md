@@ -72,9 +72,19 @@ danger merely because a player is near a generic structure. Time should enable
 recognizable special encounters instead of invisibly strengthening every
 creature at night.
 
+Players read ordinary wilderness danger from the world map instead of reading
+the underlying percentages. An explored-only map layer uses the same final
+ordinary-wilderness chance that spawning uses after it combines the biome
+chance and world-distance multiplier. Its hover label names the biome and
+classifies ordinary wilderness danger as **Familiar**, **Sketchy**,
+**Dangerous**, or **Deadly**. The layer does not reveal unexplored areas. The
+layer covers ordinary wilderness only. It does not estimate danger for
+dungeons, events, Alphas, or other authored encounters.
+
 The following remain open:
 
 - biome chances and distance ranges;
+- the thresholds for the four map labels and the layer's visual treatment;
 - creature exceptions.
 
 ## Planned Alpha Variants
