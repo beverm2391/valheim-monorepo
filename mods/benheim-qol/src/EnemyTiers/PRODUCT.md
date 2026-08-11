@@ -154,6 +154,12 @@ event, spawn an object, damage the player, or change the world.
 
 Creature exceptions remain open.
 
+## Future Ideas
+
+After the current one-shot arrival experiment, Benheim may add richer local
+ambience to make dangerous areas feel more distinct. This idea does not promise
+control of music, weather, events, or world state.
+
 ## Planned Alpha Variants
 
 An Alpha is a separate Benheim enemy variant. It is neither a native star level

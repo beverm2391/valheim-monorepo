@@ -49,3 +49,14 @@ target died.
 The first tuning is experimental. One code owner contains the bow-focus curve,
 focus timing, shake strengths, shared cap, and coalescing window for the next
 combined gameplay test.
+
+## Future Ideas
+
+- Confirmed-kill punctuation is deferred. Benheim will not infer or guess kills
+  on the attacker's client. Valheim assigns each target an owner that determines
+  whether it died. Honest kill feedback on the attacker's client requires an
+  explicit confirmation protocol from every possible target owner. Ben deferred
+  the protocol and the punctuation. Reconsider both only if the punctuation's
+  gameplay value justifies the protocol's multiplayer complexity.
+- Ben proposed a low-health vignette, a visual effect on the local client, as a
+  future idea. Its behavior remains open.
