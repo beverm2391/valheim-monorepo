@@ -49,6 +49,21 @@ Creature-specific tier rules can change AI, attack patterns, and resistance
 profiles. Each change must extend that creature's existing combat identity and
 give the player a readable reason to change tactics.
 
+Develop tier behavior from the least invasive change to the most invasive:
+
+1. Test the changed star distribution by itself.
+2. Tune Valheim's existing movement, perception, pursuit, attack spacing,
+   resistance, and stagger controls by tier.
+3. For a named creature, change how it selects attacks that it already owns.
+4. Consider custom pathfinding or reuse of a compatible boss or miniboss attack
+   only when a specific fight justifies the added algorithm, prefab, animation,
+   and networking cost.
+
+Make a small playable change at each layer before adopting a more invasive
+layer. Do not build a generic pathfinding or boss-attack system until a
+specific creature's fight proves that its gameplay value justifies the
+complexity.
+
 Biome and distance from the world center are separate inputs to an ordinary
 wilderness spawn's chance of gaining a star level. Each biome sets a minimum
 and maximum chance. Harder biomes use higher minimum and maximum chances.
