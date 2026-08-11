@@ -1,3 +1,4 @@
+using BenheimQoL.CombatFeedback;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
 
@@ -69,6 +70,7 @@ internal static class WoodcuttingProgression
                     hit.m_point + Vector3.up * 0.25f,
                     "CLEAVE",
                     player: true);
+                CombatFeedbackController.RequestShake(CombatFeedbackTrigger.Cleave);
             }
         }
         finally

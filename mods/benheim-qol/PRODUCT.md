@@ -120,6 +120,7 @@ technical cost.
 | [Enemy Tiers](src/EnemyTiers/PRODUCT.md) | Extend native stars and creature behavior with coherent mechanical and AI variation. |
 | [Affinities](src/Affinities/PRODUCT.md) | Create weapon variation through existing combat properties and meaningful tradeoffs. |
 | [Weapon Rhythm](src/WeaponRhythm/PRODUCT.md) | Reward weapon mastery through timing, charge, cadence, spacing, and existing animations. |
+| [Combat Feedback](src/CombatFeedback/PRODUCT.md) | Add local bow focus and restrained camera response to existing Benheim outcomes. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 
 `Infrastructure` contains shared implementation support and has no independent

@@ -1,6 +1,7 @@
 using System;
 using BepInEx;
 using BepInEx.Logging;
+using BenheimQoL.CombatFeedback;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.InventoryFeature;
 using BenheimQoL.Farming;
@@ -17,7 +18,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.54";
+    public const string PluginVersion = "0.1.55";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -75,6 +76,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void OnDestroy()
     {
         PlantingPreview.DestroyGhosts();
+        CombatFeedbackController.Reset();
         TopLeftFeedbackHud.Destroy();
         WildernessDangerPresentation.Reset();
         ShortcutOverlay.Destroy();

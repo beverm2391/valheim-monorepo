@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using BenheimQoL.CombatFeedback;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
 
@@ -134,6 +135,7 @@ internal static class MiningProgression
             "aoe_triggered",
             $"skill={skillFactor * 100f:0.##} chance={chance:0.###} roll={roll:0.###} radius={radius:0.##} targets={AoeTargetColliders.Count} damage_multiplier={AoeDamageMultiplier:0.###}");
         DamageText.instance?.ShowText(DamageText.TextType.Bonus, hit.m_point + Vector3.up * 0.25f, "AOE", player: true);
+        CombatFeedbackController.RequestShake(CombatFeedbackTrigger.MiningAoe);
         Player.m_localPlayer.StartCoroutine(ApplyAoeDamage(primaryTarget, AoeTargetColliders.ToArray(), aoeHit));
     }
 
