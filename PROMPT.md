@@ -45,6 +45,35 @@ Follow the safety rules in `AGENTS.md`.
 Keep provider lifecycle, server installation, world upload and download, and
 backup logic separate.
 
+## Offline character map inspection
+
+Inspect a character map without opening Valheim or changing the save:
+
+```bash
+scripts/inspect-character-map.py /path/to/character.fch \
+  --world-meta /path/to/world.fwl
+```
+
+The optional world metadata file confirms which world entry owns the character
+map. Without it, the command labels entries by index. Use `--help` for JSON and
+calibration options.
+
+The character map does not store its pixel scale or the game's world radius.
+The command prints the calibration it used. After a Valheim update, verify the
+values installed with the game. Do this before you trust the distances or
+override the defaults. The command rejects unsupported save and map formats
+instead of guessing.
+
+Keep character files and generated reports local. The summary omits IDs,
+authors, coordinates, inventory, and raw map bytes, but player-created pin names
+can still be private.
+
+Run the synthetic proof with:
+
+```bash
+python3 tests/character-map-inspector-test.py
+```
+
 ## Server development and operation
 
 The server path provisions a cloud VM, installs SteamCMD and the official
