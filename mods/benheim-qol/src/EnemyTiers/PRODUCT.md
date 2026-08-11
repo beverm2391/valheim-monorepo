@@ -49,14 +49,28 @@ Creature-specific tier rules can change AI, attack patterns, and resistance
 profiles. Each change must extend that creature's existing combat identity and
 give the player a readable reason to change tactics.
 
-Location should be the main input for tier distribution. Biome, distance from
-the world center, and encounter locations such as structures or dungeons should
-create stable areas of danger. Time should enable recognizable special
-encounters instead of invisibly strengthening every creature at night.
+Biome and distance from the world center determine the chance that an ordinary
+wilderness spawn gains a star level. Each biome sets the minimum and maximum
+chance. Harder biomes use higher minimum and maximum chances. Within a biome,
+the chance increases for spawns farther from the world center.
 
-Exact location rules, night encounters, spawn rates, and creature exceptions
-remain open pending research into the location and time information Valheim
-makes available.
+A harder biome's minimum chance can be below the previous biome's maximum
+chance. This gives players time to learn its normal enemies before starred
+variants become common. Its minimum and maximum still exceed those of easier
+biomes. This creates a sawtooth progression: danger rises within a biome, eases
+at the next biome's start, then rises beyond the earlier peak.
+
+Specific, authored encounters can later add recognizable danger. Do not add
+danger merely because a player is near a generic structure. Time should enable
+recognizable special encounters instead of invisibly strengthening every
+creature at night.
+
+The following remain open:
+
+- biome chances and distance ranges;
+- the world-distance formula or multiplier;
+- night encounters; and
+- creature exceptions.
 
 ## Idea: Species Retaliation
 
