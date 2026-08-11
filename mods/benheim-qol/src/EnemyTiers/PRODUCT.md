@@ -49,16 +49,23 @@ Creature-specific tier rules can change AI, attack patterns, and resistance
 profiles. Each change must extend that creature's existing combat identity and
 give the player a readable reason to change tactics.
 
-Biome and distance from the world center determine the chance that an ordinary
-wilderness spawn gains a star level. Each biome sets the minimum and maximum
-chance. Harder biomes use higher minimum and maximum chances. Within a biome,
-the chance increases for spawns farther from the world center.
+Biome and distance from the world center are separate inputs to an ordinary
+wilderness spawn's chance of gaining a star level. Each biome sets a minimum
+and maximum chance. Harder biomes use higher minimum and maximum chances.
+Within a biome, its base chance increases for spawns farther from the world
+center.
 
-A harder biome's minimum chance can be below the previous biome's maximum
-chance. This gives players time to learn its normal enemies before starred
-variants become common. Its minimum and maximum still exceed those of easier
-biomes. This creates a sawtooth progression: danger rises within a biome, eases
-at the next biome's start, then rises beyond the earlier peak.
+An independent world-distance multiplier increases linearly from `1x` at the
+world center to `1.75x` at Valheim's `10,000`-meter world edge. Benheim
+multiplies the biome chance by this value and caps the final chance at `30%`.
+The biome-specific chance ranges can create a sawtooth tendency, but the
+combined result does not need to form a perfect sawtooth. A biome transition
+can raise, lower, or preserve the final chance. Do not tune the biome chance or
+world-distance multiplier solely to force a perfect sawtooth.
+
+Player progression and first visits do not change ordinary wilderness star
+chances. Shared world progression can control separate encounters and rewards
+when their product design needs it.
 
 Specific, authored encounters can later add recognizable danger. Do not add
 danger merely because a player is near a generic structure. Time should enable
@@ -68,9 +75,40 @@ creature at night.
 The following remain open:
 
 - biome chances and distance ranges;
-- the world-distance formula or multiplier;
-- night encounters; and
 - creature exceptions.
+
+## Planned Alpha Variants
+
+An Alpha is a separate Benheim enemy variant. It is neither a native star level
+nor Valheim's internal level-four creature. It keeps the creature's existing
+prefab, animations, attacks, and baseline AI. Its Alpha identity must survive
+ownership changes, reloads, and updates to compatible Benheim versions.
+Benheim stores that identity. It derives the current tuning from the identity
+instead of storing copies of its multipliers.
+
+The first Alpha slice replaces an eligible ordinary hostile wilderness spawn
+at night. It does not add another creature to the population. The initial
+tuning candidate gives each eligible spawn a `5%` Alpha chance when no Alpha is
+already alive nearby in the current biome's active spawn area. This is a local
+encounter limit, not one Alpha per biome across the entire world. Exact
+eligibility and the local range remain open pending native-source research and
+gameplay testing.
+
+The shared Alpha profile gives the creature an immediately menacing appearance
+and faster movement. For an Alpha, size can increase when the change does not
+break the creature's physical behavior. Health, damage, stagger resistance,
+and rewards use explicit Alpha tuning. The first slice does not speed attack
+animations or invent attacks. Later creature-specific rules can change
+behavior through the creature's existing attacks and animations.
+
+An Alpha keeps the level-aware drops of a native two-star creature. Drops that
+opt into level scaling use up to a `4x` multiplier. An Alpha never inherits
+internal level four's `8x` drop multiplier. Each Alpha also grants one bonus
+reward roll from a curated pool of valuable existing resources. The group's
+shared world progression gates that pool. Candidate rewards include Fine Wood,
+Surtling Cores, Scrap Iron, strong food, feasts, and mead. World progression
+controls the reward pool, not the discoveries of the player who kills the
+Alpha. Exact rewards, weights, and quantities remain open.
 
 ## Idea: Species Retaliation
 
@@ -92,7 +130,3 @@ The following details remain undecided:
 - the kill threshold and time window;
 - the exact warning, response, and reward; and
 - which client or server controls the event.
-
-Future alpha monsters can feel like rare minibosses. No alpha rules, first
-creature, exact visual treatment, spawn distribution, or tier mechanic is
-decided yet.
