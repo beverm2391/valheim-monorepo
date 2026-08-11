@@ -56,6 +56,91 @@ Biome, time, environment, progression keys, and population limits decide
 whether the configured entry can spawn. They do not alter this level roll.
 The roll has no world-age or player-count input.
 
+## Encounter Context At Spawn Time
+
+Valheim has three relevant level-selection seams, not one universal spawn
+record. `SpawnSystem.Spawn()` handles wilderness and event lists.
+`CreatureSpawner.Spawn()` handles fixed authored spawners. `SpawnArea.SpawnOne()`
+handles nests and other local spawn areas. Each seam runs on the network owner
+of its source object.
+
+The following context is available at those seams in `0.221.12`:
+
+| Context | Direct evidence | Important boundary |
+| --- | --- | --- |
+| Actual biome | `ZoneSystem.GetGroundData()` or `WorldGenerator.GetBiome()` at the spawn point | `SpawnData.m_biome` is an allowed mask, not the sampled biome. |
+| World-center distance | `Utils.LengthXZ(spawnPoint)`; native code also uses `spawnPoint.magnitude` for its level gate | This is stable and needs no saved state. |
+| Day or night | `EnvMan.IsDay()` and `IsNight()` | The source entry's day and night flags identify authored night-only encounters more reliably than time alone. |
+| Environment or weather | `EnvMan.GetCurrentEnvironment().m_name`; `SpawnData.m_requiredEnvironments` | This is the current peer environment, not a position-based world query. Weather is transient, so it is a poor area-danger input. |
+| Authored location | `Location.GetLocation(spawnPoint)` for active locations; `ZoneSystem.m_locationInstances` and `GetLocationList()` for prefab identity, position, and radii | `Location` is cheap and exact for loaded authored locations. |
+| Dungeon | `Character.InInterior(spawnPoint)` and `Location.GetLocation()` | `InInterior()` is only the native height test. The location supplies the authored dungeon identity. |
+| Village or camp | A matching `ZoneSystem.LocationInstance` or active `Location` | There is no native village or camp category. The prefab identity gives the meaning. |
+| Arbitrary structure | No common semantic registry | Some structures are locations, some are local spawner prefabs, and some are ordinary world or player pieces. A generic structure-proximity rule is not cheap or reliable. |
+| Local spawner identity | The current `CreatureSpawner` or `SpawnArea`, its selected creature prefab, and its transform | This identity is available only inside that source method. The spawned creature does not keep a native source tag. |
+| Global progression | `ZoneSystem.GetGlobalKey()` and `GetGlobalKeys()` | Keys can gate encounter entries without changing old-area levels. |
+| Spawn source | `SpawnSystem.Spawn()` receives `SpawnData` plus `eventSpawner`; the other two source classes have separate methods | Native creatures persist `eventCreature` and `despawnInDay`, but not a general source identity. |
+
+This boundary matters for implementation. A patch at `Character.SetLevel()` is
+too late to recover every source. A future context rule must run at the three
+source seams or attach its result before the source method returns.
+
+## How Valheim Authors Danger
+
+Valheim already separates wilderness pressure from authored territory:
+
+- `SpawnSystem.SpawnData` filters wilderness and event entries by biome,
+  distance, time, environment, global keys, terrain, group size, and population.
+- `ZoneSystem.ZoneLocation` places authored locations by biome, world-center
+  distance, quantity, spacing, terrain, and forest rules.
+- `Location` defines exterior and interior radii. It can override minimum
+  level, maximum level, and level-up chance for its `CreatureSpawner` children.
+- `CreatureSpawner` defines one fixed source with its own creature, levels,
+  day or night flags, global-key gates, trigger, respawn, and spawn group. Its
+  time gate controls creation only; this path does not set `despawnInDay`.
+- `SpawnArea` defines a persistent local threat such as a nest. It chooses from
+  weighted creatures and enforces near and total population limits. It has no
+  native day or night field.
+- Dungeons are authored locations whose generated rooms contain their normal
+  prefab content, including local spawners. Their interior is placed above
+  world height and maps back to the exterior location's zone.
+- A night-only `SpawnData` entry sets `MonsterAI.despawnInDay` on its creature.
+  During day it stops hunting and moves away to despawn once it has no visible
+  target. It does not necessarily vanish at dawn during an active fight.
+- `RandomEvent` combines a visible start message, duration, range, biome and
+  progression gates, optional environment and music, and an event spawn list.
+  The event itself has no day or night gate, but each event `SpawnData` entry
+  keeps the ordinary time flags. `RandEventSystem` chooses the event on the
+  server and synchronizes its name, time, and position to every peer.
+
+The installed asset manifests provide representative authored examples without
+requiring a full catalog: `GoblinCamp2`, `TrollCave02`, and `SunkenCrypt4` are
+location prefabs; `DG_GoblinCamp` and `DG_SunkenCrypt` are dungeon prefabs;
+`Spawner_GreydwarfNest`, `BonePileSpawner`, and
+`Spawner_Skeleton_night_noarcher` are local spawner prefabs. These names prove
+the installed assets, not unextracted serialized field values.
+
+## Candidate: One Encounter Context Rule
+
+One small rule can support the current product direction without custom world
+data:
+
+1. Classify an authored night-only entry as **Night Special** when its source
+   allows night and disallows day.
+2. Otherwise classify an eligible enemy from `CreatureSpawner` or `SpawnArea`,
+   or any dungeon result, as **Enemy Territory**.
+3. Otherwise classify wilderness by sampled biome and a biome-specific
+   world-center distance band: **Far Wilderness** or **Ordinary Wilderness**.
+4. Roll native stars within that encounter context. Use global keys later to
+   unlock new encounter entries, not to inflate old areas.
+
+This candidate intentionally drops generic structure proximity. Local spawner
+identity already covers nests, camps, and dungeon enemies with less ambiguity.
+Authored `Location` identity remains available for a small explicit exception
+when playtesting proves one is valuable.
+
+This is a feasibility candidate, not a chosen formula. The distance bands,
+level distributions, and eligible sources remain product decisions.
+
 ## What Players Get From Stars
 
 Levels are one-based. The enemy HUD maps levels 1, 2, and 3 to zero, one, and
@@ -89,6 +174,78 @@ pathfinding, or AI decisions. `BaseAI`, `MonsterAI`, and `Humanoid` do not call
 The player-visible result is simple: starred enemies are tougher, hit harder,
 drop more opted-in loot, and carry native visual signals. They do not fight
 differently because of their stars.
+
+## Candidate: Species Retaliation Through Native Events
+
+The native death and event seams can support a transient per-species kill
+window, but the aggregation must be server-authoritative.
+
+`Character.ApplyDamage()` stores the last applied `HitData` in
+`m_lastHit`. `HitData` serializes its attacker as a `ZDOID`, and
+`GetAttacker()` resolves that networked character. `Character.OnDeath()`
+already uses this value for native last-hit statistics. A retaliation hook can
+therefore accept only an untamed enemy whose last attacker resolves to a
+`Player` and ignore environmental or unresolved deaths.
+
+This is direct last-hit credit, not complete player-caused kill credit.
+`SE_Poison` and `SE_Burning` apply attacker-less tick damage, which overwrites
+`m_lastHit`. A player-caused damage-over-time death is therefore unattributed.
+The smallest prototype can count direct final hits only. Full credit would need
+a custom recent-attacker window on each victim.
+
+The creature's network owner runs the authoritative death. That owner is not
+necessarily the server. The minimum multiplayer boundary is:
+
+1. Run the death hook once on the victim's current network owner.
+2. Report the victim species, victim identity, responsible player character
+   ID, and kill position through a routed RPC to the server.
+3. Let the server deduplicate reports and own the per-species timestamps,
+   warning state, active response, and cooldown.
+4. When the threshold passes, match the responsible player's character ID to a
+   `ZNetPeer`, use its current `m_refPos`, and call
+   `RandEventSystem.SetRandomEventByName()` on the server.
+
+`ZRoutedRpc` supplies the reporting peer ID, but the kill payload is still a
+client report. Cooperative multiplayer only needs deduplication and current
+player checks. Hostile-client validation would need a separate design and is
+not proven here.
+
+`RandEventSystem` already supplies the visible and synchronized response. The
+server's `SetRandomEvent()` clone sends `SetEvent` with the event name, time,
+and position to every peer. Players inside the event range activate it and see
+its start message. Their zone-owned `SpawnSystem` instances consume the active
+event's `SpawnData`. Native code marks those creatures with the synchronized
+`eventCreature` ZDO flag. After the event they stop hunting and move away to
+despawn once they have no target and are no longer alerted.
+
+The prototype must not replace an unrelated active native event. It can skip a
+trigger while `RandEventSystem.HaveActiveEvent()` is true. A custom retaliation
+event definition must exist on the server and every client before the server
+sends its name. Reusing a suitable native event avoids that registration work,
+but it does not guarantee the desired species or encounter shape.
+
+`RandEventSystem` has one global `m_randomEvent` slot. Starting another event
+stops and replaces the current one. The native seam therefore supports only one
+retaliation or raid at a time, not concurrent per-player or per-species
+responses. Independent simultaneous retaliations would require a different
+spawn and synchronization seam and are outside this candidate.
+
+Valheim has no native party or group identity in these seams. The smallest
+prototype keys heat to the responsible player. Nearby companions still share
+the warning and fight because event activation is spatial. Pooling kills across
+a group would require a transient proximity-cluster rule, not persistent world
+data.
+
+The kill window, warning, and cooldown can remain in server memory and reset on
+restart. No custom ZDO or world-save field is required. Once a native event
+starts, `RandEventSystem.PrepareSave()`, `SaveAsync()`, and `Load()` already
+preserve its name, time, and position. Persisting heat or cooldown across a
+restart would be a separate product choice.
+
+This candidate requires compatible Benheim code on the server and every peer
+that can own an active zone. A custom event also requires every client to know
+its definition. The current evidence does not support a client-only shared
+world implementation.
 
 ## Authority And Persistence
 
@@ -129,6 +286,16 @@ adjustment deliberately. The existing patch declares no Harmony ordering.
 | --- | --- |
 | Version baseline | `Version.CurrentVersion` |
 | Ordinary level selection | `SpawnSystem.SpawnData`, `UpdateSpawning()`, `UpdateSpawnList()`, `Spawn()`, `GetLevelUpChance()` |
+| Fixed and area level selection | `CreatureSpawner.UpdateSpawner()`, `Spawn()`; `SpawnArea.UpdateSpawn()`, `SpawnOne()` |
+| Biome, distance, time, environment, keys | `ZoneSystem.GetGroundData()`, `WorldGenerator.GetBiome()`, `Utils.LengthXZ()`, `EnvMan`, `ZoneSystem.GetGlobalKey()` |
+| Authored location and dungeon context | `ZoneSystem.ZoneLocation`, `LocationInstance`, `GetLocationList()`; `Location.GetLocation()`, `Character.InInterior()` |
+| Location level overrides | `Location.m_enemyMinLevelOverride`, `m_enemyMaxLevelOverride`, `m_enemyLevelUpOverride`; `CreatureSpawner.Spawn()` |
+| Night-only lifecycle | `SpawnData.m_spawnAtDay`, `CreatureSpawner.m_spawnAtDay`, `MonsterAI.SetDespawnInDay()`, `ZDOVars.s_despawnInDay` |
+| Native event selection and display | `RandomEvent`; `RandEventSystem.SetRandomEventByName()`, `SetRandomEvent()`, `RPC_SetEvent()`, `SetActiveEvent()` |
+| Native event spawns and cleanup | `RandEventSystem.GetCurrentSpawners()`; `SpawnSystem.UpdateSpawning()`, `Spawn()`; `MonsterAI.SetEventCreature()`, `UpdateAI()` |
+| Native event save boundary | `RandEventSystem.PrepareSave()`, `SaveAsync()`, `Load()` |
+| Last-hit attribution and limit | `Character.ApplyDamage()`, `m_lastHit`, `OnDeath()`; `HitData.m_attacker`, `GetAttacker()`; `SE_Poison.UpdateStatusEffect()`, `SE_Burning.UpdateStatusEffect()` |
+| Client-to-server seam and player position | `ZRoutedRpc.InvokeRoutedRPC()`, `Register()`; `ZNet.IsServer()`; `ZNetPeer.m_characterID`, `m_refPos` |
 | World modifiers | `Game.m_enemyLevelUpRate`, `Game.m_worldLevel`, `Game.UpdateWorldRates()` |
 | Persistent level and health | `Character.m_level`, `Awake()`, `SetLevel()`, `SetupMaxHealth()`, `ZDOVars.s_level` |
 | Offensive scaling | `Attack.ModifyDamage()`, `GetLevelDamageFactor()` |
@@ -138,16 +305,18 @@ adjustment deliberately. The existing patch declares no Harmony ordering.
 
 ## What Remains Unknown
 
-The next investigation needs one player-facing choice: select one creature and
-state what a player should notice and do differently against its one-star
-version. That answer determines whether to trace one authored attack seam or
-one AI decision seam. A general alpha architecture is premature.
+Research is sufficient to choose an encounter-context prototype and a
+server-authoritative retaliation prototype. Product work still needs to choose
+distance bands, level distributions, one species, one response, and whether
+nearby players pool their kills. Those are experience decisions, not missing
+Valheim seams.
 
-This research did not enumerate every creature's serialized spawn limits or
-`LevelEffects` setup. It also did not prove prefab-specific collider changes,
-choose new mechanics, or test a modified creature in multiplayer.
+This research did not extract every prefab's serialized spawn settings, define
+a generic structure taxonomy, prove hostile-client validation, choose new tier
+mechanics, or test modified multiplayer behavior. A general Alpha, ecology, or
+raid architecture remains premature.
 
 Valheim 1.0 can change any of these seams. After migration, revalidate the
-assembly version and hash, the named level-selection and scaling methods, the
-native ZDO fields, the owner-side AI gates, and Benheim's Leech patch boundary
-before relying on this report.
+assembly version and hash, all three level-selection seams, location and event
+types, death attribution, routed RPC behavior, native ZDO fields, owner-side AI
+gates, and Benheim's Leech patch boundary before relying on this report.
