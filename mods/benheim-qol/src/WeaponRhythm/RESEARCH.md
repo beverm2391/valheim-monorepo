@@ -24,6 +24,12 @@ owns the source inspection commands. To reproduce this evidence, cache the
 installed assembly, confirm `Version.CurrentVersion`, and inspect the types
 named below. A different assembly hash is a different evidence baseline.
 
+The player animation and item evidence came from the extracted native asset
+bundle identified as `c4210710`, whose SHA-256 was
+`2d1e17fa941213747868face6b8fb13e23332292454007255c42562119e31448`.
+AssetRipper `1.3.14` exposed the serialized controller, clips, and item presets.
+A different bundle hash also invalidates the asset conclusions below.
+
 ## The animator owns the beat
 
 The native flow is:
@@ -73,6 +79,81 @@ Primary and secondary attacks already have distinct presets. Each preset can
 define its animation, stamina, geometry, damage, force, stagger, movement,
 chain count, and other behavior. This is enough structure for real weapon
 variation without new controls or animation assets.
+
+## Light-to-heavy chain branching
+
+Valheim does not currently branch a primary chain into a secondary attack.
+`Player.PlayerAttackInput()` evaluates Primary before Secondary. A Primary
+edge starts `m_queuedAttackTimer`; a Secondary edge starts
+`m_queuedSecondAttackTimer` and clears the Primary timer. Both buffers last
+`0.5` seconds, but `Player.HaveQueuedChain()` considers only the Primary buffer
+or Primary hold. `Humanoid.StartAttack()` consults that method before it knows
+whether the requested attack is primary or secondary. A buffered Secondary can
+therefore start after the current attack ends, but it cannot use the current
+primary animation's authored `Chain` gate.
+
+These source facts expose a bounded scheduling gap, not a missing combat
+system. Proposed prototype: read the existing Secondary queue, give that intent
+priority over a held Primary only while the current attack is a primary whose
+`Attack.CanStartChainAttack()` is true, and call the normal
+`Humanoid.StartAttack(..., secondaryAttack: true)`. The admission override
+must exist only around that guarded branch attempt; globally making
+`HaveQueuedChain()` true for Secondary would also loosen unrelated callers
+that use the same predicate. No direct input polling or second timing window is
+needed.
+
+The one-handed sword family is the clean first probe. Serialized `SwordIron`
+data uses `swing_longsword` with three Primary chain levels and the distinct
+`sword_secondary` attack with zero chain levels. `Attack.Start()` inherits a
+chain level only when the new attack has multiple chain levels and the prior
+animation name matches. The sword heavy therefore starts its existing
+secondary state and ends the light combo. Native code still owns its stamina
+check and spend, durability, skill gain, attack geometry, hit event, and damage.
+
+Assessment: this prototype is low-to-medium complexity. It needs focused proof
+for a Secondary tap versus a held Primary, early buffering and expiry,
+insufficient stamina, interruption, and one branch per accepted input. It
+should remain sword-only until those cases prove that Secondary intent cannot
+accidentally continue the light chain or start two heavies. Swords avoid
+Benheim's current axe, pickaxe, projectile, and defense patches.
+
+The inference is that this will feel like an authored branch because both
+states and the gate are native. Only gameplay can prove the transition reads
+cleanly; the serialized controller proves the available states and timing
+seams, not the perceived blend.
+
+## Jump and plunge boundary
+
+Valheim permits an ordinary attack to start in the air: neither
+`Humanoid.StartAttack()` nor `Attack.Start()` requires `IsOnGround()`. That is
+not a jump attack. `Character.Jump()` is a separate owner-side physics action
+that requires ground contact and rejects `InAttack()`. `Player.OnJump()` spends
+jump stamina and clears the minor-action queue. While airborne, player attacks
+also bypass their configured movement slowdown, although their rotation factor
+still applies.
+
+The native player controller separates locomotion into `Jump`, `Jump Loop`,
+and `Jump End` states. Normal weapon attacks enter their ordinary attack states
+from `AnyState`; starting one in the air replaces the readable jump pose with a
+normal swing. Physical ground contact independently drives landing callbacks
+and fall damage. It does not release a weapon hit or select a landing attack.
+
+The native knife assets are the closest apparent exception, but they confirm
+the boundary. Knives already map Secondary to `knife_secondary`, and the player
+bundle contains `Knife JumpAttack` and `Knife Attack Leap` clips. Their authored
+events drive speed, trail, and hit timing; neither clip invokes
+`CharacterAnimEvent.Jump()` or `Land()`. They are existing leaping secondary
+animations, not a preparatory jump, airborne hold, and landing-hit lifecycle.
+Creature jump clips belong to different rigs and controllers. This report did
+not establish that any is compatible with the player controller.
+
+There is therefore no honest low-complexity player jump/plunge prototype in
+Valheim `0.221.12`. Gating a damage bonus on `!IsOnGround()` would only reward
+hopping. Combining native Jump physics with an ordinary or knife attack would
+stack unrelated states without an authored landing transition. A true plunge
+would need at least compatible player preparation, airborne, impact, miss, and
+landing states plus explicit interruption and movement rules: an animation and
+controller project, not a small Weapon Rhythm patch.
 
 ## Clean extension seams
 
@@ -184,17 +265,18 @@ transpiler.
 
 ## Bounded candidate prototypes
 
-### Candidate: native-chain cadence accent
+### Candidate: sword light-to-heavy branch
 
-Choose one weapon family with a native multi-step primary chain. Reward a
-generously timed use of its authored chain gate. Mark only the successful
-per-swing clone and start with a modest stagger or push accent.
+During the one-handed sword's native Primary chain gate, let a buffered
+Secondary start the existing sword heavy. Primary continues the light chain;
+from neutral, both controls keep their native meaning; the heavy ends the
+combo.
 
-This candidate has the best gameplay-value-to-cost ratio. It preserves normal
-attacks and lets each weapon's authored animation define its cadence. The main
-failure modes are a window that taxes ordinary play, a large bonus that stacks
-poorly with the native final-chain `2x` damage and `1.2x` push, and duplicate
-rewards on multi-hit clips.
+This candidate has a narrow technical scope: it changes input arbitration at
+the native gate and then delegates to the existing heavy. Gameplay must
+establish its value. Its main failure modes are held Primary winning over
+Secondary, a failed heavy silently continuing the light chain, a stale
+Secondary starting after the window, and duplicate heavy starts.
 
 ### Candidate: edge-of-reach spacing accent
 
@@ -215,30 +297,23 @@ This candidate reuses proven defense observations and existing secondary
 animations. It may belong to Adrenaline or a defense system instead of Weapon
 Rhythm. A global rule would also flatten weapon identity.
 
-### Candidate: airborne normal-attack accent
-
-Apply a small result to an eligible attack that starts in the air. Native
-`Humanoid.StartAttack()` permits this, and airborne attacks bypass the normal
-attack movement slowdown.
-
-This is a cheap visual-feel probe, not evidence of a native jump attack. It
-reuses the ordinary attack animation and could look wrong or reward repetitive
-hopping.
-
 ## Unresolved product choices
 
 The evidence does not decide:
 
-- which weapon family should go first;
-- whether cadence should reward damage, stagger, push, movement, or another
-  result;
-- how the cadence band should treat early native buffering;
+- whether Ben wants the one-handed sword light-to-heavy branch as the next
+  playable prototype;
+- whether a later branch should preserve Secondary intent on resource failure
+  or fall back to no attack;
 - how spacing should normalize different attack origins and colliders;
-- whether a perfect-defense counter belongs in Weapon Rhythm; or
-- whether any weapon has an existing pose that can support genuine charge.
+- whether a perfect-defense counter belongs in Weapon Rhythm;
+- whether any weapon has an existing pose that can support genuine charge; or
+- whether a true jump/plunge attack is valuable enough to justify a player
+  animation-controller project.
 
-These are gameplay choices. The first candidate should answer one of them
-without generalizing the system.
+This report does not choose the next prototype. It shows that the sword branch
+is a bounded input-arbitration experiment, while a jump/plunge feature requires
+Ben to accept a larger animation-controller scope.
 
 ## Valheim 1.0 revalidation
 
@@ -248,15 +323,19 @@ This report proves only Valheim `0.221.12`. Before using these seams on Valheim
 - `Version.CurrentVersion`;
 - `PlayerController.FixedUpdate()` and `Player.SetControls()`;
 - `Player.PlayerAttackInput()` and its queue durations;
-- `Humanoid.StartAttack()` and the per-swing clone;
+- `Player.HaveQueuedChain()` and Primary-versus-Secondary evaluation order;
+- `Humanoid.StartAttack()`, attack selection, and the per-swing clone;
 - `Attack.Start()`, `Update()`, `OnAttackTrigger()`, and
   `CanStartChainAttack()`;
-- `CharacterAnimEvent.Chain()`, `Hit()`, `OnAttackTrigger()`,
-  `DodgeMortal()`, `Speed()`, and `FreezeFrame()`;
+- `Character.Jump()`, `Player.OnJump()`, ground contact, and landing callbacks;
+- `CharacterAnimEvent.Chain()`, `Hit()`, `OnAttackTrigger()`, `Jump()`,
+  `Land()`, `DodgeMortal()`, `Speed()`, and `FreezeFrame()`;
 - `ZSyncAnimation` trigger and speed replication;
 - `Character.Damage()` and `RPC_Damage()` authority;
-- `Humanoid.BlockAttack()` timed-block behavior; and
-- `Player.UpdateDodge()` invulnerability replication.
+- `Humanoid.BlockAttack()` timed-block behavior;
+- `Player.UpdateDodge()` invulnerability replication;
+- the player animator's jump and sword states; and
+- representative sword and knife attack presets and clips.
 
 Changed or missing methods, fields, constants, events, or authority checks
 invalidate the related conclusion. Revalidation must happen before a 1.0
