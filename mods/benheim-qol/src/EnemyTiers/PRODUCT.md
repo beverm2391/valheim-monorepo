@@ -27,6 +27,11 @@ Valheim shows stars in the enemy HUD. Each creature prefab can also change its
 size, color, emission, or visible features by level. Valheim does not apply one
 universal visual style to every starred creature.
 
+Ben confirmed that the `0.1.56` map presentation looks good in gameplay. The
+native biome name remains on the first line of the small minimap and large-map
+hover, and the category text appears alone on a second line. Both category
+labels match the native biome label's white text treatment.
+
 [`RESEARCH.md`](RESEARCH.md) owns the code evidence, multiplayer authority,
 extension seams, and Valheim `1.0` revalidation gate behind this baseline.
 
@@ -116,12 +121,6 @@ the biome name. The label uses the same final per-step ordinary-wilderness
 chance that spawning uses. Benheim computes it only for the explored point
 under the cursor. It does not precompute or tint the world map.
 
-On the large map, the category appears alone on a second line beneath the
-native biome name. Adding the category does not change the label's position or
-geometry. On both maps, every category inherits the native biome label's font,
-material, white color, and shadow. Benheim adds no custom category color,
-outline, or material.
-
 The labels split the constructed `10%` to `40%` range into four equal fixed
 bands:
 
@@ -134,12 +133,10 @@ The label does not reveal unexplored areas. It covers ordinary wilderness
 only. It does not estimate danger for dungeons, events, Alphas, or other
 authored encounters.
 
-The minimap keeps its accepted two-line geometry: the native biome name remains
-on the first line, and the current ordinary-wilderness category appears alone
-beneath it. An unlisted biome keeps the native biome name without a Benheim
-category. During a portal or loading transition, the map labels never expose
-an unresolved localization token: the minimap keeps its last valid native
-biome name without a category, while the large-map label remains empty.
+An unlisted biome keeps the native biome name without a Benheim category.
+During a portal or loading transition, the map labels never expose an
+unresolved localization token: the minimap keeps its last valid native biome
+name without a category, while the large-map label remains empty.
 
 When the current category stably rises to `DANGEROUS` or `DEADLY`, Benheim
 shows `Entering a DANGEROUS area...` or `Entering a DEADLY area...`.

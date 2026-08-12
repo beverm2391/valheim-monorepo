@@ -84,6 +84,10 @@ internal static partial class ShortcutOverlay
             "and brief edge vignette.";
 
         RefreshFxConfigInteractivity();
+        Diagnostics.Event(
+            "Shortcuts",
+            "fx_config_built",
+            "toggles=4 labels=4 label_layout=explicit_native_text");
     }
 
     private static Toggle AddFxToggle(
@@ -93,22 +97,51 @@ internal static partial class ShortcutOverlay
         bool value,
         UnityAction<bool> changed)
     {
-        Toggle toggle = Object.Instantiate(templates.Checkbox, parent, worldPositionStays: false);
+        const float rowHeight = 38f;
+
+        RectTransform row = CreateRectObject(label.Replace(" ", "") + "Row", parent);
+        HorizontalLayoutGroup rowLayout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+        rowLayout.spacing = 8f;
+        rowLayout.childAlignment = TextAnchor.MiddleLeft;
+        rowLayout.childControlWidth = true;
+        rowLayout.childControlHeight = true;
+        rowLayout.childForceExpandWidth = false;
+        rowLayout.childForceExpandHeight = false;
+
+        LayoutElement rowSize = row.gameObject.AddComponent<LayoutElement>();
+        rowSize.minHeight = rowHeight;
+        rowSize.preferredHeight = rowHeight;
+
+        // AccessibilitySettings exposes the native checkbox control, not a label
+        // contract. Compose the label explicitly from Benheim's established native
+        // text donor so every setting has visible text regardless of prefab hierarchy.
+        Toggle toggle = Object.Instantiate(templates.Checkbox, row, worldPositionStays: false);
         toggle.name = label.Replace(" ", "") + "Toggle";
         toggle.onValueChanged = new Toggle.ToggleEvent();
         toggle.SetIsOnWithoutNotify(value);
         toggle.onValueChanged.AddListener(changed);
 
-        TMP_Text? toggleLabel = toggle.GetComponentInChildren<TMP_Text>(includeInactive: true);
-        if (toggleLabel != null)
-        {
-            toggleLabel.text = label;
-        }
-
-        LayoutElement layout = toggle.GetComponent<LayoutElement>()
+        LayoutElement toggleSize = toggle.GetComponent<LayoutElement>()
             ?? toggle.gameObject.AddComponent<LayoutElement>();
-        layout.minHeight = 38f;
-        layout.preferredHeight = 38f;
+        toggleSize.ignoreLayout = false;
+        toggleSize.minWidth = rowHeight;
+        toggleSize.preferredWidth = rowHeight;
+        toggleSize.flexibleWidth = 0f;
+        toggleSize.minHeight = rowHeight;
+        toggleSize.preferredHeight = rowHeight;
+
+        TMP_Text toggleLabel = CreateText(
+            "FxToggleLabel",
+            row,
+            templates.Text,
+            layoutElement: true);
+        toggleLabel.text = label;
+        toggleLabel.alignment = TextAlignmentOptions.MidlineLeft;
+        toggleLabel.textWrappingMode = TextWrappingModes.NoWrap;
+        LayoutElement labelSize = toggleLabel.GetComponent<LayoutElement>();
+        labelSize.minHeight = rowHeight;
+        labelSize.preferredHeight = rowHeight;
+        labelSize.flexibleWidth = 1f;
         return toggle;
     }
 

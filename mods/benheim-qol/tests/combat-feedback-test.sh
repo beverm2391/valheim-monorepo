@@ -38,6 +38,16 @@ test "$(rg -c 'config.Bind\(' "$settings")" -eq 4
 rg -Fq 'Object.Instantiate(templates.Checkbox' "$config_ui"
 rg -Fq 'toggle.SetIsOnWithoutNotify(value)' "$config_ui"
 test "$(rg -c '= AddFxToggle\(' "$config_ui")" -eq 4
+rg -Fq 'HorizontalLayoutGroup rowLayout' "$config_ui"
+rg -Fq 'TMP_Text toggleLabel = CreateText(' "$config_ui"
+rg -Fq '"FxToggleLabel"' "$config_ui"
+rg -Fq 'toggleLabel.text = label;' "$config_ui"
+rg -Fq '"fx_config_built"' "$config_ui"
+rg -Fq '"toggles=4 labels=4 label_layout=explicit_native_text"' "$config_ui"
+if rg -Fq 'GetComponentInChildren<TMP_Text>' "$config_ui"; then
+  printf 'config labels must be explicit, not inferred from the checkbox prefab hierarchy\n' >&2
+  exit 1
+fi
 rg -Fq 'bowFocusToggle.interactable = masterEnabled' "$config_ui"
 rg -Fq 'combatShakeToggle.interactable = masterEnabled' "$config_ui"
 rg -Fq 'dangerArrivalToggle.interactable = masterEnabled' "$config_ui"
