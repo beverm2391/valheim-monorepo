@@ -16,7 +16,7 @@ internal enum CombatFeedbackTrigger
 /// </summary>
 internal static class CombatFeedbackTuning
 {
-    internal const float BowFocusMaxReductionDegrees = 5f;
+    internal const float BowFocusMaxReductionDegrees = 7f;
     internal const float BowFocusNarrowSmoothSeconds = 0.14f;
     internal const float BowFocusRestoreSmoothSeconds = 0.10f;
 
@@ -26,7 +26,7 @@ internal static class CombatFeedbackTuning
     internal const float NativeAxeHitShakeStrength = 1.2f;
     internal const float HeadshotShakeStrength = 0.45f;
     internal const float CleaveShakeStrength = 1.75f;
-    internal const float MiningAoeShakeStrength = 0.38f;
+    internal const float MiningAoeShakeStrength = 1.75f;
     internal const float ShakeStrengthCap = 1.75f;
     internal const float ShakeCoalesceSeconds = 0.12f;
     internal const float ShakeRangeMeters = 1000f;

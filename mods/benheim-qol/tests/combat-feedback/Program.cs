@@ -4,9 +4,9 @@ using BepInEx.Configuration;
 using BenheimQoL.CombatFeedback;
 
 ExpectClose(0f, CombatFeedbackTuning.FocusReduction(0f), "no draw keeps native FOV");
-ExpectClose(2.5f, CombatFeedbackTuning.FocusReduction(0.5f), "half draw reaches eased midpoint");
-ExpectClose(5f, CombatFeedbackTuning.FocusReduction(1f), "full draw reaches the focus cap");
-ExpectClose(5f, CombatFeedbackTuning.FocusReduction(2f), "draw above one stays capped");
+ExpectClose(3.5f, CombatFeedbackTuning.FocusReduction(0.5f), "half draw reaches eased midpoint");
+ExpectClose(7f, CombatFeedbackTuning.FocusReduction(1f), "full draw reaches the focus cap");
+ExpectClose(7f, CombatFeedbackTuning.FocusReduction(2f), "draw above one stays capped");
 ExpectClose(0f, CombatFeedbackTuning.FocusReduction(float.NaN), "invalid draw fails open to native FOV");
 
 float previous = 0f;
@@ -19,7 +19,7 @@ for (int step = 1; step <= 100; step++)
 
 ExpectClose(0.45f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Headshot), "headshot strength");
 ExpectClose(1.75f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave), "cleave strength");
-ExpectClose(0.38f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.MiningAoe), "mining AOE strength");
+ExpectClose(1.75f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.MiningAoe), "mining AOE strength");
 ExpectTrue(
     CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave)
         > CombatFeedbackTuning.NativeAxeHitShakeStrength,
