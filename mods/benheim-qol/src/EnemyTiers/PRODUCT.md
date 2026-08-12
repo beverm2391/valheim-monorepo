@@ -118,11 +118,9 @@ under the cursor. It does not precompute or tint the world map.
 
 On the large map, the category appears alone on a second line beneath the
 native biome name. Adding the category does not change the label's position or
-geometry. Color
-shows the danger level: `SAFE` uses calm green, `SKETCHY` uses warning gold,
-`DANGEROUS` uses orange, and `DEADLY` uses red. Both map labels use bold
-category lettering and a dark native-style outline so the category remains
-legible over varied map terrain.
+geometry. On both maps, every category inherits the native biome label's font,
+material, white color, and shadow. Benheim adds no custom category color,
+outline, or material.
 
 The labels split the constructed `10%` to `40%` range into four equal fixed
 bands:
@@ -136,17 +134,15 @@ The label does not reveal unexplored areas. It covers ordinary wilderness
 only. It does not estimate danger for dungeons, events, Alphas, or other
 authored encounters.
 
-The minimap keeps the native biome name as its first line. It shows the current
-ordinary-wilderness category alone on a second line beneath it. The category
-uses the same native font and outline treatment as the large-map hover label,
-with the same `SAFE`, `SKETCHY`, `DANGEROUS`, and `DEADLY` colors. An unlisted
-biome keeps the native biome name without a Benheim category. During a portal
-or loading transition, the map labels never expose an unresolved localization
-token: the minimap keeps its last valid native biome name without a category,
-while the large-map label remains empty.
+The minimap keeps its accepted two-line geometry: the native biome name remains
+on the first line, and the current ordinary-wilderness category appears alone
+beneath it. An unlisted biome keeps the native biome name without a Benheim
+category. During a portal or loading transition, the map labels never expose
+an unresolved localization token: the minimap keeps its last valid native
+biome name without a category, while the large-map label remains empty.
 
 When the current category stably rises to `DANGEROUS` or `DEADLY`, Benheim
-shows `Entering a DANGEROUS area...` or `Entering a DEADLY area...`. The
+shows `Entering a DANGEROUS area...` or `Entering a DEADLY area...`.
 Each exact arrival sentence stays on one line in Valheim's biome-discovery
 presentation, with its native ornament separate from the text. The presentation
 also uses Valheim's one-shot stinger and native damage flash. The damage flash

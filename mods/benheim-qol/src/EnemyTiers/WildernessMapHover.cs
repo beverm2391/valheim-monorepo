@@ -10,7 +10,6 @@ namespace BenheimQoL.EnemyTiers;
 [HarmonyPatch]
 internal static class WildernessMapHover
 {
-    private static readonly WildernessMapLabelContrast LabelContrast = new();
     private static readonly HashSet<HoverProbeStage> LoggedProbeStages = new();
     private static readonly HashSet<int> LoggedExplorationStates = new();
     private static readonly HashSet<Heightmap.Biome> LoggedUnsupportedBiomes = new();
@@ -42,7 +41,6 @@ internal static class WildernessMapHover
             }
         }
 
-        LabelContrast.Restore();
         expandedLabel = null;
         labelBoundsExpanded = false;
         measuredLabel = null;
@@ -68,7 +66,6 @@ internal static class WildernessMapHover
         LogProbeStageOnce(HoverProbeStage.PatchInvoked, $"map_mode={__instance.m_mode}");
         if (__instance.m_mode != Minimap.MapMode.Large)
         {
-            LabelContrast.SetActive(label, value: false);
             LogProbeStageOnce(HoverProbeStage.NotLargeMap, $"map_mode={__instance.m_mode}");
             return;
         }
@@ -76,14 +73,12 @@ internal static class WildernessMapHover
         LogProbeStageOnce(HoverProbeStage.LargeMapReady, "map_mode=Large");
         if (WorldGenerator.instance == null)
         {
-            LabelContrast.SetActive(label, value: false);
             LogProbeStageOnce(HoverProbeStage.WorldGeneratorMissing);
             return;
         }
 
         if (string.IsNullOrEmpty(label.text))
         {
-            LabelContrast.SetActive(label, value: false);
             LogProbeStageOnce(HoverProbeStage.NativeBiomeLabelEmpty);
             return;
         }
@@ -91,7 +86,6 @@ internal static class WildernessMapHover
         if (!WildernessMapLabelLayout.IsResolvedNativeBiomeText(label.text))
         {
             label.text = "";
-            LabelContrast.SetActive(label, value: false);
             LogProbeStageOnce(HoverProbeStage.NativeBiomeLabelUnresolved);
             return;
         }
@@ -103,16 +97,14 @@ internal static class WildernessMapHover
             ___m_showSharedMapData,
             out HoveredDanger hovered))
         {
-            LabelContrast.SetActive(label, value: false);
             return;
         }
 
         string nativeText = label.text;
-        string combinedText = $"{nativeText}\n{WildernessDangerScale.StyledMapLabel(hovered.Danger)}";
+        string combinedText = $"{nativeText}\n{WildernessDangerScale.MapLabel(hovered.Danger)}";
         float addedHeight = GetAddedHeight(label, nativeText, combinedText, hovered.Danger);
         label.text = combinedText;
         ExpandLabelBoundsDownward(label, addedHeight);
-        LabelContrast.SetActive(label, value: true);
         LogHover(hovered);
     }
 

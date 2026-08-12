@@ -68,23 +68,29 @@ ExpectTrue(WildernessDangerScale.Classify(25f) == WildernessDanger.Dangerous, "d
 ExpectTrue(WildernessDangerScale.Classify(32.499f) == WildernessDanger.Dangerous, "dangerous upper edge");
 ExpectTrue(WildernessDangerScale.Classify(32.5f) == WildernessDanger.Deadly, "deadly lower edge");
 ExpectTrue(
-    WildernessDangerScale.StyledLabel(WildernessDanger.Safe) == "<color=#6F9F6A>SAFE</color>",
-    "safe label uses calm color");
+    WildernessDangerScale.StyledArrivalLabel(WildernessDanger.Safe) == "<color=#6F9F6A>SAFE</color>",
+    "safe arrival label uses calm color");
 ExpectTrue(
-    WildernessDangerScale.StyledLabel(WildernessDanger.Sketchy) == "<color=#B59A45>SKETCHY</color>",
-    "sketchy label uses warning color");
+    WildernessDangerScale.StyledArrivalLabel(WildernessDanger.Sketchy) == "<color=#B59A45>SKETCHY</color>",
+    "sketchy arrival label uses warning color");
 ExpectTrue(
-    WildernessDangerScale.StyledLabel(WildernessDanger.Dangerous) == "<color=#C8753B><b>DANGEROUS</b></color>",
-    "dangerous label uses bold orange treatment");
+    WildernessDangerScale.StyledArrivalLabel(WildernessDanger.Dangerous) == "<color=#C8753B><b>DANGEROUS</b></color>",
+    "dangerous arrival label uses bold orange treatment");
 ExpectTrue(
-    WildernessDangerScale.StyledLabel(WildernessDanger.Deadly) == "<color=#C94F55><b>DEADLY</b></color>",
-    "deadly label uses bold red treatment");
+    WildernessDangerScale.StyledArrivalLabel(WildernessDanger.Deadly) == "<color=#C94F55><b>DEADLY</b></color>",
+    "deadly arrival label uses bold red treatment");
 ExpectTrue(
-    WildernessDangerScale.StyledMapLabel(WildernessDanger.Safe) == "<b><color=#6F9F6A>SAFE</color></b>",
-    "map label makes safe full-weight without changing its color");
+    WildernessDangerScale.MapLabel(WildernessDanger.Safe) == "SAFE",
+    "safe map label inherits native text styling");
 ExpectTrue(
-    WildernessDangerScale.StyledMapLabel(WildernessDanger.Deadly) == "<b><color=#C94F55><b>DEADLY</b></color></b>",
-    "map label preserves deadly color and emphasis");
+    WildernessDangerScale.MapLabel(WildernessDanger.Sketchy) == "SKETCHY",
+    "sketchy map label inherits native text styling");
+ExpectTrue(
+    WildernessDangerScale.MapLabel(WildernessDanger.Dangerous) == "DANGEROUS",
+    "dangerous map label inherits native text styling");
+ExpectTrue(
+    WildernessDangerScale.MapLabel(WildernessDanger.Deadly) == "DEADLY",
+    "deadly map label inherits native text styling");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, false, false), "unexplored point stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explored point is visible");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, true, false), "hidden shared exploration stays hidden");

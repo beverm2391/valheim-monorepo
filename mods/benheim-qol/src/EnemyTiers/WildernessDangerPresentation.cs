@@ -144,7 +144,7 @@ internal static class WildernessDangerPresentation
         MessageHud messageHud = MessageHud.instance;
         bool stingerAvailable = messageHud.m_biomeFoundStinger != null;
         messageHud.ShowBiomeFoundMsg(
-            $"Entering a {WildernessDangerScale.StyledLabel(danger)} area...",
+            $"Entering a {WildernessDangerScale.StyledArrivalLabel(danger)} area...",
             playStinger: true);
 
         Hud.instance.DamageFlash();

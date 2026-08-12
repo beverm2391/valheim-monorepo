@@ -11,8 +11,6 @@ namespace BenheimQoL.EnemyTiers;
 /// </summary>
 internal static class WildernessMinimapIndicator
 {
-    private static readonly WildernessMapLabelContrast LabelContrast = new();
-
     private static string lastLogKey = "";
     private static string lastValidBiomeText = "";
     private static TMP_Text? expandedLabel;
@@ -40,7 +38,6 @@ internal static class WildernessMinimapIndicator
             }
         }
 
-        LabelContrast.Restore();
         lastLogKey = "";
         lastValidBiomeText = "";
         expandedLabel = null;
@@ -63,7 +60,6 @@ internal static class WildernessMinimapIndicator
         if (!player)
         {
             label.text = lastValidBiomeText;
-            LabelContrast.SetActive(label, value: false);
             LogOnce("rejected:player_missing", "outcome=rejected reason=player_missing");
             return;
         }
@@ -75,7 +71,6 @@ internal static class WildernessMinimapIndicator
             || !WildernessMapLabelLayout.IsResolvedNativeBiomeText(nativeBiome))
         {
             label.text = lastValidBiomeText;
-            LabelContrast.SetActive(label, value: false);
             LogOnce(
                 $"rejected:unresolved_biome:{biome}",
                 $"outcome=rejected reason=unresolved_native_biome biome={biome} " +
@@ -86,16 +81,14 @@ internal static class WildernessMinimapIndicator
         lastValidBiomeText = nativeBiome;
         if (currentDanger is WildernessDanger danger)
         {
-            string combinedText = $"{nativeBiome}\n{WildernessDangerScale.StyledMapLabel(danger)}";
+            string combinedText = $"{nativeBiome}\n{WildernessDangerScale.MapLabel(danger)}";
             float addedHeight = GetAddedHeight(label, nativeBiome, combinedText, danger);
             label.text = combinedText;
             ExpandBoundsDownward(label, addedHeight);
-            LabelContrast.SetActive(label, value: true);
         }
         else
         {
             label.text = nativeBiome;
-            LabelContrast.SetActive(label, value: false);
         }
 
         string dangerValue = currentDanger?.ToString() ?? "none";

@@ -7,7 +7,6 @@ patches="$root/src/EnemyTiers/WildernessStarPatches.cs"
 tuning="$root/src/EnemyTiers/BiomeStarChanceTuning.cs"
 map_hover="$root/src/EnemyTiers/WildernessMapHover.cs"
 map_label_layout="$root/src/EnemyTiers/WildernessMapLabelLayout.cs"
-map_label_contrast="$root/src/EnemyTiers/WildernessMapLabelContrast.cs"
 danger_presentation="$root/src/EnemyTiers/WildernessDangerPresentation.cs"
 danger_presentation_patches="$root/src/EnemyTiers/WildernessDangerPresentationPatches.cs"
 minimap_indicator="$root/src/EnemyTiers/WildernessMinimapIndicator.cs"
@@ -29,8 +28,8 @@ rg -Fq '___m_explored' "$map_hover"
 rg -Fq '___m_exploredOthers' "$map_hover"
 rg -Fq '___m_showSharedMapData' "$map_hover"
 rg -Uq '\[HarmonyPatch\]\ninternal static class WildernessMapHover' "$map_hover"
-rg -Fq 'WildernessDangerScale.StyledMapLabel(hovered.Danger)' "$map_hover"
-rg -Fq '$"{nativeText}\n{WildernessDangerScale.StyledMapLabel(hovered.Danger)}"' "$map_hover"
+rg -Fq 'WildernessDangerScale.MapLabel(hovered.Danger)' "$map_hover"
+rg -Fq '$"{nativeText}\n{WildernessDangerScale.MapLabel(hovered.Danger)}"' "$map_hover"
 rg -Fq 'RestoreNativeLabelBounds(label);' "$map_hover"
 rg -Fq 'WildernessMapLabelLayout.ExpandDownward(' "$map_hover"
 rg -Fq 'nativeAnchoredY - ((1f - pivotY) * addedHeight)' "$map_label_layout"
@@ -55,7 +54,7 @@ rg -Fq 'player.GetCurrentBiome()' "$danger_presentation"
 rg -Fq 'Utils.LengthXZ(player.transform.position)' "$danger_presentation"
 rg -Fq 'WildernessStarChance.ComposeChance(' "$danger_presentation"
 rg -Fq 'TMP_Text label = minimap.m_biomeNameSmall;' "$minimap_indicator"
-rg -Fq '$"{nativeBiome}\n{WildernessDangerScale.StyledMapLabel(danger)}"' "$minimap_indicator"
+rg -Fq '$"{nativeBiome}\n{WildernessDangerScale.MapLabel(danger)}"' "$minimap_indicator"
 rg -Fq 'RestoreNativeBounds(label);' "$minimap_indicator"
 rg -Fq 'label.GetPreferredValues(nativeText, width, Mathf.Infinity).y' "$minimap_indicator"
 rg -Fq 'WildernessMapLabelLayout.ExpandDownward(' "$minimap_indicator"
@@ -67,18 +66,8 @@ rg -Fq 'WildernessMapLabelLayout.IsResolvedNativeBiomeText(label.text)' "$map_ho
 rg -Fq 'WildernessMapHover.Reset();' "$danger_presentation"
 rg -Fq 'measuredLabel == expandedLabel' "$minimap_indicator"
 rg -Fq 'ownsComposedText = labelBoundsExpanded && measuredLabel == expandedLabel' "$map_hover"
-rg -Fq 'LabelContrast.SetActive(label, value: true);' "$minimap_indicator"
-rg -Fq 'LabelContrast.SetActive(label, value: true);' "$map_hover"
-rg -Fq 'MinimumOutlineWidth = 0.14f' "$map_label_contrast"
-rg -Fq 'target.outlineWidth = Mathf.Max(nativeOutlineWidth, MinimumOutlineWidth);' "$map_label_contrast"
-rg -Fq 'nativeSharedMaterial = target.fontSharedMaterial;' "$map_label_contrast"
-rg -Fq 'label.fontSharedMaterial = nativeSharedMaterial;' "$map_label_contrast"
-rg -Fq 'ownedOutlineMaterial != nativeSharedMaterial' "$map_label_contrast"
-rg -Fq 'label.outlineColor = nativeOutlineColor;' "$map_label_contrast"
-rg -Fq 'label.outlineWidth = nativeOutlineWidth;' "$map_label_contrast"
-rg -Fq 'Object.Destroy(ownedOutlineMaterial);' "$map_label_contrast"
 rg -Fq 'ShowBiomeFoundMsg(' "$danger_presentation"
-rg -Fq '$"Entering a {WildernessDangerScale.StyledLabel(danger)} area..."' "$danger_presentation"
+rg -Fq '$"Entering a {WildernessDangerScale.StyledArrivalLabel(danger)} area..."' "$danger_presentation"
 rg -Fq '[HarmonyPatch(typeof(MessageHud), "UpdateBiomeFound")]' "$danger_presentation_patches"
 rg -Fq 'title.textWrappingMode = TextWrappingModes.NoWrap;' "$danger_presentation"
 rg -Fq 'sourceFontSize = title.enableAutoSizing ? title.fontSizeMax : title.fontSize;' "$danger_presentation"
@@ -101,6 +90,16 @@ rg -Fq 'outcome=rendered' "$minimap_indicator"
 rg -Fq 'DebounceSeconds = 2f' "$danger_transition"
 rg -Fq 'HysteresisPercent = 0.75f' "$danger_transition"
 rg -Fq 'ArrivalCooldownSeconds = 60f' "$danger_transition"
+
+if [[ -e "$root/src/EnemyTiers/WildernessMapLabelContrast.cs" ]]; then
+  printf 'map labels must inherit the native TMP material instead of owning a contrast layer\n' >&2
+  exit 1
+fi
+
+if rg -n 'outlineColor|outlineWidth|fontSharedMaterial|<color=|<b>' "$minimap_indicator" "$map_hover"; then
+  printf 'map labels must not mutate or override native TMP styling\n' >&2
+  exit 1
+fi
 
 if rg -n '<size=|size=70|m_biomeNameSmall\.fontSize|new GameObject|Instantiate' "$danger_presentation" "$minimap_indicator" "$map_hover"; then
   printf 'minimap category must reuse the full-size native TMP label without a new UI surface\n' >&2

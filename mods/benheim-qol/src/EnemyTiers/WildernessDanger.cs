@@ -34,7 +34,7 @@ internal static class WildernessDangerScale
         return WildernessDanger.Safe;
     }
 
-    internal static string StyledLabel(WildernessDanger danger)
+    internal static string StyledArrivalLabel(WildernessDanger danger)
     {
         return danger switch
         {
@@ -46,9 +46,16 @@ internal static class WildernessDangerScale
         };
     }
 
-    internal static string StyledMapLabel(WildernessDanger danger)
+    internal static string MapLabel(WildernessDanger danger)
     {
-        return $"<b>{StyledLabel(danger)}</b>";
+        return danger switch
+        {
+            WildernessDanger.Safe => "SAFE",
+            WildernessDanger.Sketchy => "SKETCHY",
+            WildernessDanger.Dangerous => "DANGEROUS",
+            WildernessDanger.Deadly => "DEADLY",
+            _ => throw new System.ArgumentOutOfRangeException(nameof(danger), danger, null),
+        };
     }
 
     internal static bool IsVisible(bool locallyExplored, bool sharedExplored, bool showSharedMapData)
