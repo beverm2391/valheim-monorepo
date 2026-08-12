@@ -46,6 +46,11 @@ internal static class WildernessDangerScale
         };
     }
 
+    internal static string StyledMapLabel(WildernessDanger danger)
+    {
+        return $"<b>{StyledLabel(danger)}</b>";
+    }
+
     internal static bool IsVisible(bool locallyExplored, bool sharedExplored, bool showSharedMapData)
     {
         return locallyExplored || (showSharedMapData && sharedExplored);

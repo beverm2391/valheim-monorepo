@@ -79,10 +79,20 @@ ExpectTrue(
 ExpectTrue(
     WildernessDangerScale.StyledLabel(WildernessDanger.Deadly) == "<color=#C94F55><b>DEADLY</b></color>",
     "deadly label uses bold red treatment");
+ExpectTrue(
+    WildernessDangerScale.StyledMapLabel(WildernessDanger.Safe) == "<b><color=#6F9F6A>SAFE</color></b>",
+    "map label makes safe full-weight without changing its color");
+ExpectTrue(
+    WildernessDangerScale.StyledMapLabel(WildernessDanger.Deadly) == "<b><color=#C94F55><b>DEADLY</b></color></b>",
+    "map label preserves deadly color and emphasis");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, false, false), "unexplored point stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explored point is visible");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, true, false), "hidden shared exploration stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(false, true, true), "enabled shared exploration is visible");
+ExpectTrue(WildernessMapLabelLayout.IsResolvedNativeBiomeText("Meadows"), "localized biome name is resolved");
+ExpectTrue(!WildernessMapLabelLayout.IsResolvedNativeBiomeText(""), "empty biome label is unresolved");
+ExpectTrue(!WildernessMapLabelLayout.IsResolvedNativeBiomeText("   "), "blank biome label is unresolved");
+ExpectTrue(!WildernessMapLabelLayout.IsResolvedNativeBiomeText("[biome_none]"), "raw localization token is unresolved");
 
 var transitions = new WildernessDangerTransitionTracker();
 WildernessDangerTransition baseline = transitions.Observe(16f, now: 0f, presentationAvailable: true);
@@ -156,6 +166,9 @@ ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0f, 
 ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 30f);
 ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 1f, addedHeight: 30f);
 ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 0f);
+ExpectNoAccumulatedLabelGrowth(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0f, addedHeight: 30f);
+ExpectNoAccumulatedLabelGrowth(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 30f);
+ExpectNoAccumulatedLabelGrowth(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 1f, addedHeight: 30f);
 ExpectThrows<ArgumentOutOfRangeException>(
     () => WildernessMapLabelLayout.ExpandDownward(0f, 40f, 0.5f, -1f),
     "negative map-label growth is rejected");
@@ -242,6 +255,26 @@ static void ExpectExpandedLabelBounds(
         nativeHeight + addedHeight,
         expanded.SizeDeltaY,
         $"map label pivot {pivotY}: bounds grow downward");
+}
+
+static void ExpectNoAccumulatedLabelGrowth(
+    float nativeAnchoredY,
+    float nativeHeight,
+    float pivotY,
+    float addedHeight)
+{
+    WildernessMapLabelBounds first = WildernessMapLabelLayout.ExpandDownward(
+        nativeAnchoredY,
+        nativeHeight,
+        pivotY,
+        addedHeight);
+    WildernessMapLabelBounds afterRestore = WildernessMapLabelLayout.ExpandDownward(
+        nativeAnchoredY,
+        nativeHeight,
+        pivotY,
+        addedHeight);
+    ExpectClose(first.AnchoredY, afterRestore.AnchoredY, $"map label pivot {pivotY}: repeated composition keeps anchored position");
+    ExpectClose(first.SizeDeltaY, afterRestore.SizeDeltaY, $"map label pivot {pivotY}: repeated composition keeps height");
 }
 
 static void ExpectThrows<TException>(Action action, string scenario) where TException : Exception

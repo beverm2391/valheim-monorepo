@@ -1,16 +1,14 @@
+using System;
+using BenheimQoL.CombatFeedback;
 using BenheimQoL.Infrastructure;
-using HarmonyLib;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace BenheimQoL.EnemyTiers;
 
 internal static class WildernessDangerPresentation
 {
     private const float SampleIntervalSeconds = 0.25f;
-    private const float DangerousVignetteAlpha = 0.55f;
-    private const float DeadlyVignetteAlpha = 0.85f;
-
     private static readonly WildernessDangerTransitionTracker Tracker = new();
 
     private static Player? trackedPlayer;
@@ -18,7 +16,8 @@ internal static class WildernessDangerPresentation
     private static float nextSampleAt;
     private static string lastSuppressionReason = "";
     private static Heightmap.Biome? lastUnsupportedBiome;
-    private static string lastMinimapLogKey = "";
+    private static int fittedArrivalBannerId;
+    private static int invalidArrivalBannerMeasurementId;
 
     internal static WildernessDanger? CurrentDanger => currentDanger;
 
@@ -112,44 +111,23 @@ internal static class WildernessDangerPresentation
 
     internal static void Reset()
     {
+        WildernessMapHover.Reset();
+        WildernessMinimapIndicator.Reset();
+
         Tracker.ResetForLifecycle();
         trackedPlayer = null;
         currentDanger = null;
         nextSampleAt = 0f;
         lastSuppressionReason = "";
         lastUnsupportedBiome = null;
-        lastMinimapLogKey = "";
-    }
-
-    internal static void UpdateMinimapLabel(Minimap minimap)
-    {
-        Player? player = Player.m_localPlayer;
-        if (!player)
-        {
-            LogMinimapOnce("rejected:player_missing", "outcome=rejected reason=player_missing");
-            return;
-        }
-
-        if (minimap.m_biomeNameSmall == null)
-        {
-            LogMinimapOnce("rejected:label_missing", "outcome=rejected reason=native_label_missing");
-            return;
-        }
-
-        string nativeBiome = Localization.instance.Localize(
-            "$biome_" + player.GetCurrentBiome().ToString().ToLowerInvariant());
-        minimap.m_biomeNameSmall.text = currentDanger is WildernessDanger danger
-            ? $"{nativeBiome}  <size=70%>{WildernessDangerScale.StyledLabel(danger)}</size>"
-            : nativeBiome;
-        string dangerValue = currentDanger?.ToString() ?? "none";
-        LogMinimapOnce(
-            $"rendered:{player.GetCurrentBiome()}:{dangerValue}",
-            $"outcome=rendered biome={player.GetCurrentBiome()} danger={dangerValue}");
+        fittedArrivalBannerId = 0;
+        invalidArrivalBannerMeasurementId = 0;
     }
 
     private static bool CanPresentArrival()
     {
-        return !Hud.IsUserHidden()
+        return BenheimFxSettings.DangerArrivalEnabled
+            && !Hud.IsUserHidden()
             && MessageHud.instance != null
             && MessageHud.instance.m_biomeFoundPrefab != null
             && MessageHud.instance.m_biomeFoundStinger != null
@@ -169,14 +147,7 @@ internal static class WildernessDangerPresentation
             $"Entering a {WildernessDangerScale.StyledLabel(danger)} area...",
             playStinger: true);
 
-        Image damageScreen = Hud.instance.m_damageScreen;
-        float requestedAlpha = danger == WildernessDanger.Deadly
-            ? DeadlyVignetteAlpha
-            : DangerousVignetteAlpha;
-        Color color = damageScreen.color;
-        color.a = Mathf.Max(color.a, requestedAlpha);
-        damageScreen.color = color;
-        damageScreen.gameObject.SetActive(value: true);
+        Hud.instance.DamageFlash();
 
         Diagnostics.Event(
             "EnemyTiers",
@@ -184,7 +155,64 @@ internal static class WildernessDangerPresentation
             $"outcome=queued danger={danger} biome={biome} " +
             $"distance={distance:0} adjusted_chance={chance:0.###} " +
             $"presentation=native_biome_found stinger_available={Diagnostics.Bool(stingerAvailable)} " +
-            $"vignette=native_damage_screen vignette_alpha={requestedAlpha:0.##}");
+            "vignette=native_damage_flash");
+    }
+
+    internal static void FitArrivalBanner(GameObject? banner)
+    {
+        if (!banner || banner.GetInstanceID() == fittedArrivalBannerId)
+        {
+            return;
+        }
+
+        TMP_Text? title = Utils.FindChild(banner.transform, "Title")?.GetComponent<TMP_Text>();
+        if (!title || !IsDangerArrivalText(title.text))
+        {
+            return;
+        }
+
+        int bannerId = banner.GetInstanceID();
+        float sourceFontSize = title.enableAutoSizing ? title.fontSizeMax : title.fontSize;
+        float availableWidth = title.rectTransform.rect.width - title.margin.x - title.margin.z;
+        float preferredWidth = title.GetPreferredValues(
+            title.text,
+            Mathf.Infinity,
+            title.rectTransform.rect.height).x;
+        if (availableWidth <= 0f || preferredWidth <= 0f)
+        {
+            if (invalidArrivalBannerMeasurementId != bannerId)
+            {
+                invalidArrivalBannerMeasurementId = bannerId;
+                Diagnostics.Event(
+                    "EnemyTiers",
+                    "wilderness_danger_arrival",
+                    $"outcome=rejected reason=banner_measurement_not_ready available_width={availableWidth:0.##} " +
+                    $"preferred_width={preferredWidth:0.##}");
+            }
+
+            return;
+        }
+
+        fittedArrivalBannerId = bannerId;
+        title.enableAutoSizing = false;
+        title.textWrappingMode = TextWrappingModes.NoWrap;
+        title.maxVisibleLines = 1;
+        title.overflowMode = TextOverflowModes.Overflow;
+        title.fontSize = sourceFontSize * Mathf.Min(1f, availableWidth / preferredWidth);
+
+        Diagnostics.Event(
+            "EnemyTiers",
+            "wilderness_danger_arrival",
+            $"outcome=banner_fitted line_count=1 available_width={availableWidth:0.##} " +
+            $"preferred_width={preferredWidth:0.##} font_size={title.fontSize:0.##}");
+    }
+
+    private static bool IsDangerArrivalText(string text)
+    {
+        return text.StartsWith("Entering a ", StringComparison.Ordinal)
+            && text.EndsWith(" area...", StringComparison.Ordinal)
+            && (text.IndexOf("DANGEROUS", StringComparison.Ordinal) >= 0
+                || text.IndexOf("DEADLY", StringComparison.Ordinal) >= 0);
     }
 
     private static void LogTransition(
@@ -244,6 +272,7 @@ internal static class WildernessDangerPresentation
                 "EnemyTiers",
                 "wilderness_danger_arrival",
                 $"outcome=rejected reason=presentation_unavailable danger={transition.CurrentDanger} " +
+                $"fx_enabled={Diagnostics.Bool(BenheimFxSettings.DangerArrivalEnabled)} " +
                 $"hud_hidden={Diagnostics.Bool(Hud.IsUserHidden())} " +
                 $"message_hud_available={Diagnostics.Bool(MessageHud.instance != null)} " +
                 $"stinger_available={Diagnostics.Bool(MessageHud.instance != null && MessageHud.instance.m_biomeFoundStinger != null)} " +
@@ -289,28 +318,4 @@ internal static class WildernessDangerPresentation
             $"stage=reset reason={reason}");
     }
 
-    private static void LogMinimapOnce(string key, string fields)
-    {
-        if (lastMinimapLogKey == key)
-        {
-            return;
-        }
-
-        lastMinimapLogKey = key;
-        Diagnostics.Event(
-            "EnemyTiers",
-            "wilderness_minimap_indicator",
-            fields);
-    }
-}
-
-[HarmonyPatch]
-internal static class WildernessDangerPresentationPatches
-{
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(Minimap), "UpdateBiome")]
-    private static void UpdateBiomePostfix(Minimap __instance)
-    {
-        WildernessDangerPresentation.UpdateMinimapLabel(__instance);
-    }
 }

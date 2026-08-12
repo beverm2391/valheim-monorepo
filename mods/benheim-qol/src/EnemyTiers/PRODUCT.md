@@ -116,9 +116,13 @@ the biome name. The label uses the same final per-step ordinary-wilderness
 chance that spawning uses. Benheim computes it only for the explored point
 under the cursor. It does not precompute or tint the world map.
 
-The category appears alone on a second line beneath the native biome name.
-Color and weight show the danger level: `SAFE` uses calm green, `SKETCHY` uses
-warning gold, `DANGEROUS` uses bold orange, and `DEADLY` uses bold red.
+On the large map, the category appears alone on a second line beneath the
+native biome name. Adding the category does not change the label's position or
+geometry. Color
+shows the danger level: `SAFE` uses calm green, `SKETCHY` uses warning gold,
+`DANGEROUS` uses orange, and `DEADLY` uses red. Both map labels use bold
+category lettering and a dark native-style outline so the category remains
+legible over varied map terrain.
 
 The labels split the constructed `10%` to `40%` range into four equal fixed
 bands:
@@ -132,15 +136,26 @@ The label does not reveal unexplored areas. It covers ordinary wilderness
 only. It does not estimate danger for dungeons, events, Alphas, or other
 authored encounters.
 
-The minimap shows the current ordinary-wilderness category beside the native
-biome name. It uses the same `SAFE`, `SKETCHY`, `DANGEROUS`, and `DEADLY`
-vocabulary and styling as the large-map hover label. An unlisted biome keeps
-the native biome name without a Benheim category.
+The minimap keeps the native biome name as its first line. It shows the current
+ordinary-wilderness category alone on a second line beneath it. The category
+uses the same native font and outline treatment as the large-map hover label,
+with the same `SAFE`, `SKETCHY`, `DANGEROUS`, and `DEADLY` colors. An unlisted
+biome keeps the native biome name without a Benheim category. During a portal
+or loading transition, the map labels never expose an unresolved localization
+token: the minimap keeps its last valid native biome name without a category,
+while the large-map label remains empty.
 
 When the current category stably rises to `DANGEROUS` or `DEADLY`, Benheim
 shows `Entering a DANGEROUS area...` or `Entering a DEADLY area...`. The
-message uses Valheim's biome-discovery presentation and one-shot stinger. A
-brief red edge flash is stronger for `DEADLY` than for `DANGEROUS`.
+Each exact arrival sentence stays on one line in Valheim's biome-discovery
+presentation, with its native ornament separate from the text. The presentation
+also uses Valheim's one-shot stinger and native damage flash. The damage flash
+remains gameplay-unproven until the next visual retest.
+
+Turning off Danger Arrival FX through Benheim's FX settings suppresses only
+future arrival messages, stingers, and flashes. It does not hide either map
+label, change danger classification or spawning, or stop a one-shot that has
+already begun.
 
 Benheim establishes the first category after login or respawn without an
 arrival message. It suppresses category changes during teleporting, cutscenes,

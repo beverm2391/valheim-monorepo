@@ -10,6 +10,7 @@ namespace BenheimQoL.EnemyTiers;
 [HarmonyPatch]
 internal static class WildernessMapHover
 {
+    private static readonly WildernessMapLabelContrast LabelContrast = new();
     private static readonly HashSet<HoverProbeStage> LoggedProbeStages = new();
     private static readonly HashSet<int> LoggedExplorationStates = new();
     private static readonly HashSet<Heightmap.Biome> LoggedUnsupportedBiomes = new();
@@ -27,6 +28,32 @@ internal static class WildernessMapHover
     private static float measuredWidth;
     private static float measuredAddedHeight;
 
+    internal static void Reset()
+    {
+        if (expandedLabel)
+        {
+            bool ownsComposedText = labelBoundsExpanded && measuredLabel == expandedLabel;
+            string renderedNativeText = measuredNativeText;
+            RestoreNativeLabelBounds(expandedLabel);
+            if (ownsComposedText
+                && WildernessMapLabelLayout.IsResolvedNativeBiomeText(renderedNativeText))
+            {
+                expandedLabel.text = renderedNativeText;
+            }
+        }
+
+        LabelContrast.Restore();
+        expandedLabel = null;
+        labelBoundsExpanded = false;
+        measuredLabel = null;
+        measuredNativeText = "";
+        measuredAddedHeight = 0f;
+        LoggedProbeStages.Clear();
+        LoggedExplorationStates.Clear();
+        LoggedUnsupportedBiomes.Clear();
+        LoggedClassifications.Clear();
+    }
+
     [HarmonyPostfix]
     [HarmonyPatch(typeof(Minimap), "UpdateBiome")]
     private static void UpdateBiomePostfix(
@@ -41,6 +68,7 @@ internal static class WildernessMapHover
         LogProbeStageOnce(HoverProbeStage.PatchInvoked, $"map_mode={__instance.m_mode}");
         if (__instance.m_mode != Minimap.MapMode.Large)
         {
+            LabelContrast.SetActive(label, value: false);
             LogProbeStageOnce(HoverProbeStage.NotLargeMap, $"map_mode={__instance.m_mode}");
             return;
         }
@@ -48,13 +76,23 @@ internal static class WildernessMapHover
         LogProbeStageOnce(HoverProbeStage.LargeMapReady, "map_mode=Large");
         if (WorldGenerator.instance == null)
         {
+            LabelContrast.SetActive(label, value: false);
             LogProbeStageOnce(HoverProbeStage.WorldGeneratorMissing);
             return;
         }
 
         if (string.IsNullOrEmpty(label.text))
         {
+            LabelContrast.SetActive(label, value: false);
             LogProbeStageOnce(HoverProbeStage.NativeBiomeLabelEmpty);
+            return;
+        }
+
+        if (!WildernessMapLabelLayout.IsResolvedNativeBiomeText(label.text))
+        {
+            label.text = "";
+            LabelContrast.SetActive(label, value: false);
+            LogProbeStageOnce(HoverProbeStage.NativeBiomeLabelUnresolved);
             return;
         }
 
@@ -65,14 +103,16 @@ internal static class WildernessMapHover
             ___m_showSharedMapData,
             out HoveredDanger hovered))
         {
+            LabelContrast.SetActive(label, value: false);
             return;
         }
 
         string nativeText = label.text;
-        string combinedText = $"{nativeText}\n{WildernessDangerScale.StyledLabel(hovered.Danger)}";
+        string combinedText = $"{nativeText}\n{WildernessDangerScale.StyledMapLabel(hovered.Danger)}";
         float addedHeight = GetAddedHeight(label, nativeText, combinedText, hovered.Danger);
         label.text = combinedText;
         ExpandLabelBoundsDownward(label, addedHeight);
+        LabelContrast.SetActive(label, value: true);
         LogHover(hovered);
     }
 
@@ -331,6 +371,7 @@ internal static class WildernessMapHover
             HoverProbeStage.LargeMapReady => "large_map_ready",
             HoverProbeStage.WorldGeneratorMissing => "world_generator_missing",
             HoverProbeStage.NativeBiomeLabelEmpty => "native_biome_label_empty",
+            HoverProbeStage.NativeBiomeLabelUnresolved => "native_biome_label_unresolved",
             HoverProbeStage.LocalPointRejected => "local_point_rejected",
             HoverProbeStage.BoundsRejected => "bounds_rejected",
             HoverProbeStage.ExplorationArrayRejected => "exploration_array_rejected",
@@ -338,47 +379,4 @@ internal static class WildernessMapHover
         };
     }
 
-    private readonly struct HoveredDanger
-    {
-        internal HoveredDanger(
-            Heightmap.Biome biome,
-            float distance,
-            float normalizedDistance,
-            float chance,
-            bool locallyExplored,
-            bool sharedExplored,
-            bool showSharedMapData,
-            WildernessDanger danger)
-        {
-            Biome = biome;
-            Distance = distance;
-            NormalizedDistance = normalizedDistance;
-            Chance = chance;
-            LocallyExplored = locallyExplored;
-            SharedExplored = sharedExplored;
-            ShowSharedMapData = showSharedMapData;
-            Danger = danger;
-        }
-
-        internal Heightmap.Biome Biome { get; }
-        internal float Distance { get; }
-        internal float NormalizedDistance { get; }
-        internal float Chance { get; }
-        internal bool LocallyExplored { get; }
-        internal bool SharedExplored { get; }
-        internal bool ShowSharedMapData { get; }
-        internal WildernessDanger Danger { get; }
-    }
-
-    private enum HoverProbeStage
-    {
-        PatchInvoked,
-        NotLargeMap,
-        LargeMapReady,
-        WorldGeneratorMissing,
-        NativeBiomeLabelEmpty,
-        LocalPointRejected,
-        BoundsRejected,
-        ExplorationArrayRejected,
-    }
 }

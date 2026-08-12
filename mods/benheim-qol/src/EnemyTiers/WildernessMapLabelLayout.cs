@@ -16,6 +16,17 @@ internal readonly struct WildernessMapLabelBounds
 
 internal static class WildernessMapLabelLayout
 {
+    internal static bool IsResolvedNativeBiomeText(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        string trimmed = text.Trim();
+        return trimmed.Length < 2 || trimmed[0] != '[' || trimmed[^1] != ']';
+    }
+
     /// <summary>
     /// Adds room below a native RectTransform without moving its top edge.
     /// RectTransform size changes grow around the pivot, so preserving the top
