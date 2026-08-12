@@ -1,6 +1,9 @@
+using System.Reflection;
+using HarmonyLib;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Valheim.SettingsGui;
 
 namespace BenheimQoL.Shortcuts;
 
@@ -9,6 +12,9 @@ namespace BenheimQoL.Shortcuts;
 // largest or first candidate happens to be the intended style.
 internal sealed class NativeTemplates
 {
+    private static readonly FieldInfo? CameraShakeToggleField =
+        AccessTools.Field(typeof(AccessibilitySettings), "m_cameraShake");
+
     private const string PanelPath = "root/Crafting/Bkg";
     private const string ButtonPath = "root/Container/TakeAll";
     private const string ScrollPath = "root/Container/ContainerGrid";
@@ -23,6 +29,7 @@ internal sealed class NativeTemplates
         Button? button,
         ScrollRect? scroll,
         Scrollbar? scrollbar,
+        Toggle checkbox,
         TMP_Text text,
         TMP_Text titleText,
         TMP_Text buttonText)
@@ -32,6 +39,7 @@ internal sealed class NativeTemplates
         Button = button;
         Scroll = scroll;
         Scrollbar = scrollbar;
+        Checkbox = checkbox;
         Text = text;
         TitleText = titleText;
         ButtonText = buttonText;
@@ -42,6 +50,7 @@ internal sealed class NativeTemplates
     internal Button? Button { get; }
     internal ScrollRect? Scroll { get; }
     internal Scrollbar? Scrollbar { get; }
+    internal Toggle Checkbox { get; }
     internal TMP_Text Text { get; }
     internal TMP_Text TitleText { get; }
     internal TMP_Text ButtonText { get; }
@@ -58,7 +67,8 @@ internal sealed class NativeTemplates
             ?? inventory.GetComponentInParent<Canvas>();
         Image? panel = FindComponent<Image>(inventory.transform, PanelPath);
         TMP_Text? text = FindComponent<TMP_Text>(inventory.transform, TextPath);
-        if (canvas == null || panel == null || text == null)
+        Toggle? checkbox = TryFindNativeCheckbox();
+        if (canvas == null || panel == null || text == null || checkbox == null)
         {
             return null;
         }
@@ -69,9 +79,20 @@ internal sealed class NativeTemplates
             FindComponent<Button>(inventory.transform, ButtonPath),
             FindComponent<ScrollRect>(inventory.transform, ScrollPath),
             FindComponent<Scrollbar>(inventory.transform, ScrollbarPath),
+            checkbox,
             text,
             FindComponent<TMP_Text>(inventory.transform, TitleTextPath) ?? text,
             FindComponent<TMP_Text>(inventory.transform, ButtonTextPath) ?? text);
+    }
+
+    private static Toggle? TryFindNativeCheckbox()
+    {
+        GameObject? settingsPrefab = Menu.instance?.m_settingsPrefab;
+        AccessibilitySettings? accessibility =
+            settingsPrefab?.GetComponentInChildren<AccessibilitySettings>(includeInactive: true);
+        return accessibility == null
+            ? null
+            : CameraShakeToggleField?.GetValue(accessibility) as Toggle;
     }
 
     private static T? FindComponent<T>(Transform owner, string path) where T : Component

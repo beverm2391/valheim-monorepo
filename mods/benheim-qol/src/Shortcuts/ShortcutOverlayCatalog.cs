@@ -11,6 +11,7 @@ internal static partial class ShortcutOverlay
     private static readonly Color ControlsAccent = new(1f, 0.78f, 0.25f, 1f);
     private static readonly Color FeaturesAccent = new(0.48f, 0.88f, 0.58f, 1f);
     private static readonly Color TravelAccent = new(0.48f, 0.82f, 1f, 1f);
+    private static readonly Color ConfigAccent = new(0.74f, 0.7f, 1f, 1f);
 
     private static readonly Section[] ControlSections =
     {

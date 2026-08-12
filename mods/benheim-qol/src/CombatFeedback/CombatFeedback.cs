@@ -29,6 +29,12 @@ internal static class CombatFeedbackController
     {
         Player player = Player.m_localPlayer;
         Camera resolvedMainCamera = camera.GetComponent<Camera>();
+        if (!BenheimFxSettings.BowFocusEnabled)
+        {
+            RestoreFocusSmoothly(camera, resolvedMainCamera, "benheim_fx_disabled");
+            return;
+        }
+
         string? blockReason = FocusBlockReason(player, resolvedMainCamera, camera.m_skyCamera);
 
         if (blockReason != null)
@@ -56,41 +62,19 @@ internal static class CombatFeedbackController
                 $"draw={drawPercentage:0.###} base_fov={camera.m_fov:0.##} resumed={Diagnostics.Bool(focusPhase == FocusPhase.Restoring)}");
             focusPhase = FocusPhase.Drawing;
         }
-        else if (!drawing && focusPhase == FocusPhase.Drawing)
+        else if (!drawing)
         {
-            focusPhase = FocusPhase.Restoring;
-            Diagnostics.Event(
-                "CombatFeedback",
-                "focus_restoring",
-                $"reason=native_draw_inactive reduction={currentFocusReduction:0.###}");
-        }
-
-        if (!drawing && focusPhase == FocusPhase.Idle)
-        {
+            RestoreFocusSmoothly(camera, resolvedMainCamera, "native_draw_inactive");
             return;
         }
 
-        float targetReduction = drawing
-            ? CombatFeedbackTuning.FocusReduction(drawPercentage)
-            : 0f;
-        float smoothTime = drawing
-            ? CombatFeedbackTuning.BowFocusNarrowSmoothSeconds
-            : CombatFeedbackTuning.BowFocusRestoreSmoothSeconds;
         currentFocusReduction = Mathf.SmoothDamp(
             currentFocusReduction,
-            targetReduction,
+            CombatFeedbackTuning.FocusReduction(drawPercentage),
             ref focusReductionVelocity,
-            smoothTime,
+            CombatFeedbackTuning.BowFocusNarrowSmoothSeconds,
             float.PositiveInfinity,
             Time.unscaledDeltaTime);
-
-        if (!drawing && currentFocusReduction <= FocusEndEpsilonDegrees)
-        {
-            SetCameraFov(camera, resolvedMainCamera, camera.m_fov);
-            Diagnostics.Event("CombatFeedback", "focus_ended", "reason=restored");
-            ClearFocusState();
-            return;
-        }
 
         SetCameraFov(
             camera,
@@ -100,6 +84,12 @@ internal static class CombatFeedbackController
 
     internal static void RequestShake(CombatFeedbackTrigger trigger)
     {
+        if (!BenheimFxSettings.CombatShakeEnabled)
+        {
+            LogShakeSuppressed(trigger, "benheim_fx_disabled");
+            return;
+        }
+
         if (!HealthReporting.GameplayActionsEnabled)
         {
             LogShakeSuppressed(trigger, "gameplay_disabled");
@@ -207,7 +197,7 @@ internal static class CombatFeedbackController
         return null;
     }
 
-    private static void InterruptFocus(GameCamera camera, Camera resolvedMainCamera, string reason)
+    private static void InterruptFocus(GameCamera camera, Camera? resolvedMainCamera, string reason)
     {
         if (focusPhase == FocusPhase.Idle)
         {
@@ -227,6 +217,53 @@ internal static class CombatFeedbackController
             "focus_interrupted",
             $"reason={reason} reduction={currentFocusReduction:0.###}");
         ClearFocusState();
+    }
+
+    private static void RestoreFocusSmoothly(
+        GameCamera camera,
+        Camera? resolvedMainCamera,
+        string reason)
+    {
+        if (focusPhase == FocusPhase.Idle)
+        {
+            return;
+        }
+
+        if (!resolvedMainCamera || !camera.m_skyCamera)
+        {
+            InterruptFocus(camera, resolvedMainCamera, "camera_unavailable");
+            return;
+        }
+
+        if (focusPhase != FocusPhase.Restoring)
+        {
+            focusPhase = FocusPhase.Restoring;
+            Diagnostics.Event(
+                "CombatFeedback",
+                "focus_restoring",
+                $"reason={reason} reduction={currentFocusReduction:0.###}");
+        }
+
+        currentFocusReduction = Mathf.SmoothDamp(
+            currentFocusReduction,
+            0f,
+            ref focusReductionVelocity,
+            CombatFeedbackTuning.BowFocusRestoreSmoothSeconds,
+            float.PositiveInfinity,
+            Time.unscaledDeltaTime);
+
+        if (currentFocusReduction <= FocusEndEpsilonDegrees)
+        {
+            SetCameraFov(camera, resolvedMainCamera, camera.m_fov);
+            Diagnostics.Event("CombatFeedback", "focus_ended", $"reason={reason}");
+            ClearFocusState();
+            return;
+        }
+
+        SetCameraFov(
+            camera,
+            resolvedMainCamera,
+            Mathf.Max(1f, camera.m_fov - currentFocusReduction));
     }
 
     private static void SetCameraFov(GameCamera camera, Camera resolvedMainCamera, float fieldOfView)

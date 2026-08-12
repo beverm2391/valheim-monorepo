@@ -20,10 +20,14 @@ internal static class CombatFeedbackTuning
     internal const float BowFocusNarrowSmoothSeconds = 0.14f;
     internal const float BowFocusRestoreSmoothSeconds = 0.10f;
 
+    // Valheim 0.221.12's ordinary axe hit effect requests 1.2. Native camera
+    // shake keeps only the strongest active request, so Cleave must exceed
+    // that request to remain visible when it follows the axe impact.
+    internal const float NativeAxeHitShakeStrength = 1.2f;
     internal const float HeadshotShakeStrength = 0.45f;
-    internal const float CleaveShakeStrength = 0.32f;
+    internal const float CleaveShakeStrength = 1.25f;
     internal const float MiningAoeShakeStrength = 0.38f;
-    internal const float ShakeStrengthCap = 0.45f;
+    internal const float ShakeStrengthCap = 1.25f;
     internal const float ShakeCoalesceSeconds = 0.12f;
     internal const float ShakeRangeMeters = 1000f;
 

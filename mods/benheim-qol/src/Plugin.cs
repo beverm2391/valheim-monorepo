@@ -18,7 +18,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.55";
+    public const string PluginVersion = "0.1.56";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -28,6 +28,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Log = Logger;
+        BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();
         try
         {
