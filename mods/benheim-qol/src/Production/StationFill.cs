@@ -44,12 +44,30 @@ internal static class StationFill
 
     internal static bool IsInvokingVanilla => invokingVanilla;
 
+    internal static void RegisterSmelterBatchRpc(Smelter station)
+    {
+        RemoteSmelterBatch.Register(station);
+    }
+
     internal static bool TryStartSmelterOre(
         Smelter station,
         Switch switchRef,
         Humanoid user,
         ItemDrop.ItemData? item)
     {
+        if (InputState.IsShiftHeld() && user == Player.m_localPlayer && item == null)
+        {
+            item = RemoteSmelterBatch.SelectFirstMaterial(
+                station,
+                user.GetInventory(),
+                null,
+                RemoteSmelterBatch.OreInput);
+        }
+        if (RemoteSmelterBatch.ShouldUse(station, user, invokingVanilla))
+        {
+            return RemoteSmelterBatch.TryStart(station, user, item, RemoteSmelterBatch.OreInput);
+        }
+
         return TryStart(
             station,
             user,
@@ -67,6 +85,11 @@ internal static class StationFill
         Humanoid user,
         ItemDrop.ItemData? item)
     {
+        if (RemoteSmelterBatch.ShouldUse(station, user, invokingVanilla))
+        {
+            return RemoteSmelterBatch.TryStart(station, user, item, RemoteSmelterBatch.FuelInput);
+        }
+
         return TryStart(
             station,
             user,

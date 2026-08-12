@@ -13,10 +13,6 @@ The Production module fills routine station inputs without repeated clicks.
   `50` Barley. Another filled a Windmill from `48` to its `50`-item capacity
   by adding `2` Barley. The diagnostics used the shared Smelter component
   label, not a Windmill-specific label.
-- An earlier Windmill interaction added only one Barley. The result remains
-  intermittent and unreproduced. The successful partial-fill test rules out a
-  partially filled queue as a sufficient cause. A first-use or ownership
-  warmup effect may explain it, but that remains only a hypothesis.
 
 ## In Development
 
@@ -29,20 +25,30 @@ The Production module fills routine station inputs without repeated clicks.
   Kiln, Blast Furnace, Windmill, Spinning Wheel, and Eitr Refinery. The same
   action fills Shield Generator fuel and cooking-station food and fuel to
   available capacity.
-- During batch fill, a selected item limits the fill to that item type. Without
-  a selected item, batch fill follows Valheim's compatible-item order.
-- Invoke Valheim's normal add-one action once per item. Each invocation
-  preserves Valheim's capacity checks, inventory changes, effects, skill
-  behavior, and network synchronization.
-- Stop when the station is full, the player runs out of compatible items,
-  Valheim rejects an addition, or synchronization exceeds its timeout.
+- One interaction fills one material type. A selected item chooses its type.
+  Without a selected item, Benheim chooses the first available type in the
+  Valheim conversion order for that station. It does not mix input types
+  during one interaction.
+- A locally owned station keeps the existing instant add-one flow for the
+  chosen type. Shield Generator and cooking-station batches keep their existing
+  flow.
+- For a remotely owned station that uses Valheim's shared `Smelter` component,
+  Benheim sends one request to the station owner. The owner fills the chosen
+  input or fuel type. This includes the Smelter, Charcoal Kiln, Blast Furnace,
+  Windmill, Spinning Wheel, and Eitr Refinery.
+- The requester removes the chosen materials first. The station owner checks
+  its live allowed input and capacity, applies the accepted count without
+  replication waits, and returns that count. The requester refunds the
+  rejected remainder.
+- Benheim keeps transient state only until it receives the owner's result and
+  refunds the rejected remainder. Benheim does not retry the request or
+  preserve state after a disconnect or crash.
 - Show one centered summary with the number of items added.
-- `0.1.51` has no proven Windmill-specific fix. Its Production diagnostics
-  record the station, input, owner, attempted additions, confirmed station
-  updates, result, and elapsed time.
-- The next focused proof must use those diagnostics on the first Windmill
-  `Left Shift` fill after joining a world or on a newly placed empty Windmill.
-  First-use or ownership warmup remains only a hypothesis.
+- Production diagnostics record the requester, owner, requested amount,
+  accepted amount, refunded amount, result, and elapsed time.
+- The next multiplayer proof must fill an empty remote-owned Windmill, then a
+  nearly full remote-owned Windmill. Inventory and station counts must match
+  the reported accepted and refunded amounts immediately after each result.
 - `0.1.51` adds Shield Generator fuel handling separately, but focused gameplay
   proof is still required.
 - In `0.1.48`, diagnostics confirmed ten Stone Oven conversions were multiplied
