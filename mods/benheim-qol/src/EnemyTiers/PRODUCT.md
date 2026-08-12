@@ -27,10 +27,10 @@ Valheim shows stars in the enemy HUD. Each creature prefab can also change its
 size, color, emission, or visible features by level. Valheim does not apply one
 universal visual style to every starred creature.
 
-Ben confirmed that the `0.1.56` map presentation looks good in gameplay. The
-native biome name remains on the first line of the small minimap and large-map
-hover, and the category text appears alone on a second line. Both category
-labels match the native biome label's white text treatment.
+Ben confirmed that the `0.1.56` large-map presentation looks good in gameplay.
+Its native biome name remains on the first line, and the category text appears
+alone on a second line. The category matches the native biome label's white
+text treatment.
 
 [`RESEARCH.md`](RESEARCH.md) owns the code evidence, multiplayer authority,
 extension seams, and Valheim `1.0` revalidation gate behind this baseline.
@@ -132,6 +132,14 @@ bands:
 The label does not reveal unexplored areas. It covers ordinary wilderness
 only. It does not estimate danger for dungeons, events, Alphas, or other
 authored encounters.
+
+In installed `0.1.56`, Ben confirmed that the small minimap's white
+native-styled text is legible. However, both lines share the native right edge,
+which creates a stepped text block. The next `0.1.57` candidate keeps the native
+biome label in its original position. It places a separate native-styled
+category line directly beneath the rendered biome text and centers that
+category line under it. This candidate should remove the stepped alignment
+without changing the accepted large-map presentation.
 
 An unlisted biome keeps the native biome name without a Benheim category.
 During a portal or loading transition, the map labels never expose an

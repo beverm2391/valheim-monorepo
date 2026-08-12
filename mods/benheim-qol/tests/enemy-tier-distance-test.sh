@@ -54,17 +54,21 @@ rg -Fq 'player.GetCurrentBiome()' "$danger_presentation"
 rg -Fq 'Utils.LengthXZ(player.transform.position)' "$danger_presentation"
 rg -Fq 'WildernessStarChance.ComposeChance(' "$danger_presentation"
 rg -Fq 'TMP_Text label = minimap.m_biomeNameSmall;' "$minimap_indicator"
-rg -Fq '$"{nativeBiome}\n{WildernessDangerScale.MapLabel(danger)}"' "$minimap_indicator"
-rg -Fq 'RestoreNativeBounds(label);' "$minimap_indicator"
-rg -Fq 'label.GetPreferredValues(nativeText, width, Mathf.Infinity).y' "$minimap_indicator"
-rg -Fq 'WildernessMapLabelLayout.ExpandDownward(' "$minimap_indicator"
-rg -Fq 'nativeAnchoredPosition.y' "$minimap_indicator"
-rg -Fq 'nativeSizeDelta.y' "$minimap_indicator"
+rg -Fq 'label.text = nativeBiome;' "$minimap_indicator"
+rg -Fq 'new("BenheimWildernessCategory", typeof(RectTransform))' "$minimap_indicator"
+rg -Fq 'categoryRect.SetParent(nativeLabel.rectTransform, worldPositionStays: false);' "$minimap_indicator"
+rg -Fq 'source.ForceMeshUpdate(ignoreActiveState: true, forceTextReparsing: false);' "$minimap_indicator"
+rg -Fq 'measuredTextBounds = source.textBounds;' "$minimap_indicator"
+rg -Fq 'nativeTextBounds.center.x' "$minimap_indicator"
+rg -Fq 'nativeTextBounds.min.y' "$minimap_indicator"
+rg -Fq 'categoryRect.anchorMin = nativeRect.pivot;' "$minimap_indicator"
+rg -Fq 'created.alignment = TextAlignmentOptions.Center;' "$minimap_indicator"
+rg -Fq 'destination.fontSharedMaterial = source.fontSharedMaterial;' "$minimap_indicator"
+rg -Fq 'Object.Destroy(categoryLabel.gameObject);' "$minimap_indicator"
 rg -Fq 'WildernessMapLabelLayout.IsResolvedNativeBiomeText(nativeBiome)' "$minimap_indicator"
 rg -Fq 'label.text = lastValidBiomeText;' "$minimap_indicator"
 rg -Fq 'WildernessMapLabelLayout.IsResolvedNativeBiomeText(label.text)' "$map_hover"
 rg -Fq 'WildernessMapHover.Reset();' "$danger_presentation"
-rg -Fq 'measuredLabel == expandedLabel' "$minimap_indicator"
 rg -Fq 'ownsComposedText = labelBoundsExpanded && measuredLabel == expandedLabel' "$map_hover"
 rg -Fq 'ShowBiomeFoundMsg(' "$danger_presentation"
 rg -Fq '$"Entering a {WildernessDangerScale.StyledArrivalLabel(danger)} area..."' "$danger_presentation"
@@ -99,13 +103,13 @@ if [[ -e "$root/src/EnemyTiers/WildernessMapLabelContrast.cs" ]]; then
   exit 1
 fi
 
-if rg -n 'outlineColor|outlineWidth|fontSharedMaterial|<color=|<b>' "$minimap_indicator" "$map_hover"; then
+if rg -n 'outlineColor|outlineWidth|<color=|<b>' "$minimap_indicator" "$map_hover"; then
   printf 'map labels must not mutate or override native TMP styling\n' >&2
   exit 1
 fi
 
-if rg -n '<size=|size=70|m_biomeNameSmall\.fontSize|new GameObject|Instantiate' "$danger_presentation" "$minimap_indicator" "$map_hover"; then
-  printf 'minimap category must reuse the full-size native TMP label without a new UI surface\n' >&2
+if rg -n '<size=|size=70|m_biomeNameSmall\.fontSize|Object\.Instantiate|\$"\{nativeBiome\}\\n' "$danger_presentation" "$minimap_indicator" "$map_hover"; then
+  printf 'minimap category must use one separate full-size native-styled line without markup or combined text\n' >&2
   exit 1
 fi
 

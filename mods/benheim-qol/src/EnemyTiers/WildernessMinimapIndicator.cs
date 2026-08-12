@@ -5,45 +5,37 @@ using UnityEngine;
 namespace BenheimQoL.EnemyTiers;
 
 /// <summary>
-/// Composes the danger category into Valheim's native small-map biome label.
-/// Native bounds remain the source of truth so the second line grows downward
-/// without moving the biome name or accumulating rect changes.
+/// Leaves Valheim's small-map biome label untouched and places one owned,
+/// native-styled category line beneath the rendered biome text.
 /// </summary>
 internal static class WildernessMinimapIndicator
 {
     private static string lastLogKey = "";
     private static string lastValidBiomeText = "";
-    private static TMP_Text? expandedLabel;
-    private static Vector2 nativeAnchoredPosition;
-    private static Vector2 nativeSizeDelta;
-    private static bool boundsExpanded;
-    private static TMP_Text? measuredLabel;
-    private static string measuredNativeText = "";
-    private static WildernessDanger measuredDanger;
+    private static TMP_Text? categorySource;
+    private static TMP_Text? categoryLabel;
+    private static TMP_Text? measuredSource;
+    private static string measuredText = "";
+    private static TMP_FontAsset? measuredFont;
+    private static Vector2 measuredRectSize;
+    private static Vector4 measuredMargin;
     private static float measuredFontSize;
-    private static float measuredWidth;
-    private static float measuredAddedHeight;
+    private static float measuredFontSizeMin;
+    private static float measuredFontSizeMax;
+    private static float measuredCharacterSpacing;
+    private static float measuredWordSpacing;
+    private static FontStyles measuredFontStyle;
+    private static TextAlignmentOptions measuredAlignment;
+    private static bool measuredAutoSizing;
+    private static Bounds measuredTextBounds;
+    private static bool hasMeasuredTextBounds;
 
     internal static void Reset()
     {
-        if (expandedLabel)
-        {
-            bool ownsComposedText = boundsExpanded && measuredLabel == expandedLabel;
-            string renderedNativeText = measuredNativeText;
-            RestoreNativeBounds(expandedLabel);
-            if (ownsComposedText
-                && WildernessMapLabelLayout.IsResolvedNativeBiomeText(renderedNativeText))
-            {
-                expandedLabel.text = renderedNativeText;
-            }
-        }
-
+        DestroyCategoryLabel();
+        ClearNativeMeasurement();
         lastLogKey = "";
         lastValidBiomeText = "";
-        expandedLabel = null;
-        boundsExpanded = false;
-        measuredLabel = null;
-        measuredNativeText = "";
     }
 
     internal static void Update(Minimap minimap, WildernessDanger? currentDanger)
@@ -55,11 +47,16 @@ internal static class WildernessMinimapIndicator
             return;
         }
 
-        RestoreNativeBounds(label);
+        if (categorySource && categorySource != label)
+        {
+            DestroyCategoryLabel();
+        }
+
         Player? player = Player.m_localPlayer;
         if (!player)
         {
             label.text = lastValidBiomeText;
+            HideCategoryLabel();
             LogOnce("rejected:player_missing", "outcome=rejected reason=player_missing");
             return;
         }
@@ -71,6 +68,7 @@ internal static class WildernessMinimapIndicator
             || !WildernessMapLabelLayout.IsResolvedNativeBiomeText(nativeBiome))
         {
             label.text = lastValidBiomeText;
+            HideCategoryLabel();
             LogOnce(
                 $"rejected:unresolved_biome:{biome}",
                 $"outcome=rejected reason=unresolved_native_biome biome={biome} " +
@@ -79,97 +77,173 @@ internal static class WildernessMinimapIndicator
         }
 
         lastValidBiomeText = nativeBiome;
+        label.text = nativeBiome;
+        float centerOffset = 0f;
         if (currentDanger is WildernessDanger danger)
         {
-            string combinedText = $"{nativeBiome}\n{WildernessDangerScale.MapLabel(danger)}";
-            float addedHeight = GetAddedHeight(label, nativeBiome, combinedText, danger);
-            label.text = combinedText;
-            ExpandBoundsDownward(label, addedHeight);
+            centerOffset = ShowCategoryLabel(label, nativeBiome, danger);
         }
         else
         {
-            label.text = nativeBiome;
+            HideCategoryLabel();
         }
 
         string dangerValue = currentDanger?.ToString() ?? "none";
         LogOnce(
             $"rendered:{biome}:{dangerValue}",
-            $"outcome=rendered biome={biome} danger={dangerValue}");
+            $"outcome=rendered biome={biome} danger={dangerValue} " +
+            $"composition={(currentDanger.HasValue ? "separate_native_text" : "native_only")} " +
+            $"category_center_offset={centerOffset:0.##}");
     }
 
-    private static void RestoreNativeBounds(TMP_Text label)
-    {
-        RectTransform rect = label.rectTransform;
-        if (expandedLabel != label)
-        {
-            if (expandedLabel && boundsExpanded)
-            {
-                expandedLabel.rectTransform.anchoredPosition = nativeAnchoredPosition;
-                expandedLabel.rectTransform.sizeDelta = nativeSizeDelta;
-                if (measuredLabel == expandedLabel
-                    && WildernessMapLabelLayout.IsResolvedNativeBiomeText(measuredNativeText))
-                {
-                    expandedLabel.text = measuredNativeText;
-                }
-            }
-
-            expandedLabel = label;
-            nativeAnchoredPosition = rect.anchoredPosition;
-            nativeSizeDelta = rect.sizeDelta;
-            boundsExpanded = false;
-            return;
-        }
-
-        if (!boundsExpanded)
-        {
-            nativeAnchoredPosition = rect.anchoredPosition;
-            nativeSizeDelta = rect.sizeDelta;
-            return;
-        }
-
-        rect.anchoredPosition = nativeAnchoredPosition;
-        rect.sizeDelta = nativeSizeDelta;
-        boundsExpanded = false;
-    }
-
-    private static float GetAddedHeight(
-        TMP_Text label,
-        string nativeText,
-        string combinedText,
+    private static float ShowCategoryLabel(
+        TMP_Text nativeLabel,
+        string nativeBiome,
         WildernessDanger danger)
     {
-        float width = label.rectTransform.rect.width;
-        if (measuredLabel == label
-            && measuredNativeText == nativeText
-            && measuredDanger == danger
-            && Mathf.Approximately(measuredFontSize, label.fontSize)
-            && Mathf.Approximately(measuredWidth, width))
+        TMP_Text category = EnsureCategoryLabel(nativeLabel);
+        if (!TryGetRenderedTextBounds(nativeLabel, nativeBiome, out Bounds nativeTextBounds))
         {
-            return measuredAddedHeight;
+            HideCategoryLabel();
+            LogOnce(
+                $"rejected:native_mesh_not_ready:{nativeBiome}",
+                "outcome=rejected reason=native_mesh_not_ready");
+            return 0f;
         }
 
-        float nativeHeight = label.GetPreferredValues(nativeText, width, Mathf.Infinity).y;
-        float combinedHeight = label.GetPreferredValues(combinedText, width, Mathf.Infinity).y;
-        measuredLabel = label;
-        measuredNativeText = nativeText;
-        measuredDanger = danger;
-        measuredFontSize = label.fontSize;
-        measuredWidth = width;
-        measuredAddedHeight = Mathf.Max(0f, combinedHeight - nativeHeight);
-        return measuredAddedHeight;
+        SyncNativeStyle(nativeLabel, category);
+        string categoryText = WildernessDangerScale.MapLabel(danger);
+        category.text = categoryText;
+
+        RectTransform nativeRect = nativeLabel.rectTransform;
+        Vector2 categorySize = category.GetPreferredValues(
+            categoryText,
+            Mathf.Infinity,
+            Mathf.Infinity);
+
+        RectTransform categoryRect = category.rectTransform;
+        categoryRect.anchorMin = nativeRect.pivot;
+        categoryRect.anchorMax = nativeRect.pivot;
+        categoryRect.anchoredPosition = new Vector2(
+            nativeTextBounds.center.x,
+            nativeTextBounds.min.y);
+        categoryRect.sizeDelta = new Vector2(
+            Mathf.Ceil(categorySize.x),
+            Mathf.Ceil(categorySize.y));
+        category.gameObject.SetActive(true);
+        return nativeTextBounds.center.x;
     }
 
-    private static void ExpandBoundsDownward(TMP_Text label, float addedHeight)
+    private static TMP_Text EnsureCategoryLabel(TMP_Text nativeLabel)
     {
-        RectTransform rect = label.rectTransform;
-        WildernessMapLabelBounds bounds = WildernessMapLabelLayout.ExpandDownward(
-            nativeAnchoredPosition.y,
-            nativeSizeDelta.y,
-            rect.pivot.y,
-            addedHeight);
-        rect.anchoredPosition = new Vector2(nativeAnchoredPosition.x, bounds.AnchoredY);
-        rect.sizeDelta = new Vector2(nativeSizeDelta.x, bounds.SizeDeltaY);
-        boundsExpanded = true;
+        if (categoryLabel && categorySource == nativeLabel)
+        {
+            return categoryLabel;
+        }
+
+        DestroyCategoryLabel();
+        GameObject categoryObject = new("BenheimWildernessCategory", typeof(RectTransform));
+        categoryObject.layer = nativeLabel.gameObject.layer;
+        RectTransform categoryRect = (RectTransform)categoryObject.transform;
+        categoryRect.SetParent(nativeLabel.rectTransform, worldPositionStays: false);
+        categoryRect.pivot = new Vector2(0.5f, 1f);
+
+        TextMeshProUGUI created = categoryObject.AddComponent<TextMeshProUGUI>();
+        created.alignment = TextAlignmentOptions.Center;
+        created.textWrappingMode = TextWrappingModes.NoWrap;
+        created.overflowMode = TextOverflowModes.Overflow;
+        created.richText = false;
+        created.raycastTarget = false;
+        created.margin = Vector4.zero;
+        categorySource = nativeLabel;
+        categoryLabel = created;
+        return created;
+    }
+
+    private static bool TryGetRenderedTextBounds(
+        TMP_Text source,
+        string text,
+        out Bounds textBounds)
+    {
+        RectTransform rect = source.rectTransform;
+        bool signatureChanged = measuredSource != source
+            || measuredText != text
+            || measuredFont != source.font
+            || measuredRectSize != rect.rect.size
+            || measuredMargin != source.margin
+            || !Mathf.Approximately(measuredFontSize, source.fontSize)
+            || !Mathf.Approximately(measuredFontSizeMin, source.fontSizeMin)
+            || !Mathf.Approximately(measuredFontSizeMax, source.fontSizeMax)
+            || !Mathf.Approximately(measuredCharacterSpacing, source.characterSpacing)
+            || !Mathf.Approximately(measuredWordSpacing, source.wordSpacing)
+            || measuredFontStyle != source.fontStyle
+            || measuredAlignment != source.alignment
+            || measuredAutoSizing != source.enableAutoSizing;
+        if (signatureChanged || !hasMeasuredTextBounds)
+        {
+            source.ForceMeshUpdate(ignoreActiveState: true, forceTextReparsing: false);
+            measuredSource = source;
+            measuredText = text;
+            measuredFont = source.font;
+            measuredRectSize = rect.rect.size;
+            measuredMargin = source.margin;
+            measuredFontSize = source.fontSize;
+            measuredFontSizeMin = source.fontSizeMin;
+            measuredFontSizeMax = source.fontSizeMax;
+            measuredCharacterSpacing = source.characterSpacing;
+            measuredWordSpacing = source.wordSpacing;
+            measuredFontStyle = source.fontStyle;
+            measuredAlignment = source.alignment;
+            measuredAutoSizing = source.enableAutoSizing;
+            measuredTextBounds = source.textBounds;
+            hasMeasuredTextBounds = measuredTextBounds.size.x > 0f
+                && measuredTextBounds.size.y > 0f;
+        }
+
+        textBounds = measuredTextBounds;
+        return hasMeasuredTextBounds;
+    }
+
+    private static void SyncNativeStyle(TMP_Text source, TMP_Text destination)
+    {
+        destination.font = source.font;
+        destination.fontSharedMaterial = source.fontSharedMaterial;
+        destination.color = source.color;
+        destination.enableAutoSizing = false;
+        destination.fontSize = source.fontSize;
+        destination.fontStyle = source.fontStyle;
+        destination.characterSpacing = source.characterSpacing;
+        destination.wordSpacing = source.wordSpacing;
+        destination.lineSpacing = source.lineSpacing;
+        destination.paragraphSpacing = source.paragraphSpacing;
+    }
+
+    private static void HideCategoryLabel()
+    {
+        if (categoryLabel)
+        {
+            categoryLabel.gameObject.SetActive(false);
+        }
+    }
+
+    private static void DestroyCategoryLabel()
+    {
+        if (categoryLabel)
+        {
+            Object.Destroy(categoryLabel.gameObject);
+        }
+
+        categorySource = null;
+        categoryLabel = null;
+    }
+
+    private static void ClearNativeMeasurement()
+    {
+        measuredSource = null;
+        measuredText = "";
+        measuredFont = null;
+        measuredTextBounds = default;
+        hasMeasuredTextBounds = false;
     }
 
     private static void LogOnce(string key, string fields)
