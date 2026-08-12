@@ -25,9 +25,9 @@ internal static class CombatFeedbackTuning
     // that request to remain visible when it follows the axe impact.
     internal const float NativeAxeHitShakeStrength = 1.2f;
     internal const float HeadshotShakeStrength = 0.45f;
-    internal const float CleaveShakeStrength = 1.25f;
+    internal const float CleaveShakeStrength = 1.75f;
     internal const float MiningAoeShakeStrength = 0.38f;
-    internal const float ShakeStrengthCap = 1.25f;
+    internal const float ShakeStrengthCap = 1.75f;
     internal const float ShakeCoalesceSeconds = 0.12f;
     internal const float ShakeRangeMeters = 1000f;
 

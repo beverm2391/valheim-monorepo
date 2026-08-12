@@ -18,7 +18,7 @@ for (int step = 1; step <= 100; step++)
 }
 
 ExpectClose(0.45f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Headshot), "headshot strength");
-ExpectClose(1.25f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave), "cleave strength");
+ExpectClose(1.75f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave), "cleave strength");
 ExpectClose(0.38f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.MiningAoe), "mining AOE strength");
 ExpectTrue(
     CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave)
@@ -34,10 +34,10 @@ ExpectTrue(
     !CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 0.45f, requestedStrength: 0.32f),
     "weaker rapid shake is coalesced");
 ExpectTrue(
-    CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 0.45f, requestedStrength: 1.25f),
+    CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 0.45f, requestedStrength: 1.75f),
     "stronger rapid shake replaces the active outcome");
 ExpectTrue(
-    CombatFeedbackTuning.ShouldApplyShake(CombatFeedbackTuning.ShakeCoalesceSeconds, 0.45f, 1.25f),
+    CombatFeedbackTuning.ShouldApplyShake(CombatFeedbackTuning.ShakeCoalesceSeconds, 0.45f, 1.75f),
     "a later outcome can shake after the coalescing window");
 
 string configPath = Path.Combine(Path.GetTempPath(), $"benheim-fx-{Guid.NewGuid():N}.cfg");
