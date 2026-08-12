@@ -49,8 +49,11 @@ or whether a target died.
   secondary hit areas.
 - Cleave and AOE request one shake for the outcome. Their secondary target or
   hit-area loops do not request more shakes.
-- Cleave shake still needs a gameplay retest. It must feel distinctly stronger
-  than Valheim's ordinary axe-impact shake without affecting ordinary hits.
+- Cleave, mining AOE, and headshot shake still need a gameplay retest. Ben found
+  the prior `1.75` Cleave and mining AOE strength too strong. The next candidate
+  uses raw Valheim `AddShake` strengths of `1.35` for both, compared with
+  Valheim's `1.2` ordinary axe-impact request. It raises headshot shake from
+  `0.45` to `1.1` to test whether the smaller feedback is readable.
 - Rapid requests keep the strongest eligible shake during a short coalescing
   window. Every shake stays under one shared cap and uses Valheim's native
   camera-shake preference.
@@ -73,7 +76,7 @@ or whether a target died.
   It adds no persistent danger ambience, lighting, fog, low-health vignette, or
   other presentation behavior.
 
-The first tuning is experimental. One shared set of values controls the
+The current tuning is experimental. One shared set of values controls the
 bow-focus curve and timing, shake strengths, shared cap, and coalescing window
 for the next combined gameplay test.
 

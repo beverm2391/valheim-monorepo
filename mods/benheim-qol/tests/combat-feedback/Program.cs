@@ -17,9 +17,9 @@ for (int step = 1; step <= 100; step++)
     previous = reduction;
 }
 
-ExpectClose(0.45f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Headshot), "headshot strength");
-ExpectClose(1.75f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave), "cleave strength");
-ExpectClose(1.75f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.MiningAoe), "mining AOE strength");
+ExpectClose(1.1f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Headshot), "headshot strength");
+ExpectClose(1.35f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave), "cleave strength");
+ExpectClose(1.35f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.MiningAoe), "mining AOE strength");
 ExpectTrue(
     CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave)
         > CombatFeedbackTuning.NativeAxeHitShakeStrength,
@@ -28,16 +28,16 @@ ExpectTrue(
     CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Headshot) <= CombatFeedbackTuning.ShakeStrengthCap,
     "headshot respects the shared shake cap");
 ExpectTrue(
-    !CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 0.45f, requestedStrength: 0.45f),
+    !CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 1.1f, requestedStrength: 1.1f),
     "equal rapid shake is coalesced");
 ExpectTrue(
-    !CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 0.45f, requestedStrength: 0.32f),
+    !CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 1.1f, requestedStrength: 0.8f),
     "weaker rapid shake is coalesced");
 ExpectTrue(
-    CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 0.45f, requestedStrength: 1.75f),
+    CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 1.1f, requestedStrength: 1.35f),
     "stronger rapid shake replaces the active outcome");
 ExpectTrue(
-    CombatFeedbackTuning.ShouldApplyShake(CombatFeedbackTuning.ShakeCoalesceSeconds, 0.45f, 1.75f),
+    CombatFeedbackTuning.ShouldApplyShake(CombatFeedbackTuning.ShakeCoalesceSeconds, 1.1f, 1.35f),
     "a later outcome can shake after the coalescing window");
 
 string configPath = Path.Combine(Path.GetTempPath(), $"benheim-fx-{Guid.NewGuid():N}.cfg");
