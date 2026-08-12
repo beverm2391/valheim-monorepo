@@ -80,7 +80,7 @@ define its animation, stamina, geometry, damage, force, stagger, movement,
 chain count, and other behavior. This is enough structure for real weapon
 variation without new controls or animation assets.
 
-## Light-to-heavy chain branching
+## Primary-to-secondary chain branching
 
 Valheim does not currently branch a primary chain into a secondary attack.
 `Player.PlayerAttackInput()` evaluates Primary before Secondary. A Primary
@@ -93,34 +93,70 @@ therefore start after the current attack ends, but it cannot use the current
 primary animation's authored `Chain` gate.
 
 These source facts expose a bounded scheduling gap, not a missing combat
-system. Proposed prototype: read the existing Secondary queue, give that intent
-priority over a held Primary only while the current attack is a primary whose
-`Attack.CanStartChainAttack()` is true, and call the normal
+system. A branch can read the existing Secondary queue, give that intent
+priority over a held Primary only while an eligible current primary reports
+`Attack.CanStartChainAttack()`, and then call the normal
 `Humanoid.StartAttack(..., secondaryAttack: true)`. The admission override
 must exist only around that guarded branch attempt; globally making
 `HaveQueuedChain()` true for Secondary would also loosen unrelated callers
 that use the same predicate. No direct input polling or second timing window is
 needed.
 
-The one-handed sword family is the clean first probe. Serialized `SwordIron`
-data uses `swing_longsword` with three Primary chain levels and the distinct
-`sword_secondary` attack with zero chain levels. `Attack.Start()` inherits a
-chain level only when the new attack has multiple chain levels and the prior
-animation name matches. The sword heavy therefore starts its existing
-secondary state and ends the light combo. Native code still owns its stamina
-check and spend, durability, skill gain, attack geometry, hit event, and damage.
+The installed item presets and player controller do not support one uniform
+"light to heavy" rule. The matrix below covers every current player melee
+family and the individual exceptions that change branch feasibility. Damage
+multipliers identify the native Secondary; they are evidence about weapon
+meaning, not proposed tuning.
 
-Assessment: this prototype is low-to-medium complexity. It needs focused proof
-for a Secondary tap versus a held Primary, early buffering and expiry,
-insufficient stamina, interruption, and one branch per accepted input. It
-should remain sword-only until those cases prove that Secondary intent cannot
-accidentally continue the light chain or start two heavies. Swords avoid
-Benheim's current axe, pickaxe, projectile, and defense patches.
+`Native Primary`, `Native Secondary`, and `Authored gate and transition`
+report source evidence. `Honest branch result` and `Material boundary` are
+technical assessments drawn from that evidence.
 
-The inference is that this will feel like an authored branch because both
-states and the gate are native. Only gameplay can prove the transition reads
-cleanly; the serialized controller proves the available states and timing
-seams, not the perceived blend.
+| Family | Native Primary | Native Secondary | Authored gate and transition | Honest branch result | Material boundary |
+| --- | --- | --- | --- | --- | --- |
+| One-handed swords | `swing_longsword`, three levels | `sword_secondary`, 3x thrust, zero levels | Levels one and two open `Chain`; a no-exit-time Any State transition blends in `0.1s` | Yes; Secondary ends the combo | Uniform across the inspected swords and elemental variants. The `0.4s` thrust is mechanically heavy but visually quick. |
+| Greatswords | `greatsword`, three levels | `greatsword_secondary`, 3x thrust, zero levels | Levels one and two open `Chain`; no-exit-time `0.1s` transition | Yes; Secondary ends the combo | Clean but high-commitment: the Secondary clip is `2s` and inspected items cost `40` stamina. |
+| Maces | `swing_longsword`, three levels | `mace_secondary`, 2.5x vertical strike, zero levels | Levels one and two open `Chain`; no-exit-time `0.1s` transition | Yes when the equipped item has the Secondary; it ends the combo | The `2.13s` overhead reads clearly. `Club` has no Secondary; `MaceWood` does and unusually costs only `4` stamina. |
+| One-handed axes | `swing_axe`, three levels | `axe_secondary`, 1.5x vertical strike, zero levels | Levels one and two open `Chain`; no-exit-time `0.1s` transition | Yes; Secondary ends the combo | The Secondary clip contains a late `Chain` event, but zero configured levels make it inert. More frequent axe secondaries would also exercise Benheim Woodcutting on tree contacts. |
+| Knives | `knife_stab`, three levels | `knife_secondary`, 3x leap, zero levels | Levels one and two open `Chain`; no-exit-time `0.1s` transition | Technically yes; Secondary ends the combo | The authored `Knife JumpAttack` is a movement commitment, not a stationary heavy. `KnifeButcher` has no Secondary. |
+| Dual knives | `dual_knives`, three levels | `dual_knives_secondary`, 3x leap, zero levels | Levels one and two open `Chain`; no-exit-time `0.25s` transition | Technically yes; Secondary ends the combo | The longer blend and authored `Knife Attack Leap` preserve a deliberate lunge. Treating it as a generic heavy would obscure that identity. |
+| Dual axes | `dualaxes`, four levels | `dualaxes_secondary`, 1.5x cleave, zero levels | Levels one through three open `Chain`; no-exit-time `0.1s` transition | Yes; Secondary ends the combo | Primary levels three and four each contain two `Hit` events. The level-three gate occurs after both hits, so an honest branch must not cut either short; branching also forgoes the two-hit finisher. Tree contacts remain in Woodcutting's domain. |
+| Unarmed and claw weapons | `unarmed_attack`, two levels | `unarmed_kick`, 1x kick, zero levels | Level one opens `Chain`; no-exit-time `0.1s` transition | Yes; Secondary ends the combo | This is an authored punch-to-kick branch, not a heavy. Claw items reuse it but retain their own stamina and finisher values. |
+| Battleaxes | `battleaxe_attack`, three levels | `battleaxe_secondary`, 0.5x quick strike, zero levels | The three Primary clips contain no `Chain` event; the Secondary has a no-exit-time `0.1s` transition | No native mid-attack gate; buffered Secondary already follows when the attack state ends | Forcing an earlier branch would invent timing and risk cutting off a hit. The quick Secondary is not a heavy, and tree contacts remain in Woodcutting's domain. |
+| Atgeirs and polearms | `atgeir_attack`, three levels | `atgeir_secondary`, 1x 360-degree sweep, zero levels | The three Primary clips contain no `Chain` event; the Secondary has a no-exit-time `0.1s` transition | No native mid-attack gate; buffered Secondary already follows when the attack state ends | An early spin would require a new timing rule and change the weapon's reach-control identity. |
+| Spears | `spear_poke`, zero chain levels | `spear_throw`, zero levels | No Primary chain gate | No | The chitin harpoon is stricter: throw is its Primary and it has no Secondary. Branching would change its ranged intent. |
+| Two-handed clubs and sledges | `swing_sledge`, zero chain levels | None | No Primary chain gate or Secondary state | No | Their single area slam is already the whole authored attack. |
+| Tool-like melee | Pickaxes and the scythe have zero levels; the torch has a three-level club swing | None | No usable Primary-to-Secondary pair | No | These are mining, farming, or utility actions, not a missing combat branch. |
+
+Every Secondary listed in the matrix has zero chain levels. `Attack.Update()`
+therefore sets its next chain level back to zero even if a clip emits `Chain`.
+A native-only branch ends the combo. Returning directly to a light would
+require custom combo state; a later Primary after the Secondary finishes is
+simply a new native chain at level zero.
+
+The common failure cases are also native. `Attack.Start()` checks Secondary
+stamina before it changes animation and spends stamina only after the animator
+enters the attack state. A failed start leaves the Secondary buffer alive until
+its `0.5s` expiry, while a held Primary is still evaluated first on every
+fixed update. Any prototype must prevent that held Primary from winning an
+eligible branch, consume at most one accepted Secondary, and explicitly choose
+whether a resource failure preserves the buffered Secondary or yields no
+attack. It must not silently continue the light chain.
+
+The cleanest first probe remains one-handed swords, now based on the complete
+matrix rather than a sword-only sample. Their presets are uniform, the branch
+has one hit and a short `0.1s` controller blend, and no current Benheim feature
+patches their attack or target path. Greatswords and qualifying maces are the
+next-cleanest probes and make the heavy more visually readable, at the cost of
+longer commitment and more resource-failure exposure. Axes, knives, dual
+weapons, and unarmed are technically branchable but carry the identity or
+multi-hit risks named above. Battleaxes, atgeirs, spears, sledges, and tools do
+not fit the requested native-gate prototype.
+
+That ranking is a technical recommendation, not a product decision. The
+inference is that a native gate plus native Any State transition will look
+authored. Only gameplay can prove that the blend reads cleanly or that adding
+the choice improves a family's rhythm.
 
 ## Jump and plunge boundary
 
@@ -265,18 +301,18 @@ transpiler.
 
 ## Bounded candidate prototypes
 
-### Candidate: sword light-to-heavy branch
+### Candidate: one-handed sword Primary-to-Secondary branch
 
 During the one-handed sword's native Primary chain gate, let a buffered
-Secondary start the existing sword heavy. Primary continues the light chain;
-from neutral, both controls keep their native meaning; the heavy ends the
+Secondary start the existing sword thrust. Primary continues the light chain;
+from neutral, both controls keep their native meaning; the Secondary ends the
 combo.
 
 This candidate has a narrow technical scope: it changes input arbitration at
-the native gate and then delegates to the existing heavy. Gameplay must
+the native gate and then delegates to the existing Secondary. Gameplay must
 establish its value. Its main failure modes are held Primary winning over
-Secondary, a failed heavy silently continuing the light chain, a stale
-Secondary starting after the window, and duplicate heavy starts.
+Secondary, a failed Secondary silently continuing the light chain, a stale
+Secondary starting after the window, and duplicate Secondary starts.
 
 ### Candidate: edge-of-reach spacing accent
 
@@ -301,7 +337,7 @@ Rhythm. A global rule would also flatten weapon identity.
 
 The evidence does not decide:
 
-- whether Ben wants the one-handed sword light-to-heavy branch as the next
+- whether Ben wants the one-handed sword Primary-to-Secondary branch as the next
   playable prototype;
 - whether a later branch should preserve Secondary intent on resource failure
   or fall back to no attack;
@@ -311,9 +347,10 @@ The evidence does not decide:
 - whether a true jump/plunge attack is valuable enough to justify a player
   animation-controller project.
 
-This report does not choose the next prototype. It shows that the sword branch
-is a bounded input-arbitration experiment, while a jump/plunge feature requires
-Ben to accept a larger animation-controller scope.
+This report does not choose the next prototype. It ranks the one-handed sword
+branch as the narrowest identified native-gate seam, identifies the families
+that do not expose the required gate, and keeps jump/plunge behind a larger
+animation-controller decision.
 
 ## Valheim 1.0 revalidation
 
@@ -334,8 +371,9 @@ This report proves only Valheim `0.221.12`. Before using these seams on Valheim
 - `Character.Damage()` and `RPC_Damage()` authority;
 - `Humanoid.BlockAttack()` timed-block behavior;
 - `Player.UpdateDodge()` invulnerability replication;
-- the player animator's jump and sword states; and
-- representative sword and knife attack presets and clips.
+- the player animator's jump and melee states; and
+- each candidate family's Primary and Secondary presets, chain events,
+  transitions, and branch-affecting item exceptions.
 
 Changed or missing methods, fields, constants, events, or authority checks
 invalidate the related conclusion. Revalidation must happen before a 1.0
