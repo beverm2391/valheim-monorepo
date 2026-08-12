@@ -136,7 +136,11 @@ authored encounters.
 An unlisted biome keeps the native biome name without a Benheim category.
 During a portal or loading transition, the map labels never expose an
 unresolved localization token: the minimap keeps its last valid native biome
-name without a category, while the large-map label remains empty.
+name without a category, while the large-map label remains empty. The next
+candidate waits until Valheim reports the first valid tuned destination biome.
+On Benheim's first `0.25`-second sample after that report, the minimap should
+show the destination category. The arrival banner and effects continue to use
+the existing stability delay. This change does not affect large-map behavior.
 
 When the current category stably rises to `DANGEROUS` or `DEADLY`, Benheim
 shows `Entering a DANGEROUS area...` or `Entering a DEADLY area...`.

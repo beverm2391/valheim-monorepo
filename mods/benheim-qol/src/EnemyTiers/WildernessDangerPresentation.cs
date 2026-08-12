@@ -10,6 +10,7 @@ internal static class WildernessDangerPresentation
 {
     private const float SampleIntervalSeconds = 0.25f;
     private static readonly WildernessDangerTransitionTracker Tracker = new();
+    private static readonly WildernessPortalDestinationDisplay PortalDisplay = new();
 
     private static Player? trackedPlayer;
     private static WildernessDanger? currentDanger;
@@ -42,6 +43,7 @@ internal static class WildernessDangerPresentation
         {
             trackedPlayer = player;
             Tracker.ResetForLifecycle();
+            PortalDisplay.Clear();
             currentDanger = null;
             LogLifecycleReset("player_changed");
         }
@@ -75,6 +77,10 @@ internal static class WildernessDangerPresentation
         {
             Tracker.LeaveTunedWilderness();
             currentDanger = null;
+            if (biome != Heightmap.Biome.None)
+            {
+                PortalDisplay.Clear();
+            }
             if (lastUnsupportedBiome != biome)
             {
                 lastUnsupportedBiome = biome;
@@ -100,7 +106,20 @@ internal static class WildernessDangerPresentation
             chance,
             now,
             presentationAvailable);
-        currentDanger = Tracker.HasStableDanger ? Tracker.StableDanger : null;
+
+        // Portal travel is a discontinuous move, not a noisy boundary crossing.
+        // Once Valheim exposes a valid destination biome, publish that category
+        // immediately while the independent arrival cue still earns its debounce.
+        currentDanger = PortalDisplay.Resolve(transition, Tracker, out bool portalDestinationResolved);
+        if (portalDestinationResolved)
+        {
+            Diagnostics.Event(
+                "EnemyTiers",
+                "wilderness_danger_state",
+                $"stage=portal_destination_resolved danger={transition.CurrentDanger} " +
+                $"biome={biome} distance={distance:0} adjusted_chance={chance:0.###} " +
+                $"arrival_stability={(Tracker.HasCandidate ? "pending" : "established")}");
+        }
         LogTransition(transition, biome, distance, chance);
 
         if (transition.ArrivalDanger is WildernessDanger arrivalDanger)
@@ -115,6 +134,7 @@ internal static class WildernessDangerPresentation
         WildernessMinimapIndicator.Reset();
 
         Tracker.ResetForLifecycle();
+        PortalDisplay.Clear();
         trackedPlayer = null;
         currentDanger = null;
         nextSampleAt = 0f;
@@ -284,6 +304,7 @@ internal static class WildernessDangerPresentation
     private static void ResetForLifecycle(string reason)
     {
         Tracker.ResetForLifecycle();
+        PortalDisplay.Clear();
         currentDanger = null;
         LogLifecycleReset(reason);
     }
@@ -292,6 +313,10 @@ internal static class WildernessDangerPresentation
     {
         Tracker.PauseObservation();
         currentDanger = null;
+        if (reason == "teleporting")
+        {
+            PortalDisplay.BeginTeleport();
+        }
         if (lastSuppressionReason == reason)
         {
             return;

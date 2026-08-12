@@ -108,11 +108,30 @@ ExpectTrue(transitions.StableDanger == WildernessDanger.Safe, "safe login baseli
 
 WildernessDangerTransition dangerCandidate = transitions.Observe(26f, now: 1f, presentationAvailable: true);
 ExpectTrue(dangerCandidate.CandidateStarted, "danger escalation starts debounce");
+ExpectTrue(transitions.HasCandidate, "pending danger is exposed for prompt portal destination display");
+ExpectTrue(transitions.StableDanger == WildernessDanger.Safe, "arrival stability remains on the prior category during debounce");
+ExpectTrue(dangerCandidate.CurrentDanger == WildernessDanger.Dangerous, "pending destination category is available before arrival stability");
 ExpectTrue(!transitions.Observe(26f, now: 2.99f, presentationAvailable: true).StableChanged, "danger does not stabilize before debounce");
 WildernessDangerTransition dangerousArrival = transitions.Observe(26f, now: 3f, presentationAvailable: true);
 ExpectTrue(dangerousArrival.StableChanged, "danger stabilizes after debounce");
 ExpectTrue(dangerousArrival.ArrivalDanger == WildernessDanger.Dangerous, "stable dangerous escalation presents once");
 ExpectTrue(transitions.Observe(26f, now: 4f, presentationAvailable: true).ArrivalDanger == null, "remaining dangerous does not repeat arrival");
+
+var portalTransitions = new WildernessDangerTransitionTracker();
+portalTransitions.Observe(16f, now: 0f, presentationAvailable: true);
+var portalDisplay = new WildernessPortalDestinationDisplay();
+portalDisplay.BeginTeleport();
+portalTransitions.PauseObservation();
+WildernessDangerTransition portalDestination = portalTransitions.Observe(26f, now: 1f, presentationAvailable: true);
+ExpectTrue(
+    portalDisplay.Resolve(portalDestination, portalTransitions, out bool portalResolved) == WildernessDanger.Dangerous,
+    "first valid portal destination displays before arrival debounce");
+ExpectTrue(portalResolved, "portal destination resolution is reported once");
+WildernessDangerTransition walkingAfterPortal = portalTransitions.Observe(34f, now: 1.25f, presentationAvailable: true);
+ExpectTrue(
+    portalDisplay.Resolve(walkingAfterPortal, portalTransitions, out bool repeatedPortalResolution) == WildernessDanger.Safe,
+    "a changed walking candidate after the portal falls back to stable danger");
+ExpectTrue(!repeatedPortalResolution, "ordinary walking does not reuse portal resolution");
 
 ExpectTrue(
     !transitions.Observe(24.5f, now: 5f, presentationAvailable: true).CandidateStarted,
