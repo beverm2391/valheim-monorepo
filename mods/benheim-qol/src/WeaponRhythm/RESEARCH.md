@@ -276,8 +276,10 @@ above.
 
 ## Current Benheim interactions
 
-Benheim currently has no patch on `Attack`, `Character.Damage`,
-`ZSyncAnimation`, `Animator`, or melee movement.
+The current experimental Airborne Melee implementation redirects only the
+direct damage calls in `Attack.DoMeleeAttack()` and the generated area-hit
+routine. It does not patch `Character.Damage`, `ZSyncAnimation`, `Animator`, or
+melee movement.
 
 The shortcut overlay patches `Player.TakeInput()` and `Menu.IsVisible()` to
 block gameplay while the menu is open. Rhythm input should remain behind the
@@ -291,13 +293,12 @@ coupling.
 
 Archery changes ranged `Projectile.OnHit()` behavior. Mining and woodcutting
 change `MineRock`, `MineRock5`, `TreeBase`, and `TreeLog` damage. A generic
-damage patch would collide with these features. An ordinary-melee
-`Character.Damage()` seam must use explicit attacker, attack type, and damage
-type gates.
+damage patch would collide with these features. Airborne Melee instead changes
+only outgoing native melee hits whose resolved target is a `Character`.
 
 Benheim disables gameplay actions when a required Harmony patch fails. A small
-postfix on a public method is preferable to another instruction-indexed
-transpiler.
+call-site transpiler must assert the exact native damage-call count and fail
+closed if Valheim changes that seam.
 
 ## Bounded candidate prototypes
 

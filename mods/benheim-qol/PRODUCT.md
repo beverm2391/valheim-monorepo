@@ -28,6 +28,11 @@ feasible implementation meet. Reuse mature upstream infrastructure when it
 fits. Own the product decisions, configuration, balance, and connections
 between systems instead of inheriting another mod's assumptions.
 
+Prefer small, legible rules that combine Valheim's native states, costs,
+controls, and outcomes into emergent gameplay before inventing a bespoke
+subsystem. Deeper mechanics remain welcome when their gameplay value earns
+their complexity.
+
 Complexity and variation are welcome when players can learn them through the
 world and use that knowledge to make meaningful choices. Prefer connected
 systems that create new plans, builds, discoveries, and stories. Avoid feature

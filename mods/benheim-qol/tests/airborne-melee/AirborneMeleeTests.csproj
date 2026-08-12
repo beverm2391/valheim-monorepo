@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/WeaponRhythm/AirborneMeleeRules.cs" Link="AirborneMeleeRules.cs" />
+    <Compile Include="../../src/WeaponRhythm/AirborneMeleeTuning.cs" Link="AirborneMeleeTuning.cs" />
+  </ItemGroup>
+</Project>
