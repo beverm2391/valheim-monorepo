@@ -10,6 +10,11 @@ framework. Any creature-specific mechanics or AI variation would be new
 Benheim behavior layered on a native level. This document records research,
 not a product promise or implementation plan.
 
+[Creature Mechanics research](../CreatureMechanics/RESEARCH.md) owns the
+reusable creature AI, attack, damage, drop, animation, asset, and authority
+control inventory. This document keeps only the evidence specific to star
+identity, spawning, encounter context, Alpha feasibility, and retaliation.
+
 ## Evidence Baseline
 
 These findings apply to Valheim `0.221.12`. The installed
@@ -166,10 +171,11 @@ material color, emission, or enabled objects. It scales its own transform, not
 an intrinsic creature-level collider or navigation value. Universal hitbox or
 pathing changes are therefore not proven.
 
-No native level branch changes movement speed, damage resistances, attack
-choice, attack timing, attack range, push force, targeting, perception,
-pathfinding, or AI decisions. `BaseAI`, `MonsterAI`, and `Humanoid` do not call
-`Character.GetLevel()`. `Attack` uses the level only when it multiplies damage.
+No native level branch changes creature behavior. `BaseAI`, `MonsterAI`, and
+`Humanoid` do not call `Character.GetLevel()`. `Attack` uses the level only
+when it multiplies damage. The shared creature-mechanics reference owns the
+full list of controls that remain prefab-authored or would require new
+Benheim behavior.
 
 The player-visible result is simple: starred enemies are tougher, hit harder,
 drop more opted-in loot, and carry native visual signals. They do not fight
@@ -270,8 +276,8 @@ explicit persistence and ownership design. This report does not choose one.
   deterministic setup. `LevelEffects` already consumes this lifecycle.
 - `LevelEffects` and `EnemyHud` are the native presentation seams.
 - `Attack.ModifyDamage()` is the existing offensive level seam.
-  Owner-side `MonsterAI.UpdateAI()` and `DoAttack()` are the more invasive
-  seams for genuine decision or attack-selection changes.
+- The shared creature-mechanics reference owns the owner-side AI,
+  attack-selection, attack-execution, and target-owner damage seams.
 
 The current Leech change does not collide with native star selection.
 `LeechSpawnPatches` postfixes `SpawnSystem.Awake()` and changes only the
