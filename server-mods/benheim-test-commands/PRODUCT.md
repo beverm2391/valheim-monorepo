@@ -6,13 +6,14 @@ surface.
 
 ## In Development
 
-The first candidate exposes exactly two requests to a connected native
-administrator using Benheim `0.1.61`: `benheim spawn-boar 1` creates one native
-one-star Boar, and `benheim spawn-boar 2` creates one native two-star Boar. The
-dedicated server validates the requesting peer against Valheim's existing admin
-list before spawning either Boar nearby. It uses that peer's current
-server-known position, instantiates the fixed native Boar prefab, sets native
-level `2` or `3`, and returns an explicit accepted or rejected result.
+The first candidate exposes exactly three requests to a connected native
+administrator using Benheim `0.1.61`. `benheim spawn-boar 0` creates one native
+unstarred Boar as a control. `benheim spawn-boar 1` creates one native one-star
+Boar. `benheim spawn-boar 2` creates one native two-star Boar. The dedicated
+server validates the requesting peer against Valheim's existing admin list
+before spawning a Boar nearby. It uses that peer's current server-known
+position, instantiates the fixed native Boar prefab, sets native level `1`, `2`,
+or `3`, and returns an explicit accepted or rejected result.
 
 The command does not accept prefab names or provide item, terrain, teleport,
 world-key, kill, or general command execution. It does not enable remote

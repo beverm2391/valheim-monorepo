@@ -73,9 +73,10 @@ collision, pen and gate navigation, slopes, water behavior, and practical bite
 reach remain gameplay-unproven.
 
 For this experiment, a native administrator using Benheim `0.1.61` can request
-one one-star or two-star native Boar. This requires Benheim Test Commands
-`0.1.0` on the dedicated server. The server component is not deployed, and its
-command behavior remains runtime-unproven. [Benheim Test Commands](../../../../server-mods/benheim-test-commands/PRODUCT.md)
+an ordinary Boar as a control or request a one-star or two-star native Boar.
+This requires Benheim Test Commands `0.1.0` on the dedicated server. The server
+component is not deployed, and its command behavior remains runtime-unproven.
+[Benheim Test Commands](../../../../server-mods/benheim-test-commands/PRODUCT.md)
 owns the exact allowlist, admin validation, spawn authority, and result
 behavior.
 

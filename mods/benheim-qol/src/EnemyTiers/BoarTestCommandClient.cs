@@ -21,7 +21,7 @@ internal static class BoarTestCommandClient
 
         _ = new Terminal.ConsoleCommand(
             "benheim",
-            "selected Benheim admin test commands: spawn-boar 1|2",
+            "selected Benheim admin test commands: spawn-boar 0|1|2",
             Execute,
             isCheat: false,
             isNetwork: true);
