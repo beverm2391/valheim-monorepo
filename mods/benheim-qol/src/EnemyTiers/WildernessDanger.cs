@@ -58,6 +58,18 @@ internal static class WildernessDangerScale
         };
     }
 
+    internal static string MinimapLabel(WildernessDanger danger)
+    {
+        return danger switch
+        {
+            WildernessDanger.Safe => "Safe",
+            WildernessDanger.Sketchy => "Sketchy",
+            WildernessDanger.Dangerous => "Dangerous",
+            WildernessDanger.Deadly => "Deadly",
+            _ => throw new System.ArgumentOutOfRangeException(nameof(danger), danger, null),
+        };
+    }
+
     internal static bool IsVisible(bool locallyExplored, bool sharedExplored, bool showSharedMapData)
     {
         return locallyExplored || (showSharedMapData && sharedExplored);

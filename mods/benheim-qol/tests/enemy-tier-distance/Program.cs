@@ -91,6 +91,18 @@ ExpectTrue(
 ExpectTrue(
     WildernessDangerScale.MapLabel(WildernessDanger.Deadly) == "DEADLY",
     "deadly map label inherits native text styling");
+ExpectTrue(
+    WildernessDangerScale.MinimapLabel(WildernessDanger.Safe) == "Safe",
+    "safe minimap label uses title case");
+ExpectTrue(
+    WildernessDangerScale.MinimapLabel(WildernessDanger.Sketchy) == "Sketchy",
+    "sketchy minimap label uses title case");
+ExpectTrue(
+    WildernessDangerScale.MinimapLabel(WildernessDanger.Dangerous) == "Dangerous",
+    "dangerous minimap label uses title case");
+ExpectTrue(
+    WildernessDangerScale.MinimapLabel(WildernessDanger.Deadly) == "Deadly",
+    "deadly minimap label uses title case");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, false, false), "unexplored point stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explored point is visible");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, true, false), "hidden shared exploration stays hidden");

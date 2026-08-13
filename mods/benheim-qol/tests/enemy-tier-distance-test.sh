@@ -57,12 +57,14 @@ rg -Fq 'TMP_Text label = minimap.m_biomeNameSmall;' "$minimap_indicator"
 rg -Fq 'label.text = nativeBiome;' "$minimap_indicator"
 rg -Fq 'new("BenheimWildernessCategory", typeof(RectTransform))' "$minimap_indicator"
 rg -Fq 'categoryRect.SetParent(nativeLabel.rectTransform, worldPositionStays: false);' "$minimap_indicator"
-rg -Fq 'source.ForceMeshUpdate(ignoreActiveState: true, forceTextReparsing: false);' "$minimap_indicator"
-rg -Fq 'measuredTextBounds = source.textBounds;' "$minimap_indicator"
-rg -Fq 'nativeTextBounds.center.x' "$minimap_indicator"
-rg -Fq 'nativeTextBounds.min.y' "$minimap_indicator"
-rg -Fq 'categoryRect.anchorMin = nativeRect.pivot;' "$minimap_indicator"
-rg -Fq 'created.alignment = TextAlignmentOptions.Center;' "$minimap_indicator"
+rg -Fq 'WildernessDangerScale.MinimapLabel(danger)' "$minimap_indicator"
+rg -Fq 'categoryRect.anchorMin = new Vector2(0f, 0f);' "$minimap_indicator"
+rg -Fq 'categoryRect.anchorMax = new Vector2(1f, 0f);' "$minimap_indicator"
+rg -Fq 'categoryRect.pivot = new Vector2(0.5f, 1f);' "$minimap_indicator"
+rg -Fq 'categoryRect.anchoredPosition = Vector2.zero;' "$minimap_indicator"
+rg -Fq 'categoryRect.sizeDelta = new Vector2(0f, nativeRect.rect.height);' "$minimap_indicator"
+rg -Fq 'destination.alignment = source.alignment;' "$minimap_indicator"
+rg -Fq 'destination.margin = source.margin;' "$minimap_indicator"
 rg -Fq 'destination.fontSharedMaterial = source.fontSharedMaterial;' "$minimap_indicator"
 rg -Fq 'Object.Destroy(categoryLabel.gameObject);' "$minimap_indicator"
 rg -Fq 'WildernessMapLabelLayout.IsResolvedNativeBiomeText(nativeBiome)' "$minimap_indicator"
@@ -110,6 +112,11 @@ fi
 
 if rg -n '<size=|size=70|m_biomeNameSmall\.fontSize|Object\.Instantiate|\$"\{nativeBiome\}\\n' "$danger_presentation" "$minimap_indicator" "$map_hover"; then
   printf 'minimap category must use one separate full-size native-styled line without markup or combined text\n' >&2
+  exit 1
+fi
+
+if rg -n 'ForceMeshUpdate|textBounds|TextAlignmentOptions\.Center|category_center_offset' "$minimap_indicator"; then
+  printf 'minimap category must follow the native right edge without centered glyph geometry\n' >&2
   exit 1
 fi
 

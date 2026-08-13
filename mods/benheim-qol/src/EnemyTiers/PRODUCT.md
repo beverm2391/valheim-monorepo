@@ -134,12 +134,12 @@ only. It does not estimate danger for dungeons, events, Alphas, or other
 authored encounters.
 
 In installed `0.1.56`, Ben confirmed that the small minimap's white
-native-styled text is legible. However, both lines share the native right edge,
-which creates a stepped text block. The next `0.1.57` candidate keeps the native
-biome label in its original position. It places a separate native-styled
-category line directly beneath the rendered biome text and centers that
-category line under it. This candidate should remove the stepped alignment
-without changing the accepted large-map presentation.
+native-styled text is legible. The `0.1.59` candidate keeps the native biome
+label unchanged. It places the title-case category `Safe`, `Sketchy`,
+`Dangerous`, or `Deadly` directly below it on the same native right edge.
+Ben has not yet accepted the `0.1.59` small-minimap presentation in gameplay.
+The accepted large-map categories and the danger words in arrival messages
+remain uppercase.
 
 An unlisted biome keeps the native biome name without a Benheim category.
 During a portal or loading transition, the map labels never expose an
