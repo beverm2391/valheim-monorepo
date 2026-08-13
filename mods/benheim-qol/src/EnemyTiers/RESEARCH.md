@@ -181,6 +181,55 @@ The player-visible result is simple: starred enemies are tougher, hit harder,
 drop more opted-in loot, and carry native visual signals. They do not fight
 differently because of their stars.
 
+## Boar Tier Identity Feasibility
+
+The installed `Boar.prefab` already makes starred boars visibly different. Its
+`LevelEffects` component lives on the `Visual` child. A one-star boar scales
+that child to `1.1x`, changes its material color, and enables `Fangs 005`. A
+two-star boar scales it to `1.2x`, applies a stronger color change, and enables
+`Fangs 006`.
+
+This native scale is visual only. The root capsule remains at radius `0.5`,
+height `1.4`, and center height `0.7`. The root `EyePos`, Rigidbody, and numeric
+attack ranges also remain unchanged. The Boar root does not synchronize scale
+through `ZSyncTransform`, so changing the whole root would require every peer
+to derive the same scale and would multiply the existing `Visual` scale unless
+Benheim compensated for it.
+
+The smallest physical extension is therefore not root scaling. Benheim can
+keep or retune the native `Visual` scale and set the root capsule dimensions
+from the same level-derived factor. Scaling the capsule center, radius, and
+height together keeps its bottom at the same local height. This also changes
+the radius that shared movement and avoidance code consumes, so pens, gates,
+crowding, breeding, and path clearance need gameplay testing.
+
+Native Boar aggression is also unusually legible. Its view and hearing ranges
+are both `20`, while `m_alertRange` is `6` and `m_fleeIfNotAlerted` is enabled.
+When a sensed enemy remains outside that alert range, the wild boar flees. Once
+the enemy is visible inside the alert range, the boar becomes alerted and can
+attack. Taking damage also alerts it and selects the attacker. Its one attack
+has a `5`-second item interval, a `2`-meter AI range, and a `1.5`-meter hit
+range.
+
+This exposes two low-complexity, per-creature aggression handles: increase the
+alert range, or disable the flee-until-alerted behavior. Both change when the
+boar commits without inventing a planner or altering its attack animation.
+Changing attack cadence is a separate step because the attack item uses shared
+weapon data; mutating that data for one boar can affect every boar unless the
+item definition is cloned or selection is intercepted.
+
+A bounded first experiment can therefore combine native level identity with a
+matching visual-and-capsule scale and one owner-side aggression change. Exact
+scale and aggression values remain product choices. The experiment must also
+decide whether behavior changes apply only to wild boars; starred tame boars
+share the same prefab and level identity. No new saved field is required when
+every result is derived from prefab plus native level, but every possible
+creature owner must run compatible Benheim behavior.
+
+These prefab facts come from the installed core bundle `c4210710`, SHA-256
+`2d1e17fa941213747868face6b8fb13e23332292454007255c42562119e31448`,
+and the exact assembly named in the evidence baseline.
+
 ## Candidate: Species Retaliation Through Native Events
 
 The native death and event seams can support a transient per-species kill
