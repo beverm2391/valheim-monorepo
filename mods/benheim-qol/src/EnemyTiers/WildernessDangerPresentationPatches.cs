@@ -10,9 +10,7 @@ internal static class WildernessDangerPresentationPatches
     [HarmonyPatch(typeof(Minimap), "UpdateBiome")]
     private static void UpdateBiomePostfix(Minimap __instance)
     {
-        WildernessMinimapIndicator.Update(
-            __instance,
-            WildernessDangerPresentation.CurrentDanger);
+        WildernessDangerPresentation.RefreshMinimap(__instance);
     }
 
     [HarmonyPostfix]

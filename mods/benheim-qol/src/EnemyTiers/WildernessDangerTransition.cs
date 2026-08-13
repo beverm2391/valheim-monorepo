@@ -43,54 +43,9 @@ internal readonly struct WildernessDangerTransition
 }
 
 /// <summary>
-/// Lets one discontinuous portal move publish its first valid destination
-/// category without turning the ordinary walking debounce into live preview.
-/// </summary>
-internal sealed class WildernessPortalDestinationDisplay
-{
-    private bool awaitingDestination;
-    private WildernessDanger? pinnedDestination;
-
-    internal void BeginTeleport()
-    {
-        awaitingDestination = true;
-        pinnedDestination = null;
-    }
-
-    internal void Clear()
-    {
-        awaitingDestination = false;
-        pinnedDestination = null;
-    }
-
-    internal WildernessDanger? Resolve(
-        WildernessDangerTransition transition,
-        WildernessDangerTransitionTracker tracker,
-        out bool destinationResolved)
-    {
-        destinationResolved = awaitingDestination;
-        if (awaitingDestination)
-        {
-            awaitingDestination = false;
-            pinnedDestination = transition.CurrentDanger;
-        }
-
-        if (pinnedDestination is WildernessDanger destination
-            && tracker.HasCandidate
-            && transition.CurrentDanger == destination)
-        {
-            return destination;
-        }
-
-        pinnedDestination = null;
-        return tracker.HasStableDanger ? tracker.StableDanger : null;
-    }
-}
-
-/// <summary>
-/// Converts the continuous wilderness chance into a stable local presentation
-/// state. The map hover remains exact; only the current-player indicator and
-/// arrival cue use this debounce and hysteresis layer.
+/// Converts the continuous wilderness chance into a stable arrival state.
+/// Factual map labels use their current resolved sample without this dramatic
+/// presentation debounce or hysteresis.
 /// </summary>
 internal sealed class WildernessDangerTransitionTracker
 {

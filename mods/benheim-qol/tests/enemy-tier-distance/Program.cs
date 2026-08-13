@@ -103,6 +103,25 @@ ExpectTrue(
 ExpectTrue(
     WildernessDangerScale.MinimapLabel(WildernessDanger.Deadly) == "Deadly",
     "deadly minimap label uses title case");
+
+WildernessPlayerArea farPlains = WildernessPlayerArea.Tuned(
+    Heightmap.Biome.Plains,
+    distance: 4_381f,
+    worldSize: WorldSize,
+    adjustedChance: 25.2f);
+ExpectTrue(farPlains.Biome == Heightmap.Biome.Plains, "resolved area keeps its sampled biome");
+ExpectTrue(farPlains.Danger == WildernessDanger.Dangerous, "far Plains resolves from the same sample");
+ExpectClose(0.4381f, farPlains.DistanceRatio, "resolved area keeps its sampled distance ratio");
+ExpectClose(25.2f, farPlains.AdjustedChance, "resolved area keeps its sampled chance");
+
+WildernessPlayerArea nearbyMeadows = WildernessPlayerArea.Tuned(
+    Heightmap.Biome.Meadows,
+    distance: 621f,
+    worldSize: WorldSize,
+    adjustedChance: 10.745f);
+ExpectTrue(nearbyMeadows.Biome == Heightmap.Biome.Meadows, "next sample replaces the complete biome value");
+ExpectTrue(nearbyMeadows.Danger == WildernessDanger.Safe, "next sample replaces the complete danger value");
+
 ExpectTrue(!WildernessDangerScale.IsVisible(false, false, false), "unexplored point stays hidden");
 ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explored point is visible");
 ExpectTrue(!WildernessDangerScale.IsVisible(false, true, false), "hidden shared exploration stays hidden");
@@ -120,34 +139,29 @@ ExpectTrue(transitions.StableDanger == WildernessDanger.Safe, "safe login baseli
 
 WildernessDangerTransition dangerCandidate = transitions.Observe(26f, now: 1f, presentationAvailable: true);
 ExpectTrue(dangerCandidate.CandidateStarted, "danger escalation starts debounce");
-ExpectTrue(transitions.HasCandidate, "pending danger is exposed for prompt portal destination display");
+ExpectTrue(transitions.HasCandidate, "pending danger remains available to arrival logic");
 ExpectTrue(transitions.StableDanger == WildernessDanger.Safe, "arrival stability remains on the prior category during debounce");
-ExpectTrue(dangerCandidate.CurrentDanger == WildernessDanger.Dangerous, "pending destination category is available before arrival stability");
+ExpectTrue(dangerCandidate.CurrentDanger == WildernessDanger.Dangerous, "pending arrival category is available during debounce");
 ExpectTrue(!transitions.Observe(26f, now: 2.99f, presentationAvailable: true).StableChanged, "danger does not stabilize before debounce");
 WildernessDangerTransition dangerousArrival = transitions.Observe(26f, now: 3f, presentationAvailable: true);
 ExpectTrue(dangerousArrival.StableChanged, "danger stabilizes after debounce");
 ExpectTrue(dangerousArrival.ArrivalDanger == WildernessDanger.Dangerous, "stable dangerous escalation presents once");
 ExpectTrue(transitions.Observe(26f, now: 4f, presentationAvailable: true).ArrivalDanger == null, "remaining dangerous does not repeat arrival");
 
-var portalTransitions = new WildernessDangerTransitionTracker();
-portalTransitions.Observe(16f, now: 0f, presentationAvailable: true);
-var portalDisplay = new WildernessPortalDestinationDisplay();
-portalDisplay.BeginTeleport();
-portalTransitions.PauseObservation();
-WildernessDangerTransition portalDestination = portalTransitions.Observe(26f, now: 1f, presentationAvailable: true);
-ExpectTrue(
-    portalDisplay.Resolve(portalDestination, portalTransitions, out bool portalResolved) == WildernessDanger.Dangerous,
-    "first valid portal destination displays before arrival debounce");
-ExpectTrue(portalResolved, "portal destination resolution is reported once");
-WildernessDangerTransition walkingAfterPortal = portalTransitions.Observe(34f, now: 1.25f, presentationAvailable: true);
-ExpectTrue(
-    portalDisplay.Resolve(walkingAfterPortal, portalTransitions, out bool repeatedPortalResolution) == WildernessDanger.Safe,
-    "a changed walking candidate after the portal falls back to stable danger");
-ExpectTrue(!repeatedPortalResolution, "ordinary walking does not reuse portal resolution");
-
 ExpectTrue(
     !transitions.Observe(24.5f, now: 5f, presentationAvailable: true).CandidateStarted,
     "hysteresis ignores a small dangerous-boundary retreat");
+
+var portalHysteresis = new WildernessDangerTransitionTracker();
+portalHysteresis.Observe(16f, now: 0f, presentationAvailable: true);
+WildernessDangerTransition portalRawDanger = portalHysteresis.Observe(
+    farPlains.AdjustedChance,
+    now: 1f,
+    presentationAvailable: true);
+ExpectTrue(farPlains.Danger == WildernessDanger.Dangerous, "factual portal sample remains raw Dangerous");
+ExpectTrue(portalRawDanger.CurrentDanger == WildernessDanger.Safe, "arrival hysteresis can independently retain Safe");
+ExpectTrue(!portalHysteresis.HasCandidate, "arrival hysteresis deadband remains established without a candidate");
+
 WildernessDangerTransition retreatCandidate = transitions.Observe(24f, now: 6f, presentationAvailable: true);
 ExpectTrue(retreatCandidate.CandidateStarted, "crossing beyond hysteresis starts retreat debounce");
 WildernessDangerTransition cancelledRetreat = transitions.Observe(26f, now: 7f, presentationAvailable: true);

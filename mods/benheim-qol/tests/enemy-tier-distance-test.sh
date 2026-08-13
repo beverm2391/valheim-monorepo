@@ -11,6 +11,7 @@ danger_presentation="$root/src/EnemyTiers/WildernessDangerPresentation.cs"
 danger_presentation_patches="$root/src/EnemyTiers/WildernessDangerPresentationPatches.cs"
 minimap_indicator="$root/src/EnemyTiers/WildernessMinimapIndicator.cs"
 danger_transition="$root/src/EnemyTiers/WildernessDangerTransition.cs"
+player_area="$root/src/EnemyTiers/WildernessPlayerArea.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_spawn="$source_tree/SpawnSystem.cs"
 
@@ -50,10 +51,16 @@ rg -Fq 'shared_explored=' "$map_hover"
 rg -Fq 'show_shared=' "$map_hover"
 rg -Uq '\[HarmonyPatch\]\ninternal static class WildernessDangerPresentationPatches' "$danger_presentation_patches"
 rg -Fq '[HarmonyPatch(typeof(Minimap), "UpdateBiome")]' "$danger_presentation_patches"
+rg -Fq 'WildernessDangerPresentation.RefreshMinimap(__instance);' "$danger_presentation_patches"
 rg -Fq 'player.GetCurrentBiome()' "$danger_presentation"
 rg -Fq 'Utils.LengthXZ(player.transform.position)' "$danger_presentation"
 rg -Fq 'WildernessStarChance.ComposeChance(' "$danger_presentation"
+rg -Fq 'WildernessPlayerArea area = WildernessPlayerArea.Tuned(' "$danger_presentation"
+rg -Fq 'PublishArea(area);' "$danger_presentation"
+rg -Fq 'WildernessMinimapIndicator.Update(minimap, currentArea);' "$danger_presentation"
+rg -Fq 'WildernessDangerScale.Classify(adjustedChance)' "$player_area"
 rg -Fq 'TMP_Text label = minimap.m_biomeNameSmall;' "$minimap_indicator"
+rg -Fq 'WildernessPlayerArea? currentArea' "$minimap_indicator"
 rg -Fq 'label.text = nativeBiome;' "$minimap_indicator"
 rg -Fq 'new("BenheimWildernessCategory", typeof(RectTransform))' "$minimap_indicator"
 rg -Fq 'categoryRect.SetParent(nativeLabel.rectTransform, worldPositionStays: false);' "$minimap_indicator"
@@ -91,14 +98,29 @@ rg -Fq 'wilderness_danger_arrival' "$danger_presentation"
 rg -Fq 'outcome=queued' "$danger_presentation"
 rg -Fq 'outcome=rejected reason=cooldown' "$danger_presentation"
 rg -Fq 'stage=portal_destination_resolved' "$danger_presentation"
-rg -Fq 'currentDanger = PortalDisplay.Resolve' "$danger_presentation"
+rg -Fq 'map_danger={area.Danger}' "$danger_presentation"
+rg -Fq 'arrival_danger={transition.CurrentDanger}' "$danger_presentation"
+rg -Fq 'awaitingPortalDestination = false;' "$danger_presentation"
 rg -Fq 'arrival_stability=' "$danger_presentation"
 rg -Fq 'outcome=rejected reason=presentation_unavailable' "$danger_presentation"
 rg -Fq 'wilderness_minimap_indicator' "$minimap_indicator"
 rg -Fq 'outcome=rendered' "$minimap_indicator"
+rg -Fq 'source=resolved_player_area' "$minimap_indicator"
+rg -Fq 'distance_ratio=' "$minimap_indicator"
+rg -Fq 'adjusted_chance=' "$minimap_indicator"
 rg -Fq 'DebounceSeconds = 2f' "$danger_transition"
 rg -Fq 'HysteresisPercent = 0.75f' "$danger_transition"
 rg -Fq 'ArrivalCooldownSeconds = 60f' "$danger_transition"
+
+if rg -n 'Player\.m_localPlayer|GetCurrentBiome\(' "$minimap_indicator"; then
+  printf 'minimap must consume one resolved player-area sample instead of rereading the player\n' >&2
+  exit 1
+fi
+
+if rg -n 'WildernessDangerPresentation\.CurrentDanger|currentDanger =|PortalDisplay' "$danger_presentation" "$danger_presentation_patches"; then
+  printf 'minimap must not consume the arrival tracker as its factual category owner\n' >&2
+  exit 1
+fi
 
 if [[ -e "$root/src/EnemyTiers/WildernessMapLabelContrast.cs" ]]; then
   printf 'map labels must inherit the native TMP material instead of owning a contrast layer\n' >&2

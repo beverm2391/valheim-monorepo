@@ -137,18 +137,22 @@ In installed `0.1.56`, Ben confirmed that the small minimap's white
 native-styled text is legible. The `0.1.59` candidate keeps the native biome
 label unchanged. It places the title-case category `Safe`, `Sketchy`,
 `Dangerous`, or `Deadly` directly below it on the same native right edge.
-Ben has not yet accepted the `0.1.59` small-minimap presentation in gameplay.
+Both lines come from the same current player-area sample, which Benheim takes
+about every `0.25` seconds. The minimap publishes the factual category without
+applying the arrival logic's stability delay or boundary hysteresis. Ben has
+not yet accepted the complete `0.1.59` small-minimap presentation in gameplay.
 The accepted large-map categories and the danger words in arrival messages
 remain uppercase.
 
 An unlisted biome keeps the native biome name without a Benheim category.
 During a portal or loading transition, the map labels never expose an
 unresolved localization token: the minimap keeps its last valid native biome
-name without a category, while the large-map label remains empty. The next
-candidate waits until Valheim reports the first valid tuned destination biome.
-On Benheim's first `0.25`-second sample after that report, the minimap should
-show the destination category. The arrival banner and effects continue to use
-the existing stability delay. This change does not affect large-map behavior.
+name without a category, while the large-map label remains empty. The `0.1.59`
+candidate waits until Valheim reports the first valid destination area. On the
+first `0.25`-second sample after that report, the minimap should update its biome
+and category together. The arrival banner and effects continue to use the
+existing stability delay and hysteresis. This change does not affect large-map
+behavior.
 
 When the current category stably rises to `DANGEROUS` or `DEADLY`, Benheim
 shows `Entering a DANGEROUS area...` or `Entering a DEADLY area...`.
@@ -162,11 +166,11 @@ future arrival messages, stingers, and flashes. It does not hide either map
 label, change danger classification or spawning, or stop a one-shot that has
 already begun.
 
-Benheim establishes the first category after login or respawn without an
-arrival message. It suppresses category changes during teleporting, cutscenes,
-and sleep. It waits for a stable category, ignores brief crossings near a
-category boundary, and uses a shared arrival cooldown. These rules prevent
-repeated messages while the player remains in one category or moves near a
+After login or respawn, the dramatic arrival logic records the initial category
+without showing a message. This logic pauses during teleporting, cutscenes, and
+sleep. It waits for a stable category, ignores brief crossings near a category
+boundary, and uses a shared arrival cooldown. These rules prevent repeated
+dramatic messages while the player remains in one category or moves near a
 category boundary.
 
 This presentation does not control music or weather. It does not create an

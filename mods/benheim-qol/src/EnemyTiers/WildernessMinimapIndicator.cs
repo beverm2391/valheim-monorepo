@@ -22,7 +22,7 @@ internal static class WildernessMinimapIndicator
         lastValidBiomeText = "";
     }
 
-    internal static void Update(Minimap minimap, WildernessDanger? currentDanger)
+    internal static void Update(Minimap minimap, WildernessPlayerArea? currentArea)
     {
         TMP_Text label = minimap.m_biomeNameSmall;
         if (label == null)
@@ -36,33 +36,34 @@ internal static class WildernessMinimapIndicator
             DestroyCategoryLabel();
         }
 
-        Player? player = Player.m_localPlayer;
-        if (!player)
+        if (currentArea is not WildernessPlayerArea area)
         {
             label.text = lastValidBiomeText;
             HideCategoryLabel();
-            LogOnce("rejected:player_missing", "outcome=rejected reason=player_missing");
+            LogOnce(
+                "rejected:area_unresolved",
+                $"outcome=rejected reason=player_area_unresolved " +
+                $"fallback={(string.IsNullOrEmpty(lastValidBiomeText) ? "empty" : "last_valid")}");
             return;
         }
 
-        Heightmap.Biome biome = player.GetCurrentBiome();
         string nativeBiome = Localization.instance.Localize(
-            "$biome_" + biome.ToString().ToLowerInvariant());
-        if (biome == Heightmap.Biome.None
+            "$biome_" + area.Biome.ToString().ToLowerInvariant());
+        if (area.Biome == Heightmap.Biome.None
             || !WildernessMapLabelLayout.IsResolvedNativeBiomeText(nativeBiome))
         {
             label.text = lastValidBiomeText;
             HideCategoryLabel();
             LogOnce(
-                $"rejected:unresolved_biome:{biome}",
-                $"outcome=rejected reason=unresolved_native_biome biome={biome} " +
+                $"rejected:unresolved_biome:{area.Biome}",
+                $"outcome=rejected reason=unresolved_native_biome biome={area.Biome} " +
                 $"fallback={(string.IsNullOrEmpty(lastValidBiomeText) ? "empty" : "last_valid")}");
             return;
         }
 
         lastValidBiomeText = nativeBiome;
         label.text = nativeBiome;
-        if (currentDanger is WildernessDanger danger)
+        if (area.Danger is WildernessDanger danger)
         {
             ShowCategoryLabel(label, danger);
         }
@@ -71,11 +72,13 @@ internal static class WildernessMinimapIndicator
             HideCategoryLabel();
         }
 
-        string dangerValue = currentDanger?.ToString() ?? "none";
+        string dangerValue = area.Danger?.ToString() ?? "none";
         LogOnce(
-            $"rendered:{biome}:{dangerValue}",
-            $"outcome=rendered biome={biome} danger={dangerValue} " +
-            $"composition={(currentDanger.HasValue ? "separate_native_text" : "native_only")}");
+            $"rendered:{area.Biome}:{dangerValue}",
+            $"outcome=rendered source=resolved_player_area biome={area.Biome} danger={dangerValue} " +
+            $"distance={area.Distance:0} distance_ratio={area.DistanceRatio:0.###} " +
+            $"adjusted_chance={(area.Danger.HasValue ? area.AdjustedChance.ToString("0.###") : "native")} " +
+            $"composition={(area.Danger.HasValue ? "separate_native_text" : "native_only")}");
     }
 
     private static void ShowCategoryLabel(TMP_Text nativeLabel, WildernessDanger danger)
