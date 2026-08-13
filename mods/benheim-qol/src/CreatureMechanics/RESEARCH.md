@@ -74,6 +74,68 @@ arrays for one creature can therefore change every user of the same asset.
 Per-creature work must own its mutable copies or keep variation outside those
 shared objects.
 
+## Factions And Creature Damage
+
+Each `Character` prefab has an `m_faction` value. Valheim `0.221.12` defines
+these factions:
+
+- `Players`
+- `AnimalsVeg`
+- `ForestMonsters`
+- `Undead`
+- `Demon`
+- `MountainMonsters`
+- `SeaMonsters`
+- `PlainsMonsters`
+- `Boss`
+- `MistlandsMonsters`
+- `Dverger`
+- `PlayerSpawned`
+- `TrainingDummy`
+
+The names are code identifiers, not a complete creature roster. Inspect a
+creature's prefab before claiming which faction it uses.
+
+`BaseAI.IsEnemy(attacker, target)` decides whether ordinary AI and attacks
+treat one character as hostile. The relationship is directional. It first
+applies group, taming, and aggravation rules. It then uses the attacker's
+faction:
+
+| Attacker faction | Different factions this attacker does not ordinarily treat as enemies |
+| --- | --- |
+| `Players` | `Dverger` |
+| `AnimalsVeg` | None |
+| `ForestMonsters` | `AnimalsVeg`, `Boss` |
+| `Undead` | `Demon`, `Boss` |
+| `Demon` | `Undead`, `Boss` |
+| `MountainMonsters` | `Boss` |
+| `SeaMonsters` | `Boss` |
+| `PlainsMonsters` | `Boss` |
+| `Boss` | Every faction except `Players` and `PlayerSpawned` |
+| `MistlandsMonsters` | `AnimalsVeg`, `Boss` |
+| `Dverger` | `AnimalsVeg`, `Boss`, `Players` |
+| `PlayerSpawned` | None |
+| `TrainingDummy` | Every faction except `Players` |
+
+Characters in the same faction are not ordinary enemies. Characters with the
+same non-empty `m_group` are also not enemies, even when their factions differ.
+Tamed characters treat players, other tamed characters, and non-aggravated
+Dverger as friendly. They treat other characters as enemies. Aggravation can
+make Dverger and players hostile.
+
+Faction hostility controls target selection and the normal friendly-fire
+filters in `Attack`, `Projectile`, and `Aoe`. It is not a final immunity rule.
+Once a hit passes those filters and reaches `Character.RPC_Damage()`, that
+method does not reject monster damage because two creatures share a faction.
+
+`Aoe` has explicit `m_hitEnemy`, `m_hitFriendly`, `m_hitSame`, `m_hitOwner`,
+and `m_hitCharacters` controls. Its source defaults permit enemy and friendly
+character hits, while excluding the owner and characters with the owner's
+name. A serialized prefab can override those defaults. A future effect can
+therefore damage nearby same-faction creatures without changing Valheim's
+faction relationships. That effect must enable `m_hitSame` to damage other
+characters whose name matches its owner's name.
+
 ## Control Inventory
 
 Before changing a control, inspect current Benheim patches at the affected
@@ -201,6 +263,7 @@ evidence alongside each future named-creature claim.
 | Attack cloning and animator release | `Attack.Clone()`, `Start()`, `OnAttackTrigger()`; `CharacterAnimEvent.Hit()`, `OnAttackTrigger()`; `Humanoid.OnAttackTrigger()` |
 | Swing and projectile controls | `Attack.DoMeleeAttack()`, `DoAreaAttack()`, `FireProjectileBurst()`; `IProjectile.Setup()` |
 | Hit synchronization and target authority | `HitData.Serialize()`, `Deserialize()`, `SetAttacker()`, `GetAttacker()`; `Character.Damage()`, `RPC_Damage()`, `ApplyDamage()` |
+| Factions and friendly damage | `Character.Faction`, `GetFaction()`, `GetGroup()`; `BaseAI.IsEnemy()`; `Attack`, `Projectile`, and `Aoe.ShouldHit()` |
 | Health, stagger, resistance, movement | `Character.SetupMaxHealth()`, `GetStaggerTreshold()`, `Stagger()`, movement update methods, `GetRadius()` |
 | Navigation families | `Pathfinding.AgentType`, `HavePath()`, `GetPath()` |
 | Death, drops, visuals | `Character.OnDeath()`; `CharacterDrop.OnDeath()`, `GenerateDropList()`; `EnemyHud.UpdateHuds()`; `LevelEffects.SetupLevelVisualization()`; `EffectList.Create()` |
