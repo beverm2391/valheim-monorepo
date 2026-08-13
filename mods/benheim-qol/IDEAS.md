@@ -32,6 +32,14 @@ development, its behavior and status move into the owning `PRODUCT.md`.
     its original stats, attacks, and practical hit behavior. Spiritually
     essential, technically harder.
 
+## Enemy Variants
+
+- **Sniper:** a starred ranged enemy with much greater perception and attack
+  range. Candidates include Skeleton Archers and Draugr Archers. A higher tier
+  could also use a creature-specific native projectile, such as a fire or
+  poison arrow. The creature, tier, projectile, accuracy, cadence, telegraph,
+  and counterplay remain open pending prefab research and gameplay testing.
+
 ## World Fuckery
 
 - **Berserk Ooze Bomb:** a heavy bomb with a short throw range that temporarily

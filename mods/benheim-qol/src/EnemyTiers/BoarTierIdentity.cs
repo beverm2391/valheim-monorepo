@@ -25,10 +25,25 @@ internal static class BoarTierIdentity
 
         CapsuleCollider? collider = character.GetCollider();
         BaseAI? ai = character.GetBaseAI();
-        if (collider == null || ai == null)
+        MonsterAI? monsterAI = ai as MonsterAI;
+        if (collider == null || ai == null || monsterAI == null)
         {
-            return Rejected(character, level, source, collider == null ? "missing_capsule" : "missing_ai");
+            string reason = collider == null
+                ? "missing_capsule"
+                : ai == null
+                    ? "missing_ai"
+                    : "missing_monster_ai";
+            return Rejected(character, level, source, reason);
         }
+
+        BoarTierApplicationState state = ApplicationStates.GetOrCreateValue(levelEffects);
+        state.CaptureBaseline(
+            character.m_runSpeed,
+            character.m_runTurnSpeed,
+            ai.m_viewRange,
+            ai.m_hearRange,
+            monsterAI.m_alertRange,
+            monsterAI.m_fleeIfNotAlerted);
 
         // Native LevelEffects has already applied the Boar prefab's color and
         // fangs. Replace only its authored 1.1/1.2 visual scale, then set the
@@ -46,7 +61,17 @@ internal static class BoarTierIdentity
         // coherent as native Boar's 0.5m capsule with a 0.4m Humanoid agent,
         // without inventing a custom path-agent type.
         ai.m_pathAgentType = Pathfinding.AgentType.HorseSize;
-        ApplicationStates.GetOrCreateValue(levelEffects).MarkApplied();
+
+        // These are per-instance prefab fields. Apply absolute values from the
+        // captured native Boar baseline so reloads and level callbacks cannot
+        // compound them or mutate shared attack/item definitions.
+        character.m_runSpeed = state.NativeRunSpeed * profile.RunSpeedMultiplier;
+        character.m_runTurnSpeed = state.NativeRunTurnSpeed * profile.RunTurnSpeedMultiplier;
+        ai.m_viewRange = state.NativeViewRange * profile.DetectionMultiplier;
+        ai.m_hearRange = state.NativeHearRange * profile.DetectionMultiplier;
+        monsterAI.m_alertRange = state.NativeAlertRange * profile.AlertRangeMultiplier;
+        monsterAI.m_fleeIfNotAlerted = false;
+        state.MarkApplied();
 
         return DiagnosticEvent.Create("EnemyTiers", "boar_tier_profile_applied")
             .String("source", source)
@@ -59,6 +84,15 @@ internal static class BoarTierIdentity
             .Number("collider_radius", profile.ColliderRadius)
             .Number("collider_height", profile.ColliderHeight)
             .String("path_agent", Pathfinding.AgentType.HorseSize.ToString())
+            .Number("incoming_push_multiplier", profile.IncomingPushMultiplier)
+            .Number("outgoing_push_multiplier", profile.OutgoingPushMultiplier)
+            .Number("view_range", ai.m_viewRange)
+            .Number("hear_range", ai.m_hearRange)
+            .Number("alert_range", monsterAI.m_alertRange)
+            .Number("run_speed", character.m_runSpeed)
+            .Number("run_turn_speed", character.m_runTurnSpeed)
+            .Number("pursuit_duration_multiplier", profile.PursuitDurationMultiplier)
+            .Boolean("flee_if_not_alerted", monsterAI.m_fleeIfNotAlerted)
             .Boolean("tamed", character.IsTamed())
             .Boolean("owner", character.IsOwner());
     }
@@ -78,13 +112,19 @@ internal static class BoarTierIdentity
 
         CapsuleCollider? collider = character.GetCollider();
         BaseAI? ai = character.GetBaseAI();
-        if (collider == null || ai == null)
+        MonsterAI? monsterAI = ai as MonsterAI;
+        if (collider == null || ai == null || monsterAI == null)
         {
+            string reason = collider == null
+                ? "missing_capsule_on_restore"
+                : ai == null
+                    ? "missing_ai_on_restore"
+                    : "missing_monster_ai_on_restore";
             return Rejected(
                 character,
                 level,
                 source,
-                collider == null ? "missing_capsule_on_restore" : "missing_ai_on_restore");
+                reason);
         }
 
         // Native LevelEffects has no level-one reset branch. Restore only an
@@ -103,6 +143,12 @@ internal static class BoarTierIdentity
         collider.radius = BoarTierPhysicalProfile.NativeColliderRadius;
         collider.height = BoarTierPhysicalProfile.NativeColliderHeight;
         ai.m_pathAgentType = Pathfinding.AgentType.Humanoid;
+        character.m_runSpeed = state.NativeRunSpeed;
+        character.m_runTurnSpeed = state.NativeRunTurnSpeed;
+        ai.m_viewRange = state.NativeViewRange;
+        ai.m_hearRange = state.NativeHearRange;
+        monsterAI.m_alertRange = state.NativeAlertRange;
+        monsterAI.m_fleeIfNotAlerted = state.NativeFleeIfNotAlerted;
         state.MarkRestored();
 
         return DiagnosticEvent.Create("EnemyTiers", "boar_tier_profile_restored")

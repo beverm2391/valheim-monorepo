@@ -58,6 +58,13 @@ visible body and collision capsule grow together. Both starred tiers use
 Valheim's closest existing larger-creature navigation profile. An ordinary
 zero-star Boar keeps its native presentation and physical behavior.
 
+Wild starred Boars should detect players earlier, pursue them longer, and close
+faster along a more committed path that turns less cleanly. One-star Boars
+should feel territorial; two-star Boars should feel more relentless. Starred
+Boars should resist routine displacement and may shove players more strongly,
+but neither tier should be immovable. Players should counter a hostile Boar
+with lateral movement, dodging, heavy attacks, or Perfect Impact.
+
 The physical profile must derive only from the native Boar prefab and native
 star level. It applies equally to wild and tamed Boars. It must restore after
 spawn, reload, ownership migration, breeding, and growth without custom saved
@@ -66,11 +73,14 @@ Benheim supplies that behavior on clients, and Benheim Test Commands supplies
 it while the dedicated server owns a spawned test Boar. Lifecycle restoration
 and multiplayer ownership remain unproven.
 
-This experiment directly changes only physical tier identity. It does not
-retune Boar aggression, attacks, damage, movement speed, mass, swim depth,
-numeric attack reach, breeding rules, or spawning rules. The larger body,
-collision, pen and gate navigation, slopes, water behavior, and practical bite
-reach remain gameplay-unproven.
+This experiment changes Boar physical identity, force exchange, perception,
+pursuit, charge speed, and turning by native star level. The exact behavior and
+numeric tuning are experimental and remain open. It does not add resistances,
+elemental effects, or new attacks; speed up attack animations; or add damage
+beyond Valheim's native star scaling. It also does not retune mass, swim depth,
+numeric attack reach, breeding rules, or spawning rules. The complete fight,
+larger collision, pen and gate navigation, slopes, water behavior, and
+practical bite reach remain gameplay-unproven.
 
 For this experiment, a native administrator using Benheim `0.1.61` can request
 an ordinary Boar as a control or request a one-star or two-star native Boar.
