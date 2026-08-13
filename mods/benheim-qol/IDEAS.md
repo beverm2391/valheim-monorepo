@@ -34,6 +34,14 @@ development, its behavior and status move into the owning `PRODUCT.md`.
 
 ## World Fuckery
 
+- **Berserk Ooze Bomb:** a heavy bomb with a short throw range that temporarily
+  makes every affected creature ignore its normal faction and fight any nearby
+  character, including the player and one another. It should turn a village or
+  crowded fight into dangerous monster civil war, not safe mind control. Its
+  cost, radius, duration, and eligible targets remain open. If the bomb proves
+  fun, a later sling or launcher can extend its range while reusing the same
+  bomb payload. Technical faction evidence is in
+  [Creature Factions](src/CreatureMechanics/FACTIONS.md).
 - **Diddy Party:** a raid announced as “Diddy party!” containing exactly one
   huge, glossy tar-dark greydwarf brute. It runs terrifyingly fast, strongly
   resists stagger, and has enough health to create a chase without one-shotting
