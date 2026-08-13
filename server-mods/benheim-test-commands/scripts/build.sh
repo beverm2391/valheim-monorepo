@@ -23,3 +23,10 @@ dotnet build "$mod_root/src/BenheimTestCommands.csproj" \
   --configuration Release \
   -p:ValheimManagedDir="$managed_dir" \
   -p:BepInExCoreDir="$bepinex_core_dir"
+
+install -d "$mod_root/dist"
+install -m 0644 \
+  "$mod_root/src/bin/Release/netstandard2.1/BenheimTestCommands.dll" \
+  "$mod_root/dist/BenheimTestCommands.dll"
+
+shasum -a 256 "$mod_root/dist/BenheimTestCommands.dll"

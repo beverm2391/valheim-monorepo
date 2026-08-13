@@ -98,10 +98,13 @@ scripts/set-server-mods.sh disable
 
 `server/valheim-start` owns vanilla and modded launch paths. Set
 `VALHEIM_MODDED=0` for recovery: it bypasses BepInEx without deleting installed
-mod files or configuration. `scripts/install-server-mods.sh` owns pinned
-package versions and checksums, stages downloads before downtime, takes a
-stopped-server backup, and falls back to the vanilla path if installation
-fails. New server mods must be removable without changing the world save.
+mod files or configuration. `PRODUCT.md` owns the exact approved first-party
+plugin set. `scripts/install-server-mods.sh` owns its pinned package versions
+and checksums and enforces that allowlist. It stages the whole stack before
+downtime, takes one stopped-server backup, and restores the previous stack or
+the vanilla path if installation fails. Do not auto-discover plugins from
+`server-mods/`. New server mods must be removable without changing the world
+save.
 
 `scripts/apply-server-config.sh` owns routine deployment of the launcher and
 the generated `/etc/valheim/server.env`. It combines non-secret local settings

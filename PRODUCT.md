@@ -42,8 +42,9 @@ promise.
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
-BepInEx loads the mods. Benheim Eternal Fire does not depend on a shared mod
-library.
+The approved server plugin stack consists of one shared BepInEx installation
+and exactly two first-party plugins: Benheim Eternal Fire and Benheim Test
+Commands. Neither plugin requires another shared mod library.
 
 Benheim's detailed product behavior is owned by
 [`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Benheim Eternal

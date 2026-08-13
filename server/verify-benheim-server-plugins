@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+invocation_id=${1:?Usage: verify-benheim-server-plugins <systemd-invocation-id> <world-name>}
+world=${2:?Usage: verify-benheim-server-plugins <systemd-invocation-id> <world-name>}
+journalctl_bin=${JOURNALCTL_BIN:-journalctl}
+systemctl_bin=${SYSTEMCTL_BIN:-systemctl}
+sleep_bin=${SLEEP_BIN:-sleep}
+unit=${VALHEIM_SYSTEMD_UNIT:-valheim.service}
+
+expected_logs=(
+  "Load world: $world ($world)"
+  "Game server connected"
+  "Benheim Eternal Fire 0.1.1 loaded after PatchAll."
+  "Benheim Test Commands 0.1.0 loaded with direct peer RPC authorization."
+)
+
+for attempt in $(seq 1 45); do
+  active_invocation="$($systemctl_bin show --property=InvocationID --value "$unit")"
+  if [[ "$active_invocation" != "$invocation_id" ]]; then
+    echo "Valheim left systemd invocation $invocation_id before stack verification completed." >&2
+    exit 1
+  fi
+
+  logs="$($journalctl_bin -u "$unit" "_SYSTEMD_INVOCATION_ID=$invocation_id" --no-pager)"
+  complete=1
+  for expected in "${expected_logs[@]}"; do
+    if ! grep -Fq -- "$expected" <<<"$logs"; then
+      complete=0
+      break
+    fi
+  done
+  if (( complete == 1 )); then
+    printf 'Verified: %s\n' "${expected_logs[@]}"
+    exit 0
+  fi
+
+  "$systemctl_bin" is-active --quiet "$unit" || exit 1
+  "$sleep_bin" 2
+done
+
+echo "Valheim invocation $invocation_id did not load the configured world and approved plugin stack within 90 seconds." >&2
+exit 1
