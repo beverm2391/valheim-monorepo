@@ -8,6 +8,13 @@ using Object = UnityEngine.Object;
 
 namespace BenheimQoL;
 
+internal enum TopLeftFeedbackResult
+{
+    Unavailable,
+    CreatedNotPlaced,
+    Placed
+}
+
 /// <summary>
 /// Owns the small Benheim feedback lane below the live hotbar.
 ///
@@ -67,7 +74,7 @@ internal static class TopLeftFeedbackHud
     /// or another short message refreshes the one transient slot instead of
     /// growing an unhelpful duplicate stack. Grouped entries remain intact.
     /// </summary>
-    internal static void ShowTransient(string message)
+    internal static TopLeftFeedbackResult ShowTransient(string message)
     {
         PruneDestroyedEntries();
         for (int i = Entries.Count - 1; i >= 0; i--)
@@ -88,14 +95,19 @@ internal static class TopLeftFeedbackHud
         TMP_Text? text = CreateText();
         if (!text)
         {
-            return;
+            return TopLeftFeedbackResult.Unavailable;
         }
 
         text.text = message;
         text.alpha = 1f;
         text.gameObject.SetActive(true);
         Entries.Add(new Entry(text, TransientDurationSeconds, FadeSeconds, transient: true));
-        PlaceEntriesBelowHotbar();
+        return PlaceEntriesBelowHotbar()
+            && text.gameObject.activeInHierarchy
+            && text.canvasRenderer.GetAlpha() > VisibleAlphaThreshold
+            && text.alpha > VisibleAlphaThreshold
+            ? TopLeftFeedbackResult.Placed
+            : TopLeftFeedbackResult.CreatedNotPlaced;
     }
 
     internal static void Update()
@@ -188,16 +200,20 @@ internal static class TopLeftFeedbackHud
         TMP_Text text = Object.Instantiate(template, parent);
         text.name = "benheim-top-left-feedback";
         text.alignment = TextAlignmentOptions.TopLeft;
+        // Valheim keeps m_messageText hidden with CrossFadeAlpha(0). The clone
+        // inherits that CanvasRenderer alpha; TMP_Text.alpha changes only the
+        // text color and cannot make the hidden renderer visible.
+        text.canvasRenderer.SetAlpha(1f);
         text.gameObject.SetActive(false);
         return text;
     }
 
-    private static void PlaceEntriesBelowHotbar()
+    private static bool PlaceEntriesBelowHotbar()
     {
         PruneDestroyedEntries();
         if (Entries.Count == 0 || Entries[0].Text.rectTransform.parent is not RectTransform parent)
         {
-            return;
+            return false;
         }
 
         TMP_Text firstText = Entries[0].Text;
@@ -255,7 +271,7 @@ internal static class TopLeftFeedbackHud
                 uiCamera,
                 out Vector2 localPoint))
             {
-                return;
+                return false;
             }
 
             rect.anchorMin = parent.pivot;
@@ -264,6 +280,8 @@ internal static class TopLeftFeedbackHud
             rect.anchoredPosition = localPoint;
             currentTop -= EntrySizes[i].y + gap;
         }
+
+        return true;
     }
 
     private static TopLeftFeedbackRect ToLayoutRect(Rect rect)

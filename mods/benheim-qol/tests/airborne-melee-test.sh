@@ -8,6 +8,7 @@ tuning="$root/src/WeaponRhythm/AirborneMeleeTuning.cs"
 native_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_attack="$native_tree/Attack.cs"
 native_character="$native_tree/Character.cs"
+native_message_hud="$native_tree/MessageHud.cs"
 
 # Resolve the exact installed assembly through the same evidence owner used by
 # ensure-valheim-source. The generated area-hit method is compiler-shaped, so
@@ -68,7 +69,7 @@ rg -Fq 'Vector3 towardContact = hit.m_point - localPlayer.transform.position' "$
 rg -Fq 'AirborneMeleeRules.ProjectPlanarVelocityToward(' "$logic"
 rg -Fq 'hit.m_damage.Modify(AirborneMeleeTuning.DamageMultiplier)' "$logic"
 rg -Fq 'hit.m_staggerMultiplier *= AirborneMeleeTuning.StaggerMultiplier' "$logic"
-rg -Fq 'TopLeftFeedbackHud.ShowTransient(SuccessMessage)' "$logic"
+rg -Fq 'TopLeftFeedbackResult feedbackResult = TopLeftFeedbackHud.ShowTransient(SuccessMessage)' "$logic"
 rg -Fq 'CombatFeedbackController.RequestShake(CombatFeedbackTrigger.PerfectImpact)' "$logic"
 rg -Fq 'lastFeedbackFrame == currentFrame' "$logic"
 rg -Fq 'target.Damage(hit)' "$logic"
@@ -81,16 +82,24 @@ rg -Fq 'vertical_speed=' "$logic"
 rg -Fq 'descent_threshold=' "$logic"
 rg -Fq 'toward_target_speed=' "$logic"
 rg -Fq 'approach_threshold=' "$logic"
-rg -Fq 'feedback={(feedbackShown ? "shown" : "same_outcome_coalesced")}' "$logic"
+rg -Fq 'TopLeftFeedbackResult.Placed => "placed"' "$logic"
+rg -Fq 'TopLeftFeedbackResult.CreatedNotPlaced => "created_not_placed"' "$logic"
+rg -Fq '_ => "unavailable"' "$logic"
+rg -Fq 'return "same_outcome_coalesced"' "$logic"
 
 rg -Fq 'internal const float DescentThreshold = -0.5f' "$tuning"
 rg -Fq 'internal const float ApproachSpeedThreshold = 7f' "$tuning"
 rg -Fq 'internal const float DamageMultiplier = 1.15f' "$tuning"
-rg -Fq 'internal const float StaggerMultiplier = 2f' "$tuning"
+rg -Fq 'internal const float StaggerMultiplier = 3f' "$tuning"
 rg -Fq 'private void DoMeleeAttack()' "$native_attack"
 rg -Fq 'private void DoAreaAttack()' "$native_attack"
 rg -Fq 'public Vector3 GetVelocity()' "$native_character"
 rg -Fq 'return m_body.linearVelocity;' "$native_character"
+rg -Fq 'm_messageText.CrossFadeAlpha(0f, 0f, ignoreTimeScale: true)' "$native_message_hud"
+if rg -Fq 'feedback=shown' "$logic"; then
+  printf 'Perfect Impact diagnostics must report the shared lane outcome, not claim shown\n' >&2
+  exit 1
+fi
 
 if rg -n --glob '*.cs' \
     'HarmonyPatch\(typeof\(Character\).*Damage|RPC_|Update\(|FixedUpdate\(' \

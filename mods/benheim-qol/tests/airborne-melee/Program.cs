@@ -93,7 +93,7 @@ ExpectNear(0f, AirborneMeleeRules.ProjectPlanarVelocityToward(8f, 3f, 0f, 0f),
 ExpectNear(-0.5f, AirborneMeleeTuning.DescentThreshold, "descent threshold rejects apex jitter");
 ExpectNear(7f, AirborneMeleeTuning.ApproachSpeedThreshold, "approach threshold requires native sprint-band momentum");
 ExpectNear(1.15f, AirborneMeleeTuning.DamageMultiplier, "damage tuning stays modest");
-ExpectNear(2f, AirborneMeleeTuning.StaggerMultiplier, "stagger tuning is substantially stronger");
+ExpectNear(3f, AirborneMeleeTuning.StaggerMultiplier, "stagger tuning creates the committed approach opening");
 
 Console.WriteLine("airborne melee qualification and tuning checks passed");
 return;

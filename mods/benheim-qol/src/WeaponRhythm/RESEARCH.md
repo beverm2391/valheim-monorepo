@@ -195,7 +195,7 @@ controller project, not a small Weapon Rhythm patch.
 
 `Character.GetVelocity()` is the canonical velocity seam at contact. It
 returns the live Rigidbody velocity for the owning character and replicated
-velocity for a remote character. Airborne Melee reads the local owner's
+velocity for a remote character. Perfect Impact reads the local owner's
 velocity at the same authored hit call that creates the outgoing `HitData`. It
 combines the vertical component with native `IsOnGround()`; it does not infer
 the jump phase from a timer or stored state.
@@ -301,13 +301,13 @@ above.
 
 ## Current Benheim interactions
 
-The current experimental Airborne Melee implementation redirects only the
+The current experimental Perfect Impact implementation redirects only the
 direct damage calls in `Attack.DoMeleeAttack()` and the generated area-hit
 routine. It modifies the outgoing native hit only when the local player is off
 the ground, descending at or below `-0.5 m/s`, and carrying at least `7 m/s`
 toward the authored contact point. A qualified hit applies the experimental
-`1.15x` damage and `2x` stagger multipliers. It does not patch `Character.Damage`,
-`ZSyncAnimation`, `Animator`, or melee movement.
+`1.15x` damage and `3x` stagger multipliers. It does not patch
+`Character.Damage`, `ZSyncAnimation`, `Animator`, or melee movement.
 
 Qualified contacts use Benheim's existing attacker-local transient text lane
 for `PERFECT IMPACT` and request the existing Combat Feedback shake controller.
@@ -316,6 +316,17 @@ area or multi-target outcome does not repeat the feedback for every target.
 This does not change per-target qualification or damage. The text is semantic
 gameplay feedback; only the shake follows the Benheim FX and Combat Shake
 settings.
+
+Valheim hides the native top-left message template with
+`m_messageText.CrossFadeAlpha(0)`. `Graphic.CrossFadeAlpha()` writes the
+`CanvasRenderer` color alpha, while `TMP_Text.alpha` writes only the text color
+alpha. The first Perfect Impact candidate cloned the hidden template and set
+only `TMP_Text.alpha`, so the clone retained an invisible renderer even though
+the caller logged `feedback=shown`. The shared lane now resets the cloned
+renderer alpha and reports `unavailable`, `created_not_placed`, or `placed` to
+the caller. This corrects the source-proven renderer-alpha defect for every
+Benheim caller. Gameplay still must prove that the text is visible. The change
+does not add a second feedback surface.
 
 The shortcut overlay patches `Player.TakeInput()` and `Menu.IsVisible()` to
 block gameplay while the menu is open. Rhythm input should remain behind the
@@ -329,7 +340,7 @@ coupling.
 
 Archery changes ranged `Projectile.OnHit()` behavior. Mining and woodcutting
 change `MineRock`, `MineRock5`, `TreeBase`, and `TreeLog` damage. A generic
-damage patch would collide with these features. Airborne Melee instead changes
+damage patch would collide with these features. Perfect Impact instead changes
 only outgoing native melee hits whose resolved target is a `Character`.
 
 Benheim disables gameplay actions when a required Harmony patch fails. A small

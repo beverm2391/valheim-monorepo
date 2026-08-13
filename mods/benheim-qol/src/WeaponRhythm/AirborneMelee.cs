@@ -38,7 +38,7 @@ internal static class AirborneMelee
             {
                 hit.m_damage.Modify(AirborneMeleeTuning.DamageMultiplier);
                 hit.m_staggerMultiplier *= AirborneMeleeTuning.StaggerMultiplier;
-                bool feedbackShown = ShowPerfectImpactFeedback();
+                string feedbackResult = ShowPerfectImpactFeedback();
                 Diagnostics.Event(
                     "WeaponRhythm",
                     "airborne_melee_applied",
@@ -49,7 +49,7 @@ internal static class AirborneMelee
                     $"approach_threshold={AirborneMeleeTuning.ApproachSpeedThreshold:0.00} " +
                     $"damage_multiplier={AirborneMeleeTuning.DamageMultiplier:0.##} " +
                     $"stagger_multiplier={AirborneMeleeTuning.StaggerMultiplier:0.##} " +
-                    $"feedback={(feedbackShown ? "shown" : "same_outcome_coalesced")}");
+                    $"feedback={feedbackResult}");
             }
             else
             {
@@ -73,7 +73,7 @@ internal static class AirborneMelee
         target.Damage(hit);
     }
 
-    private static bool ShowPerfectImpactFeedback()
+    private static string ShowPerfectImpactFeedback()
     {
         // A native area or multi-target melee outcome resolves its target
         // contacts synchronously in one frame. Coalescing presentation at that
@@ -82,13 +82,18 @@ internal static class AirborneMelee
         int currentFrame = Time.frameCount;
         if (lastFeedbackFrame == currentFrame)
         {
-            return false;
+            return "same_outcome_coalesced";
         }
 
         lastFeedbackFrame = currentFrame;
-        TopLeftFeedbackHud.ShowTransient(SuccessMessage);
+        TopLeftFeedbackResult feedbackResult = TopLeftFeedbackHud.ShowTransient(SuccessMessage);
         CombatFeedbackController.RequestShake(CombatFeedbackTrigger.PerfectImpact);
-        return true;
+        return feedbackResult switch
+        {
+            TopLeftFeedbackResult.Placed => "placed",
+            TopLeftFeedbackResult.CreatedNotPlaced => "created_not_placed",
+            _ => "unavailable"
+        };
     }
 
     private static string TargetName(Character target)

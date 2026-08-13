@@ -13,5 +13,5 @@ internal static class AirborneMeleeTuning
     internal const float ApproachSpeedThreshold = 7f;
 
     internal const float DamageMultiplier = 1.15f;
-    internal const float StaggerMultiplier = 2f;
+    internal const float StaggerMultiplier = 3f;
 }

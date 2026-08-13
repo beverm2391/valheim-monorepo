@@ -65,6 +65,13 @@ grep -Fq 'TopLeftFeedbackHud.ShowGrouped(message)' "$quick_stack_feedback"
 grep -Fq 'TopLeftFeedbackHud.ShowTransient(message)' "$controller"
 grep -Fq 'TopLeftFeedbackHud.ShowTransient("Put Away already in progress")' "$quick_stack"
 grep -Fq 'Object.Instantiate(template, parent)' "$top_left_feedback_hud"
+grep -Fq 'text.canvasRenderer.SetAlpha(1f)' "$top_left_feedback_hud"
+grep -Fq 'text.canvasRenderer.GetAlpha() > VisibleAlphaThreshold' "$top_left_feedback_hud"
+grep -Fq 'text.gameObject.activeInHierarchy' "$top_left_feedback_hud"
+grep -Fq 'internal static TopLeftFeedbackResult ShowTransient' "$top_left_feedback_hud"
+grep -Fq 'TopLeftFeedbackResult.Unavailable' "$top_left_feedback_hud"
+grep -Fq 'TopLeftFeedbackResult.CreatedNotPlaced' "$top_left_feedback_hud"
+grep -Fq 'TopLeftFeedbackResult.Placed' "$top_left_feedback_hud"
 grep -Fq 'Entry' "$top_left_feedback_hud"
 grep -Fq 'Entries.Add' "$top_left_feedback_hud"
 grep -Fq 'GroupedDurationSeconds = 5f' "$top_left_feedback_hud"
@@ -114,7 +121,7 @@ if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
   printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
   exit 1
 fi
-grep -Fq 'PluginVersion = "0.1.59"' "$client_plugin"
+grep -Fq 'PluginVersion = "0.1.60"' "$client_plugin"
 if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol' "$root/src"; then
   printf 'client Put Away must not retain protocol machinery\n' >&2
   exit 1
