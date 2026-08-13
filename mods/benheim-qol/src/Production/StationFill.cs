@@ -192,18 +192,15 @@ internal static class StationFill
         {
             StationSyncState sync = getSyncState();
             string stationIdentity = GetStationIdentity(station);
-
-            Diagnostics.Event(
-                "Production",
-                "station_fill_started",
-                $"station={stationIdentity} input={inputKind} " +
-                $"level={level:0.###} capacity={capacity:0.###} " +
-                $"selected={(selectedItemName == null ? "auto" : Diagnostics.Flatten(selectedItemName))} " +
-                sync.Describe());
+            string operationId = StationFillDiagnostics.Started(
+                stationIdentity, inputKind, level, capacity, selectedItemName,
+                sync.OwnerKind, sync.OwnerId, sync.Valid,
+                sync.DataRevision);
             station.StartCoroutine(Fill(
                 station,
                 user,
                 activeKey,
+                operationId,
                 inputKind,
                 stationIdentity,
                 getLevel,
@@ -223,6 +220,7 @@ internal static class StationFill
         MonoBehaviour station,
         Humanoid user,
         string activeKey,
+        string operationId,
         string inputKind,
         string stationIdentity,
         Func<float> getLevel,
@@ -289,13 +287,20 @@ internal static class StationFill
                 confirmed == 1 ? "Filled 1 item" : $"Filled {confirmed} items");
         }
 
-        Diagnostics.Event(
-            "Production",
-            "station_fill_finished",
-            $"station={stationIdentity} input={inputKind} " +
-            $"attempted={attempted} confirmed={confirmed} result={result} " +
-            $"level={lastLevel:0.###}/{capacity:0.###} " +
-            $"elapsed={Time.unscaledTime - startedAt:0.###} {lastSync.Describe()}");
+        StationFillDiagnostics.Finished(
+            operationId,
+            stationIdentity,
+            inputKind,
+            attempted,
+            confirmed,
+            result,
+            lastLevel,
+            capacity,
+            Time.unscaledTime - startedAt,
+            lastSync.OwnerKind,
+            lastSync.OwnerId,
+            lastSync.Valid,
+            lastSync.DataRevision);
     }
 
     private static bool InvokeVanilla(
@@ -436,11 +441,9 @@ internal static class StationFill
             dataRevision = zdo?.DataRevision ?? 0u;
         }
 
-        internal string Describe()
-        {
-            string ownerKind = !hasOwner ? "none" : owner ? "local" : "remote";
-            return $"owner={ownerKind} owner_id={ownerId} zdo_valid={Diagnostics.Bool(valid)} " +
-                $"data_revision={dataRevision}";
-        }
+        internal bool Valid => valid;
+        internal string OwnerKind => !hasOwner ? "none" : owner ? "local" : "remote";
+        internal long OwnerId => ownerId;
+        internal long DataRevision => dataRevision;
     }
 }

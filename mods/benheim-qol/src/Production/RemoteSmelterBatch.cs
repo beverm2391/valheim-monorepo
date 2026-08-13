@@ -115,7 +115,9 @@ internal static class RemoteSmelterBatch
 
         ZNetView view = View(station)!;
         long owner = view.GetZDO().GetOwner();
+        string operationId = Diagnostics.NewOperationId();
         PendingFill pending = new PendingFill(
+            operationId,
             input,
             owner,
             requested,
@@ -126,15 +128,23 @@ internal static class RemoteSmelterBatch
         Pending.Add(key, pending);
 
         string prefab = material.m_dropPrefab.name;
-        Diagnostics.Event(
-            "Production",
-            "station_fill_requested",
-            $"station={Identity(station)} input={InputName(input)} requester={ZDOMan.GetSessionID()} " +
-            $"owner={owner} requested={requested} material={Diagnostics.Flatten(prefab)}");
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("Production", "station_fill_requested")
+                .String("operation_id", operationId)
+                .String("operation_phase", "start")
+                .String("station", Identity(station))
+                .String("input", InputName(input))
+                .String("item", prefab)
+                .Integer("requester_peer", ZDOMan.GetSessionID())
+                .Integer("owner_peer", owner)
+                .Integer("requested", requested));
 
         ZPackage package = new ZPackage();
         package.Write(requested);
         package.Write(prefab);
+        // Append correlation after the established payload. Older owners read
+        // the same requested/item fields and ignore the tail.
+        package.Write(operationId);
         try
         {
             view.InvokeRPC(RequestRpc, input, package);
@@ -143,8 +153,7 @@ internal static class RemoteSmelterBatch
         {
             Pending.Remove(key);
             Refund(pending, 0, out int returned, out int dropped);
-            Finish(station, pending, 0, returned, dropped,
-                $"request_failed error={Diagnostics.Flatten(ex.Message)}");
+            Finish(station, pending, 0, returned, dropped, "request_failed", ex.Message);
         }
         return true;
     }
@@ -157,6 +166,7 @@ internal static class RemoteSmelterBatch
             return;
         }
 
+        string operationId = string.Empty;
         int requested = 0;
         string prefab = string.Empty;
         bool valid = false;
@@ -164,17 +174,28 @@ internal static class RemoteSmelterBatch
         {
             requested = package.ReadInt();
             prefab = package.ReadString();
+            operationId = package.GetPos() < package.Size()
+                ? package.ReadString()
+                : string.Empty;
             int limit = input == OreInput ? station.m_maxOre : station.m_maxFuel;
             valid = (input == OreInput || input == FuelInput) &&
                 requested > 0 && requested <= limit && IsAllowed(station, input, prefab);
         }
         catch (Exception ex)
         {
-            Diagnostics.Event(
-                "Production",
-                "station_fill_request_rejected",
-                $"station={Identity(station)} input={InputName(input)} requester={requester} " +
-                $"owner={ZDOMan.GetSessionID()} result=malformed error={Diagnostics.Flatten(ex.Message)}");
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("Production", "station_fill_request_rejected")
+                    .String("operation_id", operationId)
+                    .String("operation_phase", "decision")
+                    .String("station", Identity(station))
+                    .String("input", InputName(input))
+                    .String("item", prefab)
+                    .Integer("requester_peer", requester)
+                    .Integer("owner_peer", ZDOMan.GetSessionID())
+                    .Integer("requested", requested)
+                    .Integer("accepted", 0)
+                    .String("result", "malformed")
+                    .String("error", ex.Message));
         }
 
         float before = Level(station, input);
@@ -186,12 +207,20 @@ internal static class RemoteSmelterBatch
         }
 
         string result = accepted == 0 ? "rejected" : accepted < requested ? "partial" : "complete";
-        Diagnostics.Event(
-            "Production",
-            "station_fill_owner_result",
-            $"station={Identity(station)} input={InputName(input)} requester={requester} " +
-            $"owner={ZDOMan.GetSessionID()} requested={requested} accepted={accepted} " +
-            $"level={before:0.###}->{Level(station, input):0.###} result={result}");
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("Production", "station_fill_owner_result")
+                .String("operation_id", operationId)
+                .String("operation_phase", "decision")
+                .String("station", Identity(station))
+                .String("input", InputName(input))
+                .String("item", prefab)
+                .Integer("requester_peer", requester)
+                .Integer("owner_peer", ZDOMan.GetSessionID())
+                .Integer("requested", requested)
+                .Integer("accepted", accepted)
+                .Number("level_before", before)
+                .Number("level_after", Level(station, input))
+                .String("result", result));
         view.InvokeRPC(requester, ResultRpc, input, accepted);
     }
 
@@ -202,13 +231,17 @@ internal static class RemoteSmelterBatch
         {
             return;
         }
+
         if (owner != pending.Owner || input != pending.Input)
         {
-            Diagnostics.Event(
-                "Production",
-                "station_fill_result_ignored",
-                $"station={Identity(station)} input={InputName(input)} requester={ZDOMan.GetSessionID()} " +
-                $"owner={owner} expected_owner={pending.Owner}");
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("Production", "station_fill_result_ignored")
+                    .String("operation_id", pending.OperationId)
+                    .String("station", Identity(station))
+                    .String("input", InputName(input))
+                    .Integer("requester_peer", ZDOMan.GetSessionID())
+                    .Integer("owner_peer", owner)
+                    .Integer("expected_owner_peer", pending.Owner));
             return;
         }
 
@@ -219,7 +252,12 @@ internal static class RemoteSmelterBatch
         {
             MarkOreAdded(station);
         }
-        Finish(station, pending, bounded, returned, dropped,
+        Finish(
+            station,
+            pending,
+            bounded,
+            returned,
+            dropped,
             bounded == 0 ? "rejected" : bounded < pending.Requested ? "partial" : "complete");
     }
 
@@ -299,7 +337,8 @@ internal static class RemoteSmelterBatch
         int accepted,
         int returned,
         int dropped,
-        string result)
+        string result,
+        string? error = null)
     {
         if (pending.User)
         {
@@ -307,13 +346,26 @@ internal static class RemoteSmelterBatch
                 MessageHud.MessageType.Center,
                 accepted == 1 ? "Filled 1 item" : $"Filled {accepted} items");
         }
-        Diagnostics.Event(
-            "Production",
-            "station_fill_finished",
-            $"station={Identity(station)} input={InputName(pending.Input)} " +
-            $"requester={ZDOMan.GetSessionID()} owner={pending.Owner} requested={pending.Requested} " +
-            $"accepted={accepted} refunded={returned} dropped={dropped} result={result} " +
-            $"elapsed={Time.unscaledTime - pending.StartedAt:0.###}");
+        DiagnosticEvent diagnosticEvent =
+            DiagnosticEvent.Create("Production", "station_fill_finished")
+                .String("operation_id", pending.OperationId)
+                .String("operation_phase", "terminal")
+                .String("station", Identity(station))
+                .String("input", InputName(pending.Input))
+                .String("item", pending.ItemPrefab)
+                .Integer("requester_peer", ZDOMan.GetSessionID())
+                .Integer("owner_peer", pending.Owner)
+                .Integer("requested", pending.Requested)
+                .Integer("accepted", accepted)
+                .Integer("refunded", returned)
+                .Integer("dropped", dropped)
+                .String("result", result)
+                .Number("elapsed", Time.unscaledTime - pending.StartedAt);
+        if (error != null)
+        {
+            diagnosticEvent.String("error", error);
+        }
+        Diagnostics.Emit(diagnosticEvent);
     }
 
     private static void MarkOreAdded(Smelter station)
@@ -341,6 +393,7 @@ internal static class RemoteSmelterBatch
     private sealed class PendingFill
     {
         internal PendingFill(
+            string operationId,
             int input,
             long owner,
             int requested,
@@ -349,6 +402,7 @@ internal static class RemoteSmelterBatch
             Inventory inventory,
             float startedAt)
         {
+            OperationId = operationId;
             Input = input;
             Owner = owner;
             Requested = requested;
@@ -356,8 +410,12 @@ internal static class RemoteSmelterBatch
             User = user;
             Inventory = inventory;
             StartedAt = startedAt;
+            ItemPrefab = refundTemplate.m_dropPrefab == null
+                ? "unknown"
+                : refundTemplate.m_dropPrefab.name;
         }
 
+        internal string OperationId { get; }
         internal int Input { get; }
         internal long Owner { get; }
         internal int Requested { get; }
@@ -365,5 +423,6 @@ internal static class RemoteSmelterBatch
         internal Humanoid User { get; }
         internal Inventory Inventory { get; }
         internal float StartedAt { get; }
+        internal string ItemPrefab { get; }
     }
 }

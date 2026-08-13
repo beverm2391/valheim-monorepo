@@ -44,8 +44,17 @@ The Production module fills routine station inputs without repeated clicks.
   refunds the rejected remainder. Benheim does not retry the request or
   preserve state after a disconnect or crash.
 - Show one centered summary with the number of items added.
-- Production diagnostics record the requester, owner, requested amount,
-  accepted amount, refunded amount, result, and elapsed time.
+- Station Fill diagnostics give each operation an ID. They record the start,
+  the station owner's decision when the operation uses an owner, the accepted
+  amount, the refunded and dropped amounts, the terminal result, and the
+  elapsed time.
+- Stone Oven diagnostics separately record the requester's attempt through
+  Valheim's native cooking action and inventory removal, the current owner's
+  acceptance or rejection, cooked and burned slot transitions, and spawned
+  output. Valheim's native cooking RPC does not carry a Benheim operation ID.
+  Benheim therefore does not report separate requester and owner records as
+  linked. Valheim does not persist which oven spawned an item, so Benheim does
+  not report a later pickup as an oven event.
 - The next multiplayer proof must fill an empty remote-owned Windmill, then a
   nearly full remote-owned Windmill. Inventory and station counts must match
   the reported accepted and refunded amounts immediately after each result.

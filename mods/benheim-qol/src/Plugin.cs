@@ -28,6 +28,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Log = Logger;
+        Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
         BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();
         try
@@ -83,6 +84,7 @@ public sealed class Plugin : BaseUnityPlugin
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
+        Diagnostics.EndSession();
         TryRemoveFailedPatches(logFailure: false);
     }
 

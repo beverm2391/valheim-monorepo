@@ -7,6 +7,7 @@ log_dir="$HOME/Library/Logs/BenheimQoL"
 log_file="$log_dir/launch.log"
 steam_connection_log="${BENHEIM_STEAM_CONNECTION_LOG:-$HOME/Library/Application Support/Steam/logs/connection_log.txt}"
 bepinex_log_file="$game_dir/BepInEx/LogOutput.log"
+structured_event_file="$game_dir/BepInEx/BenheimEvents.ndjson"
 archive_dir="$game_dir/BepInEx/BenheimLogArchive"
 archive_prefix='Benheim-session-'
 
@@ -35,21 +36,34 @@ prune_archives() {
     return 0
   fi
 
-  [ -n "$candidates" ] || return 0
-  kept=0
-  while IFS= read -r candidate; do
-    [ -n "$candidate" ] || continue
-    kept=$((kept + 1))
-    if [ "$kept" -gt 10 ] && ! rm -f "$candidate"; then
-      warn "Could not prune a Benheim session archive; continuing launch."
-    fi
-  done <<EOF
+  if [ -n "$candidates" ]; then
+    kept=0
+    while IFS= read -r candidate; do
+      [ -n "$candidate" ] || continue
+      kept=$((kept + 1))
+      if [ "$kept" -gt 10 ] && ! rm -f "$candidate"; then
+        warn "Could not prune a Benheim session archive; continuing launch."
+      elif [ "$kept" -gt 10 ]; then
+        rm -f "${candidate%.log}.ndjson" 2>/dev/null || \
+          warn "Could not prune a Benheim structured event archive; continuing launch."
+      fi
+    done <<EOF
 $candidates
 EOF
+  fi
+
+  for event_archive in "$archive_dir"/$archive_prefix*.ndjson; do
+    [ -f "$event_archive" ] || continue
+    [ -f "${event_archive%.ndjson}.log" ] || rm -f "$event_archive" 2>/dev/null || \
+      warn "Could not prune an orphaned Benheim structured event archive; continuing launch."
+  done
 }
 
 archive_previous_session() {
-  [ -f "$bepinex_log_file" ] || return 0
+  if [ ! -f "$bepinex_log_file" ]; then
+    prune_archives
+    return 0
+  fi
 
   if ! mkdir -p "$archive_dir"; then
     warn "Could not create the Benheim session archive directory; continuing launch."
@@ -80,6 +94,18 @@ archive_previous_session() {
   if ! cp "$bepinex_log_file" "$archive_path"; then
     rm -f "$archive_path" 2>/dev/null || true
     warn "Could not archive the previous BepInEx log; continuing launch."
+    return 0
+  fi
+
+  event_archive_path="${archive_path%.log}.ndjson"
+  if [ -f "$structured_event_file" ]; then
+    event_source="$structured_event_file"
+  else
+    event_source=/dev/null
+  fi
+  if ! cp "$event_source" "$event_archive_path"; then
+    rm -f "$archive_path" "$event_archive_path" 2>/dev/null || true
+    warn "Could not archive the previous Benheim session; continuing launch."
     return 0
   fi
 

@@ -246,6 +246,13 @@ Diagnostic events use `[diag][Feature] action key=value`. Log player actions,
 important decisions, and results. Do not log every frame. Keep normal BepInEx
 warning and error logging enabled.
 
+Benheim writes each structured diagnostic event to
+`BepInEx/BenheimEvents.ndjson` as a newline-delimited JSON record. Each event
+also renders its readable `[diag]` line. Use
+`mods/benheim-qol/scripts/query-events.py --help` to stream current or archived
+event files, filter fields, or find operations that started without a terminal
+event. The command uses only the Python standard library.
+
 ## Client mod rules
 
 - Keep one Benheim client DLL.

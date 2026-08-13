@@ -39,17 +39,17 @@ internal static class AirborneMelee
                 hit.m_damage.Modify(AirborneMeleeTuning.DamageMultiplier);
                 hit.m_staggerMultiplier *= AirborneMeleeTuning.StaggerMultiplier;
                 string feedbackResult = ShowPerfectImpactFeedback();
-                Diagnostics.Event(
-                    "WeaponRhythm",
-                    "airborne_melee_applied",
-                    $"skill={hit.m_skill} target={TargetName(targetCharacter)} " +
-                    $"vertical_speed={verticalSpeed:0.00} " +
-                    $"descent_threshold={AirborneMeleeTuning.DescentThreshold:0.00} " +
-                    $"toward_target_speed={towardTargetSpeed:0.00} " +
-                    $"approach_threshold={AirborneMeleeTuning.ApproachSpeedThreshold:0.00} " +
-                    $"damage_multiplier={AirborneMeleeTuning.DamageMultiplier:0.##} " +
-                    $"stagger_multiplier={AirborneMeleeTuning.StaggerMultiplier:0.##} " +
-                    $"feedback={feedbackResult}");
+                Diagnostics.Emit(
+                    DiagnosticEvent.Create("WeaponRhythm", "airborne_melee_applied")
+                        .String("skill", hit.m_skill.ToString())
+                        .String("target", TargetName(targetCharacter))
+                        .Number("vertical_speed", verticalSpeed)
+                        .Number("descent_threshold", AirborneMeleeTuning.DescentThreshold)
+                        .Number("toward_target_speed", towardTargetSpeed)
+                        .Number("approach_threshold", AirborneMeleeTuning.ApproachSpeedThreshold)
+                        .Number("damage_multiplier", AirborneMeleeTuning.DamageMultiplier)
+                        .Number("stagger_multiplier", AirborneMeleeTuning.StaggerMultiplier)
+                        .String("feedback", feedbackResult));
             }
             else
             {
@@ -58,15 +58,18 @@ internal static class AirborneMelee
                     : verticalSpeed > AirborneMeleeTuning.DescentThreshold
                         ? "rising_or_apex"
                         : "insufficient_approach";
-                Diagnostics.Event(
-                    "WeaponRhythm",
-                    "airborne_melee_skipped",
-                    $"reason={reason} " +
-                    $"skill={hit.m_skill} target={TargetName(targetCharacter)} " +
-                    $"vertical_speed={verticalSpeed:0.00} " +
-                    $"descent_threshold={AirborneMeleeTuning.DescentThreshold:0.00} " +
-                    $"toward_target_speed={towardTargetSpeed:0.00} " +
-                    $"approach_threshold={AirborneMeleeTuning.ApproachSpeedThreshold:0.00}");
+                Diagnostics.Emit(
+                    DiagnosticEvent.Create("WeaponRhythm", "airborne_melee_skipped")
+                        .String("reason", reason)
+                        .String("skill", hit.m_skill.ToString())
+                        .String("target", TargetName(targetCharacter))
+                        .Number("vertical_speed", verticalSpeed)
+                        .Number("descent_threshold", AirborneMeleeTuning.DescentThreshold)
+                        .Number("toward_target_speed", towardTargetSpeed)
+                        .Number("approach_threshold", AirborneMeleeTuning.ApproachSpeedThreshold)
+                        .Number("damage_multiplier", AirborneMeleeTuning.DamageMultiplier)
+                        .Number("stagger_multiplier", AirborneMeleeTuning.StaggerMultiplier)
+                        .String("feedback", "not_requested"));
             }
         }
 

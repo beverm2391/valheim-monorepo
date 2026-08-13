@@ -86,6 +86,16 @@ technical cost.
   active log. If the previous run crashed, the next managed launch archives
   the leftover log. If archiving fails, the launcher shows a visible warning
   that does not block the managed launch.
+- Benheim renders each structured event from one event object. It produces both
+  a readable `[diag]` line and a newline-delimited JSON record. JSON records
+  include a schema version, UTC timestamp, session, Benheim version, domain,
+  event name, and queryable typed fields. Historical free-form diagnostics
+  remain text-only until their domain needs stable fields.
+- Managed launches archive `BenheimEvents.ndjson` next to the text-log archive
+  for the same session. Both archive types keep the same ten newest sessions.
+  The repo-owned developer query command streams these files and can find
+  operations that started but did not reach a terminal event. Players do not
+  need that command to play.
 - `F7` remains the manual way to export the active log for sharing.
 - Make each required client and server component explicit. Active players in
   our regular group must use mutually compatible Benheim versions.
