@@ -186,3 +186,20 @@ without interrupting unrelated gameplay.
 - Make mining progression configurable.
 - Decide whether batch crafting should go beyond Valheim's native controls.
 - Food or rested HUD only after its gameplay value justifies more UI.
+
+### Future Idea: Berserk Ooze Bomb
+
+A Berserk Ooze Bomb would temporarily make affected creatures disregard their
+normal factions and fight any nearby character, including one another and the
+player. It would create a short monster brawl rather than safe mind control:
+the player could disrupt an enemy group, but would remain a target inside the
+chaos.
+
+The bomb should extend Valheim's existing bomb behavior, faction rules,
+targeting, and combat behavior. It should not create a parallel combat system.
+A heavy bomb or short throw range can make entering danger part of its
+identity. Its cost, range, radius, duration, eligible targets, and any later
+launcher or sling remain open. Native faction behavior and current technical
+boundaries are recorded in
+[Creature Factions](src/CreatureMechanics/FACTIONS.md). This idea is not yet
+approved for implementation, and its Valheim feasibility is unproven.
