@@ -6,7 +6,8 @@ internal enum CombatFeedbackTrigger
 {
     Headshot,
     Cleave,
-    MiningAoe
+    MiningAoe,
+    PerfectImpact
 }
 
 /// <summary>
@@ -27,6 +28,7 @@ internal static class CombatFeedbackTuning
     internal const float HeadshotShakeStrength = 1.1f;
     internal const float CleaveShakeStrength = 1.35f;
     internal const float MiningAoeShakeStrength = 1.35f;
+    internal const float PerfectImpactShakeStrength = 1.25f;
     internal const float ShakeStrengthCap = 1.35f;
     internal const float ShakeCoalesceSeconds = 0.12f;
     internal const float ShakeRangeMeters = 1000f;
@@ -45,6 +47,7 @@ internal static class CombatFeedbackTuning
             CombatFeedbackTrigger.Headshot => HeadshotShakeStrength,
             CombatFeedbackTrigger.Cleave => CleaveShakeStrength,
             CombatFeedbackTrigger.MiningAoe => MiningAoeShakeStrength,
+            CombatFeedbackTrigger.PerfectImpact => PerfectImpactShakeStrength,
             _ => 0f
         };
 

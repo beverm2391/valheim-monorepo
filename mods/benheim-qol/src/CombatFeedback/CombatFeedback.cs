@@ -297,6 +297,7 @@ internal static class CombatFeedbackController
             CombatFeedbackTrigger.Headshot => "headshot",
             CombatFeedbackTrigger.Cleave => "cleave",
             CombatFeedbackTrigger.MiningAoe => "mining_aoe",
+            CombatFeedbackTrigger.PerfectImpact => "perfect_impact",
             _ => "unknown"
         };
     }

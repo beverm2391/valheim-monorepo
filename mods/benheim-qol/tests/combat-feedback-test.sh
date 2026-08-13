@@ -12,6 +12,7 @@ tabs="$root/src/Shortcuts/ShortcutOverlayTabs.cs"
 headshots="$root/src/Archery/HeadshotLogic.cs"
 mining="$root/src/Mining/MiningProgression.cs"
 woodcutting="$root/src/Woodcutting/WoodcuttingProgression.cs"
+airborne_melee="$root/src/WeaponRhythm/AirborneMelee.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_camera="$source_tree/GameCamera.cs"
 native_accessibility="$source_tree/Valheim/SettingsGui/AccessibilitySettings.cs"
@@ -58,8 +59,9 @@ rg -Fq 'AddTab(buttons, templates, ShortcutTab.Config, "Benheim Config", ConfigA
 test "$(rg -c 'RequestShake\(CombatFeedbackTrigger.Headshot\)' "$headshots")" -eq 1
 test "$(rg -c 'RequestShake\(CombatFeedbackTrigger.Cleave\)' "$woodcutting")" -eq 1
 test "$(rg -c 'RequestShake\(CombatFeedbackTrigger.MiningAoe\)' "$mining")" -eq 1
+test "$(rg -c 'RequestShake\(CombatFeedbackTrigger.PerfectImpact\)' "$airborne_melee")" -eq 1
 request_call_count="$(rg -n --glob '*.cs' 'CombatFeedbackController\.RequestShake' "$root/src" | wc -l | tr -d ' ')"
-test "$request_call_count" -eq 3
+test "$request_call_count" -eq 4
 
 # Valheim owns the final camera-shake preference and composition. Its current
 # implementation is one strongest-wins intensity, not an additive stack.
@@ -82,6 +84,7 @@ rg -Fq 'HeadshotShakeStrength' "$tuning"
 rg -Fq 'CleaveShakeStrength' "$tuning"
 rg -Fq 'NativeAxeHitShakeStrength' "$tuning"
 rg -Fq 'MiningAoeShakeStrength' "$tuning"
+rg -Fq 'PerfectImpactShakeStrength' "$tuning"
 rg -Fq 'ShakeStrengthCap' "$tuning"
 rg -Fq 'ShakeCoalesceSeconds' "$tuning"
 

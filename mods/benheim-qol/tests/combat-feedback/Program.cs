@@ -20,6 +20,7 @@ for (int step = 1; step <= 100; step++)
 ExpectClose(1.1f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Headshot), "headshot strength");
 ExpectClose(1.35f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave), "cleave strength");
 ExpectClose(1.35f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.MiningAoe), "mining AOE strength");
+ExpectClose(1.25f, CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.PerfectImpact), "perfect impact strength");
 ExpectTrue(
     CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave)
         > CombatFeedbackTuning.NativeAxeHitShakeStrength,
@@ -27,6 +28,14 @@ ExpectTrue(
 ExpectTrue(
     CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Headshot) <= CombatFeedbackTuning.ShakeStrengthCap,
     "headshot respects the shared shake cap");
+ExpectTrue(
+    CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.PerfectImpact)
+        < CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.Cleave),
+    "perfect impact shake stays restrained relative to big-impact outcomes");
+ExpectTrue(
+    CombatFeedbackTuning.ShakeStrength(CombatFeedbackTrigger.PerfectImpact)
+        > CombatFeedbackTuning.NativeAxeHitShakeStrength,
+    "perfect impact exceeds Valheim's ordinary axe-hit shake request");
 ExpectTrue(
     !CombatFeedbackTuning.ShouldApplyShake(0.05f, activeStrength: 1.1f, requestedStrength: 1.1f),
     "equal rapid shake is coalesced");

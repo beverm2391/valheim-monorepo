@@ -28,8 +28,8 @@ or whether a target died.
 
   - `Benheim FX` is the master switch.
   - `Bow Focus` controls the bow-draw field-of-view effect.
-  - `Combat Shake` controls all approved headshot, Cleave, and mining AOE shake
-    requests together.
+  - `Combat Shake` controls all approved headshot, Cleave, mining AOE, and
+    Perfect Impact shake requests together.
   - `Danger Arrival FX` controls the banner, stinger, and brief edge vignette
     together.
 
@@ -45,21 +45,24 @@ or whether a target died.
   and native Valheim effects remain unchanged.
 
 - Benheim requests camera shake only when it qualifies a headshot, applies one
-  Woodcutting Cleave, or starts one Mining area-of-effect (AOE) action with
-  secondary hit areas.
+  Woodcutting Cleave, starts one Mining area-of-effect (AOE) action with
+  secondary hit areas, or qualifies one Weapon Rhythm Perfect Impact outcome.
 - Cleave and AOE request one shake for the outcome. Their secondary target or
   hit-area loops do not request more shakes.
 - Cleave, mining AOE, and headshot shake still need a gameplay retest. Ben found
   the prior `1.75` Cleave and mining AOE strength too strong. The next candidate
   uses raw Valheim `AddShake` strengths of `1.35` for both, compared with
   Valheim's `1.2` ordinary axe-impact request. It raises headshot shake from
-  `0.45` to `1.1` to test whether the smaller feedback is readable.
+  `0.45` to `1.1` to test whether the smaller feedback is readable. Perfect
+  Impact starts at `1.25`: above ordinary axe impact but below the big-impact
+  requests. All values remain experimental.
 - Rapid requests keep the strongest eligible shake during a short coalescing
   window. Every shake stays under one shared cap and uses Valheim's native
   camera-shake preference.
 - Headshot shake confirms Benheim's local collision-time qualification. Each
-  Cleave or AOE shake confirms its local Benheim outcome. None of these signals
-  claims that the target's owner authoritatively confirmed damage or death.
+  Cleave, AOE, or Perfect Impact shake confirms its local Benheim outcome. None
+  of these signals claims that the target's owner authoritatively confirmed
+  damage or death.
 - Benheim does not shake the camera for:
 
   - ordinary hits;

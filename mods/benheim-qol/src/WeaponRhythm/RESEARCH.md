@@ -184,12 +184,37 @@ Creature jump clips belong to different rigs and controllers. This report did
 not establish that any is compatible with the player controller.
 
 There is therefore no honest low-complexity player jump/plunge prototype in
-Valheim `0.221.12`. Gating a damage bonus on `!IsOnGround()` would only reward
-hopping. Combining native Jump physics with an ordinary or knife attack would
-stack unrelated states without an authored landing transition. A true plunge
-would need at least compatible player preparation, airborne, impact, miss, and
+Valheim `0.221.12`. An off-ground descending-contact rule without an approach
+threshold would still reward hopping. Perfect Impact adds that threshold, but
+it does not become a true jump or plunge attack. It can remain a small approach
+tool because it combines native jump physics, authored melee contact, and the
+existing stagger result without adding a landing lifecycle. A true plunge
+would still need compatible player preparation, airborne, impact, miss, and
 landing states plus explicit interruption and movement rules: an animation and
 controller project, not a small Weapon Rhythm patch.
+
+`Character.GetVelocity()` is the canonical velocity seam at contact. It
+returns the live Rigidbody velocity for the owning character and replicated
+velocity for a remote character. Airborne Melee reads the local owner's
+velocity at the same authored hit call that creates the outgoing `HitData`. It
+combines the vertical component with native `IsOnGround()`; it does not infer
+the jump phase from a timer or stored state.
+
+The serialized Player prefab sets walk speed to `1.6 m/s`, ordinary movement
+speed to `4 m/s`, and sprint speed to `7 m/s`. A jump adds `2 m/s` forward,
+scaled by Jump skill from `1x` to `1.4x`. An ordinary jog-jump therefore carries
+about `6 m/s` at base skill and at most `6.8 m/s` at maximum skill, while a base
+sprint-jump starts near `9 m/s`. A first-playtest threshold of `7 m/s` separates
+those native bands without checking whether the sprint button is held.
+
+The approach measure projects the attacker's planar `GetVelocity()` onto the
+planar direction from the attacker to `HitData.m_point`. Native horizontal and
+vertical melee write that point from the resolved collider contact; native area
+melee uses the collider's closest point. Using the authored contact rather than
+the target transform keeps large and multi-collider targets sane. Sideways and
+backward momentum cannot qualify. A status or equipment effect that genuinely
+carries at least the required physical momentum can qualify even without the
+sprint input; that is a consequence of measuring movement rather than intent.
 
 ## Clean extension seams
 
@@ -278,8 +303,19 @@ above.
 
 The current experimental Airborne Melee implementation redirects only the
 direct damage calls in `Attack.DoMeleeAttack()` and the generated area-hit
-routine. It does not patch `Character.Damage`, `ZSyncAnimation`, `Animator`, or
-melee movement.
+routine. It modifies the outgoing native hit only when the local player is off
+the ground, descending at or below `-0.5 m/s`, and carrying at least `7 m/s`
+toward the authored contact point. A qualified hit applies the experimental
+`1.15x` damage and `2x` stagger multipliers. It does not patch `Character.Damage`,
+`ZSyncAnimation`, `Animator`, or melee movement.
+
+Qualified contacts use Benheim's existing attacker-local transient text lane
+for `PERFECT IMPACT` and request the existing Combat Feedback shake controller.
+Presentation is coalesced within the native synchronous contact frame so an
+area or multi-target outcome does not repeat the feedback for every target.
+This does not change per-target qualification or damage. The text is semantic
+gameplay feedback; only the shake follows the Benheim FX and Combat Shake
+settings.
 
 The shortcut overlay patches `Player.TakeInput()` and `Menu.IsVisible()` to
 block gameplay while the menu is open. Rhythm input should remain behind the
