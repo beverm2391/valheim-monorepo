@@ -18,7 +18,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.60";
+    public const string PluginVersion = "0.1.61";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -29,6 +29,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
         Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
+        BoarTestCommandClient.InitializeConsole();
         BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();
         try
@@ -70,6 +71,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         TopLeftFeedbackHud.Update();
+        BoarTestCommandClient.Update();
         WildernessDangerPresentation.Update();
         QuickStack.Update();
         QuickStackHotkey.Update();
@@ -81,6 +83,7 @@ public sealed class Plugin : BaseUnityPlugin
         CombatFeedbackController.Reset();
         TopLeftFeedbackHud.Destroy();
         WildernessDangerPresentation.Reset();
+        BoarTestCommandClient.Reset();
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");

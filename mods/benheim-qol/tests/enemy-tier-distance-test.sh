@@ -12,8 +12,18 @@ danger_presentation_patches="$root/src/EnemyTiers/WildernessDangerPresentationPa
 minimap_indicator="$root/src/EnemyTiers/WildernessMinimapIndicator.cs"
 danger_transition="$root/src/EnemyTiers/WildernessDangerTransition.cs"
 player_area="$root/src/EnemyTiers/WildernessPlayerArea.cs"
+boar_profile="$root/src/EnemyTiers/BoarTierPhysicalProfile.cs"
+boar_identity="$root/src/EnemyTiers/BoarTierIdentity.cs"
+boar_patches="$root/src/EnemyTiers/BoarTierIdentityPatches.cs"
+boar_command_client="$root/src/EnemyTiers/BoarTestCommandClient.cs"
+boar_command_protocol="$root/src/EnemyTiers/BoarTestCommandProtocol.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_spawn="$source_tree/SpawnSystem.cs"
+native_level_effects="$source_tree/LevelEffects.cs"
+native_character="$source_tree/Character.cs"
+native_pathfinding="$source_tree/Pathfinding.cs"
+native_procreation="$source_tree/Procreation.cs"
+native_growup="$source_tree/Growup.cs"
 
 rg -Fq 'WorldGenerator.worldSize' "$patches"
 rg -Fq 'Utils.LengthXZ(spawnPoint)' "$patches"
@@ -111,6 +121,66 @@ rg -Fq 'adjusted_chance=' "$minimap_indicator"
 rg -Fq 'DebounceSeconds = 2f' "$danger_transition"
 rg -Fq 'HysteresisPercent = 0.75f' "$danger_transition"
 rg -Fq 'ArrivalCooldownSeconds = 60f' "$danger_transition"
+
+rg -Fq 'case 2:' "$boar_profile"
+rg -Fq 'new BoarTierPhysicalProfile(1.4f)' "$boar_profile"
+rg -Fq 'case 3:' "$boar_profile"
+rg -Fq 'new BoarTierPhysicalProfile(1.7f)' "$boar_profile"
+rg -Uq '\[HarmonyPatch\]\ninternal static class BoarTierIdentityPatches' "$boar_patches"
+rg -Fq '[HarmonyPatch(typeof(LevelEffects), "Start")]' "$boar_patches"
+rg -Fq '[HarmonyPatch(typeof(LevelEffects), "OnLevelSet")]' "$boar_patches"
+rg -Fq 'Utils.GetPrefabName(character.gameObject) != BoarPrefabName' "$boar_identity"
+rg -Fq 'levelEffects.transform.localScale = Vector3.one * profile.VisualScale;' "$boar_identity"
+rg -Fq 'collider.center = new Vector3(0f, profile.ColliderCenterY, 0f);' "$boar_identity"
+rg -Fq 'collider.radius = profile.ColliderRadius;' "$boar_identity"
+rg -Fq 'collider.height = profile.ColliderHeight;' "$boar_identity"
+rg -Fq 'ai.m_pathAgentType = Pathfinding.AgentType.HorseSize;' "$boar_identity"
+rg -Fq 'DiagnosticEvent.Create("EnemyTiers", "boar_tier_profile_applied")' "$boar_identity"
+rg -Fq 'DiagnosticEvent.Create("EnemyTiers", "boar_tier_profile_rejected")' "$boar_identity"
+rg -Fq 'ConditionalWeakTable<LevelEffects, BoarTierApplicationState>' "$boar_identity"
+rg -Fq 'RestoreNativeProfileIfNeeded(levelEffects, character, level, source);' "$boar_identity"
+rg -Fq 'DiagnosticEvent.Create("EnemyTiers", "boar_tier_profile_restored")' "$boar_identity"
+rg -Fq 'ai.m_pathAgentType = Pathfinding.AgentType.Humanoid;' "$boar_identity"
+rg -Fq 'arguments.Length == 3' "$boar_command_protocol"
+rg -Fq 'string.Equals(arguments[1], "spawn-boar", StringComparison.OrdinalIgnoreCase)' "$boar_command_protocol"
+rg -Fq '(stars == 1 || stars == 2)' "$boar_command_protocol"
+rg -Fq 'case 1:' "$boar_command_protocol"
+rg -Fq 'level = 2;' "$boar_command_protocol"
+rg -Fq 'case 2:' "$boar_command_protocol"
+rg -Fq 'level = 3;' "$boar_command_protocol"
+rg -Fq 'new Terminal.ConsoleCommand(' "$boar_command_client"
+rg -Fq 'isCheat: false' "$boar_command_client"
+rg -Fq 'serverRpc.Invoke(BoarTestCommandProtocol.RequestRpc, operationId, stars);' "$boar_command_client"
+rg -Fq 'ReferenceEquals(rpc, ZNet.instance?.GetServerRPC())' "$boar_command_client"
+rg -Fq 'boar_test_spawn_requested' "$boar_command_client"
+rg -Fq 'boar_test_spawn_result' "$boar_command_client"
+rg -Fq 'PendingOperations[operationId] = Time.realtimeSinceStartup;' "$boar_command_client"
+rg -Fq 'PendingOperations.Remove(operationId)' "$boar_command_client"
+rg -Fq 'ExpireUnansweredRequests(Time.realtimeSinceStartup);' "$boar_command_client"
+rg -Fq '"server_no_response"' "$boar_command_client"
+
+if rg -n 'devcommands|onlyAdmin: true|ZRoutedRpc|InvokeRoutedRPC|GetPrefab\(|Object\.Instantiate|SetLevel\(' "$boar_command_client" "$boar_command_protocol"; then
+  printf 'client test command must only request fixed server-authoritative operations\n' >&2
+  exit 1
+fi
+rg -Fq 'm_level = m_nview.GetZDO().GetInt(ZDOVars.s_level, 1);' "$native_character"
+rg -Fq 'm_onLevelSet(m_level);' "$native_character"
+rg -Fq 'SetupLevelVisualization(m_character.GetLevel());' "$native_level_effects"
+rg -Fq 'new Action<int>(OnLevelSet)' "$native_level_effects"
+rg -Fq 'agentSettings9.m_build.agentHeight = 2.5f;' "$native_pathfinding"
+rg -Fq 'agentSettings9.m_build.agentRadius = 0.8f;' "$native_pathfinding"
+rg -Fq 'component.SetLevel(Mathf.Max(m_minOffspringLevel, m_character ? m_character.GetLevel() : m_minOffspringLevel));' "$native_procreation"
+rg -Fq 'component2.SetLevel(component.GetLevel());' "$native_growup"
+
+if rg -n 'transform\.localScale \*=|m_speed|m_runSpeed|m_walkSpeed|m_mass|\.mass =|m_swim|m_attack|Attack' "$boar_profile" "$boar_identity" "$boar_patches"; then
+  printf 'Boar tier identity must use absolute physical values without behavior or combat tuning\n' >&2
+  exit 1
+fi
+
+if rg -n 'GetZDO\(\).*Set|ZDOVars|ZNetScene|Object\.Instantiate|Clone' "$boar_profile" "$boar_identity" "$boar_patches"; then
+  printf 'Boar tier identity must not add persistent state or custom prefab machinery\n' >&2
+  exit 1
+fi
 
 if rg -n 'Player\.m_localPlayer|GetCurrentBiome\(' "$minimap_indicator"; then
   printf 'minimap must consume one resolved player-area sample instead of rereading the player\n' >&2

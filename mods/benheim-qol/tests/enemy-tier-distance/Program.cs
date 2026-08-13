@@ -60,6 +60,39 @@ ExpectClose(
 var maximumBiome = new BiomeChanceCurve(30f, 30f);
 ExpectClose(40f, WildernessStarChance.AdjustEffectiveChance(10f, 1f, maximumBiome, WorldSize, WorldSize), "constructed maximum has no hard cap");
 
+ExpectTrue(!BoarTierPhysicalProfile.TryForLevel(1, out _), "ordinary Boar keeps native physical behavior");
+ExpectTrue(BoarTierPhysicalProfile.TryForLevel(2, out BoarTierPhysicalProfile oneStarBoar), "one-star Boar profile exists");
+ExpectClose(1.4f, oneStarBoar.VisualScale, "one-star Boar visual scale");
+ExpectClose(0.98f, oneStarBoar.ColliderCenterY, "one-star Boar capsule center");
+ExpectClose(0.7f, oneStarBoar.ColliderRadius, "one-star Boar capsule radius");
+ExpectClose(1.96f, oneStarBoar.ColliderHeight, "one-star Boar capsule height");
+ExpectClose(0f, oneStarBoar.ColliderCenterY - (oneStarBoar.ColliderHeight / 2f), "one-star capsule stays grounded");
+ExpectTrue(BoarTierPhysicalProfile.TryForLevel(3, out BoarTierPhysicalProfile twoStarBoar), "two-star Boar profile exists");
+ExpectClose(1.7f, twoStarBoar.VisualScale, "two-star Boar visual scale");
+ExpectClose(1.19f, twoStarBoar.ColliderCenterY, "two-star Boar capsule center");
+ExpectClose(0.85f, twoStarBoar.ColliderRadius, "two-star Boar capsule radius");
+ExpectClose(2.38f, twoStarBoar.ColliderHeight, "two-star Boar capsule height");
+ExpectClose(0f, twoStarBoar.ColliderCenterY - (twoStarBoar.ColliderHeight / 2f), "two-star capsule stays grounded");
+ExpectTrue(!BoarTierPhysicalProfile.TryForLevel(4, out _), "non-native future level keeps native behavior");
+var boarApplication = new BoarTierApplicationState();
+ExpectTrue(!boarApplication.ProfileApplied, "fresh ordinary Boar has no Benheim profile to restore");
+boarApplication.MarkApplied();
+ExpectTrue(boarApplication.ProfileApplied, "starred Boar records its ephemeral applied profile");
+boarApplication.MarkRestored();
+ExpectTrue(!boarApplication.ProfileApplied, "level downgrade consumes the applied profile marker");
+ExpectTrue(
+    BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "1" }, out int oneStarRequest) && oneStarRequest == 1,
+    "one-star Boar command is accepted");
+ExpectTrue(
+    BoarTestCommandProtocol.TryParse(new[] { "BENHEIM", "SPAWN-BOAR", "2" }, out int twoStarRequest) && twoStarRequest == 2,
+    "two-star Boar command is case-insensitive");
+ExpectTrue(!BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "0" }, out _), "zero-star command is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "3" }, out _), "three-star command is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn", "2" }, out _), "arbitrary spawn command is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "2", "Boar" }, out _), "extra command arguments are rejected");
+ExpectTrue(BoarTestCommandProtocol.TryResolveLevel(1, out int oneStarLevel) && oneStarLevel == 2, "one star maps to native level two");
+ExpectTrue(BoarTestCommandProtocol.TryResolveLevel(2, out int twoStarLevel) && twoStarLevel == 3, "two stars map to native level three");
+
 ExpectTrue(WildernessDangerScale.Classify(0f) == WildernessDanger.Safe, "zero pressure is safe");
 ExpectTrue(WildernessDangerScale.Classify(17.499f) == WildernessDanger.Safe, "safe upper edge");
 ExpectTrue(WildernessDangerScale.Classify(17.5f) == WildernessDanger.Sketchy, "sketchy lower edge");

@@ -203,28 +203,34 @@ height together keeps its bottom at the same local height. This also changes
 the radius that shared movement and avoidance code consumes, so pens, gates,
 crowding, breeding, and path clearance need gameplay testing.
 
-Native Boar aggression is also unusually legible. Its view and hearing ranges
-are both `20`, while `m_alertRange` is `6` and `m_fleeIfNotAlerted` is enabled.
-When a sensed enemy remains outside that alert range, the wild boar flees. Once
-the enemy is visible inside the alert range, the boar becomes alerted and can
-attack. Taking damage also alerts it and selects the attacker. Its one attack
-has a `5`-second item interval, a `2`-meter AI range, and a `1.5`-meter hit
-range.
+The first physical experiment keeps aggression and combat untouched. It derives
+an absolute profile from the native level: one-star Boars use a `1.4x` Visual
+scale and capsule, and two-star Boars use `1.7x`. Scaling the native capsule's
+center, radius, and height gives `(0.98, 0.7, 1.96)` for one star and
+`(1.19, 0.85, 2.38)` for two stars, listed as center height, radius, and height.
+Both levels use Valheim's `HorseSize` agent (`0.8` radius, `2.5` height). It is
+the closest existing native profile: conservative for one star and only
+`0.05` narrower than the two-star capsule. Native Boar already pairs its `0.5`
+capsule with the narrower `0.4`-radius `Humanoid` agent.
 
-This exposes two low-complexity, per-creature aggression handles: increase the
-alert range, or disable the flee-until-alerted behavior. Both change when the
-boar commits without inventing a planner or altering its attack animation.
-Changing attack cadence is a separate step because the attack item uses shared
-weapon data; mutating that data for one boar can affect every boar unless the
-item definition is cloned or selection is intercepted.
+`LevelEffects.Start()` reads the already-restored native level and applies the
+initial visual setup. Its registered `OnLevelSet()` callback handles later
+native level changes. A postfix at those two seams can replace only the visual
+scale and apply absolute capsule and path-agent values after native setup. The
+postfix should cover newly spawned and loaded instances without multiplication
+or polling. Breeding and growth use native level-setting paths, but end-to-end
+restoration remains unproven. If every compatible peer applies the same derived
+profile, ownership changes should not require a new saved field or
+reconfiguration protocol. Multiplayer testing must verify that behavior.
+Because taming does not replace the prefab or native level, the same derived
+profile should apply to tamed starred Boars. Gameplay testing must verify that
+lifecycle path.
 
-A bounded first experiment can therefore combine native level identity with a
-matching visual-and-capsule scale and one owner-side aggression change. Exact
-scale and aggression values remain product choices. The experiment must also
-decide whether behavior changes apply only to wild boars; starred tame boars
-share the same prefab and level identity. No new saved field is required when
-every result is derived from prefab plus native level, but every possible
-creature owner must run compatible Benheim behavior.
+This seam deliberately leaves eye position, Rigidbody mass, swim depth,
+movement, attack reach, and aggression untouched. Their practical fit with a
+larger body remains a gameplay question. If bite reach, water behavior, or
+movement proves incoherent, that is a separate product decision rather than an
+implicit part of physical scaling.
 
 These prefab facts come from the installed core bundle `c4210710`, SHA-256
 `2d1e17fa941213747868face6b8fb13e23332292454007255c42562119e31448`,

@@ -46,9 +46,38 @@ Higher tiers should remain durable and able to kill an unprepared player
 quickly. Players should overcome them through skill, preparation, builds,
 equipment, tools, and knowledge.
 
-Players must recognize a tier immediately. Native stars and existing prefab
-styling are sufficient for now. Defer added color, emission, or size changes
-until gameplay shows that this signal is insufficient.
+Players must recognize a tier immediately. Native stars and prefab styling are
+the baseline. Test any stronger physical identity on one named creature before
+generalizing it.
+
+### Boar physical tier experiment
+
+The `0.1.61` candidate makes native starred Boars physically larger. A one-star
+Boar is `1.4x` ordinary size, and a two-star Boar is `1.7x` ordinary size. The
+visible body and collision capsule grow together. Both starred tiers use
+Valheim's closest existing larger-creature navigation profile. An ordinary
+zero-star Boar keeps its native presentation and physical behavior.
+
+The physical profile must derive only from the native Boar prefab and native
+star level. It applies equally to wild and tamed Boars. It must restore after
+spawn, reload, ownership migration, breeding, and growth without custom saved
+state. Every peer that can own a Boar must apply the same physical profile.
+Benheim supplies that behavior on clients, and Benheim Test Commands supplies
+it while the dedicated server owns a spawned test Boar. Lifecycle restoration
+and multiplayer ownership remain unproven.
+
+This experiment directly changes only physical tier identity. It does not
+retune Boar aggression, attacks, damage, movement speed, mass, swim depth,
+numeric attack reach, breeding rules, or spawning rules. The larger body,
+collision, pen and gate navigation, slopes, water behavior, and practical bite
+reach remain gameplay-unproven.
+
+For this experiment, a native administrator using Benheim `0.1.61` can request
+one one-star or two-star native Boar. This requires Benheim Test Commands
+`0.1.0` on the dedicated server. The server component is not deployed, and its
+command behavior remains runtime-unproven. [Benheim Test Commands](../../../../server-mods/benheim-test-commands/PRODUCT.md)
+owns the exact allowlist, admin validation, spawn authority, and result
+behavior.
 
 Creature-specific tier rules can change AI, attack patterns, and resistance
 profiles. Each change must extend that creature's existing combat identity and

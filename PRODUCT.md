@@ -38,6 +38,7 @@ promise.
 | --- | --- | --- | --- |
 | Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use a version compatible with those used by every other member. |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
+| Benheim Test Commands | Runs a fixed native-admin command allowlist for selected Benheim gameplay experiments. | Client command and server component | Only the requesting native admin needs the matching client command. The server component is required. Every peer that can own the spawned test creature still needs compatible Benheim gameplay behavior. |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
@@ -48,6 +49,9 @@ Benheim's detailed product behavior is owned by
 [`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Benheim Eternal
 Fire's behavior and player experience are owned by
 [`server-mods/benheim-eternal-fire/PRODUCT.md`](server-mods/benheim-eternal-fire/PRODUCT.md).
+Benheim Test Commands' allowlist, native-admin boundary, and component
+requirements are owned by
+[`server-mods/benheim-test-commands/PRODUCT.md`](server-mods/benheim-test-commands/PRODUCT.md).
 Third-party mod behavior remains owned by each upstream project; this document
 records only why the mod belongs in our stack and what compatibility promise it
 must preserve.
