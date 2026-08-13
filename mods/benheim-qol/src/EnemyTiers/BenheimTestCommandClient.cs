@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace BenheimQoL.EnemyTiers;
 
-internal static class BoarTestCommandClient
+internal static class BenheimTestCommandClient
 {
     private const float ResultTimeoutSeconds = 5f;
     private static readonly Dictionary<string, float> PendingOperations = new();
@@ -20,8 +20,8 @@ internal static class BoarTestCommandClient
         }
 
         _ = new Terminal.ConsoleCommand(
-            "benheim",
-            "selected Benheim admin test commands: spawn-boar 0|1|2",
+            "bh",
+            "selected Benheim admin test commands; run 'bh help'",
             Execute,
             isCheat: false,
             isNetwork: true);
@@ -43,10 +43,16 @@ internal static class BoarTestCommandClient
 
     private static object Execute(Terminal.ConsoleEventArgs args)
     {
-        if (!BoarTestCommandProtocol.TryParse(args.Args, out int stars) ||
+        if (BoarTestCommandProtocol.IsHelpRequest(args.Args))
+        {
+            PrintHelp(args.Context);
+            return true;
+        }
+
+        if (!BoarTestCommandProtocol.TryParseSpawnBoar(args.Args, out int stars) ||
             !BoarTestCommandProtocol.TryResolveLevel(stars, out int level))
         {
-            args.Context.AddString($"Usage: {BoarTestCommandProtocol.Usage}");
+            PrintHelp(args.Context);
             return true;
         }
 
@@ -78,6 +84,13 @@ internal static class BoarTestCommandClient
         }
         args.Context.AddString($"Benheim requested a {stars}-star Boar from the server.");
         return true;
+    }
+
+    private static void PrintHelp(Terminal context)
+    {
+        context.AddString("Benheim test commands:");
+        context.AddString($"  {BoarTestCommandProtocol.Usage}");
+        context.AddString("  0 = unstarred, 1 = one star, 2 = two stars");
     }
 
     private static bool EnsureResultRpcRegistered()

@@ -100,18 +100,28 @@ ExpectTrue(boarApplication.ProfileApplied, "starred Boar records its ephemeral a
 boarApplication.MarkRestored();
 ExpectTrue(!boarApplication.ProfileApplied, "level downgrade consumes the applied profile marker");
 ExpectTrue(
-    BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "0" }, out int zeroStarRequest) && zeroStarRequest == 0,
+    BoarTestCommandProtocol.IsHelpRequest(new[] { "bh", "help" }),
+    "Benheim help command is accepted");
+ExpectTrue(
+    BoarTestCommandProtocol.IsHelpRequest(new[] { "bh" }),
+    "bare Benheim command opens help");
+ExpectTrue(
+    !BoarTestCommandProtocol.IsHelpRequest(new[] { "bh", "spawn" }),
+    "partial spawn command is not treated as help");
+ExpectTrue(
+    BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "0" }, out int zeroStarRequest) && zeroStarRequest == 0,
     "zero-star Boar control command is accepted");
 ExpectTrue(
-    BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "1" }, out int oneStarRequest) && oneStarRequest == 1,
+    BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "1" }, out int oneStarRequest) && oneStarRequest == 1,
     "one-star Boar command is accepted");
 ExpectTrue(
-    BoarTestCommandProtocol.TryParse(new[] { "BENHEIM", "SPAWN-BOAR", "2" }, out int twoStarRequest) && twoStarRequest == 2,
+    BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "BH", "SPAWN", "BOAR", "2" }, out int twoStarRequest) && twoStarRequest == 2,
     "two-star Boar command is case-insensitive");
-ExpectTrue(!BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "-1" }, out _), "negative-star command is rejected");
-ExpectTrue(!BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "3" }, out _), "three-star command is rejected");
-ExpectTrue(!BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn", "2" }, out _), "arbitrary spawn command is rejected");
-ExpectTrue(!BoarTestCommandProtocol.TryParse(new[] { "benheim", "spawn-boar", "2", "Boar" }, out _), "extra command arguments are rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "-1" }, out _), "negative-star command is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "3" }, out _), "three-star command is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "greydwarf", "2" }, out _), "unlisted creature is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "benheim", "spawn-boar", "2" }, out _), "retired command shape is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "2", "extra" }, out _), "extra command arguments are rejected");
 ExpectTrue(BoarTestCommandProtocol.TryResolveLevel(0, out int zeroStarLevel) && zeroStarLevel == 1, "zero stars maps to native level one");
 ExpectTrue(BoarTestCommandProtocol.TryResolveLevel(1, out int oneStarLevel) && oneStarLevel == 2, "one star maps to native level two");
 ExpectTrue(BoarTestCommandProtocol.TryResolveLevel(2, out int twoStarLevel) && twoStarLevel == 3, "two stars map to native level three");
