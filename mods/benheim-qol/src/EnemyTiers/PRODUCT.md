@@ -184,6 +184,33 @@ After the current one-shot arrival experiment, Benheim may add richer local
 ambience to make dangerous areas feel more distinct. This idea does not promise
 control of music, weather, events, or world state.
 
+### Candidate: Methsquito
+
+Methsquito could become a named two-star Deathsquito behavior variant. It is a
+candidate, not approved behavior, and Valheim feasibility is unproven.
+
+Once it becomes aggressive toward a player, Methsquito would behave like a
+flying fuse. A clear spatial sound sequence would escalate toward an
+unmistakable final cue. It would then commit to a kamikaze dive, explode, and
+die in the attempt.
+
+The player could time a native dodge roll to avoid the detonation or block and
+survive it at a large stamina and knockback cost. A future perfect-parry
+redirect remains conditional. Technical research must first prove it feasible,
+and gameplay testing must prove it readable and reliable. The explosion would
+also damage nearby enemies. Skilled players could lead the Methsquito into a
+group and deal enough damage to make turning the threat into a weapon worth the
+risk.
+
+The goal is one terrifying, learnable interaction with several answers and an
+emergent offensive use. It is not a health sponge or a generic stat increase.
+This candidate applies Benheim's existing challenge-and-counter principle; the
+root [`PRODUCT.md`](../../PRODUCT.md) owns that principle.
+
+The timer, sound and visual effects, targeting and redirect rules, exact damage
+and radius, any damage against friendly targets or the world, block and parry
+outcomes, spawn eligibility, rewards, and final tier placement remain open.
+
 ## Planned Alpha Variants
 
 An Alpha is a separate Benheim enemy variant. It is neither a native star level
