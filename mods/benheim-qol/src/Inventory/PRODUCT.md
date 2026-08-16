@@ -63,6 +63,21 @@ The Inventory module makes routine item movement faster.
   feed.
 - Put Away asks the current owner for access to each chest through Valheim's
   Stack All action. It moves items only after the owner grants access.
+- Before Put Away scans chests, Benheim Server Support grants one global lease
+  to one connected player. Another simultaneous Put Away stops before any
+  chest or inventory mutation and says `Put Away busy — retry in a few
+  seconds`.
+- After Valheim grants a chest transfer, Put Away establishes requester-local
+  ownership so the requesting client can perform the native chest write. It
+  does this immediately before native **Stack All** changes the chest. Put Away
+  rejects that chest if it cannot establish ownership.
+- The write diagnostic records the chest's stable network identity, owner, data
+  revision, moved items, resulting counts, and post-write contents. A separate
+  snapshot records the first successful open of each chest during the other
+  client's fresh test session. It captures the cached contents shown on that
+  first open without waiting for a later replication refresh. The snapshot
+  must match before another mutation. These diagnostics are evidence only.
+  They do not retry or repair a failed write.
 - During normal gameplay, each completed transfer must move each accepted item
   once and leave each rejected remainder in the player's inventory. Every
   connected player must see the same chest state, including after chest
@@ -70,24 +85,31 @@ The Inventory module makes routine item movement faster.
 - Put Away keeps native inventory persistence and interruption behavior. It
   does not force a character save or add a transfer journal, transaction
   receipt, automatic retry, or crash recovery.
-- If a chest does not answer Put Away within 5 seconds, Put Away cancels the
-  batch and clears the in-progress state. It does not retry the chest or
-  continue to another chest in that batch. It logs the timeout and tells the
-  player to try again in the shared top-left lane.
-- A timed-out chest stays unavailable to Put Away until one native Stack All
-  response for that chest arrives. Benheim discards exactly that one response.
-  Later Put Away attempts can use other chests. Put Away can use the timed-out
-  chest again after Benheim discards the response.
+- If a chest's native **Stack All** response does not arrive within 5 seconds,
+  Put Away cancels the batch and releases the global lease. It does not retry
+  the chest or continue to another chest in that batch. It tells the player to
+  reconnect before retrying that chest.
+- A timed-out chest stays unavailable to Put Away until one native **Stack
+  All** response for that chest arrives or the client reconnects. Benheim
+  discards exactly that one response. Later Put Away attempts can use other
+  chests.
 - Valheim does not identify Stack All responses by request. If the timed-out
   response never arrives, the next manual Stack All response for that chest can
   be the response that Benheim discards. This releases the chest for later
   attempts without moving items or creating a Put Away receipt.
 - Automated lifecycle checks prove:
+  - one lease winner;
+  - contention rejection before scanning;
+  - lease release when Put Away finishes, cancels, times out, or the lease
+    holder disconnects;
   - timeout cancellation;
-  - late-response discard;
-  - cleanup after a normal grant or denial; and
+  - late-response discard; and
   - later use of other chests.
-  The recovery feedback and gameplay flow still need player proof.
+  The two-player race and timeout feedback still need gameplay proof.
+- Ben previously confirmed that the earlier requester-local ownership and
+  write-revision safeguard kept completed transfers visible to another player.
+  Its restored form remains a candidate until the two-client visibility test
+  proves the current implementation.
 - The transfer must work with either player as the requester or current chest
   owner, and a completed transfer must remain visible after ownership changes.
 - Valheim's **Place stacks** button and **Hold to stack** action must keep

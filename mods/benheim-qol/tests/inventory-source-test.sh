@@ -8,10 +8,13 @@ marker="$root/src/Inventory/PocketMarker.cs"
 controller="$root/src/Inventory/PocketItemController.cs"
 protection="$root/src/Inventory/PocketItems.cs"
 quick_stack="$root/src/Inventory/QuickStack.cs"
+quick_stack_transfer="$root/src/Inventory/QuickStackTransfer.cs"
 quick_stack_diagnostics="$root/src/Inventory/QuickStackDiagnostics.cs"
 quick_stack_location="$root/src/Inventory/QuickStackLocation.cs"
 quick_stack_feedback="$root/src/Inventory/QuickStackFeedback.cs"
 quick_stack_summary="$root/src/Inventory/QuickStackSummary.cs"
+put_away_lease="$root/src/Inventory/PutAwayLeaseClient.cs"
+container_write="$root/src/Inventory/QuickStackContainerWrite.cs"
 top_left_feedback_hud="$root/src/TopLeftFeedbackHud.cs"
 top_left_feedback_layout="$root/src/TopLeftFeedbackLayout.cs"
 visibility="$root/src/Inventory/InventoryVisibility.cs"
@@ -64,6 +67,10 @@ grep -Fq 'MessageHud.MessageType.Center' "$quick_stack_feedback"
 grep -Fq 'TopLeftFeedbackHud.ShowGrouped(message)' "$quick_stack_feedback"
 grep -Fq 'TopLeftFeedbackHud.ShowTransient(message)' "$controller"
 grep -Fq 'TopLeftFeedbackHud.ShowTransient("Put Away already in progress")' "$quick_stack"
+grep -Fq '"Put Away busy — retry in a few seconds"' "$quick_stack"
+grep -Fq 'PutAwayLeaseClient.TryRequest' "$quick_stack"
+grep -Fq 'PutAwayLeaseClient.Release("batch_finished")' "$quick_stack"
+grep -Fq 'quick_stack_lease_result' "$put_away_lease"
 grep -Fq 'Object.Instantiate(template, parent)' "$top_left_feedback_hud"
 grep -Fq 'text.canvasRenderer.SetAlpha(1f)' "$top_left_feedback_hud"
 grep -Fq 'text.canvasRenderer.GetAlpha() > VisibleAlphaThreshold' "$top_left_feedback_hud"
@@ -111,26 +118,35 @@ if grep -Fq 'MessageHud.MessageType.TopLeft' "$controller" "$quick_stack"; then
   printf 'Benheim-owned top-left feedback must use the shared lane\n' >&2
   exit 1
 fi
-grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack"
-grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack"
+grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack_transfer"
+grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack_transfer"
 grep -Fq 'container.StackAll();' "$quick_stack"
+grep -Fq 'QuickStackContainerWrite.TryBegin' "$quick_stack"
+grep -Fq 'networkView.ClaimOwnership();' "$container_write"
+grep -Fq 'if (!ownerAfter)' "$container_write"
+grep -Fq '"revision_advanced"' "$quick_stack_diagnostics"
+grep -Fq 'scope.ContainerWrite?.Complete(movedItems);' "$quick_stack"
 grep -Fq 'BeginBulkStack' "$quick_stack"
 grep -Fq 'RecordNativeTransfer' "$quick_stack"
-grep -Fq 'scope.Player.GetInventory().ContainsItem(snapshot.Item)' "$quick_stack"
+grep -Fq 'scope.Player.GetInventory().ContainsItem(snapshot.Item)' "$quick_stack_transfer"
 if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
   printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
   exit 1
 fi
 grep -Fq 'PluginVersion = "0.1.61"' "$client_plugin"
-if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol' "$root/src"; then
+if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol|CorrelatedStack' "$root/src"; then
   printf 'client Put Away must not retain protocol machinery\n' >&2
   exit 1
 fi
-if rg -F -g '*.cs' 'ClaimOwnership' "$quick_stack"; then
-  printf 'native Put Away must never claim chest ownership\n' >&2
+claim_count="$(rg -F -g '*.cs' 'ClaimOwnership' "$root/src/Inventory" | wc -l | tr -d ' ')"
+if [[ "$claim_count" != "1" ]]; then
+  printf 'Put Away ownership claim must stay at the single post-grant write boundary\n' >&2
   exit 1
 fi
-grep -Fq 'position=(' "$quick_stack_diagnostics"
+grep -Fq '"position"' "$quick_stack_diagnostics"
+grep -Fq '"container_open_snapshot"' "$quick_stack_diagnostics"
+grep -Fq '"contents"' "$quick_stack_diagnostics"
+grep -Fq 'OpenedChests.Add(zdoId)' "$quick_stack_diagnostics"
 grep -Fq 'CompassDirections' "$quick_stack_location"
 grep -Fq 'm_animator' "$visibility"
 if grep -Fq 'WorldFeedback' "$controller"; then

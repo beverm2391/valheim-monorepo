@@ -101,8 +101,10 @@ technical cost.
   our regular group must use mutually compatible Benheim versions.
 - For features that depend on zone ownership, all active zone owners must use
   mutually compatible Benheim versions for that feature.
-- Put Away must let Valheim's current chest owner grant the transfer. Never
-  write a non-owned local chest or claim ownership as a shortcut.
+- Benheim Server Support must grant the global Put Away lease before a client
+  scans chests or starts native **Stack all**. Valheim's current chest owner
+  still grants each transfer. Never write a non-owned local chest or claim
+  ownership as a shortcut.
 - Defer custom persistent world objects until a specific feature needs them.
   Approve their world, recovery, migration, and removal behavior as part of
   that feature design. Store a player's manual pocket choice on an item only

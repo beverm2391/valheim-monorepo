@@ -42,9 +42,10 @@ promise.
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
-The approved server plugin stack consists of one shared BepInEx installation
-and exactly two first-party plugins: Benheim Eternal Fire and Benheim Test
-Commands. Neither plugin requires another shared mod library.
+The deployed server plugin stack consists of one shared BepInEx installation,
+Benheim Eternal Fire, and Benheim Test Commands. The Put Away lease candidate
+adds Benheim Server Support as a third first-party plugin. None requires another
+shared mod library.
 
 Benheim's detailed product behavior is owned by
 [`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Benheim Eternal
@@ -53,6 +54,8 @@ Fire's behavior and player experience are owned by
 Benheim Test Commands' allowlist, native-admin boundary, and component
 requirements are owned by
 [`server-mods/benheim-test-commands/PRODUCT.md`](server-mods/benheim-test-commands/PRODUCT.md).
+Benheim Server Support's production coordination boundary is owned by
+[`server-mods/benheim-server-support/PRODUCT.md`](server-mods/benheim-server-support/PRODUCT.md).
 Third-party mod behavior remains owned by each upstream project; this document
 records only why the mod belongs in our stack and what compatibility promise it
 must preserve.
@@ -67,7 +70,8 @@ Benheim is healthy when every member of our regular group has a version
 compatible with those used by every other member. The shared world and
 characters must remain recoverable across updates or removal.
 Put Away must use Valheim's native chest ownership flow so every connected
-player sees the same completed chest state. It must not require a server plugin.
+player sees the same completed chest state. Benheim Server Support must prevent
+compatible clients from entering that flow concurrently.
 
 ## Open Gates
 

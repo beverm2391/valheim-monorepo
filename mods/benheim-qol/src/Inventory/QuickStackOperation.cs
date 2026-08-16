@@ -10,20 +10,43 @@ internal sealed class QuickStackEligibility
     internal int SkippedFull { get; set; }
 }
 
+internal sealed class QuickStackStartRequest
+{
+    internal QuickStackStartRequest(
+        Player player,
+        InventoryGui inventoryGui,
+        Container? currentContainer,
+        bool inventoryWasOpen)
+    {
+        Player = player;
+        InventoryGui = inventoryGui;
+        CurrentContainer = currentContainer;
+        InventoryWasOpen = inventoryWasOpen;
+    }
+
+    internal Player Player { get; }
+    internal InventoryGui InventoryGui { get; }
+    internal Container? CurrentContainer { get; }
+    internal bool InventoryWasOpen { get; }
+}
+
 internal sealed class QuickStackOperation
 {
     internal QuickStackOperation(
+        string operationId,
         Player player,
         InventoryGui inventoryGui,
         List<Container> containers,
         bool inventoryWasOpen)
     {
+        OperationId = operationId;
         Player = player;
         InventoryGui = inventoryGui;
         Containers = containers;
         InventoryWasOpen = inventoryWasOpen;
     }
 
+    internal string OperationId { get; }
     internal Player Player { get; }
     internal InventoryGui InventoryGui { get; }
     internal List<Container> Containers { get; }
@@ -44,12 +67,16 @@ internal sealed class QuickStackBulkScope
         Inventory target,
         QuickStackOperation? operation,
         Container? container,
+        QuickStackContainerWrite? containerWrite,
+        bool allowNativeStack,
         QuickStackBulkScope? previous)
     {
         Player = player;
         Target = target;
         Operation = operation;
         Container = container;
+        ContainerWrite = containerWrite;
+        AllowNativeStack = allowNativeStack;
         Previous = previous;
     }
 
@@ -57,6 +84,8 @@ internal sealed class QuickStackBulkScope
     internal Inventory Target { get; }
     internal QuickStackOperation? Operation { get; }
     internal Container? Container { get; }
+    internal QuickStackContainerWrite? ContainerWrite { get; }
+    internal bool AllowNativeStack { get; }
     internal QuickStackBulkScope? Previous { get; }
     internal List<QuickStackItemSnapshot> Items { get; } = new List<QuickStackItemSnapshot>();
 }
