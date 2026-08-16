@@ -17,6 +17,6 @@ ownership. Valheim still decides each chest transfer after the lease grant.
 The lease has no retry, persistence, transaction journal, or inventory recovery
 behavior.
 
-This candidate uses Benheim Server Support `0.1.0`. It is not deployed or
+This candidate is Benheim Server Support `0.1.0`. It is not deployed or
 runtime-proven yet. The owning [Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md)
 defines Put Away's player-visible behavior and acceptance boundary.

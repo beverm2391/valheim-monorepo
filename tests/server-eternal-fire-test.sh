@@ -10,6 +10,9 @@ plugin="$root/server-mods/benheim-eternal-fire/dist/BenheimEternalFire.dll"
 test_commands_source="$root/server-mods/benheim-test-commands/src/Plugin.cs"
 test_commands_plugin="$root/server-mods/benheim-test-commands/dist/BenheimTestCommands.dll"
 test_commands_build="$root/server-mods/benheim-test-commands/scripts/build.sh"
+server_support_source="$root/server-mods/benheim-server-support/src/Plugin.cs"
+server_support_plugin="$root/server-mods/benheim-server-support/dist/BenheimServerSupport.dll"
+server_support_build="$root/server-mods/benheim-server-support/scripts/build.sh"
 verifier="$root/server/verify-benheim-server-plugins"
 recovery="$root/server/recover-valheim-vanilla"
 tmp_dir="$(mktemp -d)"
@@ -39,6 +42,7 @@ assert_not_contains() {
 bash -n "$installer"
 bash -n "$root/server-mods/benheim-eternal-fire/scripts/build.sh"
 bash -n "$test_commands_build"
+bash -n "$server_support_build"
 bash -n "$verifier"
 bash -n "$recovery"
 
@@ -53,12 +57,19 @@ test_commands_checksum=f32faa0db7a1f17ca10006322c00f45f73b32808edf769bc6218a467f
 actual_test_commands_checksum="$(shasum -a 256 "$test_commands_plugin" | awk '{print $1}')"
 [[ "$actual_test_commands_checksum" == "$test_commands_checksum" ]] || fail "test-command plugin checksum changed"
 assert_contains "installer pins the test-command plugin checksum" "$test_commands_checksum" "$installer"
+server_support_checksum=77a3a3f21e761b0709eefd74e0fb50d9c04b576d3e1c3cb9438994a54a6ce0df
+actual_server_support_checksum="$(shasum -a 256 "$server_support_plugin" | awk '{print $1}')"
+[[ "$actual_server_support_checksum" == "$server_support_checksum" ]] || fail "server-support plugin checksum changed"
+assert_contains "installer pins the server-support plugin checksum" "$server_support_checksum" "$installer"
 assert_contains "installer builds Eternal Fire before staging" 'server-mods/benheim-eternal-fire/scripts/build.sh' "$installer"
 assert_contains "installer builds Test Commands before staging" 'server-mods/benheim-test-commands/scripts/build.sh' "$installer"
+assert_contains "installer builds Server Support before staging" 'server-mods/benheim-server-support/scripts/build.sh' "$installer"
 assert_contains "Test Commands build produces its staged artifact" 'dist/BenheimTestCommands.dll' "$test_commands_build"
+assert_contains "Server Support build produces its staged artifact" 'dist/BenheimServerSupport.dll' "$server_support_build"
 assert_contains "installer replaces the complete plugin set" 'rm -rf /opt/valheim/server/BepInEx/plugins' "$installer"
 assert_contains "installer owns an Eternal Fire namespace" "/BepInEx/plugins/BenheimEternalFire" "$installer"
 assert_contains "installer owns a Test Commands namespace" "/BepInEx/plugins/BenheimTestCommands" "$installer"
+assert_contains "installer owns a Server Support namespace" "/BepInEx/plugins/BenheimServerSupport" "$installer"
 assert_not_contains "installer must not auto-discover server mods" 'server-mods/*' "$installer"
 assert_not_contains "installer must not add a remote env-file config read" 'source /etc/valheim/server.env' "$installer"
 assert_contains "installer passes the already-loaded world into verification" "printf -v expected_world_arg '%q'" "$installer"
@@ -76,6 +87,7 @@ if strings "$plugin" | grep -Fiq "Jotunn"; then
 fi
 assert_contains "plugin source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$plugin_source"
 assert_contains "test-command source pins version 0.1.0" 'PluginVersion = "0.1.0"' "$test_commands_source"
+assert_contains "server-support source pins version 0.1.0" 'PluginVersion = "0.1.0"' "$server_support_source"
 assert_contains \
   "plugin logs the exact post-PatchAll message" \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
@@ -148,6 +160,7 @@ printf '%s\n' \
   'Game server connected' \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
   'Benheim Test Commands 0.1.0 loaded with direct peer RPC authorization.' \
+  'Benheim Server Support 0.1.0 loaded with the Put Away lease coordinator.' \
   > "$tmp_dir/journal.log"
 printf '%s\n' 0 > "$tmp_dir/journal.count"
 MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
@@ -179,6 +192,10 @@ assert_contains \
 assert_contains \
   "verifier requires Test Commands' exact load message" \
   'Benheim Test Commands 0.1.0 loaded with direct peer RPC authorization.' \
+  "$verifier"
+assert_contains \
+  "verifier requires Server Support's exact load message" \
+  'Benheim Server Support 0.1.0 loaded with the Put Away lease coordinator.' \
   "$verifier"
 assert_contains "verifier requires the configured world" 'Load world: $world ($world)' "$verifier"
 assert_contains "verifier requires normal readiness" 'Game server connected' "$verifier"

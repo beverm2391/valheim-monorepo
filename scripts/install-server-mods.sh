@@ -11,12 +11,15 @@ trap 'rm -rf "$tmp_dir"' EXIT
 bepinex_file=BepInExPack_Valheim-5.4.2333.zip
 eternal_fire_file=BenheimEternalFire.dll
 test_commands_file=BenheimTestCommands.dll
+server_support_file=BenheimServerSupport.dll
 eternal_fire_source="$root/server-mods/benheim-eternal-fire/dist/$eternal_fire_file"
 test_commands_source="$root/server-mods/benheim-test-commands/dist/$test_commands_file"
+server_support_source="$root/server-mods/benheim-server-support/dist/$server_support_file"
 
 bepinex_sha256=5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716
 eternal_fire_sha256=8f452cc68d839b7a843676c89b479e357c2b932db8f0f02106de5c5cfde451f4
 test_commands_sha256=f32faa0db7a1f17ca10006322c00f45f73b32808edf769bc6218a467fff0b109
+server_support_sha256=77a3a3f21e761b0709eefd74e0fb50d9c04b576d3e1c3cb9438994a54a6ce0df
 
 download() {
   local url=$1
@@ -30,13 +33,16 @@ download \
 
 "$root/server-mods/benheim-eternal-fire/scripts/build.sh"
 "$root/server-mods/benheim-test-commands/scripts/build.sh"
+"$root/server-mods/benheim-server-support/scripts/build.sh"
 
 cp "$eternal_fire_source" "$tmp_dir/$eternal_fire_file"
 cp "$test_commands_source" "$tmp_dir/$test_commands_file"
+cp "$server_support_source" "$tmp_dir/$server_support_file"
 cat > "$tmp_dir/SHA256SUMS" <<EOF
 $bepinex_sha256  $bepinex_file
 $eternal_fire_sha256  $eternal_fire_file
 $test_commands_sha256  $test_commands_file
+$server_support_sha256  $server_support_file
 EOF
 
 if command -v sha256sum >/dev/null 2>&1; then
@@ -52,7 +58,12 @@ else
 fi
 
 remote_ssh "rm -rf /tmp/valheim-server-mods && install -d -m 0700 /tmp/valheim-server-mods"
-for file in "$bepinex_file" "$eternal_fire_file" "$test_commands_file" SHA256SUMS; do
+for file in \
+  "$bepinex_file" \
+  "$eternal_fire_file" \
+  "$test_commands_file" \
+  "$server_support_file" \
+  SHA256SUMS; do
   remote_scp "$tmp_dir/$file" "/tmp/valheim-server-mods/$file"
 done
 remote_scp "$root/server/valheim-start" "/tmp/valheim-server-mods/valheim-start"
@@ -167,19 +178,26 @@ rm -f \
   /opt/valheim/server/BepInEx/config/digitalroot.mods.eternalfire.cfg
 install -d \
   /opt/valheim/server/BepInEx/plugins/BenheimEternalFire \
-  /opt/valheim/server/BepInEx/plugins/BenheimTestCommands
+  /opt/valheim/server/BepInEx/plugins/BenheimTestCommands \
+  /opt/valheim/server/BepInEx/plugins/BenheimServerSupport
 install -m 0644 \
   "$work/BenheimEternalFire.dll" \
   /opt/valheim/server/BepInEx/plugins/BenheimEternalFire/BenheimEternalFire.dll
 install -m 0644 \
   "$work/BenheimTestCommands.dll" \
   /opt/valheim/server/BepInEx/plugins/BenheimTestCommands/BenheimTestCommands.dll
+install -m 0644 \
+  "$work/BenheimServerSupport.dll" \
+  /opt/valheim/server/BepInEx/plugins/BenheimServerSupport/BenheimServerSupport.dll
 cmp -s \
   "$work/BenheimEternalFire.dll" \
   /opt/valheim/server/BepInEx/plugins/BenheimEternalFire/BenheimEternalFire.dll
 cmp -s \
   "$work/BenheimTestCommands.dll" \
   /opt/valheim/server/BepInEx/plugins/BenheimTestCommands/BenheimTestCommands.dll
+cmp -s \
+  "$work/BenheimServerSupport.dll" \
+  /opt/valheim/server/BepInEx/plugins/BenheimServerSupport/BenheimServerSupport.dll
 chown -R valheim:valheim /opt/valheim/server/BepInEx /opt/valheim/server/doorstop_libs
 if grep -q '^VALHEIM_MODDED=' /etc/valheim/server.env; then
   sed -i 's/^VALHEIM_MODDED=.*/VALHEIM_MODDED=1/' /etc/valheim/server.env
@@ -196,5 +214,5 @@ fi
 
 trap - EXIT
 rm -rf "$work"
-echo "Installed BepInEx 5.4.2333, Benheim Eternal Fire 0.1.1, and Benheim Test Commands 0.1.0."
+echo "Installed BepInEx 5.4.2333, Benheim Eternal Fire 0.1.1, Benheim Test Commands 0.1.0, and Benheim Server Support 0.1.0."
 REMOTE
