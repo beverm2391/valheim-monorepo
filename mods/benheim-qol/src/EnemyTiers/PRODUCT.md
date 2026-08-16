@@ -32,6 +32,12 @@ Its native biome name remains on the first line, and the category text appears
 alone on a second line. The category matches the native biome label's white
 text treatment.
 
+Ben confirmed in gameplay that the `0.1.61` candidate's one-star `1.4x` and
+two-star `1.7x` Boars are visibly larger than ordinary Boars. This proves only
+the visible size change. Physical coherence among the visible body, collision
+capsule, and player contact felt slightly off. It remains unproven and in
+development.
+
 [`RESEARCH.md`](RESEARCH.md) owns the code evidence, multiplayer authority,
 extension seams, and Valheim `1.0` revalidation gate behind this baseline.
 

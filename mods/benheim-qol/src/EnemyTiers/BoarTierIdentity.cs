@@ -97,6 +97,18 @@ internal static class BoarTierIdentity
             .Boolean("owner", character.IsOwner());
     }
 
+    internal static bool HasAppliedProfile(LevelEffects levelEffects)
+    {
+        return ApplicationStates.TryGetValue(levelEffects, out BoarTierApplicationState? state) &&
+            state.ProfileApplied;
+    }
+
+    internal static bool HasAppliedProfile(Character character)
+    {
+        LevelEffects? levelEffects = character.GetComponentInChildren<LevelEffects>(includeInactive: true);
+        return levelEffects != null && HasAppliedProfile(levelEffects);
+    }
+
     private static DiagnosticEvent? RestoreNativeProfileIfNeeded(
         LevelEffects levelEffects,
         Character character,

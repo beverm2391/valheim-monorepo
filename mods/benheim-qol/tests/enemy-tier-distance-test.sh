@@ -16,6 +16,8 @@ boar_profile="$root/src/EnemyTiers/BoarTierPhysicalProfile.cs"
 boar_identity="$root/src/EnemyTiers/BoarTierIdentity.cs"
 boar_patches="$root/src/EnemyTiers/BoarTierIdentityPatches.cs"
 boar_combat="$root/src/EnemyTiers/BoarTierCombat.cs"
+boar_geometry="$root/src/EnemyTiers/BoarTierGeometryDiagnostics.cs"
+boar_observation_state="$root/src/EnemyTiers/BoarTierObservationState.cs"
 boar_command_client="$root/src/EnemyTiers/BenheimTestCommandClient.cs"
 boar_command_protocol="$root/src/EnemyTiers/BoarTestCommandProtocol.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
@@ -173,6 +175,34 @@ rg -Fq '[HarmonyPatch(typeof(MonsterAI), nameof(MonsterAI.UpdateAI))]' "$boar_pa
 rg -Fq 'BoarTierCombat.AdjustIncomingPush' "$boar_patches"
 rg -Fq 'BoarTierCombat.AdjustOutgoingPush' "$boar_patches"
 rg -Fq 'BoarTierCombat.ExtendPursuit' "$boar_patches"
+rg -Fq 'BoarTierGeometryDiagnostics.ObserveAppliedProfile' "$boar_patches"
+rg -Fq 'BoarTierGeometryDiagnostics.ObserveLocalPlayerMeleeHit' "$boar_patches"
+rg -Fq 'DiagnosticEvent.Create("EnemyTiers", "boar_tier_geometry")' "$boar_geometry"
+rg -Fq 'DiagnosticEvent.Create("EnemyTiers", "boar_tier_player_hit_geometry")' "$boar_geometry"
+rg -Fq 'Player? localPlayer = Player.m_localPlayer;' "$boar_geometry"
+rg -Fq 'localPlayer != null' "$boar_geometry"
+rg -Fq 'attacker != null && attacker == localPlayer' "$boar_geometry"
+rg -Fq 'hit.m_ranged' "$boar_geometry"
+rg -Fq 'hit.m_hitCollider != null' "$boar_geometry"
+rg -Fq 'SessionHitObservations.TryMarkPlayerHit(level)' "$boar_geometry"
+rg -Fq 'SessionHitObservations.HasPlayerHit(level)' "$boar_geometry"
+rg -Fq 'GeometryObservations.GetOrCreateValue(character)' "$boar_geometry"
+rg -Fq 'BoarTierIdentity.HasAppliedProfile(levelEffects)' "$boar_geometry"
+rg -Fq 'BoarTierIdentity.HasAppliedProfile(target)' "$boar_geometry"
+rg -Fq 'internal static bool HasAppliedProfile(LevelEffects levelEffects)' "$boar_identity"
+rg -Fq 'capsule_bounds' "$boar_geometry"
+rg -Fq 'renderer_bounds' "$boar_geometry"
+rg -Fq 'head_position' "$boar_geometry"
+rg -Fq 'hit_to_head_m' "$boar_geometry"
+rg -Fq 'scope", "authored_damage_contact"' "$boar_geometry"
+rg -Fq 'private int geometryLevels;' "$boar_observation_state"
+rg -Fq 'private int playerHitLevels;' "$boar_observation_state"
+rg -Fq 'internal static bool ShouldObserve(' "$boar_observation_state"
+rg -Fq 'ObserveProfileSafely(__instance' "$boar_patches"
+rg -Fq 'ObserveHitSafely(__instance, hit);' "$boar_patches"
+rg -Fq 'catch (Exception exception)' "$boar_patches"
+rg -Fq 'ReportObservationFailureOnce' "$boar_patches"
+rg -Uq 'BoarTierCombat\.AdjustOutgoingPush\(__instance, hit\);\n        ObserveHitSafely\(__instance, hit\);' "$boar_patches"
 rg -Fq 'pushForce *= profile.IncomingPushMultiplier;' "$boar_combat"
 rg -Fq 'hit.m_pushForce *= profile.OutgoingPushMultiplier;' "$boar_combat"
 rg -Fq 'if (!target.IsPlayer())' "$boar_combat"
@@ -235,8 +265,13 @@ if rg -n 'transform\.localScale \*=|m_speed|m_walkSpeed|m_mass|\.mass =|m_swim|m
   exit 1
 fi
 
-if rg -n 'GetZDO\(\).*Set|ZDOVars|ZNetScene|Object\.Instantiate|Clone|m_shared' "$boar_profile" "$boar_identity" "$boar_patches" "$boar_combat"; then
+if rg -n 'GetZDO\(\).*Set|ZDOVars|ZNetScene|Object\.Instantiate|Clone|m_shared' "$boar_profile" "$boar_identity" "$boar_patches" "$boar_combat" "$boar_geometry" "$boar_observation_state"; then
   printf 'Boar tier identity must not add persistent state or custom prefab machinery\n' >&2
+  exit 1
+fi
+
+if rg -n 'Update\(|FixedUpdate\(|OnCollision|OnTrigger|Physics\.|Mesh\.vertices|SkinnedMeshRenderer\.BakeMesh' "$boar_geometry" "$boar_observation_state"; then
+  printf 'Boar geometry diagnostics must stay event-bound and must not reconstruct or poll collision surfaces\n' >&2
   exit 1
 fi
 

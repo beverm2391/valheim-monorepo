@@ -13,6 +13,7 @@
     <Compile Include="../../src/EnemyTiers/WildernessMapLabelLayout.cs" Link="WildernessMapLabelLayout.cs" />
     <Compile Include="../../src/EnemyTiers/BiomeStarChanceTuning.cs" Link="BiomeStarChanceTuning.cs" />
     <Compile Include="../../src/EnemyTiers/BoarTierPhysicalProfile.cs" Link="BoarTierPhysicalProfile.cs" />
+    <Compile Include="../../src/EnemyTiers/BoarTierObservationState.cs" Link="BoarTierObservationState.cs" />
     <Compile Include="../../src/EnemyTiers/BoarTestCommandProtocol.cs" Link="BoarTestCommandProtocol.cs" />
   </ItemGroup>
 </Project>

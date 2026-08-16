@@ -99,6 +99,23 @@ boarApplication.MarkApplied();
 ExpectTrue(boarApplication.ProfileApplied, "starred Boar records its ephemeral applied profile");
 boarApplication.MarkRestored();
 ExpectTrue(!boarApplication.ProfileApplied, "level downgrade consumes the applied profile marker");
+var boarObservations = new BoarTierObservationState();
+ExpectTrue(boarObservations.TryMarkGeometry(2), "one-star geometry is observed once");
+ExpectTrue(boarObservations.HasGeometry(2), "one-star geometry marker is queryable before expensive capture");
+ExpectTrue(!boarObservations.TryMarkGeometry(2), "repeated one-star application does not duplicate geometry");
+ExpectTrue(boarObservations.TryMarkGeometry(3), "two-star geometry has its own observation");
+ExpectTrue(boarObservations.TryMarkPlayerHit(2), "first one-star player hit is observed");
+ExpectTrue(boarObservations.HasPlayerHit(2), "one-star player-hit marker is queryable before expensive capture");
+ExpectTrue(!boarObservations.TryMarkPlayerHit(2), "later one-star player hits are suppressed");
+ExpectTrue(boarObservations.TryMarkPlayerHit(3), "first two-star player hit has its own observation");
+ExpectTrue(!boarObservations.TryMarkGeometry(-1), "invalid negative tier is not recorded");
+ExpectTrue(!boarObservations.TryMarkPlayerHit(31), "tier outside the bitmask is not recorded");
+ExpectTrue(BoarTierHitObservationRules.ShouldObserve(true, true, true, false, true), "applied local-player melee contact with a collider is observable");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(true, false, false, false, true), "missing local player cannot become a player hit");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(true, true, false, false, true), "attackerless or remote hit is excluded");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(true, true, true, true, true), "ranged hit is excluded");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(true, true, true, false, false), "contact without an authored collider is excluded");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(false, true, true, false, true), "unapplied profile is excluded");
 ExpectTrue(
     BoarTestCommandProtocol.IsHelpRequest(new[] { "bh", "help" }),
     "Benheim help command is accepted");
