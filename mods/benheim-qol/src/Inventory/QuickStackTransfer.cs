@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BenheimInventoryProtocol;
 
 namespace BenheimQoL.InventoryFeature;
 
@@ -65,10 +66,10 @@ internal static class QuickStackTransfer
         return eligibility;
     }
 
-    internal static int CountCandidates(Player player, Container container)
+    internal static List<DepositCandidate> FindCandidates(Player player, Container container)
     {
         Inventory target = container.GetInventory();
-        int candidates = 0;
+        List<DepositCandidate> candidates = new List<DepositCandidate>();
         foreach (ItemDrop.ItemData item in player.GetInventory().GetAllItemsInGridOrder())
         {
             if (item != null
@@ -77,50 +78,10 @@ internal static class QuickStackTransfer
                 && target.ContainsItemByName(item.m_shared.m_name)
                 && target.CanAddItem(item, 1))
             {
-                candidates++;
+                candidates.Add(new DepositCandidate(item));
             }
         }
 
         return candidates;
-    }
-
-    internal static int RecordNativeTransfer(
-        QuickStackBulkScope scope,
-        QuickStackOperation operation,
-        Container container)
-    {
-        int movedItems = 0;
-        foreach (QuickStackItemSnapshot snapshot in scope.Items)
-        {
-            int remaining = scope.Player.GetInventory().ContainsItem(snapshot.Item) ? snapshot.Item.m_stack : 0;
-            int moved = snapshot.StackBefore - remaining;
-            if (moved <= 0)
-            {
-                continue;
-            }
-
-            movedItems += moved;
-            string location = QuickStackLocation.Format(operation.Player, container);
-            operation.Summary.Add(
-                container.GetInstanceID(),
-                Localize(container.GetHoverName()),
-                location,
-                Localize(snapshot.Item.m_shared.m_name),
-                moved);
-            QuickStackDiagnostics.ItemMoved(
-                operation.OperationId,
-                snapshot.Item,
-                moved,
-                container.GetInventory().CountItems(snapshot.Item.m_shared.m_name),
-                container,
-                location);
-        }
-
-        return movedItems;
-    }
-
-    private static string Localize(string name)
-    {
-        return Localization.instance != null ? Localization.instance.Localize(name) : name.TrimStart('$');
     }
 }

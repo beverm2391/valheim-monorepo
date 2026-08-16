@@ -6,6 +6,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../src/Inventory/QuickStackResponseGuard.cs" Link="QuickStackResponseGuard.cs" />
+    <Compile Include="../../shared/benheim-inventory-protocol/InventoryTransactionReceiptCodec.cs" Link="InventoryTransactionReceiptCodec.cs" />
   </ItemGroup>
 </Project>

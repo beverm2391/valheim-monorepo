@@ -22,6 +22,7 @@
   <ItemGroup>
     <Compile Include="../../../mods/benheim-qol/src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
     <Compile Include="../../../mods/benheim-qol/src/Inventory/PutAwayLeaseProtocol.cs" Link="PutAwayLeaseProtocol.cs" />
+    <Compile Include="../../../shared/benheim-inventory-protocol/*.cs" Link="InventoryProtocol/%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

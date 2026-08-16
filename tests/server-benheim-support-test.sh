@@ -7,6 +7,8 @@ server="$mod/src/PutAwayLeaseServer.cs"
 state="$mod/src/PutAwayLeaseState.cs"
 plugin="$mod/src/Plugin.cs"
 project="$mod/src/BenheimServerSupport.csproj"
+runtime="$mod/src/InventoryTransactionRuntime.cs"
+protocol="$root/shared/benheim-inventory-protocol"
 client="$root/mods/benheim-qol/src/Inventory/PutAwayLeaseClient.cs"
 quick_stack="$root/mods/benheim-qol/src/Inventory/QuickStack.cs"
 
@@ -20,9 +22,8 @@ grep -Fq 'Lease.TryReleasePeer(peer, out string operationId)' "$server"
 grep -Fq 'lock (sync)' "$state"
 grep -Fq 'result.Reason == "busy"' "$quick_stack"
 grep -Fq 'Put Away busy — retry in a few seconds' "$quick_stack"
-grep -Fq 'Put Away timed out — reconnect to safely retry this chest' "$quick_stack"
 grep -Fq 'PutAwayLeaseClient.TryRequest' "$quick_stack"
-grep -Fq 'PutAwayLeaseClient.Release("native_response_timeout")' "$quick_stack"
+grep -Fq 'PutAwayLeaseClient.Release("batch_finished")' "$quick_stack"
 grep -Fq 'TrySendRelease(operationId, "result_timeout")' "$client"
 grep -Fq 'server retains the lease until peer disconnect' "$client"
 
@@ -35,12 +36,24 @@ fi
 begin_block="$(sed -n '/private static void BeginAfterLeaseGranted/,/private static QuickStackEligibility/p' "$quick_stack")"
 printf '%s\n' "$begin_block" | grep -Fq 'FindAccessibleContainers'
 
-# This owner is only a lease, not a chest transfer or transaction framework.
-if rg -n 'Inventory\.StackAll|Container|ClaimOwnership|ForceSendZDO|SetOwner|retry|journal|transaction' "$server" "$state"; then
-  printf 'server support must remain a narrow Put Away exclusion lease\n' >&2
+# The lease stays independent from chest contents. Owner-authoritative deposits
+# are routed by the separate shared protocol.
+if rg -n 'Inventory\.StackAll|Container|ClaimOwnership|ForceSendZDO|SetOwner|transaction' "$server" "$state"; then
+  printf 'the global lease must not become the chest transaction implementation\n' >&2
+  exit 1
+fi
+grep -Fq 'shared/benheim-inventory-protocol/*.cs' "$project"
+grep -Fq 'InventoryTransactions.Update();' "$runtime"
+grep -Fq 'long owner = ResolveOwner(containerId);' "$protocol/InventoryTransactionServer.cs"
+grep -Fq 'view.IsOwner()' "$protocol/InventoryTransactionOwner.cs"
+grep -Fq 'target.AddItem(item.Clone())' "$protocol/InventoryTransactionOwner.cs"
+if rg -n -g '*.cs' 'ClaimOwnership|Inventory\.StackAll' "$protocol"; then
+  printf 'shared Put Away protocol must not write a requester-local chest cache\n' >&2
   exit 1
 fi
 
 dotnet run --project "$mod/tests/put-away-lease/PutAwayLeaseTests.csproj"
+dotnet run --project "$root/tests/put-away-owner-routing/PutAwayOwnerRoutingTests.csproj"
+dotnet run --project "$root/tests/inventory-transaction-receipts/InventoryTransactionReceiptTests.csproj"
 dotnet build "$project" --configuration Release
 printf 'Benheim server-support Put Away lease checks passed\n'

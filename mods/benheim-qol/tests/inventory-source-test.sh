@@ -14,7 +14,7 @@ quick_stack_location="$root/src/Inventory/QuickStackLocation.cs"
 quick_stack_feedback="$root/src/Inventory/QuickStackFeedback.cs"
 quick_stack_summary="$root/src/Inventory/QuickStackSummary.cs"
 put_away_lease="$root/src/Inventory/PutAwayLeaseClient.cs"
-container_write="$root/src/Inventory/QuickStackContainerWrite.cs"
+protocol_root="$root/../../shared/benheim-inventory-protocol"
 top_left_feedback_hud="$root/src/TopLeftFeedbackHud.cs"
 top_left_feedback_layout="$root/src/TopLeftFeedbackLayout.cs"
 visibility="$root/src/Inventory/InventoryVisibility.cs"
@@ -118,29 +118,19 @@ if grep -Fq 'MessageHud.MessageType.TopLeft' "$controller" "$quick_stack"; then
   printf 'Benheim-owned top-left feedback must use the shared lane\n' >&2
   exit 1
 fi
-grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack_transfer"
-grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack_transfer"
-grep -Fq 'container.StackAll();' "$quick_stack"
-grep -Fq 'QuickStackContainerWrite.TryBegin' "$quick_stack"
-grep -Fq 'networkView.ClaimOwnership();' "$container_write"
-grep -Fq 'if (!ownerAfter)' "$container_write"
-grep -Fq '"revision_advanced"' "$quick_stack_diagnostics"
-grep -Fq 'scope.ContainerWrite?.Complete(movedItems);' "$quick_stack"
+grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack"
+grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack"
+grep -Fq 'InventoryTransactions.TryBeginDeposit' "$quick_stack"
+grep -Fq 'InventoryTransactionWire.WriteItem' "$protocol_root/InventoryTransactionClient.cs"
+grep -Fq 'source.RemoveItem(sourceItem, sourceItem.m_stack)' "$protocol_root/InventoryTransactionClient.cs"
+grep -Fq 'RestoreRemainder' "$protocol_root/InventoryTransactionClient.cs"
+grep -Fq 'TryResolveOwnedContainer' "$protocol_root/InventoryTransactionOwner.cs"
+grep -Fq 'target.AddItem(item.Clone())' "$protocol_root/InventoryTransactionOwner.cs"
 grep -Fq 'BeginBulkStack' "$quick_stack"
-grep -Fq 'RecordNativeTransfer' "$quick_stack"
-grep -Fq 'scope.Player.GetInventory().ContainsItem(snapshot.Item)' "$quick_stack_transfer"
-if rg -F 'InventoryTransactions' "$quick_stack" "$client_plugin"; then
-  printf 'client Put Away must use Valheim native ownership rather than InventoryTransactions\n' >&2
-  exit 1
-fi
 grep -Fq 'PluginVersion = "0.1.62"' "$client_plugin"
-if rg -n 'InventoryTransaction|InventoryCapability|BenheimInventoryProtocol|CorrelatedStack' "$root/src"; then
-  printf 'client Put Away must not retain protocol machinery\n' >&2
-  exit 1
-fi
-claim_count="$(rg -F -g '*.cs' 'ClaimOwnership' "$root/src/Inventory" | wc -l | tr -d ' ')"
-if [[ "$claim_count" != "1" ]]; then
-  printf 'Put Away ownership claim must stay at the single post-grant write boundary\n' >&2
+if rg -n 'ClaimOwnership|container\.StackAll\(\)|QuickStackContainerWrite|QuickStackResponseGuard' \
+    "$quick_stack" "$quick_stack_transfer" "$protocol_root"; then
+  printf 'Put Away must not restore requester-local chest writes or native uncorrelated responses\n' >&2
   exit 1
 fi
 grep -Fq '"position"' "$quick_stack_diagnostics"

@@ -14,7 +14,6 @@ internal static class QuickStackDiagnostics
         string operationId,
         ItemDrop.ItemData item,
         int moved,
-        int resultingCount,
         Container container,
         string containerLocation)
     {
@@ -25,36 +24,12 @@ internal static class QuickStackDiagnostics
                 .String("operation_phase", "write")
                 .String("item", item.m_shared.m_name)
                 .Integer("moved", moved)
-                .Integer("resulting_count", resultingCount)
                 .String("zdo_id", StableZdoId(networkView))
                 .String("container", container.gameObject.name)
                 .String("location", containerLocation)
                 .String(
                     "position",
                     $"{container.transform.position.x:0.##},{container.transform.position.y:0.##},{container.transform.position.z:0.##}"));
-    }
-
-    internal static void WriteSnapshot(
-        string operationId,
-        Container container,
-        ZNetView networkView,
-        int movedItems,
-        uint revisionBefore,
-        uint revisionAfter)
-    {
-        Diagnostics.Emit(
-            DiagnosticEvent.Create("Inventory", "quick_stack_write_snapshot")
-                .String("operation_id", operationId)
-                .String("operation_phase", "write_complete")
-                .Integer("peer", ZDOMan.GetSessionID())
-                .Integer("player_id", LocalPlayerId())
-                .String("zdo_id", StableZdoId(networkView))
-                .Boolean("owner", container.IsOwner())
-                .Integer("revision_before", revisionBefore)
-                .Integer("revision_after", revisionAfter)
-                .Boolean("revision_advanced", revisionAfter > revisionBefore)
-                .Integer("moved", movedItems)
-                .String("contents", InventoryContents(container.GetInventory())));
     }
 
     internal static void ContainerOpened(Container container)

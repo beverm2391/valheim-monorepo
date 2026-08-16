@@ -65,39 +65,14 @@ internal sealed class QuickStackBulkScope
     internal QuickStackBulkScope(
         Player player,
         Inventory target,
-        QuickStackOperation? operation,
-        Container? container,
-        QuickStackContainerWrite? containerWrite,
-        bool allowNativeStack,
         QuickStackBulkScope? previous)
     {
         Player = player;
         Target = target;
-        Operation = operation;
-        Container = container;
-        ContainerWrite = containerWrite;
-        AllowNativeStack = allowNativeStack;
         Previous = previous;
     }
 
     internal Player Player { get; }
     internal Inventory Target { get; }
-    internal QuickStackOperation? Operation { get; }
-    internal Container? Container { get; }
-    internal QuickStackContainerWrite? ContainerWrite { get; }
-    internal bool AllowNativeStack { get; }
     internal QuickStackBulkScope? Previous { get; }
-    internal List<QuickStackItemSnapshot> Items { get; } = new List<QuickStackItemSnapshot>();
-}
-
-internal sealed class QuickStackItemSnapshot
-{
-    internal QuickStackItemSnapshot(ItemDrop.ItemData item, int stackBefore)
-    {
-        Item = item;
-        StackBefore = stackBefore;
-    }
-
-    internal ItemDrop.ItemData Item { get; }
-    internal int StackBefore { get; }
 }

@@ -20,20 +20,6 @@ internal static class QuickStackPatches
         }
     }
 
-    [HarmonyPatch(typeof(Container), "RPC_StackResponse")]
-    private static class StackResponsePatch
-    {
-        private static bool Prefix(Container __instance, bool granted)
-        {
-            if (QuickStack.TryHandleTimedOutResponse(__instance, granted))
-            {
-                return false;
-            }
-
-            return granted || !QuickStack.TryHandleNativeDenial(__instance);
-        }
-    }
-
     [HarmonyPatch(typeof(Inventory), nameof(Inventory.StackAll), new[] { typeof(Inventory), typeof(bool) })]
     private static class BulkStackPatch
     {

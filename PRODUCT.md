@@ -69,9 +69,9 @@ together to produce the same shared behavior for the regular group.
 Benheim is healthy when every member of our regular group has a version
 compatible with those used by every other member. The shared world and
 characters must remain recoverable across updates or removal.
-Put Away must use Valheim's native chest ownership flow so every connected
-player sees the same completed chest state. Benheim Server Support must prevent
-compatible clients from entering that flow concurrently.
+Put Away must route each deposit to Valheim's current chest owner so every
+connected player sees the same completed chest state. Benheim Server Support
+must prevent compatible clients from entering that flow concurrently.
 
 ## Open Gates
 
