@@ -100,11 +100,15 @@ technical cost.
   the configured diagnostics dataset. Each uploaded record identifies the
   current character name and connection-scoped peer. It also includes a random,
   persisted client ID, a session ID, the mod version, the exact DLL build, and
-  the existing operation ID. The upload
-  removes exact world positions, stable character and world-object IDs, raw
-  errors, chat, IP addresses, secrets, and file paths. Local NDJSON continues
-  whether sharing succeeds, fails, or is disabled. Each Inventory event sends
-  only fields on an explicit remote allowlist. Chest-content snapshots remain local.
+  the existing operation ID. Private sharing sends every field constructed on
+  the typed event. This includes chest contents, identifiers, positions,
+  revisions, item and count fields, operation and transaction IDs, typed errors,
+  and paths. The serializer does not filter those fields.
+
+  Benheim must not construct typed events from credentials, secrets, tokens,
+  passwords, raw BepInEx or Unity logs, chat, arbitrary files, or other untyped
+  payloads. Those sources never enter remote diagnostics. Local NDJSON continues
+  whether sharing succeeds, fails, or is disabled.
 - Private-test diagnostics use one dataset-scoped ingest-only credential for
   Ben, Johnny, and Ozi. The credential is extractable from those installers.
   Never publish a private-test installer. Rotate the credential if an installer

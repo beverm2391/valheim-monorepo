@@ -121,10 +121,9 @@ internal sealed class DiagnosticEvent
         return builder.ToString();
     }
 
-    // Private test builds can forward the same typed event object that owns the
-    // local line. This second representation adds the deliberately disclosed
-    // test identity envelope while omitting exact world positions, duplicate
-    // raw identifiers, and raw exception text. The local NDJSON remains complete.
+    // Private test builds forward the typed gameplay evidence that owns the
+    // local line. This representation adds the test identity envelope without
+    // silently removing fields chosen by the typed event producer.
     internal string ToRemoteJsonLine(
         string clientId,
         string playerName,
@@ -164,104 +163,12 @@ internal sealed class DiagnosticEvent
         builder.Append(",\"schema\":").Append(CurrentSchema.ToString(CultureInfo.InvariantCulture));
         foreach (DiagnosticField field in fields)
         {
-            if (!RemoteFieldAllowed(Domain, Name, field.Name))
-            {
-                continue;
-            }
-
             builder.Append(',');
             AppendJsonString(builder, field.Name);
             builder.Append(':').Append(field.JsonValue());
         }
         builder.Append('}');
         return builder.ToString();
-    }
-
-    private static bool RemoteFieldAllowed(string domain, string eventName, string name)
-    {
-        // Inventory diagnostics can describe chest contents and durable world
-        // state. Only fields reviewed for the private Put Away investigation
-        // leave the client; new fields remain local until reviewed explicitly.
-        if (domain == "Inventory" && !RemoteInventoryFieldAllowed(eventName, name))
-        {
-            return false;
-        }
-
-        // The canonical envelope above replaces duplicate identifiers carried
-        // by individual events. Stable character and network-object IDs remain
-        // unnecessary even though this private test explicitly shares the
-        // current character name and connection-scoped peer ID.
-        if (name == "peer" ||
-            name == "requester" ||
-            name == "station" ||
-            (name.EndsWith("_id", StringComparison.Ordinal) && name != "operation_id") ||
-            name.EndsWith("_peer", StringComparison.Ordinal) ||
-            name.IndexOf("steam", StringComparison.OrdinalIgnoreCase) >= 0)
-        {
-            return false;
-        }
-
-        // Relative/local geometry and distances answer the gameplay questions.
-        // Exact world positions do not, so they never leave the client.
-        if (name == "position" ||
-            name.StartsWith("head_position_", StringComparison.Ordinal) ||
-            name.Contains("_bounds_center_") ||
-            (name.StartsWith("hit_point_", StringComparison.Ordinal) &&
-                !name.StartsWith("hit_point_local_", StringComparison.Ordinal)))
-        {
-            return false;
-        }
-
-        // Raw exception text and payload-shaped fields can contain paths,
-        // credentials, chat, or arbitrary content. Typed reason codes remain.
-        return name != "error" &&
-            name != "message" &&
-            name != "chat" &&
-            name != "password" &&
-            name != "token" &&
-            name != "secret" &&
-            name != "ip" &&
-            name != "ip_address" &&
-            name != "file" &&
-            name != "file_path" &&
-            name != "path";
-    }
-
-    private static bool RemoteInventoryFieldAllowed(string eventName, string name)
-    {
-        switch (eventName)
-        {
-            case "quick_stack_item":
-                return name == "operation_id" ||
-                    name == "operation_phase" ||
-                    name == "item" ||
-                    name == "moved" ||
-                    name == "container" ||
-                    name == "location";
-            case "container_open_snapshot":
-                return name == "operation_phase" ||
-                    name == "owner" ||
-                    name == "revision";
-            case "quick_stack_lease_requested":
-            case "quick_stack_lease_entered":
-                return name == "operation_id" || name == "operation_phase";
-            case "quick_stack_lease_released":
-                return name == "operation_id" ||
-                    name == "operation_phase" ||
-                    name == "reason" ||
-                    name == "sent";
-            case "quick_stack_lease_result":
-                return name == "operation_id" ||
-                    name == "operation_phase" ||
-                    name == "outcome" ||
-                    name == "reason";
-            case "quick_stack_lease_result_rejected":
-                return name == "operation_id" ||
-                    name == "operation_phase" ||
-                    name == "reason";
-            default:
-                return false;
-        }
     }
 
     private static void AppendJsonStringProperty(StringBuilder builder, string name, string value)
