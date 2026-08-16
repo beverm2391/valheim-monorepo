@@ -93,6 +93,7 @@ internal static partial class ShortcutOverlay
             new Color(0.74f, 0.7f, 1f, 1f),
             new[]
             {
+                new Entry("/", "Open Valheim's native console when enabled"),
                 new Entry("F7", "Save the active Benheim log to the Desktop"),
             },
             "Attach the exported log when reporting behavior another player cannot reproduce."),
@@ -107,6 +108,7 @@ internal static partial class ShortcutOverlay
         new("Left Shift + B", "Open the Benheim menu", "<Keyboard>/b"),
         new("Left Shift + P", "Put matching items away", "<Keyboard>/p"),
         new("R", "Swap hotbar loadout", "<Keyboard>/r", ignoredNativeAction: "Hide"),
+        new("/", "Open Valheim's native console", "<Keyboard>/slash"),
         new("F7", "Save the active Benheim log to the Desktop", "<Keyboard>/f7"),
     };
 

@@ -70,6 +70,7 @@ public sealed class Plugin : BaseUnityPlugin
             return;
         }
 
+        NativeConsoleShortcut.Update();
         TopLeftFeedbackHud.Update();
         BenheimTestCommandClient.Update();
         WildernessDangerPresentation.Update();
