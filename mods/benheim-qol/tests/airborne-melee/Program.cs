@@ -2,100 +2,121 @@ using System;
 using BenheimQoL.WeaponRhythm;
 
 ExpectTrue(
-    AirborneMeleeRules.Qualifies(
+    AirborneMeleeRules.CanArm(
+        attackerIsLocalPlayer: true,
+        meleeAttack: true,
+        attackerIsGrounded: false,
+        forwardSpeed: 7f,
+        forwardSpeedThreshold: AirborneMeleeTuning.ForwardSpeedThreshold),
+    "airborne local melee arms at native sprint-band forward momentum");
+ExpectFalse(
+    AirborneMeleeRules.CanArm(
+        attackerIsLocalPlayer: true,
+        meleeAttack: true,
+        attackerIsGrounded: true,
+        forwardSpeed: 9f,
+        forwardSpeedThreshold: AirborneMeleeTuning.ForwardSpeedThreshold),
+    "grounded attack start never arms");
+ExpectFalse(
+    AirborneMeleeRules.CanArm(
+        attackerIsLocalPlayer: true,
+        meleeAttack: true,
+        attackerIsGrounded: false,
+        forwardSpeed: 6.99f,
+        forwardSpeedThreshold: AirborneMeleeTuning.ForwardSpeedThreshold),
+    "walk or jog momentum never arms");
+ExpectFalse(
+    AirborneMeleeRules.CanArm(
+        attackerIsLocalPlayer: false,
+        meleeAttack: true,
+        attackerIsGrounded: false,
+        forwardSpeed: 9f,
+        forwardSpeedThreshold: AirborneMeleeTuning.ForwardSpeedThreshold),
+    "remote or enemy attack never arms");
+ExpectFalse(
+    AirborneMeleeRules.CanArm(
+        attackerIsLocalPlayer: true,
+        meleeAttack: false,
+        attackerIsGrounded: false,
+        forwardSpeed: 9f,
+        forwardSpeedThreshold: AirborneMeleeTuning.ForwardSpeedThreshold),
+    "projectile and non-melee attacks never arm");
+
+ExpectTrue(
+    AirborneMeleeRules.CanConsume(
+        armed: true,
         targetIsCharacter: true,
         attackerIsLocalPlayer: true,
         attackerIsGrounded: false,
         verticalSpeed: -0.5f,
-        descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 7f,
-        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
-    "local descending sprint-approach contact qualifies at both thresholds");
+        descentThreshold: AirborneMeleeTuning.DescentThreshold),
+    "armed swing consumes on an airborne descending Character hit");
 ExpectFalse(
-    AirborneMeleeRules.Qualifies(
+    AirborneMeleeRules.CanConsume(
+        armed: false,
+        targetIsCharacter: true,
+        attackerIsLocalPlayer: true,
+        attackerIsGrounded: false,
+        verticalSpeed: -5f,
+        descentThreshold: AirborneMeleeTuning.DescentThreshold),
+    "unarmed swing stays native even with a strong descent");
+ExpectFalse(
+    AirborneMeleeRules.CanConsume(
+        armed: true,
         targetIsCharacter: true,
         attackerIsLocalPlayer: true,
         attackerIsGrounded: true,
         verticalSpeed: -5f,
-        descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 9f,
-        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
-    "grounded local melee contact stays native");
+        descentThreshold: AirborneMeleeTuning.DescentThreshold),
+    "landing before contact rejects consumption");
 ExpectFalse(
-    AirborneMeleeRules.Qualifies(
-        targetIsCharacter: true,
-        attackerIsLocalPlayer: false,
-        attackerIsGrounded: false,
-        verticalSpeed: -5f,
-        descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 9f,
-        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
-    "enemy or remote attack stays native");
-ExpectFalse(
-    AirborneMeleeRules.Qualifies(
-        targetIsCharacter: false,
-        attackerIsLocalPlayer: true,
-        attackerIsGrounded: false,
-        verticalSpeed: -5f,
-        descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 9f,
-        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
-    "destructible and terrain contact stays native");
-ExpectFalse(
-    AirborneMeleeRules.Qualifies(
-        targetIsCharacter: true,
-        attackerIsLocalPlayer: true,
-        attackerIsGrounded: false,
-        verticalSpeed: 2f,
-        descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 9f,
-        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
-    "rising local melee contact stays native");
-ExpectFalse(
-    AirborneMeleeRules.Qualifies(
+    AirborneMeleeRules.CanConsume(
+        armed: true,
         targetIsCharacter: true,
         attackerIsLocalPlayer: true,
         attackerIsGrounded: false,
         verticalSpeed: -0.49f,
-        descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 9f,
-        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
-    "apex drift above the threshold stays native");
-
+        descentThreshold: AirborneMeleeTuning.DescentThreshold),
+    "rising or apex contact rejects consumption");
 ExpectFalse(
-    AirborneMeleeRules.Qualifies(
-        targetIsCharacter: true,
+    AirborneMeleeRules.CanConsume(
+        armed: true,
+        targetIsCharacter: false,
         attackerIsLocalPlayer: true,
         attackerIsGrounded: false,
-        verticalSpeed: -2f,
-        descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 6.99f,
-        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
-    "ordinary walk or jog jump stays native below the sprint band");
-ExpectFalse(
-    AirborneMeleeRules.Qualifies(
-        targetIsCharacter: true,
-        attackerIsLocalPlayer: true,
-        attackerIsGrounded: false,
-        verticalSpeed: -2f,
-        descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: -9f,
-        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
-    "backward momentum stays native");
+        verticalSpeed: -5f,
+        descentThreshold: AirborneMeleeTuning.DescentThreshold),
+    "destructible and terrain contact never consumes the swing");
 
 ExpectNear(8f, AirborneMeleeRules.ProjectPlanarVelocityToward(8f, 3f, 10f, 0f),
-    "sideways speed does not inflate toward-target momentum");
+    "sideways speed does not inflate physical forward momentum");
 ExpectNear(-8f, AirborneMeleeRules.ProjectPlanarVelocityToward(-8f, 3f, 10f, 0f),
-    "backward speed remains negative");
-ExpectNear(0f, AirborneMeleeRules.ProjectPlanarVelocityToward(8f, 3f, 0f, 0f),
-    "degenerate overlapping contact fails closed");
+    "backward momentum remains negative");
+ExpectNear(0f, AirborneMeleeRules.ProjectPlanarVelocityToward(0f, 8f, 10f, 0f),
+    "pure sideways momentum cannot arm");
+
+AirborneMeleeSwingState qualifyingSwing = new(
+    "qualifying",
+    startVerticalSpeed: 2f,
+    startForwardSpeed: 8f);
+ExpectTrue(qualifyingSwing.Resolve(qualified: true), "first Character contact resolves the swing");
+ExpectTrue(qualifyingSwing.Qualified, "qualified result remains available to the synchronous area outcome");
+ExpectFalse(qualifyingSwing.Resolve(qualified: true), "later area contacts cannot present or log again");
+
+AirborneMeleeSwingState consumeRejectedSwing = new(
+    "rejected",
+    startVerticalSpeed: -2f,
+    startForwardSpeed: 3f);
+ExpectTrue(consumeRejectedSwing.Resolve(qualified: false), "first rejected Character contact resolves the swing");
+ExpectFalse(consumeRejectedSwing.Qualified, "a rejected swing cannot become qualified on a later target");
+ExpectFalse(consumeRejectedSwing.Resolve(qualified: true), "later target cannot reverse the terminal decision");
 
 ExpectNear(-0.5f, AirborneMeleeTuning.DescentThreshold, "descent threshold rejects apex jitter");
-ExpectNear(7f, AirborneMeleeTuning.ApproachSpeedThreshold, "approach threshold requires native sprint-band momentum");
+ExpectNear(7f, AirborneMeleeTuning.ForwardSpeedThreshold, "arm threshold requires native sprint-band momentum");
 ExpectNear(1.15f, AirborneMeleeTuning.DamageMultiplier, "damage tuning stays modest");
 ExpectNear(3f, AirborneMeleeTuning.StaggerMultiplier, "stagger tuning creates the committed approach opening");
 
-Console.WriteLine("airborne melee qualification and tuning checks passed");
+Console.WriteLine("airborne melee arming, consumption, and tuning checks passed");
 return;
 
 static void ExpectTrue(bool actual, string scenario)

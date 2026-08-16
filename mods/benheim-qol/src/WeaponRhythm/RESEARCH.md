@@ -193,12 +193,14 @@ would still need compatible player preparation, airborne, impact, miss, and
 landing states plus explicit interruption and movement rules: an animation and
 controller project, not a small Weapon Rhythm patch.
 
-`Character.GetVelocity()` is the canonical velocity seam at contact. It
-returns the live Rigidbody velocity for the owning character and replicated
-velocity for a remote character. Perfect Impact reads the local owner's
-velocity at the same authored hit call that creates the outgoing `HitData`. It
-combines the vertical component with native `IsOnGround()`; it does not infer
-the jump phase from a timer or stored state.
+`Character.GetVelocity()` is the canonical velocity source for the local
+player's attack-start gate. It returns the live Rigidbody velocity for the
+owning character and replicated velocity for a remote character. Perfect
+Impact reads the local owner's physical forward momentum when Valheim accepts
+an airborne melee swing. At the authored hit call that creates the outgoing
+`HitData`, it checks that same swing's airborne state and vertical velocity,
+including the `-0.5 m/s` descending threshold. It does not infer the jump phase
+from a timer or stored state.
 
 The serialized Player prefab sets walk speed to `1.6 m/s`, ordinary movement
 speed to `4 m/s`, and sprint speed to `7 m/s`. A jump adds `2 m/s` forward,
@@ -207,14 +209,15 @@ about `6 m/s` at base skill and at most `6.8 m/s` at maximum skill, while a base
 sprint-jump starts near `9 m/s`. A first-playtest threshold of `7 m/s` separates
 those native bands without checking whether the sprint button is held.
 
-The approach measure projects the attacker's planar `GetVelocity()` onto the
-planar direction from the attacker to `HitData.m_point`. Native horizontal and
-vertical melee write that point from the resolved collider contact; native area
-melee uses the collider's closest point. Using the authored contact rather than
-the target transform keeps large and multi-collider targets sane. Sideways and
-backward momentum cannot qualify. A status or equipment effect that genuinely
-carries at least the required physical momentum can qualify even without the
-sprint input; that is a consequence of measuring movement rather than intent.
+The attack-start measure uses the local player's physical forward momentum, not
+the target or `HitData.m_point`, and arms only at or above `7 m/s`. Native
+horizontal and vertical melee still write that point from the resolved collider
+contact, and native area melee still uses the collider's closest point for later
+hit resolution. Using those authored contact points keeps large and
+multi-collider targets sane. In-place, sideways, backward, and ordinary walk-
+or jog-jump swings cannot arm. A status or equipment effect that genuinely
+carries the required physical momentum can qualify without sprint input because
+the rule measures movement rather than intent.
 
 ## Clean extension seams
 
@@ -303,19 +306,28 @@ above.
 
 The current experimental Perfect Impact implementation redirects only the
 direct damage calls in `Attack.DoMeleeAttack()` and the generated area-hit
-routine. It modifies the outgoing native hit only when the local player is off
-the ground, descending at or below `-0.5 m/s`, and carrying at least `7 m/s`
-toward the authored contact point. A qualified hit applies the experimental
-`1.15x` damage and `3x` stagger multipliers. It does not patch
-`Character.Damage`, `ZSyncAnimation`, `Animator`, or melee movement.
+routine. Valheim clones an `Attack` before `Attack.Start()` and retains that
+clone through the animator-triggered hit. Benheim uses that short-lived native
+identity to capture at least `7 m/s` of physical forward momentum when an
+airborne local melee swing starts. The same swing must hit a `Character` before
+landing while descending at or below `-0.5 m/s`. A qualified hit applies the
+experimental `1.15x` damage and `3x` stagger multipliers. Benheim adds no input,
+movement, animation, network, or persistent state.
 
-Qualified contacts use Benheim's existing attacker-local transient text lane
-for `PERFECT IMPACT` and request the existing Combat Feedback shake controller.
-Presentation is coalesced within the native synchronous contact frame so an
-area or multi-target outcome does not repeat the feedback for every target.
-This does not change per-target qualification or damage. The text is semantic
-gameplay feedback; only the shake follows the Benheim FX and Combat Shake
-settings.
+A qualified swing uses Benheim's existing attacker-local transient text lane
+for `PERFECT IMPACT` and requests the existing Combat Feedback shake controller.
+For an area or multi-target swing, the native per-target hit path and
+target-owner authority remain in place while the qualified swing applies the
+experimental `1.15x` damage and `3x` stagger multipliers. Benheim emits one
+confirmation and one shake for the swing, not one per target. The text is
+semantic gameplay feedback; only the shake follows the Benheim FX and Combat
+Shake settings.
+
+`Attack.Stop()` closes the accepted native clone when its animation ends or the
+attack aborts. Benheim uses that existing lifecycle boundary to terminate an
+armed diagnostic operation as `no_character_contact` when no `Character`
+reached the authored damage seam. It does not add a miss timer or change attack
+completion.
 
 Valheim hides the native top-left message template with
 `m_messageText.CrossFadeAlpha(0)`. `Graphic.CrossFadeAlpha()` writes the

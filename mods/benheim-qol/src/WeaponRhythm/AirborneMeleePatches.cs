@@ -29,7 +29,7 @@ internal static class AirborneMeleePatches
         MethodInfo? replacement = AccessTools.Method(
             typeof(AirborneMelee),
             nameof(AirborneMelee.DamageMeleeTarget),
-            new[] { typeof(IDestructible), typeof(HitData) });
+            new[] { typeof(IDestructible), typeof(HitData), typeof(Attack) });
         if (replacement == null)
         {
             throw new InvalidOperationException("Airborne melee damage seam was not found.");
@@ -37,13 +37,19 @@ internal static class AirborneMeleePatches
 
         List<CodeInstruction> codes = new List<CodeInstruction>(instructions);
         int replaced = 0;
-        foreach (CodeInstruction code in codes)
+        for (int index = 0; index < codes.Count; index++)
         {
+            CodeInstruction code = codes[index];
             if (!IsDirectDamageCall(code))
             {
                 continue;
             }
 
+            CodeInstruction loadAttack = new CodeInstruction(OpCodes.Ldarg_0);
+            code.MoveLabelsTo(loadAttack);
+            code.MoveBlocksTo(loadAttack);
+            codes.Insert(index, loadAttack);
+            index++;
             code.opcode = OpCodes.Call;
             code.operand = replacement;
             replaced++;
@@ -75,5 +81,25 @@ internal static class AirborneMeleePatches
             && method.Name == nameof(IDestructible.Damage)
             && parameters.Length == 1
             && parameters[0].ParameterType == typeof(HitData);
+    }
+}
+
+[HarmonyPatch(typeof(Attack), nameof(Attack.Start))]
+internal static class AirborneMeleeStartPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(Attack __instance, Humanoid character, bool __result)
+    {
+        AirborneMelee.ObserveAttackStart(__instance, character, __result);
+    }
+}
+
+[HarmonyPatch(typeof(Attack), nameof(Attack.Stop))]
+internal static class AirborneMeleeStopPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(Attack __instance)
+    {
+        AirborneMelee.ObserveAttackStop(__instance);
     }
 }
