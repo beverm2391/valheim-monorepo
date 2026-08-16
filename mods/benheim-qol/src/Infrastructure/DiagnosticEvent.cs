@@ -164,7 +164,7 @@ internal sealed class DiagnosticEvent
         builder.Append(",\"schema\":").Append(CurrentSchema.ToString(CultureInfo.InvariantCulture));
         foreach (DiagnosticField field in fields)
         {
-            if (!RemoteFieldAllowed(field.Name))
+            if (!RemoteFieldAllowed(Domain, Name, field.Name))
             {
                 continue;
             }
@@ -177,8 +177,16 @@ internal sealed class DiagnosticEvent
         return builder.ToString();
     }
 
-    private static bool RemoteFieldAllowed(string name)
+    private static bool RemoteFieldAllowed(string domain, string eventName, string name)
     {
+        // Inventory diagnostics can describe chest contents and durable world
+        // state. Only fields reviewed for the private Put Away investigation
+        // leave the client; new fields remain local until reviewed explicitly.
+        if (domain == "Inventory" && !RemoteInventoryFieldAllowed(eventName, name))
+        {
+            return false;
+        }
+
         // The canonical envelope above replaces duplicate identifiers carried
         // by individual events. Stable character and network-object IDs remain
         // unnecessary even though this private test explicitly shares the
@@ -217,6 +225,43 @@ internal sealed class DiagnosticEvent
             name != "file" &&
             name != "file_path" &&
             name != "path";
+    }
+
+    private static bool RemoteInventoryFieldAllowed(string eventName, string name)
+    {
+        switch (eventName)
+        {
+            case "quick_stack_item":
+                return name == "operation_id" ||
+                    name == "operation_phase" ||
+                    name == "item" ||
+                    name == "moved" ||
+                    name == "container" ||
+                    name == "location";
+            case "container_open_snapshot":
+                return name == "operation_phase" ||
+                    name == "owner" ||
+                    name == "revision";
+            case "quick_stack_lease_requested":
+            case "quick_stack_lease_entered":
+                return name == "operation_id" || name == "operation_phase";
+            case "quick_stack_lease_released":
+                return name == "operation_id" ||
+                    name == "operation_phase" ||
+                    name == "reason" ||
+                    name == "sent";
+            case "quick_stack_lease_result":
+                return name == "operation_id" ||
+                    name == "operation_phase" ||
+                    name == "outcome" ||
+                    name == "reason";
+            case "quick_stack_lease_result_rejected":
+                return name == "operation_id" ||
+                    name == "operation_phase" ||
+                    name == "reason";
+            default:
+                return false;
+        }
     }
 
     private static void AppendJsonStringProperty(StringBuilder builder, string name, string value)

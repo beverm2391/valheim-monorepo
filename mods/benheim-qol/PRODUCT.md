@@ -103,7 +103,8 @@ technical cost.
   the existing operation ID. The upload
   removes exact world positions, stable character and world-object IDs, raw
   errors, chat, IP addresses, secrets, and file paths. Local NDJSON continues
-  whether sharing succeeds, fails, or is disabled.
+  whether sharing succeeds, fails, or is disabled. Each Inventory event sends
+  only fields on an explicit remote allowlist. Chest-content snapshots remain local.
 - Private-test diagnostics use one dataset-scoped ingest-only credential for
   Ben, Johnny, and Ozi. The credential is extractable from those installers.
   Never publish a private-test installer. Rotate the credential if an installer

@@ -33,7 +33,7 @@ Expect(
     typed.ToReadableLine(),
     "readable line is rendered from the same fields");
 
-DiagnosticEvent remoteTyped = DiagnosticEvent.Create("Inventory", "put_away_finished")
+DiagnosticEvent remoteTyped = DiagnosticEvent.Create("EnemyTiers", "boar_test_geometry")
     .String("operation_id", "op-remote")
     .String("peer", "duplicate-peer")
     .String("player_id", "stable-character")
@@ -75,6 +75,74 @@ Expect(false, remoteRoot.TryGetProperty("head_position_x", out _), "exact head p
 Expect(false, remoteRoot.TryGetProperty("target_bounds_center_y", out _), "world bounds center removed");
 Expect(false, remoteRoot.TryGetProperty("hit_point_x", out _), "world hit point removed");
 Expect(false, remoteRoot.TryGetProperty("error", out _), "raw error removed");
+
+DiagnosticEvent remoteInventory = DiagnosticEvent.Create("Inventory", "container_open_snapshot")
+    .String("operation_phase", "observer_first_open_candidate")
+    .String("item", "LoxMeat")
+    .Boolean("owner", true)
+    .Integer("revision", 7)
+    .String("contents", "LoxMeat=13")
+    .String("zdo_id", "durable-world-object")
+    .String("future_unreviewed_field", "must-stay-local");
+remoteInventory.Prepare(
+    new DateTime(2026, 8, 13, 4, 5, 8, DateTimeKind.Utc),
+    "session-inventory",
+    "0.1.63");
+using JsonDocument localInventoryJson = JsonDocument.Parse(remoteInventory.ToJsonLine());
+Expect(
+    "LoxMeat=13",
+    localInventoryJson.RootElement.GetProperty("contents").GetString(),
+    "local chest contents remain available");
+using JsonDocument remoteInventoryJson = JsonDocument.Parse(
+    remoteInventory.ToRemoteJsonLine("client-random", "Johnny", "peer-session", "sha256:build"));
+JsonElement remoteInventoryRoot = remoteInventoryJson.RootElement;
+Expect(true, remoteInventoryRoot.GetProperty("owner").GetBoolean(), "Inventory owner decision preserved");
+Expect(7, remoteInventoryRoot.GetProperty("revision").GetInt32(), "Inventory revision preserved");
+Expect(false, remoteInventoryRoot.TryGetProperty("item", out _), "unlisted snapshot fields stay local");
+Expect(false, remoteInventoryRoot.TryGetProperty("contents", out _), "chest contents stay local");
+Expect(
+    false,
+    remoteInventoryRoot.TryGetProperty("zdo_id", out _),
+    "Inventory world object ID stays local");
+Expect(
+    false,
+    remoteInventoryRoot.TryGetProperty("future_unreviewed_field", out _),
+    "new Inventory fields fail closed");
+
+DiagnosticEvent remoteInventoryItem = DiagnosticEvent.Create("Inventory", "quick_stack_item")
+    .String("operation_id", "op-inventory")
+    .String("operation_phase", "write")
+    .String("item", "LoxMeat")
+    .Integer("moved", 13)
+    .String("container", "piece_chest_wood")
+    .String("location", "4m north");
+remoteInventoryItem.Prepare(
+    new DateTime(2026, 8, 13, 4, 5, 9, DateTimeKind.Utc),
+    "session-inventory",
+    "0.1.63");
+using JsonDocument remoteInventoryItemJson = JsonDocument.Parse(
+    remoteInventoryItem.ToRemoteJsonLine("client-random", "Johnny", "peer-session", "sha256:build"));
+JsonElement remoteInventoryItemRoot = remoteInventoryItemJson.RootElement;
+Expect(
+    "op-inventory",
+    remoteInventoryItemRoot.GetProperty("operation_id").GetString(),
+    "Inventory item operation ID preserved");
+Expect("LoxMeat", remoteInventoryItemRoot.GetProperty("item").GetString(), "Inventory item preserved");
+Expect(13, remoteInventoryItemRoot.GetProperty("moved").GetInt32(), "Inventory moved count preserved");
+
+DiagnosticEvent unknownInventory = DiagnosticEvent.Create("Inventory", "future_inventory_event")
+    .String("operation_id", "op-future")
+    .String("reason", "unreviewed");
+unknownInventory.Prepare(
+    new DateTime(2026, 8, 13, 4, 5, 10, DateTimeKind.Utc),
+    "session-inventory",
+    "0.1.63");
+using JsonDocument unknownInventoryJson = JsonDocument.Parse(
+    unknownInventory.ToRemoteJsonLine("client-random", "Johnny", "peer-session", "sha256:build"));
+Expect(
+    false,
+    unknownInventoryJson.RootElement.TryGetProperty("operation_id", out _),
+    "unknown Inventory event fields fail closed");
 
 string testRoot = Path.Combine(Path.GetTempPath(), "benheim-events-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(testRoot);
