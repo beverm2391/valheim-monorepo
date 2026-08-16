@@ -79,6 +79,14 @@ Benheim supplies that behavior on clients, and Benheim Test Commands supplies
 it while the dedicated server owns a spawned test Boar. Lifecycle restoration
 and multiplayer ownership remain unproven.
 
+For physical inspection, `bh debug colliders on|off` locally shows a thin
+wireframe around the actual active collision capsule of each nearby non-player
+Character. The transient overlay follows the live collider as it moves or
+changes, allowing the visible body and head area of a starred Boar to be judged
+against its physics shape. It does not change physics, networking, or saved
+state. Characters without a supported active capsule are not drawn. The
+overlay's presentation remains gameplay-unproven.
+
 This experiment changes Boar physical identity, force exchange, perception,
 pursuit, charge speed, and turning by native star level. The exact behavior and
 numeric tuning are experimental and remain open. It does not add resistances,
