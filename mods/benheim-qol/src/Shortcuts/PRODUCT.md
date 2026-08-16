@@ -49,6 +49,9 @@ use it to find controls and passive features.
 - The headshot description must stay aligned with the Archery module's proven
   behavior and remain explicit about collision-time feedback and native
   WeakSpot handling.
+- Configured private-test builds show one notice before diagnostic sharing
+  starts. The Config tab shows a persistent **Share Diagnostics** toggle.
+  Turning it off stops remote forwarding immediately. Local NDJSON stays on.
 - Extended reach, Rockbreaker, and Cleave descriptions must match their current
   ranges, unlocks, and target behavior.
 

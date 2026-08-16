@@ -96,15 +96,28 @@ technical cost.
   The repo-owned developer query command streams these files and can find
   operations that started but did not reach a terminal event. Players do not
   need that command to play.
+- Private-test installers may send typed `DiagnosticEvent` records directly to
+  the configured diagnostics dataset. Each uploaded record identifies the
+  current character name and connection-scoped peer. It also includes a random,
+  persisted client ID, a session ID, the mod version, the exact DLL build, and
+  the existing operation ID. The upload
+  removes exact world positions, stable character and world-object IDs, raw
+  errors, chat, IP addresses, secrets, and file paths. Local NDJSON continues
+  whether sharing succeeds, fails, or is disabled.
+- Private-test diagnostics use one dataset-scoped ingest-only credential for
+  Ben, Johnny, and Ozi. The credential is extractable from those installers.
+  Never publish a private-test installer. Rotate the credential if an installer
+  leaves that group or before any public release. Public packages must contain
+  no diagnostics credential or config.
 - `F7` remains the manual way to export the active log for sharing.
 - Make each required client and server component explicit. Active players in
   our regular group must use mutually compatible Benheim versions.
 - For features that depend on zone ownership, all active zone owners must use
   mutually compatible Benheim versions for that feature.
 - Benheim Server Support must grant the global Put Away lease before a client
-  scans chests or starts native **Stack all**. Valheim's current chest owner
-  still grants each transfer. Never write a non-owned local chest or claim
-  ownership as a shortcut.
+  scans chests. The server then routes each correlated deposit to Valheim's
+  current chest owner. Never mutate a requester-local chest cache or claim
+  ownership as a freshness shortcut.
 - Defer custom persistent world objects until a specific feature needs them.
   Approve their world, recovery, migration, and removal behavior as part of
   that feature design. Store a player's manual pocket choice on an item only
@@ -163,6 +176,11 @@ limits.
 
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
+
+Private-test diagnostic sharing still needs one live ingest and query pass.
+The first configured run tells the player what is shared. `Share Diagnostics`
+in `Left Shift + B` persists the player's choice and stops remote forwarding
+immediately when disabled. It never disables local diagnostics.
 
 All Benheim feedback that belongs in the top-left area shares one Benheim-owned
 lane directly beneath the live hotbar. The lane carries grouped receipts for

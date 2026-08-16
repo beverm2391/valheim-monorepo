@@ -6,6 +6,7 @@ test_root="$(mktemp -d)"
 trap 'rm -rf "$test_root"' EXIT
 
 dotnet run --project "$root/tests/structured-events/StructuredEventTests.csproj"
+python3 "$root/tests/query-events-remote-test.py"
 
 events="$test_root/events.ndjson"
 cat > "$events" <<'JSON'

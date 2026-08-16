@@ -59,22 +59,25 @@ internal static class Diagnostics
         {
             diagnosticEvent.Prepare(DateTime.UtcNow, sessionId, benheimVersion);
             Plugin.Log.LogInfo(diagnosticEvent.ToReadableLine());
-            if (eventWriter == null)
+            if (eventWriter != null)
             {
-                return;
-            }
-
-            try
-            {
-                eventWriter.WriteLine(diagnosticEvent.ToJsonLine());
-            }
-            catch (Exception exception)
-            {
-                eventWriter.Dispose();
-                eventWriter = null;
-                LogWriteFailure(exception);
+                try
+                {
+                    eventWriter.WriteLine(diagnosticEvent.ToJsonLine());
+                }
+                catch (Exception exception)
+                {
+                    eventWriter.Dispose();
+                    eventWriter = null;
+                    LogWriteFailure(exception);
+                }
             }
         }
+
+        // Upload work is bounded and asynchronous. Local readable and NDJSON
+        // emission above is always complete before the optional private-test
+        // sink observes the typed event.
+        RemoteDiagnostics.TryEnqueue(diagnosticEvent);
     }
 
     internal static string NewOperationId()

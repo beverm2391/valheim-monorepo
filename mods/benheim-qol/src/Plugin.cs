@@ -29,6 +29,8 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
         Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
+        DiagnosticsSharingSettings.Initialize(Config);
+        RemoteDiagnostics.Begin(Paths.ConfigPath);
         BenheimTestCommandClient.InitializeConsole();
         BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();
@@ -63,6 +65,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         HealthReporting.UpdateCriticalMessage();
+        RemoteDiagnostics.Update();
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
         if (!HealthReporting.GameplayActionsEnabled)
@@ -87,6 +90,7 @@ public sealed class Plugin : BaseUnityPlugin
         BenheimTestCommandClient.Reset();
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();
+        RemoteDiagnostics.Reset();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         Diagnostics.EndSession();
         TryRemoveFailedPatches(logFailure: false);

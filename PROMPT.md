@@ -256,6 +256,9 @@ also renders its readable `[diag]` line. Use
 event files, filter fields, or find operations that started without a terminal
 event. The command uses only the Python standard library.
 
+Normal packages stay credential-free. Use scoped secrets for `package-private-test.sh`;
+rotate its token if an archive leaves Ben, Johnny, and Ozi or before public release.
+
 ## Client mod rules
 
 - Keep one Benheim client DLL.

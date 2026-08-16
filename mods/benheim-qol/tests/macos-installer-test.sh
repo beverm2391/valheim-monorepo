@@ -39,11 +39,13 @@ cat > "$managed_updater/Contents/Info.plist" <<'PLIST'
 PLIST
 
 run_installer() {
+  private_diagnostics="${3:-$test_root/no-private-diagnostics.cfg}"
   BENHEIM_QOL_GAME_DIR="$game_dir" \
   BENHEIM_QOL_APP_DIR="$1" \
   BENHEIM_QOL_DLL="${2:-$test_root/BenheimQoL.dll}" \
   BENHEIM_QOL_VERSION_FILE="$test_root/VERSION" \
   BENHEIM_QOL_LAUNCHER_SOURCE="$root/scripts/macos-launcher.sh" \
+  BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE="$private_diagnostics" \
   BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
   BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
   BENHEIM_QOL_NONINTERACTIVE=1 \
@@ -69,8 +71,31 @@ grep -Fq 'processing complete' "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL"
 first_plugin_sha="$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 first_launcher_sha="$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
 
-# A second install converges on the same active plugin and launcher.
+private_config_source="$test_root/PRIVATE-TEST-DIAGNOSTICS.cfg"
+private_config_installed="$game_dir/BepInEx/config/BenheimPrivateDiagnostics.cfg"
+printf '%s\n' \
+  'BENHEIM_PRIVATE_DIAGNOSTICS_V1' \
+  'endpoint=https://us-east-1.aws.edge.axiom.co' \
+  'dataset=benheim-diagnostics' \
+  'token=first-private-sentinel' \
+  'build_id=sha256:first-build' > "$private_config_source"
+run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
+cmp -s "$private_config_source" "$private_config_installed"
+test "$(stat -f '%Lp' "$private_config_installed")" = 600
+
+# A normal public package intentionally removes private-test credentials.
 run_installer "$app_dir" >/dev/null
+test ! -e "$private_config_installed"
+
+# A failure after replacing a private config restores the prior credential file.
+run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
+private_config_previous_sha="$(shasum -a 256 "$private_config_installed" | awk '{print $1}')"
+replacement_private_config="$test_root/Replacement-PRIVATE-TEST-DIAGNOSTICS.cfg"
+sed 's/first-private-sentinel/replacement-private-sentinel/' \
+  "$private_config_source" > "$replacement_private_config"
+
+# A second install converges on the same active plugin and launcher.
+run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
 test "$first_plugin_sha" = "$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 test "$first_launcher_sha" = "$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
 
@@ -78,12 +103,17 @@ test "$first_launcher_sha" = "$(shasum -a 256 "$app_dir/Benheim.app/Contents/Mac
 printf 'new-test-dll\n' > "$test_root/NewBenheimQoL.dll"
 blocked_app_parent="$test_root/not-a-directory"
 printf 'block launcher directory creation\n' > "$blocked_app_parent"
-if run_installer "$blocked_app_parent" "$test_root/NewBenheimQoL.dll" >/dev/null 2>&1; then
+if run_installer \
+  "$blocked_app_parent" \
+  "$test_root/NewBenheimQoL.dll" \
+  "$replacement_private_config" >/dev/null 2>&1; then
   echo "installer succeeded without being able to install the launcher" >&2
   exit 1
 fi
 test "$first_plugin_sha" = "$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 grep -Fqx '0.1.34' "$game_dir/BepInEx/plugins/BenheimQoL/VERSION"
+test "$private_config_previous_sha" = \
+  "$(shasum -a 256 "$private_config_installed" | awk '{print $1}')"
 
 # Never overwrite an unrelated app that uses the launcher target name.
 foreign_app_dir="$test_root/Foreign Applications"

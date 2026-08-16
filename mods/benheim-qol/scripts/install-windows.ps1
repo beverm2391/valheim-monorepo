@@ -6,6 +6,7 @@ $PluginDll = if ($env:BENHEIM_QOL_DLL) { $env:BENHEIM_QOL_DLL } else { Join-Path
 $LauncherSource = Join-Path $ScriptDir 'launch-windows.ps1'
 $DoorstopConfigHelpers = Join-Path $ScriptDir 'windows-doorstop-config.ps1'
 $VersionSource = Join-Path $ScriptDir 'VERSION'
+$PrivateDiagnosticsSource = Join-Path $ScriptDir 'PRIVATE-TEST-DIAGNOSTICS.cfg'
 $BepInExUrl = if ($env:BENHEIM_QOL_BEPINEX_URL) { $env:BENHEIM_QOL_BEPINEX_URL } else { 'https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip' }
 $BepInExSha256 = if ($env:BENHEIM_QOL_BEPINEX_SHA256) { $env:BENHEIM_QOL_BEPINEX_SHA256.ToLowerInvariant() } else { '5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716' }
 $ShortcutMarker = 'BenheimQoL launcher managed by the BenheimQoL installer'
@@ -218,8 +219,10 @@ function Install-BenheimQoL {
 
     $pluginPath = Join-Path $pluginDir 'BenheimQoL.dll'
     $versionPath = Join-Path $pluginDir 'VERSION'
+    $privateDiagnosticsPath = Join-Path $bepInExDir 'config\BenheimPrivateDiagnostics.cfg'
     $pluginBackup = Join-Path $TempDir 'BenheimQoL.previous.dll'
     $versionBackup = Join-Path $TempDir 'VERSION.previous'
+    $privateDiagnosticsBackup = Join-Path $TempDir 'BenheimPrivateDiagnostics.previous.cfg'
     $shortcutBackup = Join-Path $TempDir 'Benheim.previous.lnk'
     $launcherBackup = Join-Path $TempDir 'launcher.previous'
     $legacyShortcutBackup = Join-Path $TempDir 'Benheim QoL.previous.lnk'
@@ -230,6 +233,7 @@ function Install-BenheimQoL {
 
     $pluginHadPrevious = Test-Path -LiteralPath $pluginPath -PathType Leaf
     $versionHadPrevious = Test-Path -LiteralPath $versionPath -PathType Leaf
+    $privateDiagnosticsHadPrevious = Test-Path -LiteralPath $privateDiagnosticsPath -PathType Leaf
     $shortcutHadPrevious = Test-Path -LiteralPath $shortcutPath -PathType Leaf
     $launcherHadPrevious = Test-Path -LiteralPath $launcherRoot
     $doorstopConfigHadPrevious = Save-DoorstopConfig `
@@ -237,11 +241,15 @@ function Install-BenheimQoL {
         -BackupPath $doorstopConfigBackup
     $pluginReplaced = $false
     $versionReplaced = $false
+    $privateDiagnosticsTouched = $false
     $launcherInstalled = $false
     $doorstopConfigTouched = $false
 
     if ($pluginHadPrevious) { Copy-Item -LiteralPath $pluginPath -Destination $pluginBackup }
     if ($versionHadPrevious) { Copy-Item -LiteralPath $versionPath -Destination $versionBackup }
+    if ($privateDiagnosticsHadPrevious) {
+        Copy-Item -LiteralPath $privateDiagnosticsPath -Destination $privateDiagnosticsBackup
+    }
     if ($shortcutHadPrevious) { Copy-Item -LiteralPath $shortcutPath -Destination $shortcutBackup }
 
     $stagedLauncherRoot = Join-Path $TempDir 'launcher'
@@ -265,6 +273,19 @@ function Install-BenheimQoL {
         Copy-Item -LiteralPath $VersionSource -Destination $versionTemp
         Move-Item -LiteralPath $versionTemp -Destination $versionPath -Force
         $versionReplaced = $true
+
+        $privateDiagnosticsTouched = $true
+        New-Item -ItemType Directory -Path (Split-Path -Parent $privateDiagnosticsPath) -Force | Out-Null
+        if (Test-Path -LiteralPath $PrivateDiagnosticsSource -PathType Leaf) {
+            $privateDiagnosticsTemp = Join-Path `
+                (Split-Path -Parent $privateDiagnosticsPath) `
+                ('.BenheimPrivateDiagnostics.cfg.' + [guid]::NewGuid().ToString('N'))
+            Copy-Item -LiteralPath $PrivateDiagnosticsSource -Destination $privateDiagnosticsTemp
+            Move-Item -LiteralPath $privateDiagnosticsTemp -Destination $privateDiagnosticsPath -Force
+        }
+        else {
+            Remove-Item -LiteralPath $privateDiagnosticsPath -Force -ErrorAction SilentlyContinue
+        }
 
         $disabledDir = Join-Path $bepInExDir 'disabled\MassFarming'
         Move-LegacyFile `
@@ -327,6 +348,14 @@ function Install-BenheimQoL {
                 Remove-Item -LiteralPath $versionPath -Force -ErrorAction SilentlyContinue
             }
         }
+        if ($privateDiagnosticsTouched) {
+            if ($privateDiagnosticsHadPrevious) {
+                Copy-Item -LiteralPath $privateDiagnosticsBackup -Destination $privateDiagnosticsPath -Force
+            }
+            else {
+                Remove-Item -LiteralPath $privateDiagnosticsPath -Force -ErrorAction SilentlyContinue
+            }
+        }
         if ($shortcutHadPrevious) {
             Copy-Item -LiteralPath $shortcutBackup -Destination $shortcutPath -Force
         }
@@ -356,6 +385,9 @@ function Install-BenheimQoL {
     Write-Host 'Open Benheim from your Desktop to play with mods.'
     Write-Host 'Use Steam Play to launch vanilla Valheim.'
     Write-Host 'Rerun this installer to update Benheim.'
+    if (Test-Path -LiteralPath $PrivateDiagnosticsSource -PathType Leaf) {
+        Write-Host 'This PRIVATE TEST install includes automatic typed diagnostic sharing.'
+    }
 }
 
 try {

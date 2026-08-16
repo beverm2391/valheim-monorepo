@@ -1,21 +1,36 @@
 #!/usr/bin/env python3
-"""Stream and filter Benheim newline-delimited JSON diagnostic events."""
+"""Filter local Benheim NDJSON or query the private Axiom test dataset."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Iterable, Iterator
 
 
+QUERY_URL = "https://api.axiom.co/v1/datasets/_apl?format=tabular"
+DATASET_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,200}$")
+DURATION_PATTERN = re.compile(r"^[1-9][0-9]*[mhd]$")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Stream Benheim .ndjson event files without loading a session into memory."
+        description="Filter local Benheim NDJSON or query private typed events from Axiom."
     )
-    parser.add_argument("paths", nargs="+", type=Path, help="event file or archive directory")
+    parser.add_argument("paths", nargs="*", type=Path, help="local event file or archive directory")
+    parser.add_argument("--remote", action="store_true", help="query Axiom instead of local files")
+    parser.add_argument("--dataset", help="Axiom dataset; defaults to BENHEIM_AXIOM_DATASET")
+    parser.add_argument("--since", default="24h", help="remote lookback such as 30m, 12h, or 7d")
+    parser.add_argument("--limit", type=int, default=100, help="remote result limit, 1-500")
     parser.add_argument("--session")
+    parser.add_argument("--player")
+    parser.add_argument("--client")
     parser.add_argument("--domain")
     parser.add_argument("--event")
     parser.add_argument("--item")
@@ -39,19 +54,33 @@ def event_files(paths: Iterable[Path]) -> Iterator[Path]:
             raise FileNotFoundError(path)
 
 
-def matches(record: dict[str, object], args: argparse.Namespace) -> bool:
-    filters = (
+def field_value(record: dict[str, object], field: str) -> object | None:
+    if field == "session":
+        return record.get("session_id", record.get("session"))
+    return record.get(field)
+
+
+def filters(args: argparse.Namespace) -> tuple[tuple[str, str | None], ...]:
+    return (
         ("session", args.session),
+        ("player_name", args.player),
+        ("client_id", args.client),
         ("domain", args.domain),
         ("event", args.event),
         ("item", args.item),
         ("station", args.station),
         ("operation_id", args.operation_id),
     )
-    return all(expected is None or str(record.get(field)) == expected for field, expected in filters)
 
 
-def records(paths: Iterable[Path]) -> Iterator[tuple[dict[str, object], str]]:
+def matches(record: dict[str, object], args: argparse.Namespace) -> bool:
+    return all(
+        expected is None or str(field_value(record, field)) == expected
+        for field, expected in filters(args)
+    )
+
+
+def local_records(paths: Iterable[Path]) -> Iterator[tuple[dict[str, object], str]]:
     for path in event_files(paths):
         with path.open(encoding="utf-8") as stream:
             for line_number, line in enumerate(stream, 1):
@@ -67,16 +96,114 @@ def records(paths: Iterable[Path]) -> Iterator[tuple[dict[str, object], str]]:
                 yield record, raw
 
 
+def escape_apl(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def remote_apl(dataset: str, args: argparse.Namespace) -> str:
+    query = f"['{dataset}']"
+    for field, expected in filters(args):
+        if expected is None:
+            continue
+        remote_field = "session_id" if field == "session" else field
+        query += f' | where tostring([\'{remote_field}\']) == "{escape_apl(expected)}"'
+    return f"{query} | order by _time desc | take {args.limit}"
+
+
+def tabular_rows(data: object) -> list[dict[str, object]]:
+    if not isinstance(data, dict):
+        raise ValueError("Axiom response must be an object")
+    tables = data.get("tables")
+    if not isinstance(tables, list) or not tables:
+        return []
+    table = tables[0]
+    if not isinstance(table, dict):
+        raise ValueError("Axiom table must be an object")
+    fields = table.get("fields")
+    columns = table.get("columns")
+    if not isinstance(fields, list) or not isinstance(columns, list) or not columns:
+        return []
+    names = [field.get("name") for field in fields if isinstance(field, dict)]
+    if len(names) != len(fields) or any(not isinstance(name, str) for name in names):
+        raise ValueError("Axiom response has invalid fields")
+    if any(not isinstance(column, list) for column in columns):
+        raise ValueError("Axiom response has invalid columns")
+    row_count = len(columns[0])
+    return [
+        {
+            str(name): columns[index][row] if row < len(columns[index]) else None
+            for index, name in enumerate(names)
+            if index < len(columns)
+        }
+        for row in range(row_count)
+    ]
+
+
+def remote_records(args: argparse.Namespace) -> Iterator[tuple[dict[str, object], str]]:
+    dataset = args.dataset or os.environ.get("BENHEIM_AXIOM_DATASET", "")
+    token = os.environ.get("BENHEIM_AXIOM_QUERY_TOKEN") or os.environ.get("AXIOM_TOKEN", "")
+    if not DATASET_PATTERN.fullmatch(dataset):
+        raise ValueError("set a valid --dataset or BENHEIM_AXIOM_DATASET")
+    if not token:
+        raise ValueError("BENHEIM_AXIOM_QUERY_TOKEN or AXIOM_TOKEN is not set")
+    if args.station is not None:
+        raise ValueError("--station is local-only because raw station IDs are not uploaded")
+    if not DURATION_PATTERN.fullmatch(args.since):
+        raise ValueError("--since must look like 30m, 12h, or 7d")
+    if args.limit < 1 or args.limit > 500:
+        raise ValueError("--limit must be from 1 to 500")
+
+    body = json.dumps(
+        {
+            "apl": remote_apl(dataset, args),
+            "startTime": f"now-{args.since}",
+            "endTime": "now",
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        QUERY_URL,
+        data=body,
+        method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            data = json.load(response)
+    except urllib.error.HTTPError as error:
+        raise ValueError(f"Axiom query failed with HTTP {error.code}") from error
+    except urllib.error.URLError as error:
+        raise ValueError(f"Axiom query failed: {error.reason}") from error
+    rows = tabular_rows(data)
+    if args.incomplete:
+        # Axiom returns the newest bounded window. Process that window in time
+        # order so terminal records close starts instead of reopening them.
+        rows.reverse()
+    for record in rows:
+        yield record, json.dumps(record, separators=(",", ":"), sort_keys=True)
+
+
+def records(args: argparse.Namespace) -> Iterator[tuple[dict[str, object], str]]:
+    if args.remote:
+        if args.paths:
+            raise ValueError("local paths cannot be combined with --remote")
+        yield from remote_records(args)
+        return
+    if not args.paths:
+        raise ValueError("provide a local event path or use --remote")
+    yield from local_records(args.paths)
+
+
 def run(args: argparse.Namespace) -> int:
+    source = records(args)
     if not args.incomplete:
-        for record, raw in records(args.paths):
+        for record, raw in source:
             if matches(record, args):
                 print(raw)
         return 0
 
     # Memory is proportional to matching open operations, not total records.
     open_operations: dict[str, str] = {}
-    for record, raw in records(args.paths):
+    for record, raw in source:
         operation_id = record.get("operation_id")
         if not isinstance(operation_id, str) or not operation_id:
             continue

@@ -32,6 +32,10 @@ grep -Fq 'Refusing to replace an unrelated shortcut' "$installer"
 grep -Fq 'Valheim started during setup' "$installer"
 grep -Fq 'Copy-Item -LiteralPath $pluginBackup -Destination $pluginPath -Force' "$installer"
 grep -Fq 'Copy-Item -LiteralPath $versionBackup -Destination $versionPath -Force' "$installer"
+grep -Fq "'config\\BenheimPrivateDiagnostics.cfg'" "$installer"
+grep -Fq 'PRIVATE-TEST-DIAGNOSTICS.cfg' "$installer"
+grep -Fq 'Copy-Item -LiteralPath $privateDiagnosticsBackup -Destination $privateDiagnosticsPath -Force' "$installer"
+grep -Fq 'Remove-Item -LiteralPath $privateDiagnosticsPath -Force -ErrorAction SilentlyContinue' "$installer"
 grep -Fq 'Save-DoorstopConfig' "$installer"
 grep -Fq 'Restore-DoorstopConfig' "$installer"
 grep -Fq '. $DoorstopConfigHelpers' "$installer"
@@ -88,5 +92,6 @@ expected_entries="$(printf '%s\n' \
   "Benheim-Windows-$version/launch-windows.ps1" \
   "Benheim-Windows-$version/windows-doorstop-config.ps1" | sort)"
 test "$package_entries" = "$expected_entries"
+! unzip -p "$package" | grep -Fq 'BENHEIM_PRIVATE_DIAGNOSTICS_V1'
 
 echo "Windows vanilla/modded launcher migration and package checks passed"

@@ -13,6 +13,7 @@ internal static partial class ShortcutOverlay
     private static Toggle? bowFocusToggle;
     private static Toggle? combatShakeToggle;
     private static Toggle? dangerArrivalToggle;
+    private static Toggle? shareDiagnosticsToggle;
 
     private static void BuildFxConfig(RectTransform parent, NativeTemplates templates)
     {
@@ -29,7 +30,7 @@ internal static partial class ShortcutOverlay
             "The master controls Bow Focus, Combat Shake, and Danger Arrival FX. " +
             "Map labels, gameplay, and native Valheim effects stay on.";
 
-        fxMasterToggle = AddFxToggle(
+        fxMasterToggle = AddConfigToggle(
             parent,
             templates,
             "Benheim FX",
@@ -40,7 +41,7 @@ internal static partial class ShortcutOverlay
                 RefreshFxConfigInteractivity();
                 LogFxSetting("master", enabled);
             });
-        bowFocusToggle = AddFxToggle(
+        bowFocusToggle = AddConfigToggle(
             parent,
             templates,
             "Bow Focus",
@@ -50,7 +51,7 @@ internal static partial class ShortcutOverlay
                 BenheimFxSettings.SetBowFocus(enabled);
                 LogFxSetting("bow_focus", enabled);
             });
-        combatShakeToggle = AddFxToggle(
+        combatShakeToggle = AddConfigToggle(
             parent,
             templates,
             "Combat Shake",
@@ -60,7 +61,7 @@ internal static partial class ShortcutOverlay
                 BenheimFxSettings.SetCombatShake(enabled);
                 LogFxSetting("combat_shake", enabled);
             });
-        dangerArrivalToggle = AddFxToggle(
+        dangerArrivalToggle = AddConfigToggle(
             parent,
             templates,
             "Danger Arrival FX",
@@ -83,6 +84,33 @@ internal static partial class ShortcutOverlay
             "Cleave, and mining AOE. Danger Arrival FX covers its banner, stinger, " +
             "and brief edge vignette.";
 
+        AddSectionHeading(parent, "Diagnostics", ConfigAccent, templates.Text);
+        TMP_Text diagnosticsExplanation = CreateText(
+            "DiagnosticsExplanation",
+            parent,
+            templates.Text,
+            layoutElement: true);
+        diagnosticsExplanation.fontSize = 18f;
+        diagnosticsExplanation.color = Color.white;
+        diagnosticsExplanation.text = RemoteDiagnostics.IsConfigured
+            ? "Share Diagnostics sends typed gameplay events, your character name, and a connection ID " +
+                "from this private test build. It never sends chat or full logs. Local diagnostics always stay on."
+            : "Remote diagnostics are not configured in this build. Local diagnostics always stay on.";
+
+        shareDiagnosticsToggle = AddConfigToggle(
+            parent,
+            templates,
+            "Share Diagnostics",
+            DiagnosticsSharingSettings.ShareDiagnostics,
+            enabled =>
+            {
+                DiagnosticsSharingSettings.SetShareDiagnostics(enabled);
+                Diagnostics.Event(
+                    "Diagnostics",
+                    "sharing_setting_changed",
+                    $"enabled={Diagnostics.Bool(enabled)} configured={Diagnostics.Bool(RemoteDiagnostics.IsConfigured)}");
+            });
+
         RefreshFxConfigInteractivity();
         Diagnostics.Event(
             "Shortcuts",
@@ -90,7 +118,7 @@ internal static partial class ShortcutOverlay
             "toggles=4 labels=4 label_layout=explicit_native_text");
     }
 
-    private static Toggle AddFxToggle(
+    private static Toggle AddConfigToggle(
         RectTransform parent,
         NativeTemplates templates,
         string label,
@@ -177,5 +205,6 @@ internal static partial class ShortcutOverlay
         bowFocusToggle = null;
         combatShakeToggle = null;
         dangerArrivalToggle = null;
+        shareDiagnosticsToggle = null;
     }
 }

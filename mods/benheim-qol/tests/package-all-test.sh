@@ -17,12 +17,16 @@ printf 'public const string PluginVersion = "%s";\n' "$version" > "$fixture/src/
 printf 'fixture release dll\n' > "$dll"
 
 for script in \
-  package-all.sh package-macos.sh package-windows.sh \
+  package-all.sh package-private-test.sh package-macos.sh package-windows.sh \
   install-macos.command macos-launcher.sh 'Install Benheim.cmd' \
   install-windows.ps1 launch-windows.ps1 windows-doorstop-config.ps1; do
   cp "$root/scripts/$script" "$scripts/$script"
 done
-chmod +x "$scripts/package-all.sh" "$scripts/package-macos.sh" "$scripts/package-windows.sh"
+chmod +x \
+  "$scripts/package-all.sh" \
+  "$scripts/package-private-test.sh" \
+  "$scripts/package-macos.sh" \
+  "$scripts/package-windows.sh"
 cat > "$scripts/verify.sh" <<SH
 #!/usr/bin/env bash
 set -euo pipefail
@@ -30,7 +34,10 @@ printf 'verified\n' >> "$verify_log"
 SH
 chmod +x "$scripts/verify.sh"
 
-output="$("$scripts/package-all.sh")"
+output="$(
+  BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$test_root/must-not-be-read.cfg" \
+    "$scripts/package-all.sh"
+)"
 mac_package="$fixture/dist/Benheim-macOS-$version.zip"
 windows_package="$fixture/dist/Benheim-Windows-$version.zip"
 test "$output" = "$(printf '%s\n%s' "$mac_package" "$windows_package")"
@@ -46,7 +53,37 @@ for package in "$mac_package" "$windows_package"; do
   cmp -s "$dll" "$extracted/BenheimQoL.dll"
   test "$(shasum -a 256 "$extracted/BenheimQoL.dll" | awk '{print $1}')" = "$expected_hash"
   cmp -s "$expected_version" "$extracted/VERSION"
+  test ! -e "$extracted/PRIVATE-TEST-DIAGNOSTICS.cfg"
 done
+
+sentinel_token='private-test-token-sentinel'
+private_output="$(
+  BENHEIM_AXIOM_DATASET=benheim-diagnostics \
+  BENHEIM_AXIOM_INGEST_TOKEN="$sentinel_token" \
+    "$scripts/package-private-test.sh"
+)"
+private_mac="$fixture/dist/Benheim-PRIVATE-TEST-macOS-$version.zip"
+private_windows="$fixture/dist/Benheim-PRIVATE-TEST-Windows-$version.zip"
+test "$private_output" = "$(printf '%s\n%s' "$private_mac" "$private_windows")"
+test "$(wc -l < "$verify_log" | tr -d ' ')" = 2
+for package in "$private_mac" "$private_windows"; do
+  test -f "$package"
+  private_extracted="$test_root/private-$(basename "$package" .zip)"
+  mkdir -p "$private_extracted"
+  unzip -qq "$package" -d "$private_extracted"
+  private_root="$private_extracted/$(basename "$package" .zip)"
+  private_config="$private_root/PRIVATE-TEST-DIAGNOSTICS.cfg"
+  test -f "$private_config"
+  test "$(stat -f '%Lp' "$private_config")" = 600
+  grep -Fxq 'BENHEIM_PRIVATE_DIAGNOSTICS_V1' "$private_config"
+  grep -Fxq 'dataset=benheim-diagnostics' "$private_config"
+  grep -Fxq "token=$sentinel_token" "$private_config"
+  grep -Fxq "build_id=sha256:$expected_hash" "$private_config"
+done
+
+! grep -R -Fq "$sentinel_token" "$fixture/src" "$scripts"
+! unzip -p "$mac_package" | grep -Fq "$sentinel_token"
+! unzip -p "$windows_package" | grep -Fq "$sentinel_token"
 
 if grep -Eq 'gh release|git push|install-local' "$scripts/package-all.sh"; then
   echo "combined local packaging must not publish or install" >&2
