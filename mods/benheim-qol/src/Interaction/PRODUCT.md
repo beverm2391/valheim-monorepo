@@ -12,4 +12,15 @@ without enabling remote use across a base.
 
 ## In Development
 
-- No interaction changes are currently in development.
+Benheim changes only Valheim's comfort-furniture detection range, from exactly
+10 meters to 20 meters. Comfort furniture in nearby rooms, on nearby floors,
+and in nearby buildings can provide comfort.
+
+Benheim does not change:
+
+- furniture comfort values or how Valheim resolves duplicate furniture and
+  furniture groups;
+- shelter and fire requirements or Rested calculation; or
+- persistence or networking.
+
+This behavior needs gameplay proof.

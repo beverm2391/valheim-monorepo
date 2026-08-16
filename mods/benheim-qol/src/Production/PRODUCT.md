@@ -16,6 +16,12 @@ The Production module fills routine station inputs without repeated clicks.
 
 ## In Development
 
+- At crafting stations that use the Cooking skill, crafted food has a bonus
+  chance equal to the player's Cooking factor multiplied by `0.50`. Retrieving
+  completed food through a native `CookingStation` uses the same chance. A
+  successful bonus roll adds exactly one additional item. Other crafting skills
+  keep Valheim's native bonus chances. This behavior has source-level proof but
+  still needs gameplay proof.
 - The Stone Oven takes half as long to bake each recipe. Its done-to-burn
   window is also halved.
 - Other cooking stations and fuel use remain unchanged.

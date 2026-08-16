@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Production/CookingBonusPatches.cs" Link="CookingBonusPatches.cs" />
+    <Compile Include="../../src/Interaction/ComfortFurnitureRangePatch.cs" Link="ComfortFurnitureRangePatch.cs" />
+  </ItemGroup>
+</Project>
