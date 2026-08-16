@@ -39,7 +39,7 @@ args = Namespace(
     domain="Inventory",
     event="put_away_finished",
     item=None,
-    station=None,
+    station='piece_oven#12"quoted',
     operation_id='op-"quoted',
     incomplete=False,
 )
@@ -77,6 +77,7 @@ assert apl.startswith("['benheim-diagnostics']")
 assert "['session_id']" in apl and '"session-1"' in apl
 assert "['player_name']" in apl and '"Johnny"' in apl
 assert "['client_id']" in apl and '"client-1"' in apl
+assert "['station']" in apl and 'piece_oven#12\\"quoted' in apl
 assert "['operation_id']" in apl and 'op-\\"quoted' in apl
 assert apl.endswith("| order by _time desc | take 25")
 assert rows[0][0] == {

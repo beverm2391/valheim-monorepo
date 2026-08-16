@@ -146,8 +146,6 @@ def remote_records(args: argparse.Namespace) -> Iterator[tuple[dict[str, object]
         raise ValueError("set a valid --dataset or BENHEIM_AXIOM_DATASET")
     if not token:
         raise ValueError("BENHEIM_AXIOM_QUERY_TOKEN or AXIOM_TOKEN is not set")
-    if args.station is not None:
-        raise ValueError("--station is local-only because raw station IDs are not uploaded")
     if not DURATION_PATTERN.fullmatch(args.since):
         raise ValueError("--since must look like 30m, 12h, or 7d")
     if args.limit < 1 or args.limit > 500:
