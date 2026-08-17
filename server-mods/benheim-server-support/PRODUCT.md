@@ -1,7 +1,8 @@
 # Benheim Server Support
 
 Benheim Server Support owns Put Away coordination that requires the dedicated
-server. It does not own test or administrator commands.
+server. It also owns the confirmed-kill ordering that Player Combat needs for
+multiplayer kill chains. It does not own test or administrator commands.
 
 ## Current Behavior
 
@@ -31,3 +32,19 @@ Away's player-visible behavior and acceptance boundary.
 The [shared protocol](../../shared/benheim-inventory-protocol/PROTOCOL.md) owns
 the transaction runtime and typed-event lifecycle. Automated source and build
 gates cover the server boundary.
+
+Server Support accepts a direct Player lethal-hit report only from the
+authenticated peer that is connected and currently owns the defeated
+non-player Character. It validates that the victim is non-player and that the
+reported killer Character belongs to a connected player. It rejects duplicate
+victim identities. It assigns each accepted report one server time and an order
+for that killer. Only the confirmed killer's client receives the confirmation.
+Player Combat decides what the confirmed kill earns.
+
+This first feed covers only direct Player lethal-hit reports. It does not infer
+credit for damage over time, kills made by tames, turrets, traps, environmental
+deaths, assists, or kill steals. It trusts Benheim's authenticated victim owner
+as Valheim's damage authority. This feed does not provide hostile-client proof
+or serve as an anti-cheat boundary. Automated checks pass for authority,
+message format, duplicate handling, ordering, and the build. Multiplayer
+gameplay remains unproven.

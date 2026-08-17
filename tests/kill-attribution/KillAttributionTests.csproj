@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillAttributionProtocol.cs" Link="KillAttributionProtocol.cs" />
+    <Compile Include="../../mods/benheim-qol/src/KillAttribution/LethalHitObservation.cs" Link="LethalHitObservation.cs" />
+    <Compile Include="../../server-mods/benheim-server-support/src/ConfirmedKillState.cs" Link="ConfirmedKillState.cs" />
+  </ItemGroup>
+</Project>
