@@ -114,7 +114,7 @@ incomplete_args = Namespace(
 
 
 def lifecycle_record(
-    timestamp: str,
+    second: str,
     domain: str,
     event: str,
     operation_id: str,
@@ -122,7 +122,7 @@ def lifecycle_record(
     status: str,
 ) -> dict[str, object]:
     return {
-        "_time": timestamp,
+        "_time": f"2026-08-16T00:00:{second}Z",
         "session_id": "session-1",
         "client_id": "client-1",
         "player_name": "Johnny",
@@ -136,90 +136,20 @@ def lifecycle_record(
 
 # Axiom returns newest first. The open batch includes lease, transaction-start,
 # settlement, and receipt activity that must not replace or close its batch start.
-response = tabular_response(
-    [
-        lifecycle_record(
-            "2026-08-16T00:00:09Z",
-            "InventoryTransaction",
-            "put_away_batch_finished",
-            "op-cancelled",
-            "terminal",
-            "cancelled",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:08Z",
-            "InventoryTransaction",
-            "put_away_batch_started",
-            "op-cancelled",
-            "start",
-            "running",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:07Z",
-            "InventoryTransaction",
-            "put_away_batch_finished",
-            "op-complete",
-            "terminal",
-            "completed",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:06Z",
-            "InventoryTransaction",
-            "client_request_sent",
-            "op-complete",
-            "start",
-            "sent",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:05Z",
-            "InventoryTransaction",
-            "put_away_batch_started",
-            "op-complete",
-            "start",
-            "running",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:04Z",
-            "InventoryTransaction",
-            "client_result",
-            "op-open",
-            "settled",
-            "settled_receipt_acknowledged",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:03Z",
-            "InventoryTransaction",
-            "client_receipt_acknowledged",
-            "op-open",
-            "receipt_ack",
-            "acknowledged",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:02Z",
-            "InventoryTransaction",
-            "client_request_sent",
-            "op-open",
-            "start",
-            "sent",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:01Z",
-            "Inventory",
-            "quick_stack_lease_result",
-            "op-open",
-            "lease_result",
-            "granted",
-        ),
-        lifecycle_record(
-            "2026-08-16T00:00:00Z",
-            "InventoryTransaction",
-            "put_away_batch_started",
-            "op-open",
-            "start",
-            "running",
-        ),
-    ]
-)
+transaction = "InventoryTransaction"
+lifecycle_rows = [
+    ("09", transaction, "put_away_batch_finished", "op-cancelled", "terminal", "cancelled"),
+    ("08", transaction, "put_away_batch_started", "op-cancelled", "start", "running"),
+    ("07", transaction, "put_away_batch_finished", "op-complete", "terminal", "completed"),
+    ("06", transaction, "client_request_sent", "op-complete", "start", "sent"),
+    ("05", transaction, "put_away_batch_started", "op-complete", "start", "running"),
+    ("04", transaction, "client_result", "op-open", "settled", "settled_receipt_acknowledged"),
+    ("03", transaction, "client_receipt_acknowledged", "op-open", "receipt_ack", "acknowledged"),
+    ("02", transaction, "client_request_sent", "op-open", "start", "sent"),
+    ("01", "Inventory", "quick_stack_lease_result", "op-open", "lease_result", "granted"),
+    ("00", transaction, "put_away_batch_started", "op-open", "start", "running"),
+]
+response = tabular_response([lifecycle_record(*values) for values in lifecycle_rows])
 captured.clear()
 printed = io.StringIO()
 with patch.dict(os.environ, {"BENHEIM_AXIOM_QUERY_TOKEN": "query-secret"}, clear=True):
