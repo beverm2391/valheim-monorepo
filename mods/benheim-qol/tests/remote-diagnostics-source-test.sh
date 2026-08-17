@@ -10,7 +10,8 @@ overlay="$root/src/Shortcuts/ShortcutOverlayConfig.cs"
 plugin="$root/src/Plugin.cs"
 public_packages="$root/scripts/package-all.sh"
 
-grep -Fq 'RemoteDiagnostics.TryEnqueue(diagnosticEvent);' "$diagnostics"
+grep -Fq 'new DiagnosticEventRoute(SelectEveryTypedEvent, RemoteDiagnostics.TryEnqueue)' "$diagnostics"
+grep -Fq 'OptionalDestinations.Route(diagnosticEvent);' "$diagnostics"
 test "$(grep -Fc 'RemoteDiagnostics.TryEnqueue' "$diagnostics")" -eq 1
 grep -Fq 'internal string ToRemoteJsonLine(' "$event"
 grep -Fq 'AppendJsonStringProperty(builder, "client_id", clientId);' "$event"
