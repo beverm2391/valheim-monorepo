@@ -8,6 +8,7 @@ import io
 import json
 import os
 from argparse import Namespace
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -27,6 +28,18 @@ class Response(io.BytesIO):
         self.close()
 
 
+def tabular_response(records: list[dict[str, object]]) -> dict[str, object]:
+    names = sorted({name for record in records for name in record})
+    return {
+        "tables": [
+            {
+                "fields": [{"name": name} for name in names],
+                "columns": [[record.get(name) for record in records] for name in names],
+            }
+        ]
+    }
+
+
 args = Namespace(
     paths=[],
     remote=True,
@@ -44,14 +57,9 @@ args = Namespace(
     incomplete=False,
 )
 captured: dict[str, object] = {}
-response = {
-    "tables": [
-        {
-            "fields": [{"name": "_time"}, {"name": "client_id"}, {"name": "moved"}],
-            "columns": [["2026-08-16T00:00:00Z"], ["client-1"], [13]],
-        }
-    ]
-}
+response = tabular_response(
+    [{"_time": "2026-08-16T00:00:00Z", "client_id": "client-1", "moved": 13}]
+)
 
 
 def fake_urlopen(request: object, timeout: int) -> Response:
@@ -86,6 +94,146 @@ assert rows[0][0] == {
     "moved": 13,
 }
 assert "query-secret" not in rows[0][1]
+
+incomplete_args = Namespace(
+    paths=[],
+    remote=True,
+    dataset="benheim-diagnostics",
+    since="12h",
+    limit=25,
+    session="session-1",
+    player="Johnny",
+    client="client-1",
+    domain=None,
+    event="put_away_batch_started",
+    item=None,
+    station=None,
+    operation_id=None,
+    incomplete=True,
+)
+
+
+def lifecycle_record(
+    timestamp: str,
+    domain: str,
+    event: str,
+    operation_id: str,
+    phase: str,
+    status: str,
+) -> dict[str, object]:
+    return {
+        "_time": timestamp,
+        "session_id": "session-1",
+        "client_id": "client-1",
+        "player_name": "Johnny",
+        "domain": domain,
+        "event": event,
+        "operation_id": operation_id,
+        "operation_phase": phase,
+        "status": status,
+    }
+
+
+# Axiom returns newest first. The open batch includes lease, transaction-start,
+# settlement, and receipt activity that must not replace or close its batch start.
+response = tabular_response(
+    [
+        lifecycle_record(
+            "2026-08-16T00:00:09Z",
+            "InventoryTransaction",
+            "put_away_batch_finished",
+            "op-cancelled",
+            "terminal",
+            "cancelled",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:08Z",
+            "InventoryTransaction",
+            "put_away_batch_started",
+            "op-cancelled",
+            "start",
+            "running",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:07Z",
+            "InventoryTransaction",
+            "put_away_batch_finished",
+            "op-complete",
+            "terminal",
+            "completed",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:06Z",
+            "InventoryTransaction",
+            "client_request_sent",
+            "op-complete",
+            "start",
+            "sent",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:05Z",
+            "InventoryTransaction",
+            "put_away_batch_started",
+            "op-complete",
+            "start",
+            "running",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:04Z",
+            "InventoryTransaction",
+            "client_result",
+            "op-open",
+            "settled",
+            "settled_receipt_acknowledged",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:03Z",
+            "InventoryTransaction",
+            "client_receipt_acknowledged",
+            "op-open",
+            "receipt_ack",
+            "acknowledged",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:02Z",
+            "InventoryTransaction",
+            "client_request_sent",
+            "op-open",
+            "start",
+            "sent",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:01Z",
+            "Inventory",
+            "quick_stack_lease_result",
+            "op-open",
+            "lease_result",
+            "granted",
+        ),
+        lifecycle_record(
+            "2026-08-16T00:00:00Z",
+            "InventoryTransaction",
+            "put_away_batch_started",
+            "op-open",
+            "start",
+            "running",
+        ),
+    ]
+)
+captured.clear()
+printed = io.StringIO()
+with patch.dict(os.environ, {"BENHEIM_AXIOM_QUERY_TOKEN": "query-secret"}, clear=True):
+    with patch.object(query_events.urllib.request, "urlopen", fake_urlopen):
+        with redirect_stdout(printed):
+            assert query_events.run(incomplete_args) == 0
+
+incomplete_apl = captured["body"]["apl"]
+assert "['event']" not in incomplete_apl
+assert "['session_id']" in incomplete_apl
+incomplete_rows = [json.loads(line) for line in printed.getvalue().splitlines()]
+assert len(incomplete_rows) == 1
+assert incomplete_rows[0]["operation_id"] == "op-open"
+assert incomplete_rows[0]["event"] == "put_away_batch_started"
 
 with patch.dict(os.environ, {}, clear=True):
     try:

@@ -105,9 +105,40 @@ def remote_apl(dataset: str, args: argparse.Namespace) -> str:
     for field, expected in filters(args):
         if expected is None:
             continue
+        # In incomplete mode these fields select the start record only. Keep
+        # them local so the remote query still returns the terminal partner.
+        if args.incomplete and field in ("event", "item", "station"):
+            continue
         remote_field = "session_id" if field == "session" else field
         query += f' | where tostring([\'{remote_field}\']) == "{escape_apl(expected)}"'
     return f"{query} | order by _time desc | take {args.limit}"
+
+
+def operation_transition(record: dict[str, object]) -> str | None:
+    phase = record.get("operation_phase")
+    if record.get("domain") != "InventoryTransaction":
+        return phase if phase in ("start", "terminal") else None
+
+    event = record.get("event")
+    status = record.get("status")
+    if event == "put_away_batch_started" and phase == "start" and status == "running":
+        return "start"
+    if (
+        event == "put_away_batch_finished"
+        and phase == "terminal"
+        and status in ("completed", "cancelled")
+    ):
+        return "terminal"
+    return None
+
+
+def operation_key(record: dict[str, object], operation_id: str) -> tuple[str, str, str, str]:
+    return (
+        str(field_value(record, "session") or ""),
+        str(record.get("client_id") or ""),
+        str(record.get("domain") or ""),
+        operation_id,
+    )
 
 
 def tabular_rows(data: object) -> list[dict[str, object]]:
@@ -200,19 +231,20 @@ def run(args: argparse.Namespace) -> int:
         return 0
 
     # Memory is proportional to matching open operations, not total records.
-    open_operations: dict[str, str] = {}
+    open_operations: dict[tuple[str, str, str, str], str] = {}
     for record, raw in source:
         operation_id = record.get("operation_id")
         if not isinstance(operation_id, str) or not operation_id:
             continue
-        phase = record.get("operation_phase")
-        if phase == "start" and matches(record, args):
-            open_operations[operation_id] = raw
-        elif phase == "terminal":
-            open_operations.pop(operation_id, None)
+        transition = operation_transition(record)
+        key = operation_key(record, operation_id)
+        if transition == "start" and matches(record, args):
+            open_operations[key] = raw
+        elif transition == "terminal":
+            open_operations.pop(key, None)
 
-    for operation_id in sorted(open_operations):
-        print(open_operations[operation_id])
+    for key in sorted(open_operations):
+        print(open_operations[key])
     return 0
 
 
