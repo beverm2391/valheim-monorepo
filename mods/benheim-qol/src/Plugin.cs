@@ -8,6 +8,7 @@ using BenheimQoL.Farming;
 using BenheimQoL.EnemyTiers;
 using BenheimQoL.Repair;
 using BenheimQoL.Shortcuts;
+using BenheimQoL.PlayerCombat;
 using HarmonyLib;
 using UnityEngine;
 
@@ -29,6 +30,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
         Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
+        PlayerCombatRuntime.BeginSession();
         DiagnosticsSharingSettings.Initialize(Config);
         RemoteDiagnostics.Begin(Paths.ConfigPath);
         BenheimTestCommandClient.InitializeConsole();
@@ -38,6 +40,10 @@ public sealed class Plugin : BaseUnityPlugin
         {
             harmony = new Harmony(PluginGuid);
             harmony.PatchAll();
+            if (ObjectDB.instance != null)
+            {
+                PlayerCombatRuntime.RegisterNativeEffects(ObjectDB.instance);
+            }
         }
         catch (Exception ex)
         {
@@ -91,6 +97,7 @@ public sealed class Plugin : BaseUnityPlugin
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();
         RemoteDiagnostics.Reset();
+        PlayerCombatRuntime.EndSession();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         Diagnostics.EndSession();
         TryRemoveFailedPatches(logFailure: false);

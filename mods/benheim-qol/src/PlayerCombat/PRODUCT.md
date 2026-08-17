@@ -6,14 +6,14 @@ controls, attacks, meter behavior, and presentation.
 
 ## In Development
 
-Player Combat has two reward outputs:
+Player Combat gives two types of reward:
 
 - Frequent skilled or risky actions add adrenaline.
 - Exceptional moments and sequences earn named combat states with their own
   bonuses and presentation.
 
-Skill and boldness are independent reward axes. Either reward axis can increase
-an action's reward. Combining both axes can produce the strongest outcome. Low
+Skill and boldness increase an action's reward independently. Either can
+increase the reward. Together, they can give the action its highest reward. Low
 health can increase the reward for ordinary melee that already earns
 adrenaline. Bold aggression while outnumbered can also increase an action's
 reward.
@@ -25,17 +25,18 @@ states are:
 - `UNTOUCHABLE` rewards consecutive perfect defenses without taking damage.
   Its damage bonus escalates as the streak grows. Once earned, the bonus remains
   until the player takes damage.
-- `CLUTCH` rewards a perfect defense by a critically injured player. It should
-  feel like the defense prevented death. It grants strong health regeneration
-  rather than instant health.
+- `CLUTCH` rewards a perfect defense while the player is at critical health. It
+  grants strong health regeneration rather than instant healing. Its first
+  version activates when a player at critical health makes a perfect defense.
+  It does not claim that the avoided attack would have been lethal.
 - `BERSERKER` rewards confirmed kills within a short chain. More kills escalate
   the same chain into `SLAUGHTERHOUSE!`. The state grants damage resistance and
   stamina regeneration so the player can sustain bold aggression.
 
 The exact thresholds, bonus strengths, caps, and presentation remain open
-pending gameplay testing. `CLUTCH` must use the same observable rule for perfect
-parries and perfect dodges. Benheim must not claim that a dodge prevented lethal
-damage unless the game exposes evidence that the dodge prevented lethal damage.
+pending gameplay testing. `CLUTCH` must use the same activation rule for perfect
+parries and perfect dodges. Exact avoided-damage evidence may refine the rule
+later.
 
 [Adrenaline](../Adrenaline/PRODUCT.md) owns meter behavior and tuning.
 [Weapon Rhythm](../WeaponRhythm/PRODUCT.md),

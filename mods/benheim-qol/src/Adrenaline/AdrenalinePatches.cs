@@ -1,5 +1,6 @@
 using System;
 using BenheimQoL.Infrastructure;
+using BenheimQoL.PlayerCombat;
 using HarmonyLib;
 
 namespace BenheimQoL.Adrenaline;
@@ -9,12 +10,12 @@ internal static class PerfectParryContextPatch
 {
     private static void Prefix(Humanoid __instance, Character attacker)
     {
-        AdrenalineFeedback.BeginPerfectParry(__instance, attacker);
+        PerfectDefenseObservation.BeginParry(__instance, attacker);
     }
 
     private static Exception? Finalizer(Exception? __exception)
     {
-        AdrenalineFeedback.End();
+        PerfectDefenseObservation.End();
         return __exception;
     }
 }
@@ -24,12 +25,12 @@ internal static class PerfectDodgeContextPatch
 {
     private static void Prefix(Player __instance)
     {
-        AdrenalineFeedback.BeginPerfectDodge(__instance);
+        PerfectDefenseObservation.BeginDodge(__instance);
     }
 
     private static Exception? Finalizer(Exception? __exception)
     {
-        AdrenalineFeedback.End();
+        PerfectDefenseObservation.End();
         return __exception;
     }
 }
@@ -39,6 +40,11 @@ internal static class AdrenalineAwardFeedbackPatch
 {
     private static void Prefix(Player __instance, ref float v, out AdrenalineFeedback.Award? __state)
     {
+        // The outer parry/dodge Prefix only identifies a candidate. Reaching
+        // Valheim's nested adrenaline callback confirms the perfect defense,
+        // even when the configured native award is zero.
+        PerfectDefenseObservation.ConfirmFromNativeAdrenaline(__instance);
+
         if (v > 0f)
         {
             float requested = v;

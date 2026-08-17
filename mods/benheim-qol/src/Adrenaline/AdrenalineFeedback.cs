@@ -1,6 +1,5 @@
-using System.Reflection;
 using BenheimQoL.Infrastructure;
-using HarmonyLib;
+using BenheimQoL.PlayerCombat;
 using UnityEngine;
 
 namespace BenheimQoL.Adrenaline;
@@ -10,50 +9,27 @@ internal static class AdrenalineFeedback
     private static string? currentSource;
     private static Award? pendingAward;
 
-    private static readonly FieldInfo BlockTimerField =
-        AccessTools.Field(typeof(Humanoid), "m_blockTimer");
-
-    private static readonly FieldInfo LeftItemField =
-        AccessTools.Field(typeof(Humanoid), "m_leftItem");
-
-    private static readonly FieldInfo BeenHitWhileDodgingField =
-        AccessTools.Field(typeof(Player), "m_beenHitWhileDodging");
-
-    internal static void BeginPerfectParry(Humanoid defender, Character attacker)
+    internal static void ObservePerfectDefense(PerfectDefenseConfirmed perfectDefense)
     {
-        if (defender != Player.m_localPlayer || !attacker)
+        if (perfectDefense.Context.Player != Player.m_localPlayer)
         {
             return;
         }
 
-        float blockTimer = (float)BlockTimerField.GetValue(defender);
-        ItemDrop.ItemData? blocker = (ItemDrop.ItemData?)LeftItemField.GetValue(defender)
-            ?? defender.GetCurrentWeapon();
-        if (blocker?.m_shared.m_timedBlockBonus > 1f
-            && blockTimer >= 0f
-            && blockTimer < 0.25f)
-        {
-            currentSource = "Perfect parry";
-            Diagnostics.Event(
-                "Adrenaline",
-                "perfect_parry_detected",
-                $"block_timer={blockTimer:0.###} timed_block_bonus={blocker.m_shared.m_timedBlockBonus:0.##}");
-        }
+        currentSource = perfectDefense.Kind == PerfectDefenseKind.Parry
+            ? "Perfect parry"
+            : "Perfect dodge";
     }
 
-    internal static void BeginPerfectDodge(Player player)
-    {
-        bool alreadyAwarded = (bool)BeenHitWhileDodgingField.GetValue(player);
-        if (player == Player.m_localPlayer && !alreadyAwarded)
-        {
-            currentSource = "Perfect dodge";
-            Diagnostics.Event("Adrenaline", "perfect_dodge_detected");
-        }
-    }
-
-    internal static void End()
+    internal static void EndPerfectDefense()
     {
         currentSource = null;
+    }
+
+    internal static void Reset()
+    {
+        currentSource = null;
+        pendingAward = null;
     }
 
     internal static Award? CaptureAward(Player player, float value)

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Infrastructure/LocalGameEventBus.cs" Link="LocalGameEventBus.cs" />
+    <Compile Include="../../src/PlayerCombat/PlayerCombatEvents.cs" Link="PlayerCombatEvents.cs" />
+    <Compile Include="../../src/PlayerCombat/PlayerCombatController.cs" Link="PlayerCombatController.cs" />
+    <Compile Include="../../src/PlayerCombat/EarnedStateEffects.cs" Link="EarnedStateEffects.cs" />
+    <Compile Include="../../src/PlayerCombat/EarnedStatePresentation.cs" Link="EarnedStatePresentation.cs" />
+  </ItemGroup>
+</Project>
