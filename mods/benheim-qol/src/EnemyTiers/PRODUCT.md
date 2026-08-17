@@ -98,8 +98,8 @@ practical bite reach remain gameplay-unproven.
 
 For this experiment, a native administrator using Benheim `0.1.63` can request
 an ordinary Boar as a control or request a one-star or two-star native Boar.
-This requires Benheim Test Commands `0.1.1` on the dedicated server. Candidate
-`0.1.1` is not deployed, and its command behavior remains runtime-unproven.
+This requires Benheim Test Commands `0.1.1` on the dedicated server. Benheim
+Test Commands `0.1.1` is deployed, but the Boar spawn command remains gameplay-unproven.
 [Benheim Test Commands](../../../../server-mods/benheim-test-commands/PRODUCT.md)
 owns the exact allowlist, admin validation, spawn authority, and result
 behavior.

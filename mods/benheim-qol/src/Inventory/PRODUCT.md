@@ -79,9 +79,9 @@ the same durability contract and pass the stale-payload regression proof.
 - The [Put Away owner-authoritative
   protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md) owns
   request correlation, owner validation, reservation, receipts, connected
-  retries, stale-payload controls, and their tests. The current adaptation
-  passes automated checks but remains in development until it is deployed and
-  the authorized multiplayer gameplay test passes.
+  retries, stale-payload controls, and their tests. The current adaptation is
+  deployed and passes automated checks. It remains in development until the
+  authorized multiplayer gameplay test passes.
 - Each completed transfer moves each accepted item once. Put Away returns each
   rejected item to the player's inventory. As an emergency fallback only, if
   the inventory cannot accept a rejected remainder during settlement, Put Away

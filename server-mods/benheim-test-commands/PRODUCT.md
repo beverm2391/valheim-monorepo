@@ -26,9 +26,9 @@ Using this candidate requires Benheim `0.1.63` on the requesting player and
 Benheim Test Commands `0.1.1` on the dedicated server. The server component
 also derives the same physical profile while it owns the spawned Boar. Other
 connected players need compatible Benheim behavior to derive that profile if
-they later own the creature. Server component `0.1.0` is deployed and its exact
+they later own the creature. Server component `0.1.1` is deployed and its exact
 plugin load is runtime-confirmed. The command behavior remains
-runtime-unproven.
+gameplay-unproven.
 
 [`../../mods/benheim-qol/src/EnemyTiers/PRODUCT.md`](../../mods/benheim-qol/src/EnemyTiers/PRODUCT.md)
 owns the Boar physical experiment and its gameplay acceptance boundary.
