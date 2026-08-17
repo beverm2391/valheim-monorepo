@@ -9,6 +9,9 @@ internal static class Diagnostics
     internal const string CurrentEventFileName = "BenheimEvents.ndjson";
 
     private static readonly object Gate = new object();
+    private static readonly DiagnosticEventRouter OptionalDestinations =
+        new DiagnosticEventRouter(
+            new DiagnosticEventRoute(SelectEveryTypedEvent, RemoteDiagnostics.TryEnqueue));
     private static StreamWriter? eventWriter;
     private static string sessionId = string.Empty;
     private static string benheimVersion = string.Empty;
@@ -74,11 +77,13 @@ internal static class Diagnostics
             }
         }
 
-        // Upload work is bounded and asynchronous. Local readable and NDJSON
-        // emission above is always complete before the optional private-test
-        // sink observes the typed event.
-        RemoteDiagnostics.TryEnqueue(diagnosticEvent);
+        // Local readable and NDJSON emission above is always complete before
+        // independently selected optional destinations observe the same whole
+        // typed event. Destinations own transport, not event definition.
+        OptionalDestinations.Route(diagnosticEvent);
     }
+
+    private static bool SelectEveryTypedEvent(DiagnosticEvent _) => true;
 
     internal static string NewOperationId()
     {

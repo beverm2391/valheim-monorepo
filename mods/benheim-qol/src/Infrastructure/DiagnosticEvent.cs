@@ -34,36 +34,42 @@ internal sealed class DiagnosticEvent
 
     internal DiagnosticEvent String(string name, string? value)
     {
+        EnsureDefinitionOpen();
         fields.Add(DiagnosticField.String(name, value));
         return this;
     }
 
     internal DiagnosticEvent Integer(string name, int value)
     {
+        EnsureDefinitionOpen();
         fields.Add(DiagnosticField.Integer(name, value));
         return this;
     }
 
     internal DiagnosticEvent Integer(string name, long value)
     {
+        EnsureDefinitionOpen();
         fields.Add(DiagnosticField.Integer(name, value));
         return this;
     }
 
     internal DiagnosticEvent Number(string name, float value)
     {
+        EnsureDefinitionOpen();
         fields.Add(DiagnosticField.Number(name, value));
         return this;
     }
 
     internal DiagnosticEvent Number(string name, double value)
     {
+        EnsureDefinitionOpen();
         fields.Add(DiagnosticField.Number(name, value));
         return this;
     }
 
     internal DiagnosticEvent Boolean(string name, bool value)
     {
+        EnsureDefinitionOpen();
         fields.Add(DiagnosticField.Boolean(name, value));
         return this;
     }
@@ -79,6 +85,14 @@ internal sealed class DiagnosticEvent
         session = sessionId;
         benheimVersion = version;
         prepared = true;
+    }
+
+    private void EnsureDefinitionOpen()
+    {
+        if (prepared)
+        {
+            throw new InvalidOperationException("A diagnostic event cannot change after emission.");
+        }
     }
 
     internal string ToReadableLine()

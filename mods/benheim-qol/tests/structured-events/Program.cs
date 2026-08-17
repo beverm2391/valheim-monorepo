@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using BenheimQoL;
@@ -121,17 +122,66 @@ Expect(7, remoteInventoryRoot.GetProperty("revision").GetInt32(), "Inventory rev
 Expect("LoxMeat=13", remoteInventoryRoot.GetProperty("contents").GetString(), "snapshot contents preserved");
 Expect("shared-evidence", remoteInventoryRoot.GetProperty("future_diagnostic_field").GetString(), "future typed fields preserved");
 
+List<DiagnosticEvent> inventoryDestination = new List<DiagnosticEvent>();
+List<DiagnosticEvent> terminalDestination = new List<DiagnosticEvent>();
+DiagnosticEventRouter router = new DiagnosticEventRouter(
+    new DiagnosticEventRoute(
+        diagnosticEvent => diagnosticEvent.Domain == "Inventory",
+        inventoryDestination.Add),
+    new DiagnosticEventRoute(
+        diagnosticEvent => diagnosticEvent.Name == "put_away_batch_finished",
+        terminalDestination.Add));
+
+DiagnosticEvent multiDestination = PreparedRoutingEvent("put_away_batch_finished", "op-multiple");
+string multiDestinationJson = multiDestination.ToJsonLine();
+router.Route(multiDestination);
+Expect(1, inventoryDestination.Count, "domain selector routes to its destination");
+Expect(1, terminalDestination.Count, "event selector routes to its destination");
+Expect(true, ReferenceEquals(multiDestination, inventoryDestination[0]), "domain destination receives source event");
+Expect(true, ReferenceEquals(multiDestination, terminalDestination[0]), "event destination receives source event");
+Expect(multiDestinationJson, multiDestination.ToJsonLine(), "routing does not change the complete event");
+
+DiagnosticEvent oneDestination = PreparedRoutingEvent("put_away_batch_started", "op-one");
+router.Route(oneDestination);
+Expect(2, inventoryDestination.Count, "one matching selector adds one destination");
+Expect(1, terminalDestination.Count, "non-matching selector does not add a destination");
+
+DiagnosticEvent noDestination = DiagnosticEvent.Create("Cooking", "owner_decision")
+    .String("station", "piece_oven#1");
+noDestination.Prepare(
+    new DateTime(2026, 8, 13, 4, 5, 10, DateTimeKind.Utc),
+    "session-routing",
+    "0.1.63");
+router.Route(noDestination);
+new DiagnosticEventRouter().Route(noDestination);
+Expect(2, inventoryDestination.Count, "unselected event does not reach domain destination");
+Expect(1, terminalDestination.Count, "unselected event does not reach event destination");
+
+try
+{
+    multiDestination.String("late_field", "rejected");
+    throw new InvalidOperationException("prepared event accepted a late field");
+}
+catch (InvalidOperationException exception)
+{
+    Expect(
+        "A diagnostic event cannot change after emission.",
+        exception.Message,
+        "prepared event definition is immutable");
+}
+
 string testRoot = Path.Combine(Path.GetTempPath(), "benheim-events-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(testRoot);
 try
 {
+    RemoteDiagnostics.Reset();
     Diagnostics.BeginSession(testRoot, "0.1.60");
     Diagnostics.Event("Core", "legacy_only", "free=form");
-    Diagnostics.Emit(
-        DiagnosticEvent.Create("Cooking", "owner_decision")
-            .String("station", "piece_oven#1")
-            .String("item", "LoxPieUncooked")
-            .Boolean("accepted", false));
+    DiagnosticEvent writtenEvent = DiagnosticEvent.Create("Cooking", "owner_decision")
+        .String("station", "piece_oven#1")
+        .String("item", "LoxPieUncooked")
+        .Boolean("accepted", false);
+    Diagnostics.Emit(writtenEvent);
     Diagnostics.EndSession();
 
     string[] records = File.ReadAllLines(Path.Combine(testRoot, Diagnostics.CurrentEventFileName));
@@ -141,6 +191,8 @@ try
     Expect("owner_decision", written.RootElement.GetProperty("event").GetString(), "writer event");
     Expect(2, Plugin.Log.Info.Count, "legacy and typed readable lines remain visible");
     Expect(0, Plugin.Log.Warnings.Count, "healthy writer has no warning");
+    Expect(1, RemoteDiagnostics.Enqueued.Count, "existing Axiom route still selects every typed event");
+    Expect(true, ReferenceEquals(writtenEvent, RemoteDiagnostics.Enqueued[0]), "Axiom route receives source event");
 }
 finally
 {
@@ -149,6 +201,19 @@ finally
 
 Console.WriteLine("structured diagnostic event checks passed");
 return;
+
+static DiagnosticEvent PreparedRoutingEvent(string eventName, string operationId)
+{
+    DiagnosticEvent diagnosticEvent = DiagnosticEvent.Create("Inventory", eventName)
+        .String("operation_id", operationId)
+        .String("contents", "LoxMeat=13")
+        .Integer("accepted_count", 13);
+    diagnosticEvent.Prepare(
+        new DateTime(2026, 8, 13, 4, 5, 9, DateTimeKind.Utc),
+        "session-routing",
+        "0.1.63");
+    return diagnosticEvent;
+}
 
 static void Expect<T>(T expected, T actual, string scenario)
 {
