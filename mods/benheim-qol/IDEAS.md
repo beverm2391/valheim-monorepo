@@ -40,6 +40,27 @@ development, its behavior and status move into the owning `PRODUCT.md`.
   poison arrow. The creature, tier, projectile, accuracy, cadence, telegraph,
   and counterplay remain open pending prefab research and gameplay testing.
 
+## Crow
+
+- **Crow:** a private server-side fourth friend for Ben, Johnny, and Ozi. A
+  native-style crow appears and disappears near the group, hangs around indoors,
+  follows travel through portals or sailing without becoming easy to lose, and
+  occasionally roasts the players. One Crow message appears both above the bird
+  and in global chat, like player speech.
+- Crow is event-driven rather than agentic. The server selects a small subset of
+  typed gameplay events, combines them with recent global chat and Crow messages,
+  player-name mappings, and Ben-authored player lore and examples, then asks an
+  OpenRouter model for exactly one optional `{speak, text}` response. Crow does
+  not query logs or invent an objective for itself.
+- Early event candidates include repeated deaths to the same enemy, escape from
+  critical health, one survivor after everyone else dies, meaningful boss or
+  miniboss kills, raids, sailing, and particularly funny enemy encounters. The
+  model decides whether the supplied event creates a specific enough angle to
+  speak; silence is a valid result.
+- The physical crow lifecycle and the event-to-model-to-chat path are separate
+  experiments. Later buffs or gameplay effects can build on a proven companion,
+  but the first version is commentary only.
+
 ## World Fuckery
 
 - **Berserk Ooze Bomb:** a heavy bomb with a short throw range that temporarily
