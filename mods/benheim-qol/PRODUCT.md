@@ -148,6 +148,7 @@ technical cost.
 | [Portals](src/Portals/PRODUCT.md) | Faster transitions after the destination is ready. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
 | [Woodcutting](src/Woodcutting/PRODUCT.md) | Skill-based cleave for trees and logs. |
+| [Player Combat](src/PlayerCombat/PRODUCT.md) | Reward skilled and bold play with adrenaline and earned combat states. |
 | [Adrenaline](src/Adrenaline/PRODUCT.md) | Adrenaline gain, perfect-defense feedback, and decay timing. |
 | [Archery](src/Archery/PRODUCT.md) | Global arrow headshots and collision-time feedback. |
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |

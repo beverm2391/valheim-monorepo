@@ -1,8 +1,7 @@
 # Adrenaline
 
-The Adrenaline module rewards skilled and bold combat in two ways. Frequent
-actions build Valheim's adrenaline meter. Exceptional moments and sequences
-earn named combat states with their own bonuses and presentation.
+The Adrenaline module makes adrenaline gains more rewarding, shows feedback for
+successful perfect defenses, and shows decay timing on Valheim's meter.
 
 ## Current Behavior
 
@@ -15,8 +14,9 @@ earn named combat states with their own bonuses and presentation.
 - Every positive adrenaline grant is doubled. This includes ordinary hits,
   perfect parries and dodges, staggering an enemy, and Guardian Power.
 - Negative adrenaline changes are not doubled.
-- Valheim still applies its normal adrenaline rate, current-fill curve, status
-  modifiers, meter cap, and full-meter behavior once.
+- Valheim still applies its normal adrenaline rules once. These include its
+  rate, how the current meter fill affects each grant, status modifiers, meter
+  cap, and full-meter behavior.
 - The normal 10-second delay and subsequent decay remain unchanged.
 - Perfect-parry and perfect-dodge feedback must show the amount the doubled
   native grant actually adds to the meter.
@@ -28,32 +28,14 @@ earn named combat states with their own bonuses and presentation.
 Doubling every positive adrenaline grant is a proven baseline, not the intended
 final adrenaline economy. The next tuning pass will combine three parts:
 
-- A more conservative base that still lets adrenaline matter during normal
-  combat.
+- A more conservative baseline for ordinary adrenaline gains that still lets
+  adrenaline matter during normal combat.
 - Larger rewards for skilled actions than for routine attacks.
 - Additional rewards when the player succeeds while taking a meaningful risk.
 
-Routine rewards add adrenaline. Rare achievements create earned combat states
-instead of adding more adrenaline. Each state uses a large activation message,
-an appropriate native-style effect, and a visible status while its bonus is
-active.
-
-The first earned combat states are:
-
-- `UNTOUCHABLE` rewards consecutive perfect defenses without taking damage.
-  Its damage bonus escalates as the streak grows. Once earned, the bonus remains
-  until the player takes damage.
-- `CLUTCH` rewards a perfect defense by a critically injured player. It should
-  feel like the defense prevented death. It grants strong health regeneration
-  rather than instant health.
-- `BERSERKER` rewards confirmed kills within a short chain. More kills escalate
-  the same chain into `SLAUGHTERHOUSE!`. The state grants damage resistance and
-  stamina regeneration so the player can sustain bold aggression.
-
-The exact thresholds, bonus strengths, caps, durations, and presentation remain
-open pending gameplay testing. `CLUTCH` must use one honest rule for perfect
-parries and perfect dodges. Benheim must not claim that a dodge prevented lethal
-damage unless the game exposes that evidence.
+The [Player Combat product](../PlayerCombat/PRODUCT.md) owns which skilled and
+risky actions receive those rewards. It also owns earned combat states, which
+are separate from the adrenaline meter.
 
 The redesign should tune Valheim's existing adrenaline system instead of
 creating a separate combat resource. Native meter capacity, spending,
