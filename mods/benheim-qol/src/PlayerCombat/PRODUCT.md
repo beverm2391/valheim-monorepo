@@ -12,8 +12,11 @@ Player Combat has two reward outputs:
 - Exceptional moments and sequences earn named combat states with their own
   bonuses and presentation.
 
-Risk alone gives no reward. A player action must demonstrate skill. The earned
-combat state then reflects how bold or dangerous that skilled success was.
+Skill and boldness are independent reward axes. Either reward axis can increase
+an action's reward. Combining both axes can produce the strongest outcome. Low
+health can increase the reward for ordinary melee that already earns
+adrenaline. Bold aggression while outnumbered can also increase an action's
+reward.
 
 Earned combat states use a large activation message, an appropriate
 native-style effect, and a visible status while their bonus is active. The first
