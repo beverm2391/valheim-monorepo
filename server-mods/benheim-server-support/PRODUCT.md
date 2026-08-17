@@ -27,3 +27,7 @@ The owner-routing adaptation passes automated checks but is not deployed or
 gameplay-proven. The owning
 [Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md) defines Put
 Away's player-visible behavior and acceptance boundary.
+
+The [shared protocol](../../shared/benheim-inventory-protocol/PROTOCOL.md) owns
+the transaction runtime and typed-event lifecycle. Automated source and build
+gates cover the server boundary.

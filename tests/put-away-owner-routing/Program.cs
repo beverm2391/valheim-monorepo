@@ -88,14 +88,49 @@ Expect(
         out _),
     "partial non-success result without an exact accepted vector remains pending");
 
-// A delayed result from an owner that was valid for an earlier route must not
-// settle the request after the server has rerouted it to a new current owner.
+Expect(
+    InventoryTransactionRefundPolicy.Decide(
+        restoredToOriginalSlot: false,
+        restoredElsewhere: false) == InventoryTransactionRefundPlacement.WorldDrop,
+    "filled original slot and filled inventory require a visible nearby refund drop");
+Expect(
+    InventoryTransactionRefundPolicy.Decide(
+        restoredToOriginalSlot: false,
+        restoredElsewhere: true) == InventoryTransactionRefundPlacement.Inventory,
+    "rejected remainder stays in inventory when another slot has room");
+
+Expect(
+    InventoryTransactionSettlement.TryCreate(
+        new[] { 10 },
+        new[] { 2 },
+        out InventoryTransactionSettlement? filledInventorySettlement),
+    "filled-slot partial acceptance produces an exact settlement");
+int filledInventoryDrop = filledInventorySettlement!.Rejected.Single();
+Expect(
+    InventoryTransactionRefundPolicy.Decide(
+        restoredToOriginalSlot: false,
+        restoredElsewhere: false) == InventoryTransactionRefundPlacement.WorldDrop
+        && filledInventoryDrop == 8,
+    "filled-slot partial rejection drops the exact eight-item remainder nearby");
+Expect(2 + filledInventoryDrop == 10,
+    "filled-slot partial acceptance conserves accepted and dropped counts");
+Expect(!InventoryTransactionLifecyclePolicy.CanSettle(localPlayerAvailable: false),
+    "owner result remains pending when no local player can receive a refund drop");
+Expect(InventoryTransactionLifecyclePolicy.CanSettle(localPlayerAvailable: true),
+    "owner result can settle when the local player can receive every remainder");
+Expect(!InventoryTransactionLifecyclePolicy.CanResetBatch(hasUnsettledDeposit: true),
+    "context reset cannot release a batch before exact settlement and receipt acknowledgement");
+Expect(InventoryTransactionLifecyclePolicy.CanResetBatch(hasUnsettledDeposit: false),
+    "context reset remains available when no deposit is settling");
+
+// Ownership changes after the old owner applies and records its receipt but
+// before the server accepts that result. The new owner must replay that
+// receipt instead of applying the immutable deposit twice.
 ConnectedTransactionRouter<string> handoffRouter = new();
-DepositRequest handoffRequest = new(
-    "operation-handoff",
-    "hash-handoff",
-    Counts(("Stone", 3)));
-byte[] handoffRequestBytes = Encoding.UTF8.GetBytes("immutable-handoff-request");
+Chest handoffChest = new(Counts(("Stone", 2)));
+Client handoffClient = new("handoff", Counts(("Stone", 3)), Counts(("Stone", 2)));
+DepositRequest handoffRequest = handoffClient.Reserve("operation-handoff");
+byte[] handoffRequestBytes = Encoding.UTF8.GetBytes(handoffRequest.PayloadHash);
 ServerRequestDecision routedToOldOwner = handoffRouter.ReceiveRequest(
     handoffRequest.OperationId,
     requester: 10L,
@@ -105,6 +140,19 @@ ServerRequestDecision routedToOldOwner = handoffRouter.ReceiveRequest(
     currentOwner: 20L);
 Expect(routedToOldOwner.Action == ServerRequestAction.Route && routedToOldOwner.Owner == 20L,
     "request initially routes to the resolved owner");
+DepositResult oldOwnerApplied = handoffChest.ApplyOwnerAuthoritative(handoffRequest);
+byte[] oldOwnerResponse = Encoding.UTF8.GetBytes("old-owner-applied");
+OwnerResultAction oldOwnerLostRace = handoffRouter.ReceiveOwnerResult(
+    handoffRequest.OperationId,
+    requester: 10L,
+    handoffRequest.PayloadHash,
+    sender: 20L,
+    currentOwner: 30L,
+    responseBytes: oldOwnerResponse,
+    completedAt: 1f,
+    ownerReportedStale: false);
+Expect(oldOwnerLostRace == OwnerResultAction.Reject,
+    "owner result cannot settle after ownership changes");
 ServerRequestDecision reroutedToCurrentOwner = handoffRouter.ReceiveRequest(
     handoffRequest.OperationId,
     requester: 10L,
@@ -114,14 +162,17 @@ ServerRequestDecision reroutedToCurrentOwner = handoffRouter.ReceiveRequest(
     currentOwner: 30L);
 Expect(reroutedToCurrentOwner.Action == ServerRequestAction.Route && reroutedToCurrentOwner.Owner == 30L,
     "connected retry reroutes after ownership changes");
+DepositResult newOwnerReplay = handoffChest.ApplyOwnerAuthoritative(handoffRequest);
+Expect(handoffChest.Revision == 1 && newOwnerReplay.Accepted.CountsEqual(oldOwnerApplied.Accepted),
+    "new owner replays the receipt without applying twice");
 OwnerResultAction delayedOldOwner = handoffRouter.ReceiveOwnerResult(
     handoffRequest.OperationId,
     requester: 10L,
     handoffRequest.PayloadHash,
     sender: 20L,
     currentOwner: 30L,
-    responseBytes: Encoding.UTF8.GetBytes("old-owner-success"),
-    completedAt: 1f,
+    responseBytes: oldOwnerResponse,
+    completedAt: 2f,
     ownerReportedStale: false);
 Expect(delayedOldOwner == OwnerResultAction.Reject,
     "delayed success from the old owner cannot settle a rerouted request");
@@ -131,11 +182,63 @@ OwnerResultAction currentOwnerResult = handoffRouter.ReceiveOwnerResult(
     handoffRequest.PayloadHash,
     sender: 30L,
     currentOwner: 30L,
-    responseBytes: Encoding.UTF8.GetBytes("current-owner-success"),
-    completedAt: 2f,
+    responseBytes: Encoding.UTF8.GetBytes("new-owner-receipt-replay"),
+    completedAt: 3f,
     ownerReportedStale: false);
 Expect(currentOwnerResult == OwnerResultAction.Complete,
     "only the latest routed current owner can settle the request");
+Expect(
+    handoffRouter.MatchesCompleted(
+        handoffRequest.OperationId,
+        requester: 10L,
+        handoffRequest.PayloadHash,
+        container: "chest-handoff"),
+    "receipt acknowledgement matches the completed requester, payload, and chest");
+Expect(
+    !handoffRouter.MatchesCompleted(
+        handoffRequest.OperationId,
+        requester: 10L,
+        handoffRequest.PayloadHash,
+        container: "other-chest"),
+    "receipt acknowledgement cannot clear another chest receipt");
+handoffRouter.ExpireCompleted(olderThan: 100f);
+Expect(
+    handoffRouter.MatchesCompleted(
+        handoffRequest.OperationId,
+        requester: 10L,
+        handoffRequest.PayloadHash,
+        container: "chest-handoff"),
+    "unacknowledged connected receipt correlation does not expire");
+Expect(
+    handoffRouter.MarkReceiptAcknowledged(
+        handoffRequest.OperationId,
+        requester: 10L,
+        handoffRequest.PayloadHash,
+        container: "chest-handoff",
+        acknowledgedAt: 110f),
+    "current-owner confirmation marks the matching receipt acknowledged");
+handoffRouter.ExpireCompleted(olderThan: 100f);
+Expect(
+    handoffRouter.MatchesCompleted(
+        handoffRequest.OperationId,
+        requester: 10L,
+        handoffRequest.PayloadHash,
+        container: "chest-handoff"),
+    "acknowledged correlation remains for the confirmation replay window");
+handoffRouter.ExpireCompleted(olderThan: 120f);
+Expect(
+    !handoffRouter.MatchesCompleted(
+        handoffRequest.OperationId,
+        requester: 10L,
+        handoffRequest.PayloadHash,
+        container: "chest-handoff"),
+    "acknowledged correlation expires after its replay window");
+handoffClient.Accept(newOwnerReplay);
+handoffChest.ReplicateTo(handoffClient);
+Expect(handoffChest.CountsEqual(Counts(("Stone", 5))) && handoffClient.Source["Stone"] == 0,
+    "post-apply ownership handoff conserves the deposit exactly once");
+Expect(handoffClient.Cache.CountsEqual(handoffChest.Items),
+    "post-apply ownership handoff converges requester and owner contents");
 
 Console.WriteLine("Put Away owner-authoritative stale-payload integration checks passed.");
 
@@ -185,228 +288,4 @@ static void ExpectThrows(Action action, string claim)
     }
 
     throw new InvalidOperationException($"Failed: {claim}");
-}
-
-internal sealed class Chest
-{
-    private readonly IReadOnlyDictionary<string, int>? capacity;
-
-    internal Chest(IReadOnlyDictionary<string, int> initial, IReadOnlyDictionary<string, int>? capacity = null)
-    {
-        Items = new Dictionary<string, int>(initial, StringComparer.Ordinal);
-        this.capacity = capacity;
-    }
-
-    internal Dictionary<string, int> Items { get; }
-    internal uint Revision { get; private set; }
-
-    internal DepositResult ApplyOwnerAuthoritative(DepositRequest request)
-    {
-        Dictionary<string, int> accepted = new(StringComparer.Ordinal);
-        foreach ((string item, int count) in request.Reserved)
-        {
-            int before = CountsUtil.Get(Items, item);
-            int room = capacity == null ? count : Math.Max(0, CountsUtil.Get(capacity, item) - before);
-            int acceptedCount = Math.Min(count, room);
-            Items[item] = before + acceptedCount;
-            accepted[item] = acceptedCount;
-        }
-
-        Revision++;
-        return new DepositResult(request.OperationId, request.PayloadHash, accepted);
-    }
-
-    internal void ApplyRequesterCache(Client client, string operationId, IReadOnlyDictionary<string, int> deposit)
-    {
-        client.Reserve(operationId);
-        Items.Clear();
-        foreach ((string item, int count) in client.Cache)
-        {
-            Items[item] = count;
-        }
-        foreach ((string item, int count) in deposit)
-        {
-            Items[item] = CountsUtil.Get(Items, item) + count;
-        }
-        Revision++;
-    }
-
-    internal void ReplicateTo(params Client[] clients)
-    {
-        foreach (Client client in clients)
-        {
-            client.Cache.ReplaceWith(Items);
-            client.ObservedRevision = Revision;
-        }
-    }
-
-    internal bool CountsEqual(IReadOnlyDictionary<string, int> expected) => Items.CountsEqual(expected);
-}
-
-internal sealed class Client
-{
-    private DepositRequest? pending;
-
-    internal Client(string name, IReadOnlyDictionary<string, int> source, IReadOnlyDictionary<string, int> cache)
-    {
-        Name = name;
-        Source = new Dictionary<string, int>(source, StringComparer.Ordinal);
-        Cache = new Dictionary<string, int>(cache, StringComparer.Ordinal);
-    }
-
-    internal string Name { get; }
-    internal Dictionary<string, int> Source { get; }
-    internal Dictionary<string, int> Cache { get; }
-    internal uint ObservedRevision { get; set; }
-    internal string? PendingOperation => pending?.OperationId;
-
-    internal DepositRequest Reserve(string operationId)
-    {
-        if (pending != null)
-        {
-            throw new InvalidOperationException("one in-flight request per client");
-        }
-
-        Dictionary<string, int> reserved = new(Source, StringComparer.Ordinal);
-        foreach (string item in Source.Keys.ToList())
-        {
-            Source[item] = 0;
-        }
-
-        pending = new DepositRequest(operationId, Hash(operationId, reserved), reserved);
-        return pending;
-    }
-
-    internal void Accept(DepositResult result)
-    {
-        if (pending == null || result.OperationId != pending.OperationId || result.PayloadHash != pending.PayloadHash)
-        {
-            throw new InvalidOperationException("uncorrelated result");
-        }
-
-        List<string> itemNames = pending.Reserved.Keys.ToList();
-        List<int> reservedCounts = itemNames.Select(item => pending.Reserved[item]).ToList();
-        List<int> reportedAccepted = itemNames.Select(item => CountsUtil.Get(result.Accepted, item)).ToList();
-        if (!InventoryTransactionSettlement.TryCreate(
-                reservedCounts,
-                reportedAccepted,
-                out InventoryTransactionSettlement? settlement))
-        {
-            throw new InvalidOperationException("invalid settlement");
-        }
-
-        for (int index = 0; index < itemNames.Count; index++)
-        {
-            string item = itemNames[index];
-            Source[item] = CountsUtil.Get(Source, item) + settlement!.Rejected[index];
-        }
-
-        pending = null;
-    }
-
-    private static string Hash(string operationId, IReadOnlyDictionary<string, int> items) =>
-        string.Join("|", new[] { operationId }.Concat(items.OrderBy(pair => pair.Key).Select(pair => $"{pair.Key}:{pair.Value}")));
-}
-
-internal sealed class Server
-{
-    private readonly Chest owner;
-    private readonly ConnectedTransactionRouter<string> router = new();
-
-    internal Server(Chest owner)
-    {
-        this.owner = owner;
-    }
-
-    internal DepositResult Route(DepositRequest request)
-    {
-        const long requester = 101L;
-        const long currentOwner = 202L;
-        byte[] requestBytes = Encoding.UTF8.GetBytes(request.PayloadHash);
-        ServerRequestDecision decision = router.ReceiveRequest(
-            request.OperationId,
-            requester,
-            request.PayloadHash,
-            requestBytes,
-            container: "authoritative-chest",
-            currentOwner);
-        if (decision.Action == ServerRequestAction.Replay)
-        {
-            return DecodeResult(decision.ResponseBytes!);
-        }
-
-        if (decision.Action != ServerRequestAction.Route || decision.Owner != currentOwner)
-        {
-            throw new InvalidOperationException($"unexpected route decision {decision.Action}");
-        }
-
-        DepositResult result = owner.ApplyOwnerAuthoritative(request);
-        byte[] responseBytes = EncodeResult(result);
-        OwnerResultAction ownerResult = router.ReceiveOwnerResult(
-            request.OperationId,
-            requester,
-            request.PayloadHash,
-            sender: currentOwner,
-            currentOwner,
-            responseBytes,
-            completedAt: owner.Revision,
-            ownerReportedStale: false);
-        if (ownerResult != OwnerResultAction.Complete)
-        {
-            throw new InvalidOperationException($"unexpected owner result {ownerResult}");
-        }
-
-        return result;
-    }
-
-    private static byte[] EncodeResult(DepositResult result)
-    {
-        string accepted = string.Join(",", result.Accepted
-            .OrderBy(pair => pair.Key)
-            .Select(pair => $"{pair.Key}={pair.Value}"));
-        return Encoding.UTF8.GetBytes($"{result.OperationId}\n{result.PayloadHash}\n{accepted}");
-    }
-
-    private static DepositResult DecodeResult(byte[] bytes)
-    {
-        string[] parts = Encoding.UTF8.GetString(bytes).Split('\n');
-        Dictionary<string, int> accepted = parts[2].Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(entry => entry.Split('='))
-            .ToDictionary(values => values[0], values => int.Parse(values[1]), StringComparer.Ordinal);
-        return new DepositResult(parts[0], parts[1], accepted);
-    }
-}
-
-internal sealed record DepositRequest(
-    string OperationId,
-    string PayloadHash,
-    IReadOnlyDictionary<string, int> Reserved);
-
-internal sealed record DepositResult(
-    string OperationId,
-    string PayloadHash,
-    IReadOnlyDictionary<string, int> Accepted);
-
-internal static class CountExtensions
-{
-    internal static bool CountsEqual(this IReadOnlyDictionary<string, int> actual, IReadOnlyDictionary<string, int> expected) =>
-        actual.Count == expected.Count && actual.All(pair => Get(expected, pair.Key) == pair.Value);
-
-    internal static void ReplaceWith(this Dictionary<string, int> target, IReadOnlyDictionary<string, int> source)
-    {
-        target.Clear();
-        foreach ((string item, int count) in source)
-        {
-            target[item] = count;
-        }
-    }
-
-    private static int Get(IReadOnlyDictionary<string, int> values, string item) =>
-        values.TryGetValue(item, out int count) ? count : 0;
-}
-
-internal static class CountsUtil
-{
-    internal static int Get(IReadOnlyDictionary<string, int> values, string item) =>
-        values.TryGetValue(item, out int count) ? count : 0;
 }

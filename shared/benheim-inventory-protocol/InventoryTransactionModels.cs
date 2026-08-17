@@ -59,4 +59,25 @@ internal sealed class PendingDeposit
     internal float CreatedAt { get; }
     internal float LastSentAt { get; set; }
     internal int Attempts { get; set; } = 1;
+    internal SettledDeposit? Settled { get; set; }
+}
+
+internal sealed class SettledDeposit
+{
+    internal SettledDeposit(
+        DepositResult result,
+        IReadOnlyList<int> accepted,
+        IReadOnlyList<int> refunded,
+        IReadOnlyList<int> dropped)
+    {
+        Result = result;
+        Accepted = accepted;
+        Refunded = refunded;
+        Dropped = dropped;
+    }
+
+    internal DepositResult Result { get; }
+    internal IReadOnlyList<int> Accepted { get; }
+    internal IReadOnlyList<int> Refunded { get; }
+    internal IReadOnlyList<int> Dropped { get; }
 }

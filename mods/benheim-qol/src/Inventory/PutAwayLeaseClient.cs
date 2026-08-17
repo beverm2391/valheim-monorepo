@@ -6,7 +6,7 @@ namespace BenheimQoL.InventoryFeature;
 
 /// <summary>
 /// Owns the one direct-server lease that prevents compatible clients from
-/// entering Valheim's local StackAll mutation path at the same time.
+/// entering Put Away scanning and reservation concurrently.
 /// </summary>
 internal static class PutAwayLeaseClient
 {
@@ -42,7 +42,7 @@ internal static class PutAwayLeaseClient
         Diagnostics.Emit(
             DiagnosticEvent.Create("Inventory", "quick_stack_lease_requested")
                 .String("operation_id", operationId)
-                .String("operation_phase", "start"));
+                .String("operation_phase", "lease_request"));
         try
         {
             serverRpc.Invoke(PutAwayLeaseProtocol.RequestRpc, operationId);
@@ -177,7 +177,7 @@ internal static class PutAwayLeaseClient
         Diagnostics.Emit(
             DiagnosticEvent.Create("Inventory", "quick_stack_lease_released")
                 .String("operation_id", operationId)
-                .String("operation_phase", "terminal")
+                .String("operation_phase", "lease_release")
                 .String("reason", reason)
                 .Boolean("sent", sent));
     }
@@ -187,7 +187,7 @@ internal static class PutAwayLeaseClient
         Diagnostics.Emit(
             DiagnosticEvent.Create("Inventory", "quick_stack_lease_result")
                 .String("operation_id", operationId)
-                .String("operation_phase", "terminal")
+                .String("operation_phase", "lease_result")
                 .String("outcome", outcome)
                 .String("reason", reason));
     }
@@ -197,7 +197,7 @@ internal static class PutAwayLeaseClient
         Diagnostics.Emit(
             DiagnosticEvent.Create("Inventory", "quick_stack_lease_result_rejected")
                 .String("operation_id", operationId)
-                .String("operation_phase", "terminal")
+                .String("operation_phase", "lease_result")
                 .String("reason", reason));
     }
 }

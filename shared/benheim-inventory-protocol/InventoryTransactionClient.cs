@@ -39,7 +39,36 @@ internal static partial class InventoryTransactions
         for (int index = 0; index < sourceItems.Count; index++)
         {
             ItemDrop.ItemData sourceItem = sourceItems[index];
-            if (!source.RemoveItem(sourceItem, sourceItem.m_stack)) { Restore(source, removed); return false; }
+            if (!source.RemoveItem(sourceItem, sourceItem.m_stack))
+            {
+                List<int> dropped = Restore(
+                    source,
+                    removed,
+                    operationId,
+                    transactionId,
+                    containerId,
+                    player);
+                List<int> refunded = removed.Select((item, removedIndex) =>
+                    item.Item.m_stack - dropped[removedIndex]).ToList();
+                Emit(
+                    InventoryTransactionDiagnosticEvent.Create(
+                            "client_reservation_rejected",
+                            "requester",
+                            InventoryTransactionDiagnosticLevel.Warning)
+                        .Code("operation_id", operationId)
+                        .Code("correlation", transactionId)
+                        .Code("chest_id", StableChestId(containerId))
+                        .Code("operation_phase", "reservation")
+                        .Code("status", "rejected")
+                        .Code("reason", "source_remove_failed")
+                        .Integer("requested_count", CountReserved(reserved))
+                        .Integer("refunded_count", refunded.Sum())
+                        .Integer("dropped_count", dropped.Sum())
+                        .Text("requested_items", DescribeReserved(reserved))
+                        .Text("refunded_items", DescribeRefunded(removed, refunded))
+                        .Text("dropped_items", DescribeAccepted(removed, dropped)));
+                return false;
+            }
             removed.Add(reserved[index]);
         }
 
@@ -49,17 +78,105 @@ internal static partial class InventoryTransactions
             Time.realtimeSinceStartup);
         ClientPending.Add(transactionId, pending);
         SendDepositRequest(pending);
-        LogDiagnostic($"client_reserved_sent operation_id={operationId} tx={transactionId} chest={containerId} attempt=1 requested=\"{DescribeReserved(reserved)}\"");
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create("client_reservation_sent", "requester")
+                .Code("operation_id", operationId)
+                .Code("correlation", transactionId)
+                .Code("chest_id", StableChestId(containerId))
+                .Code("operation_phase", "start")
+                .Code("status", "sent")
+                .Integer("attempt", 1)
+                .Integer("revision_before", CurrentRevision(containerId))
+                .Integer("requested_count", CountReserved(reserved))
+                .Number("chest_position_x", container.transform.position.x)
+                .Number("chest_position_y", container.transform.position.y)
+                .Number("chest_position_z", container.transform.position.z)
+                .Text("requested_items", DescribeReserved(reserved))
+                .Text("contents_before", DescribeInventory(container.GetInventory())));
         return true;
     }
 
     private static void RpcDepositResult(long sender, ZPackage response)
     {
-        if (!IsExpectedServer(sender)
-            || !InventoryTransactionWire.TryReadResponse(response, out string transactionId, out string payloadHash,
-                out DepositStatus status, out List<int> accepted)
-            || !ClientPending.TryGetValue(transactionId, out PendingDeposit? pending)
-            || pending.PayloadHash != payloadHash) return;
+        if (!IsExpectedServer(sender))
+        {
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create(
+                        "client_result_rejected",
+                        "requester",
+                        InventoryTransactionDiagnosticLevel.Warning)
+                    .Code("operation_phase", "result")
+                    .Code("status", "rejected")
+                    .Code("reason", "unexpected_sender"));
+            return;
+        }
+
+        if (!InventoryTransactionWire.TryReadResponse(
+                response,
+                out string transactionId,
+                out string payloadHash,
+                out DepositStatus status,
+                out List<int> accepted))
+        {
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create(
+                        "client_result_rejected",
+                        "requester",
+                        InventoryTransactionDiagnosticLevel.Warning)
+                    .Code("operation_phase", "result")
+                    .Code("status", "rejected")
+                    .Code("reason", "invalid_response"));
+            return;
+        }
+
+        if (!ClientPending.TryGetValue(transactionId, out PendingDeposit? pending))
+        {
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create(
+                        "client_result_rejected",
+                        "requester",
+                        InventoryTransactionDiagnosticLevel.Warning)
+                    .Code("correlation", transactionId)
+                    .Code("operation_phase", "result")
+                    .Code("status", "rejected")
+                    .Code("reason", "unknown_correlation"));
+            return;
+        }
+
+        if (pending.PayloadHash != payloadHash)
+        {
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create(
+                        "client_result_rejected",
+                        "requester",
+                        InventoryTransactionDiagnosticLevel.Warning)
+                    .Code("operation_id", pending.OperationId)
+                    .Code("correlation", transactionId)
+                    .Code("chest_id", StableChestId(pending.ContainerId))
+                    .Code("operation_phase", "result")
+                    .Code("status", "rejected")
+                    .Code("reason", "payload_hash_mismatch"));
+            return;
+        }
+
+        // A connected retry can replay the owner result while the requester is
+        // retrying only its receipt acknowledgement. Settlement already moved
+        // the accepted/refunded/dropped counts exactly once, so never run it a
+        // second time for a duplicate result.
+        if (pending.Settled != null)
+        {
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create("client_result_duplicate", "requester")
+                    .Code("operation_id", pending.OperationId)
+                    .Code("correlation", pending.TransactionId)
+                    .Code("chest_id", StableChestId(pending.ContainerId))
+                    .Code("operation_phase", "owner_result")
+                    .Code("status", "settled_receipt_ack_pending")
+                    .Code("reason", "duplicate_result_after_settlement")
+                    .Integer("attempt", pending.Attempts));
+            TrySendSettledReceiptAck(pending);
+            return;
+        }
 
         List<int> reservedCounts = pending.Items.Select(item => item.Item.m_stack).ToList();
         if (!InventoryTransactionSettlement.TryCreate(
@@ -67,36 +184,74 @@ internal static partial class InventoryTransactions
                 accepted,
                 out InventoryTransactionSettlement? settlement))
         {
-            LogWarning($"client_result_rejected tx={transactionId} reason=item_count");
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create(
+                        "client_result_rejected",
+                        "requester",
+                        InventoryTransactionDiagnosticLevel.Warning)
+                    .Code("operation_id", pending.OperationId)
+                    .Code("correlation", transactionId)
+                    .Code("chest_id", StableChestId(pending.ContainerId))
+                    .Code("operation_phase", "result")
+                    .Code("status", "rejected")
+                    .Code("reason", "accepted_count_mismatch")
+                    .Integer("requested_count", CountReserved(pending.Items)));
             return;
         }
 
-        ClientPending.Remove(transactionId);
+        Player? localPlayer = Player.m_localPlayer;
+        if (!InventoryTransactionLifecyclePolicy.CanSettle(localPlayer))
+        {
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create(
+                        "client_result_deferred",
+                        "requester",
+                        InventoryTransactionDiagnosticLevel.Warning)
+                    .Code("operation_id", pending.OperationId)
+                    .Code("correlation", transactionId)
+                    .Code("chest_id", StableChestId(pending.ContainerId))
+                    .Code("operation_phase", "owner_result")
+                    .Code("status", "pending")
+                    .Code("reason", "local_player_unavailable")
+                    .Integer("attempt", pending.Attempts)
+                    .Integer("requested_count", CountReserved(pending.Items))
+                    .Integer("accepted_count", settlement!.Accepted.Sum())
+                    .Integer("refunded_count", settlement.Rejected.Sum())
+                    .Text("requested_items", DescribeReserved(pending.Items)));
+            return;
+        }
+
+        InventoryTransactionSettlement completedSettlement = settlement!;
         List<DepositResultEntry> entries = new(pending.Items.Count);
+        List<int> refunded = completedSettlement.Rejected.ToList();
+        List<int> dropped = Enumerable.Repeat(0, pending.Items.Count).ToList();
         for (int index = 0; index < pending.Items.Count; index++)
         {
             ReservedDepositItem reserved = pending.Items[index];
-            int acceptedAmount = settlement!.Accepted[index];
-            RestoreRemainder(pending.SourceInventory, reserved, settlement.Rejected[index]);
+            int acceptedAmount = completedSettlement.Accepted[index];
+            InventoryTransactionRefundPlacement placement = RestoreRemainder(
+                pending.SourceInventory,
+                reserved,
+                completedSettlement.Rejected[index],
+                pending.OperationId,
+                transactionId,
+                pending.ContainerId,
+                localPlayer!);
+            if (placement == InventoryTransactionRefundPlacement.WorldDrop)
+            {
+                dropped[index] = completedSettlement.Rejected[index];
+                refunded[index] = 0;
+            }
             entries.Add(new DepositResultEntry(reserved.Item, acceptedAmount));
             accepted[index] = acceptedAmount;
         }
-        ClientCompleted[transactionId] = pending;
-        LogDiagnostic($"client_result operation_id={pending.OperationId} tx={transactionId} status={status} attempts={pending.Attempts} items=\"{DescribeReserved(pending.Items, accepted)}\"");
-        pending.Callback(new DepositResult(status, entries));
-    }
-
-    private static void ConfirmCompletedTransactions()
-    {
-        if (ZNet.instance == null || ZNet.instance.IsServer() || ClientPending.Count != 0 || ClientCompleted.Count == 0
-            || Game.instance == null || Player.m_localPlayer == null) return;
-        try
-        {
-            Game.instance.SavePlayerProfile(setLogoutPoint: false);
-            foreach (PendingDeposit completed in ClientCompleted.Values.ToList())
-            { SendReceiptAck(completed); ClientCompleted.Remove(completed.TransactionId); LogDiagnostic($"client_saved_acknowledged tx={completed.TransactionId}"); }
-        }
-        catch (Exception exception) { LogWarning($"client_save_pending error=\"{exception.Message}\""); }
+        DepositResult result = new DepositResult(status, entries);
+        pending.Settled = new SettledDeposit(
+            result,
+            completedSettlement.Accepted,
+            refunded,
+            dropped);
+        TrySendSettledReceiptAck(pending);
     }
 
     private static void RetryClientTransactions(float now)
@@ -104,21 +259,31 @@ internal static partial class InventoryTransactions
         foreach (PendingDeposit pending in ClientPending.Values.ToList())
         {
             if (now - pending.LastSentAt < RetryInterval) continue;
-            pending.LastSentAt = now; pending.Attempts++; SendDepositRequest(pending);
-            LogDiagnostic($"client_retry operation_id={pending.OperationId} tx={pending.TransactionId} chest={pending.ContainerId} attempt={pending.Attempts} age_seconds={now - pending.CreatedAt:0.0}");
+            pending.LastSentAt = now;
+            pending.Attempts++;
+            if (pending.Settled != null)
+            {
+                TrySendSettledReceiptAck(pending);
+                continue;
+            }
+
+            SendDepositRequest(pending);
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create("client_retry", "requester")
+                    .Code("operation_id", pending.OperationId)
+                    .Code("correlation", pending.TransactionId)
+                    .Code("chest_id", StableChestId(pending.ContainerId))
+                    .Code("operation_phase", "retry")
+                    .Code("status", "sent")
+                    .Integer("attempt", pending.Attempts)
+                    .Integer("requested_count", CountReserved(pending.Items))
+                    .Text("requested_items", DescribeReserved(pending.Items))
+                    .Number("age_seconds", now - pending.CreatedAt));
         }
     }
 
     private static void SendDepositRequest(PendingDeposit pending) =>
         ZRoutedRpc.instance.InvokeRoutedRPC(DepositRequestRpc, new ZPackage(pending.RequestBytes));
-
-    private static void SendReceiptAck(PendingDeposit pending)
-    {
-        ZPackage acknowledgement = new ZPackage();
-        acknowledgement.Write(pending.TransactionId); acknowledgement.Write(pending.PayloadHash);
-        acknowledgement.Write(pending.ContainerId); acknowledgement.Write(pending.RequestBytes);
-        ZRoutedRpc.instance.InvokeRoutedRPC(ReceiptAckRpc, acknowledgement);
-    }
 
     private static bool TryGetContainerId(Container container, out ZDOID id)
     {
@@ -127,17 +292,83 @@ internal static partial class InventoryTransactions
         id = view.GetZDO().m_uid; return !id.IsNone();
     }
 
-    private static void Restore(Inventory inventory, IEnumerable<ReservedDepositItem> items)
-    { foreach (ReservedDepositItem item in items) RestoreRemainder(inventory, item, item.Item.m_stack); }
+    private static long CurrentRevision(ZDOID containerId) =>
+        ZDOMan.instance?.GetZDO(containerId)?.DataRevision ?? 0U;
 
-    private static void RestoreRemainder(Inventory inventory, ReservedDepositItem reserved, int amount)
+    private static string DescribeLocalChest(ZDOID containerId)
     {
-        if (amount <= 0) return;
-        ItemDrop.ItemData remainder = reserved.Item.Clone(); remainder.m_stack = amount;
-        if (inventory.AddItem(remainder, reserved.SourcePosition) || inventory.AddItem(remainder)) return;
-        Player? player = Player.m_localPlayer;
-        if (player) ItemDrop.DropItem(remainder, remainder.m_stack,
-            player!.transform.position + player.transform.forward + Vector3.up, player.transform.rotation);
-        LogWarning($"client_refund_dropped item={remainder.m_shared.m_name} amount={remainder.m_stack}");
+        ZDO? zdo = ZDOMan.instance?.GetZDO(containerId);
+        ZNetView? view = zdo != null ? ZNetScene.instance?.FindInstance(zdo) : null;
+        Container? container = view ? view.GetComponentInChildren<Container>() : null;
+        return container ? DescribeInventory(container.GetInventory()) : "unavailable";
     }
+
+    private static List<int> Restore(
+        Inventory inventory,
+        IEnumerable<ReservedDepositItem> items,
+        string operationId,
+        string transactionId,
+        ZDOID containerId,
+        Player player)
+    {
+        List<int> dropped = new List<int>();
+        foreach (ReservedDepositItem item in items)
+        {
+            InventoryTransactionRefundPlacement placement = RestoreRemainder(
+                inventory,
+                item,
+                item.Item.m_stack,
+                operationId,
+                transactionId,
+                containerId,
+                player);
+            dropped.Add(placement == InventoryTransactionRefundPlacement.WorldDrop
+                ? item.Item.m_stack
+                : 0);
+        }
+
+        return dropped;
+    }
+
+    private static InventoryTransactionRefundPlacement RestoreRemainder(
+        Inventory inventory,
+        ReservedDepositItem reserved,
+        int amount,
+        string operationId,
+        string transactionId,
+        ZDOID containerId,
+        Player player)
+    {
+        if (amount <= 0) return InventoryTransactionRefundPlacement.OriginalSlot;
+        ItemDrop.ItemData remainder = reserved.Item.Clone(); remainder.m_stack = amount;
+        bool restoredToOriginalSlot = inventory.AddItem(remainder, reserved.SourcePosition);
+        bool restoredElsewhere = !restoredToOriginalSlot && inventory.AddItem(remainder);
+        InventoryTransactionRefundPlacement placement = InventoryTransactionRefundPolicy.Decide(
+            restoredToOriginalSlot,
+            restoredElsewhere);
+        if (placement != InventoryTransactionRefundPlacement.WorldDrop)
+        {
+            return placement;
+        }
+
+        ItemDrop.DropItem(remainder, remainder.m_stack,
+            player.transform.position + player.transform.forward + Vector3.up, player.transform.rotation);
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create(
+                    "client_refund_dropped",
+                    "requester",
+                    InventoryTransactionDiagnosticLevel.Warning)
+                .Code("operation_id", operationId)
+                .Code("correlation", transactionId)
+                .Code("chest_id", StableChestId(containerId))
+                .Code("operation_phase", "refund")
+                .Code("status", "dropped")
+                .Code("reason", "inventory_full")
+                .Integer("dropped_count", remainder.m_stack)
+                .Text("dropped_items", DescribeSingleItem(remainder, remainder.m_stack)));
+        return placement;
+    }
+
+    private static string StatusCode(DepositStatus status) =>
+        status.ToString().ToLowerInvariant();
 }

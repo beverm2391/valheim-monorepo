@@ -20,28 +20,34 @@ internal enum OwnerResultAction
 
 internal sealed class ServerRequestDecision
 {
-    private ServerRequestDecision(ServerRequestAction action, long owner, byte[]? responseBytes)
+    private ServerRequestDecision(
+        ServerRequestAction action,
+        long owner,
+        byte[]? responseBytes,
+        bool rerouted)
     {
         Action = action;
         Owner = owner;
         ResponseBytes = responseBytes;
+        Rerouted = rerouted;
     }
 
     internal ServerRequestAction Action { get; }
     internal long Owner { get; }
     internal byte[]? ResponseBytes { get; }
+    internal bool Rerouted { get; }
 
-    internal static ServerRequestDecision Route(long owner) =>
-        new ServerRequestDecision(ServerRequestAction.Route, owner, null);
+    internal static ServerRequestDecision Route(long owner, bool rerouted) =>
+        new ServerRequestDecision(ServerRequestAction.Route, owner, null, rerouted);
 
     internal static ServerRequestDecision Replay(byte[] responseBytes) =>
-        new ServerRequestDecision(ServerRequestAction.Replay, 0L, responseBytes);
+        new ServerRequestDecision(ServerRequestAction.Replay, 0L, responseBytes, false);
 
     internal static ServerRequestDecision Conflict() =>
-        new ServerRequestDecision(ServerRequestAction.Conflict, 0L, null);
+        new ServerRequestDecision(ServerRequestAction.Conflict, 0L, null, false);
 
     internal static ServerRequestDecision OwnerUnavailable() =>
-        new ServerRequestDecision(ServerRequestAction.OwnerUnavailable, 0L, null);
+        new ServerRequestDecision(ServerRequestAction.OwnerUnavailable, 0L, null, false);
 }
 
 /// <summary>
@@ -75,18 +81,26 @@ internal sealed class ConnectedTransactionRouter<TContainer>
 
     private sealed class CompletedRoute
     {
-        internal CompletedRoute(long requester, string payloadHash, byte[] responseBytes, float completedAt)
+        internal CompletedRoute(
+            long requester,
+            string payloadHash,
+            TContainer container,
+            byte[] responseBytes,
+            float completedAt)
         {
             Requester = requester;
             PayloadHash = payloadHash;
+            Container = container;
             ResponseBytes = responseBytes;
             CompletedAt = completedAt;
         }
 
         internal long Requester { get; }
         internal string PayloadHash { get; }
+        internal TContainer Container { get; }
         internal byte[] ResponseBytes { get; }
         internal float CompletedAt { get; }
+        internal float? AcknowledgedAt { get; set; }
     }
 
     private readonly Dictionary<string, PendingRoute> pending = new Dictionary<string, PendingRoute>();
@@ -130,8 +144,10 @@ internal sealed class ConnectedTransactionRouter<TContainer>
         // Only the most recently resolved owner may settle this request. A set
         // of historical owners would let a delayed result from an old owner
         // win after the request had already been rerouted.
+        bool rerouted = pendingRoute.RoutedOwner != 0L
+            && pendingRoute.RoutedOwner != currentOwner;
         pendingRoute.RoutedOwner = currentOwner;
-        return ServerRequestDecision.Route(currentOwner);
+        return ServerRequestDecision.Route(currentOwner, rerouted);
     }
 
     internal bool TryGetPendingContainer(string transactionId, out TContainer container)
@@ -175,9 +191,38 @@ internal sealed class ConnectedTransactionRouter<TContainer>
         completed[transactionId] = new CompletedRoute(
             requester,
             payloadHash,
+            route.Container,
             responseBytes,
             completedAt);
         return OwnerResultAction.Complete;
+    }
+
+    internal bool MatchesCompleted(
+        string transactionId,
+        long requester,
+        string payloadHash,
+        TContainer container)
+    {
+        return completed.TryGetValue(transactionId, out CompletedRoute? route)
+            && route.Requester == requester
+            && route.PayloadHash == payloadHash
+            && EqualityComparer<TContainer>.Default.Equals(route.Container, container);
+    }
+
+    internal bool MarkReceiptAcknowledged(
+        string transactionId,
+        long requester,
+        string payloadHash,
+        TContainer container,
+        float acknowledgedAt)
+    {
+        if (!MatchesCompleted(transactionId, requester, payloadHash, container))
+        {
+            return false;
+        }
+
+        completed[transactionId].AcknowledgedAt = acknowledgedAt;
+        return true;
     }
 
     internal void ExpireCompleted(float olderThan)
@@ -185,7 +230,13 @@ internal sealed class ConnectedTransactionRouter<TContainer>
         List<string> expired = new List<string>();
         foreach (KeyValuePair<string, CompletedRoute> pair in completed)
         {
-            if (pair.Value.CompletedAt < olderThan)
+            // An unacknowledged owner receipt is the connected retry
+            // authority. Expiring it would strand an already-settled
+            // requester and leak the receipt forever. Once acknowledged, keep
+            // the correlation for the normal replay window in case the client
+            // confirmation itself is lost.
+            if (pair.Value.AcknowledgedAt.HasValue
+                && pair.Value.AcknowledgedAt.Value < olderThan)
             {
                 expired.Add(pair.Key);
             }

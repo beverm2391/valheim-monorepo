@@ -48,7 +48,9 @@ internal static class InventoryTransactionRuntime
             return;
         }
 
-        InventoryTransactions.Initialize(Plugin.Log, Plugin.PluginVersion);
+        InventoryTransactions.Initialize(
+            InventoryTransactionDiagnosticSink.Instance,
+            Plugin.PluginVersion);
         initialized = true;
     }
 }

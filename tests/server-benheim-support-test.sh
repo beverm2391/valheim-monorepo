@@ -13,6 +13,8 @@ client="$root/mods/benheim-qol/src/Inventory/PutAwayLeaseClient.cs"
 quick_stack="$root/mods/benheim-qol/src/Inventory/QuickStack.cs"
 
 grep -Fq 'PluginName = "Benheim Server Support"' "$plugin"
+grep -Fq 'harmony.PatchAll();' "$plugin"
+grep -Fq 'InventoryTransactionRuntime.Shutdown();' "$plugin"
 grep -Fq '[HarmonyPatch(typeof(ZNet), "OnNewConnection")]' "$server"
 grep -Fq '[HarmonyPatch(typeof(ZNet), nameof(ZNet.Disconnect), typeof(ZNetPeer))]' "$server"
 grep -Fq 'peer.m_rpc.Register<string>(' "$server"
@@ -43,7 +45,13 @@ if rg -n 'Inventory\.StackAll|Container|ClaimOwnership|ForceSendZDO|SetOwner|tra
   exit 1
 fi
 grep -Fq 'shared/benheim-inventory-protocol/*.cs' "$project"
+grep -Fq '[HarmonyPatch(typeof(ZNet), "Awake")]' "$runtime"
+grep -Fq '[HarmonyPatch(typeof(ZNet), "Update")]' "$runtime"
+grep -Fq '[HarmonyPatch(typeof(ZNet), "OnDestroy")]' "$runtime"
+grep -Fq 'InventoryTransactions.Initialize(' "$runtime"
 grep -Fq 'InventoryTransactions.Update();' "$runtime"
+grep -Fq 'InventoryTransactions.Shutdown();' "$runtime"
+grep -Fq 'new InventoryTransactionDiagnosticSink(Plugin.Log)' "$runtime"
 grep -Fq 'long owner = ResolveOwner(containerId);' "$protocol/InventoryTransactionServer.cs"
 grep -Fq 'view.IsOwner()' "$protocol/InventoryTransactionOwner.cs"
 grep -Fq 'target.AddItem(item.Clone())' "$protocol/InventoryTransactionOwner.cs"
@@ -55,5 +63,6 @@ fi
 dotnet run --project "$mod/tests/put-away-lease/PutAwayLeaseTests.csproj"
 dotnet run --project "$root/tests/put-away-owner-routing/PutAwayOwnerRoutingTests.csproj"
 dotnet run --project "$root/tests/inventory-transaction-receipts/InventoryTransactionReceiptTests.csproj"
+dotnet run --project "$root/tests/inventory-transaction-diagnostics/InventoryTransactionDiagnosticTests.csproj"
 dotnet build "$project" --configuration Release
 printf 'Benheim server-support Put Away lease checks passed\n'

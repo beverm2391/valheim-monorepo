@@ -82,13 +82,25 @@ the same durability contract and pass the stale-payload regression proof.
   retries, stale-payload controls, and their tests. The current adaptation
   passes automated checks but remains in development until it is deployed and
   the authorized multiplayer gameplay test passes.
-- During normal gameplay, each completed transfer must move each accepted item
-  once and leave each rejected remainder in the player's inventory. Every
-  connected player must see the same chest state, including after chest
-  ownership changes.
+- Each completed transfer moves each accepted item once. Put Away returns each
+  rejected item to the player's inventory. As an emergency fallback only, if
+  the inventory cannot accept a rejected remainder during settlement, Put Away
+  drops that exact remainder nearby and shows `Put Away refund dropped nearby.
+  Pick it up.` Every connected player must see the same chest state, including
+  after chest ownership changes.
+- Put Away reports success only after the requester has settled every accepted,
+  refunded, or emergency-dropped item from a correlated owner result and the
+  current owner has acknowledged receipt removal. Put Away does not force or
+  gate on a character save. Valheim's native character and world save
+  lifecycle remains unchanged.
+- Put Away emits complete typed transaction evidence. The
+  [protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md) owns the
+  event lifecycle, correlation, and fields.
 - Crash or reconnect recovery during an in-flight reservation is unsupported.
 - The transfer must work with either player as the requester or current chest
   owner, and a completed transfer must remain visible after ownership changes.
+- The authorized multiplayer gameplay test must prove exact-once transfer and
+  peer convergence through a chest ownership change.
 - Valheim's **Place stacks** button and **Hold to stack** action must keep
   manually pocketed, equipped, and hotbar items in the player's inventory.
   Manual item moves and **Take all** must remain unchanged.

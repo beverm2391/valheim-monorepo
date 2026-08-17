@@ -25,6 +25,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        InventoryTransactionRuntime.Shutdown();
         PutAwayLeaseServer.Reset();
         harmony?.UnpatchSelf();
         ServerDiagnostics.End();

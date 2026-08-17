@@ -21,8 +21,12 @@ fresh.
 - While the requester stays connected, a correlated retry cannot apply that
   deposit twice.
 - The requester removes the reservation before the owner writes.
-- The accepted result restores every rejected item and no accepted item.
-- Chest contents plus requester contents conserve the exact item counts.
+- The requester returns each rejected item to its inventory and does not return
+  accepted items. As an emergency fallback only, if the requester inventory
+  cannot accept a rejected item during settlement, Put Away drops that exact
+  item nearby instead of discarding it.
+- Chest contents, requester contents, and any explicit refund drop conserve the
+  exact item counts.
 - Connected peers converge on the owner's committed chest contents.
 - An ambiguous response remains pending and correlated while the session stays
   connected. It never becomes an uncorrelated local retry.
@@ -40,11 +44,15 @@ fresh.
    item match, chest use, and live capacity.
 5. The owner applies accepted items to its inventory, records a receipt on the
    chest ZDO, and returns accepted counts through the server.
-6. The requester accepts only a matching transaction ID and payload hash. It
-   restores rejected remainders, saves the character, and acknowledges the
-   receipt.
-7. The owner removes the receipt after the acknowledgement. The lease is
-   released when the Put Away batch finishes.
+6. The server accepts a result only from the latest owner it resolved. The
+   requester then requires a matching transaction ID and payload hash. It
+   settles every accepted, refunded, or emergency-dropped item and sends the
+   receipt acknowledgement. If sending the acknowledgement fails while
+   connected, the requester retries only that acknowledgement and does not
+   repeat settlement.
+7. The current owner removes the receipt and confirms that removal through the
+   server. Only then does the requester report success or continue the batch.
+   The lease is released when the Put Away batch finishes.
 
 ## Traceability
 
@@ -52,10 +60,11 @@ fresh.
 | --- | --- | --- | --- |
 | Global server lease | At most one Benheim Put Away batch enters scanning and mutation | Two requesters mutate replicated chest snapshots concurrently | `Put Away lease exclusion checks passed` |
 | Immutable transaction ID plus payload hash | Results and retries attach only to their request | A stale or conflicting result refunds or commits the wrong reservation | `Put Away owner-authoritative stale-payload integration checks passed` |
-| Server routes to the current owner; requester accepts a result only from the latest owner the server resolved | Only authoritative contents are read and changed | A requester overwrites a newer chest with its stale cache, or a delayed old-owner result settles after rerouting | `Put Away owner-authoritative stale-payload integration checks passed` |
+| Server routes to the current owner and accepts only the latest resolved owner's result; requester validates the transaction ID and payload hash | Only authoritative contents are read and changed | A requester overwrites a newer chest with its stale cache, or a delayed old-owner result settles after rerouting | `Put Away owner-authoritative stale-payload integration checks passed` |
 | Owner receipt and server completion cache | A retry applies at most once across routing and ownership changes | Lost responses duplicate accepted items | receipt codec test plus the connected-retry integration case |
-| Accepted counts and requester remainder restoration | Player plus chest item counts are conserved | Partial capacity loses rejected items or duplicates accepted items | stale-payload and partial-capacity integration cases |
-| Character save before receipt acknowledgement | A completed connected transfer persists the source removal before its owner receipt is cleared | Clearing the receipt first leaves a larger duplicate gap | source ordering guard and multiplayer interruption test |
+| Accepted counts and requester remainder restoration | Player, chest, and explicit refund-drop item counts are conserved | Partial capacity loses rejected items or duplicates accepted items | stale-payload, partial-capacity, and filled-inventory refund cases |
+| Exact settlement and current-owner receipt removal before success | Completion reflects every accepted, refunded, or emergency-dropped item and leaves no connected receipt leak | Early success hides an unsettled remainder or repeated ownership races exhaust receipt capacity | source ordering guard, filled-inventory refund case, and receipt-acknowledgement retry case |
+| Complete typed transaction events | Requester, router, and owner decisions can be correlated across peers with the exact chest state that informed them | A runtime failure appears successful or cannot be distinguished from stale state | `inventory transaction typed diagnostic schema checks passed` |
 
 Use these invariant names in tests and reviews. A test must include the unsafe
 control when the failure can otherwise pass under both implementations.
@@ -111,8 +120,47 @@ It still needs the authorized multiplayer test before it can be called fixed:
 - The owner and both clients show base + A + B with exact conservation.
 - Reverse requester and chest-owner roles, test partial capacity, and delay one
   response to exercise the connected correlated retry.
+- Transfer ownership after the owner applies and records its receipt but before
+  the server accepts the result. Delay or lose that result, retry while still
+  connected, and prove exact-once application plus peer convergence.
+- After exact settlement, make one receipt-acknowledgement send fail while
+  still connected. Also move chest ownership so the old owner rejects one
+  acknowledgement. The requester retries only the acknowledgement, does not
+  settle items again, and finishes after the current owner confirms receipt
+  removal.
 
-No source test proves live ZDO replication. Private gameplay logs remain local.
+No source test proves live ZDO replication. Captured gameplay logs are test
+evidence and are not committed.
+
+## Diagnostic Lifecycle
+
+The client emits `InventoryTransaction/put_away_batch_started` with
+`operation_phase=start` and `status=running`. It emits
+`InventoryTransaction/put_away_batch_finished` with
+`operation_phase=terminal`, `status=completed|cancelled`, a reason, and the same
+`operation_id`. These are the canonical batch lifecycle events.
+
+Lease request, result, entry, and release events remain in the `Inventory`
+domain with `lease_request`, `lease_result`, `mutation_allowed`, and
+`lease_release` phases. They are not batch terminals. Each requester deposit
+uses the batch `operation_id` and a transaction `correlation`. The server router
+and chest owner use that same correlation because they do not receive the
+client-only batch ID.
+
+Transaction events preserve the complete evidence deliberately constructed by
+each protocol role, including chest and peer IDs, revisions, contents, item
+counts, positions, attempts, status, and reasons. Client-hosted roles use the
+existing readable log, local NDJSON, and direct-client diagnostic path. The
+dedicated server writes the same typed fields to readable diagnostics.
+
+`client_result` means the server forwarded a result from the latest owner it
+resolved. The requester then completes exact settlement and sends the receipt
+acknowledgement. If sending the acknowledgement fails while connected, it
+retries only that acknowledgement and does not repeat settlement. Final Put
+Away callbacks and terminal batch events occur only after exact settlement and
+the current owner's receipt-removal acknowledgement returns through the server.
+The `owner_receipt_acknowledged` event proves receipt removal. Put Away does not
+force, retry, or gate on a character save and makes no disk-persistence claim.
 
 ## Supported Failures and Non-Goals
 

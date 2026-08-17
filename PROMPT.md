@@ -262,23 +262,17 @@ rotate its token if an archive leaves Ben, Johnny, and Ozi or before public rele
 ## Client mod rules
 
 - Keep one Benheim client DLL.
-- Put Away must use `Container.StackAll()` so Valheim's current chest owner
-  grants ownership before any transfer. Never write a non-owned local chest or
-  call `ClaimOwnership()` as a shortcut.
+- Before changing Put Away, follow the nested [Inventory development
+  guide](mods/benheim-qol/src/Inventory/PROMPT.md). Its shared protocol owns the
+  authority, conservation, correlation, and convergence rules. Do not replace
+  that protocol with requester-local `Container.StackAll()` or another cached
+  chest write.
 - Apply protected-item filtering whenever `Inventory.StackAll()` moves items
   out of the local player's inventory. The filter applies to Valheim's **Place
-  stacks**, **Hold to stack**, and Put Away actions. All three actions must keep
-  manually pocketed, equipped, and hotbar items in the player's inventory.
-  Manual item moves and **Take all** remain unchanged.
-- Count Put Away results only while `Inventory.StackAll()` handles the current
-  chest in the active batch. Use only Valheim's native `Container.StackAll()`
-  flow for the ownership request and response. Do not record whether **Place
-  stacks**, **Hold to stack**, or Put Away started the transfer. Any
-  `Inventory.StackAll()` call for the current chest can complete the Put Away
-  step while protected-item filtering is active.
-- Put Away must use Valheim's normal inventory persistence and interruption
-  behavior. Do not add forced character saves, transfer journals, transaction
-  receipts, automatic retries, or custom recovery.
+  stacks** and **Hold to stack** actions. Put Away filters the same protected
+  items before its owner-routed reservation. All three actions must keep
+  manually pocketed, equipped, and hotbar items protected. Manual item moves
+  and **Take all** remain unchanged.
 - Defer custom persistent world objects until a specific feature needs them.
   That feature design must cover their effects on the world, recovery,
   migration, and removal. Add custom item data only when the product design

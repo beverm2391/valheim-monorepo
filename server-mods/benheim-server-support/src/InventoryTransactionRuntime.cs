@@ -31,6 +31,11 @@ internal static class InventoryTransactionRuntime
     [HarmonyPrefix]
     private static void BeforeNetworkDestroy()
     {
+        Shutdown();
+    }
+
+    internal static void Shutdown()
+    {
         if (!initialized)
         {
             return;
@@ -47,7 +52,9 @@ internal static class InventoryTransactionRuntime
             return;
         }
 
-        InventoryTransactions.Initialize(Plugin.Log, Plugin.PluginVersion);
+        InventoryTransactions.Initialize(
+            new InventoryTransactionDiagnosticSink(Plugin.Log),
+            Plugin.PluginVersion);
         initialized = true;
     }
 }

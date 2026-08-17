@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using BepInEx.Logging;
 using UnityEngine;
 
 namespace BenheimInventoryProtocol;
@@ -19,22 +19,49 @@ internal static partial class InventoryTransactions
     internal const string DepositResultRpc = "Benheim.Inventory.v3.DepositResult";
     internal const string ReceiptAckRpc = "Benheim.Inventory.v3.ReceiptAck";
     internal const string OwnerReceiptAckRpc = "Benheim.Inventory.v3.OwnerReceiptAck";
+    internal const string OwnerReceiptAckResultRpc = "Benheim.Inventory.v3.OwnerReceiptAckResult";
+    internal const string ReceiptAckResultRpc = "Benheim.Inventory.v3.ReceiptAckResult";
 
     private static readonly Dictionary<string, PendingDeposit> ClientPending = new();
-    private static readonly Dictionary<string, PendingDeposit> ClientCompleted = new();
     private static readonly ConnectedTransactionRouter<ZDOID> ServerRouter = new();
-    private static ManualLogSource? log;
+    private static IInventoryTransactionDiagnosticSink? diagnosticSink;
     private static ZRoutedRpc? registeredRpc;
 
-    internal static void Initialize(ManualLogSource logger, string productVersion)
-    { log = logger; LogDiagnostic($"initialized protocol={ProtocolVersion} product={Safe(productVersion)}"); }
+    internal static void Initialize(
+        IInventoryTransactionDiagnosticSink sink,
+        string productVersion)
+    {
+        diagnosticSink = sink;
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create("initialized", HostRole())
+                .Integer("protocol_version", ProtocolVersion)
+                .Code("product_version", productVersion));
+    }
 
     internal static void Shutdown()
     {
         if (ClientPending.Count > 0)
-            LogWarning($"shutdown_reserved count={ClientPending.Count} recovery=unsupported action=reconnect_and_inspect_before_retry");
+        {
+            foreach (PendingDeposit pending in ClientPending.Values)
+            {
+                Emit(
+                    InventoryTransactionDiagnosticEvent.Create(
+                            "shutdown_reserved",
+                            "requester",
+                            InventoryTransactionDiagnosticLevel.Warning)
+                        .Code("operation_id", pending.OperationId)
+                        .Code("correlation", pending.TransactionId)
+                        .Code("operation_phase", "unsupported_shutdown")
+                        .Code("status", pending.Settled == null
+                            ? "reservation_pending"
+                            : "settled_receipt_ack_pending")
+                        .Code("reason", "reconnect_recovery_unsupported")
+                        .Integer("pending_count", ClientPending.Count));
+            }
+        }
         registeredRpc = null;
-        ClientPending.Clear(); ClientCompleted.Clear(); ServerRouter.Clear();
+        ClientPending.Clear(); ServerRouter.Clear();
+        diagnosticSink = null;
     }
 
     internal static void Update()
@@ -43,7 +70,6 @@ internal static partial class InventoryTransactions
         EnsureRegistered();
         float now = Time.realtimeSinceStartup;
         RetryClientTransactions(now);
-        ConfirmCompletedTransactions();
         if (ZNet.instance.IsServer()) ExpireServerResults(now);
     }
 
@@ -63,16 +89,97 @@ internal static partial class InventoryTransactions
         : ZNet.instance.GetServerPeer()?.m_uid ?? 0L;
 
     internal static bool IsExpectedServer(long sender) => sender != 0L && sender == GetServerPeerId();
-    internal static void LogDiagnostic(string message) => log?.LogInfo($"[diag][InventoryTransaction] {message}");
-    internal static void LogWarning(string message) => log?.LogWarning($"[diag][InventoryTransaction] {message}");
+    internal static void Emit(InventoryTransactionDiagnosticEvent diagnosticEvent) =>
+        diagnosticSink?.Emit(diagnosticEvent);
 
-    internal static string DescribeReserved(IReadOnlyList<ReservedDepositItem> items, IReadOnlyList<int>? accepted = null) =>
-        string.Join(",", items.Select((item, index) => accepted == null
-            ? $"{SafeItemName(item.Item)}:{item.Item.m_stack}"
-            : $"{SafeItemName(item.Item)}:{item.Item.m_stack}->{accepted[index]}"));
+    internal static int CountReserved(IReadOnlyList<ReservedDepositItem> items) =>
+        items.Sum(item => item.Item.m_stack);
 
-    internal static string DescribeRequested(IReadOnlyList<RequestedDepositItem> items, IReadOnlyList<int> accepted) =>
-        string.Join(",", items.Select((item, index) => $"{SafeItemName(item.Item)}:{item.Item.m_stack}->{accepted[index]}"));
+    internal static int CountRequested(IReadOnlyList<RequestedDepositItem> items) =>
+        items.Sum(item => item.Item.m_stack);
+
+    internal static int CountAccepted(IReadOnlyList<int> accepted) => accepted.Sum();
+
+    internal static bool HasUnsettledClientDeposit =>
+        ClientPending.Count > 0;
+
+    internal static string DescribeReserved(IReadOnlyList<ReservedDepositItem> items) =>
+        DescribeItemCounts(items.Select(item => (ItemName(item.Item), item.Item.m_stack)));
+
+    internal static string DescribeRequested(IReadOnlyList<RequestedDepositItem> items) =>
+        DescribeItemCounts(items.Select(item => (ItemName(item.Item), item.Item.m_stack)));
+
+    internal static string DescribeAccepted(
+        IReadOnlyList<RequestedDepositItem> items,
+        IReadOnlyList<int> accepted) =>
+        DescribeItemCounts(items.Select((item, index) =>
+            (ItemName(item.Item), index < accepted.Count ? accepted[index] : 0)));
+
+    internal static string DescribeAccepted(
+        IReadOnlyList<ReservedDepositItem> items,
+        IReadOnlyList<int> accepted) =>
+        DescribeItemCounts(items.Select((item, index) =>
+            (ItemName(item.Item), index < accepted.Count ? accepted[index] : 0)));
+
+    internal static string DescribeResultEntries(IReadOnlyList<DepositResultEntry> entries) =>
+        DescribeItemCounts(entries.Select(entry =>
+            (ItemName(entry.Item), entry.Accepted)));
+
+    internal static string DescribeSingleItem(ItemDrop.ItemData item, int count) =>
+        DescribeItemCounts(new[] { (ItemName(item), count) });
+
+    internal static string DescribeRefunded(
+        IReadOnlyList<ReservedDepositItem> items,
+        IReadOnlyList<int> rejected) =>
+        DescribeItemCounts(items.Select((item, index) =>
+            (ItemName(item.Item), index < rejected.Count ? rejected[index] : 0)));
+
+    internal static string DescribeInventory(Inventory inventory) =>
+        DescribeItemCounts(inventory.GetAllItems().Select(item =>
+            (ItemName(item), item.m_stack)));
+
+    internal static string StableChestId(ZDOID containerId) => containerId.ToString();
+
+    private static string DescribeItemCounts(IEnumerable<(string Name, int Count)> items)
+    {
+        SortedDictionary<string, int> totals = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        foreach ((string name, int count) in items)
+        {
+            totals.TryGetValue(name, out int total);
+            totals[name] = total + count;
+        }
+
+        return string.Join(",", totals.Select(pair => $"{pair.Key}={pair.Value}"));
+    }
+
+    private static string ItemName(ItemDrop.ItemData item) =>
+        item.m_dropPrefab != null && !string.IsNullOrEmpty(item.m_dropPrefab.name)
+            ? item.m_dropPrefab.name
+            : item.m_shared.m_name;
+
+    internal static void BatchStarted(string operationId)
+    {
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create("put_away_batch_started", "requester")
+                .Code("operation_id", operationId)
+                .Code("operation_phase", "start")
+                .Code("status", "running"));
+    }
+
+    internal static void BatchFinished(
+        string operationId,
+        string status,
+        string reason,
+        int acceptedCount)
+    {
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create("put_away_batch_finished", "requester")
+                .Code("operation_id", operationId)
+                .Code("operation_phase", "terminal")
+                .Code("status", status)
+                .Code("reason", reason)
+                .Integer("accepted_count", acceptedCount));
+    }
 
     private static void EnsureRegistered()
     {
@@ -84,9 +191,16 @@ internal static partial class InventoryTransactions
         registeredRpc.Register<ZPackage>(DepositResultRpc, RpcDepositResult);
         registeredRpc.Register<ZPackage>(ReceiptAckRpc, RpcReceiptAck);
         registeredRpc.Register<ZPackage>(OwnerReceiptAckRpc, InventoryTransactionOwner.HandleReceiptAck);
-        LogDiagnostic($"rpc_registered protocol={ProtocolVersion} server={ZNet.instance.IsServer()}");
+        registeredRpc.Register<ZPackage>(OwnerReceiptAckResultRpc, RpcOwnerReceiptAckResult);
+        registeredRpc.Register<ZPackage>(ReceiptAckResultRpc, RpcReceiptAckResult);
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create("rpc_registered", HostRole())
+                .Integer("protocol_version", ProtocolVersion)
+                .Boolean("server", ZNet.instance.IsServer()));
     }
 
-    private static string SafeItemName(ItemDrop.ItemData item) => Safe(item.m_shared.m_name);
-    private static string Safe(string value) => (value ?? "unknown").Replace(' ', '_').Replace('"', '\'');
+    private static string HostRole() =>
+        ZNet.instance != null && ZNet.instance.IsServer()
+            ? "server_router"
+            : "client_peer";
 }
