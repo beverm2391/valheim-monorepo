@@ -7,7 +7,7 @@ surface.
 ## In Development
 
 The first candidate exposes exactly three spawn requests to a connected native
-administrator using Benheim `0.1.62`. `bh spawn boar 0` creates one native
+administrator using Benheim `0.1.63`. `bh spawn boar 0` creates one native
 unstarred Boar as a control. `bh spawn boar 1` creates one native one-star
 Boar. `bh spawn boar 2` creates one native two-star Boar. `bh help` lists
 `bh spawn boar 0|1|2` and explains that `0` is the unstarred control, `1` is one
@@ -22,8 +22,8 @@ world-key, kill, or general command execution. It does not enable remote
 developer commands or create another permission system. The spawned Boar keeps
 its native prefab identity and native saved level.
 
-Using this candidate requires Benheim `0.1.62` on the requesting player and
-Benheim Test Commands `0.1.0` on the dedicated server. The server component
+Using this candidate requires Benheim `0.1.63` on the requesting player and
+Benheim Test Commands `0.1.1` on the dedicated server. The server component
 also derives the same physical profile while it owns the spawned Boar. Other
 connected players need compatible Benheim behavior to derive that profile if
 they later own the creature. Server component `0.1.0` is deployed and its exact

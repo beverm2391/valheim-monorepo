@@ -53,11 +53,11 @@ expected_checksum=8f452cc68d839b7a843676c89b479e357c2b932db8f0f02106de5c5cfde451
 actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 [[ "$actual_checksum" == "$expected_checksum" ]] || fail "first-party plugin checksum changed"
 assert_contains "installer pins the first-party plugin checksum" "$expected_checksum" "$installer"
-test_commands_checksum=c7630858ebba095709cdcbaacdb96c48f531afc8c1e81dfdbabc3e94cf0c0fe4
+test_commands_checksum=946c94c5144f624e05f39d29fea3c96d624f65307c0f876d292e3681a9e4b0c3
 actual_test_commands_checksum="$(shasum -a 256 "$test_commands_plugin" | awk '{print $1}')"
 [[ "$actual_test_commands_checksum" == "$test_commands_checksum" ]] || fail "test-command plugin checksum changed"
 assert_contains "installer pins the test-command plugin checksum" "$test_commands_checksum" "$installer"
-server_support_checksum=77a3a3f21e761b0709eefd74e0fb50d9c04b576d3e1c3cb9438994a54a6ce0df
+server_support_checksum=b397aa641a284de739678938263054814507a6111f55584d8b93ee221c7d3f3e
 actual_server_support_checksum="$(shasum -a 256 "$server_support_plugin" | awk '{print $1}')"
 [[ "$actual_server_support_checksum" == "$server_support_checksum" ]] || fail "server-support plugin checksum changed"
 assert_contains "installer pins the server-support plugin checksum" "$server_support_checksum" "$installer"
@@ -86,8 +86,8 @@ if strings "$plugin" | grep -Fiq "Jotunn"; then
   fail "plugin binary depends on Jotunn"
 fi
 assert_contains "plugin source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$plugin_source"
-assert_contains "test-command source pins version 0.1.0" 'PluginVersion = "0.1.0"' "$test_commands_source"
-assert_contains "server-support source pins version 0.1.0" 'PluginVersion = "0.1.0"' "$server_support_source"
+assert_contains "test-command source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$test_commands_source"
+assert_contains "server-support source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$server_support_source"
 assert_contains \
   "plugin logs the exact post-PatchAll message" \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
@@ -159,8 +159,8 @@ printf '%s\n' \
   'Load world: first (first)' \
   'Game server connected' \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
-  'Benheim Test Commands 0.1.0 loaded with direct peer RPC authorization.' \
-  'Benheim Server Support 0.1.0 loaded with the Put Away lease coordinator.' \
+  'Benheim Test Commands 0.1.1 loaded with direct peer RPC authorization.' \
+  'Benheim Server Support 0.1.1 loaded with the Put Away lease coordinator.' \
   > "$tmp_dir/journal.log"
 printf '%s\n' 0 > "$tmp_dir/journal.count"
 MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
@@ -191,11 +191,11 @@ assert_contains \
   "$verifier"
 assert_contains \
   "verifier requires Test Commands' exact load message" \
-  'Benheim Test Commands 0.1.0 loaded with direct peer RPC authorization.' \
+  'Benheim Test Commands 0.1.1 loaded with direct peer RPC authorization.' \
   "$verifier"
 assert_contains \
   "verifier requires Server Support's exact load message" \
-  'Benheim Server Support 0.1.0 loaded with the Put Away lease coordinator.' \
+  'Benheim Server Support 0.1.1 loaded with the Put Away lease coordinator.' \
   "$verifier"
 assert_contains "verifier requires the configured world" 'Load world: $world ($world)' "$verifier"
 assert_contains "verifier requires normal readiness" 'Game server connected' "$verifier"

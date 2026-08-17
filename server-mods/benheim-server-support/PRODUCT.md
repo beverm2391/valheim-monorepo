@@ -17,7 +17,7 @@ simultaneous Put Away before the losing client scans or moves items.
 
 ## In Development
 
-The next candidate implements the shared owner-authoritative Put Away protocol.
+Candidate `0.1.1` implements the shared owner-authoritative Put Away protocol.
 The server correlates and routes each immutable deposit request to the chest's
 current owner. That owner validates and changes the authoritative inventory.
 The requester restores rejected remainders from the accepted result. The server

@@ -182,6 +182,10 @@ limits.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
+Benheim `0.1.63` is the current private-test candidate. It combines the
+owner-authoritative Put Away protocol, collider inspection, the private typed
+diagnostics path, and the other changes that remain unproven below.
+
 Private-test diagnostic sharing still needs one live ingest and query pass.
 The first configured run tells the player what is shared. `Share Diagnostics`
 in `Left Shift + B` persists the player's choice and stops remote forwarding

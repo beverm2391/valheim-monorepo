@@ -39,7 +39,7 @@ promise.
 | Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use a version compatible with those used by every other member. |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Benheim Test Commands | Runs a fixed native-admin command allowlist for selected Benheim gameplay experiments. | Client command and server component | Only the requesting native admin needs the matching client command. The server component is required. Every peer that can own the spawned test creature still needs compatible Benheim gameplay behavior. |
-| Benheim Server Support | Coordinates production actions that require one dedicated-server authority; its first rule serializes Put Away. | Server | Required for Put Away in Benheim 0.1.62. The dedicated server must run Benheim Server Support 0.1.0. |
+| Benheim Server Support | Coordinates production actions that require one dedicated-server authority; its first rule serializes Put Away. | Server | Required for Put Away with the Benheim `0.1.63` private-test candidate. The dedicated server must run Benheim Server Support `0.1.1`. |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
