@@ -40,9 +40,19 @@ internal static class KillAttributionServer
         peer.m_rpc.Register(
             KillAttributionProtocol.ChainResetRpc,
             rpc => OnChainReset(peer, rpc));
-        peer.m_rpc.Invoke(
-            KillAttributionProtocol.CapabilityRpc,
-            KillAttributionProtocol.Version);
+        if (!KillAttributionRpcAttempt.TrySend(
+                peer.m_rpc.IsConnected(),
+                () => peer.m_rpc.Invoke(
+                    KillAttributionProtocol.CapabilityRpc,
+                    KillAttributionProtocol.Version),
+                out string failure))
+        {
+            EmitRejected(
+                failure,
+                string.Empty,
+                ZDOID.None,
+                peer.m_characterID);
+        }
     }
 
     [HarmonyPatch(typeof(ZNet), nameof(ZNet.Disconnect), typeof(ZNetPeer))]
@@ -53,7 +63,6 @@ internal static class KillAttributionServer
         {
             State.RemoveKiller(peer.m_characterID);
             Chains.RemoveKiller(peer.m_characterID);
-            KillChainDeliveryRuntime.RemoveKiller(peer.m_characterID);
         }
     }
 
@@ -72,7 +81,6 @@ internal static class KillAttributionServer
         }
 
         double serverTimeSeconds = ZNet.instance.GetTimeSeconds();
-        KillChainDeliveryRuntime.Update(serverTimeSeconds, Chains);
         ExpireDueChains(serverTimeSeconds);
     }
 
@@ -81,10 +89,7 @@ internal static class KillAttributionServer
         Chains.CollectExpired(serverTimeSeconds, ExpiredChains);
         for (int index = 0; index < ExpiredChains.Count; index++)
         {
-            KillChainDeliveryRuntime.Deliver(
-                ExpiredChains[index],
-                "inactivity",
-                Chains);
+            TrySendTransition(ExpiredChains[index], "inactivity");
         }
     }
 
@@ -93,7 +98,6 @@ internal static class KillAttributionServer
         State.Reset();
         Chains.Reset();
         ExpiredChains.Clear();
-        KillChainDeliveryRuntime.Reset();
     }
 
     internal static void ConfirmServerOwned(LethalHitObservation observation)
@@ -167,13 +171,18 @@ internal static class KillAttributionServer
             return;
         }
 
-        double serverTimeSeconds = ZNet.instance.GetTimeSeconds();
-        if (Chains.ResetKiller(
-                reporter.m_characterID,
-                serverTimeSeconds,
-                out KillChainTransition<ZDOID> transition))
+        Chains.RemoveKiller(reporter.m_characterID);
+        if (!KillAttributionRpcAttempt.TrySend(
+                reporter.m_rpc.IsConnected(),
+                () => reporter.m_rpc.Invoke(
+                    KillAttributionProtocol.ChainResetAcknowledgedRpc),
+                out string failure))
         {
-            KillChainDeliveryRuntime.Deliver(reporter, transition, "death", Chains);
+            EmitRejected(
+                failure,
+                string.Empty,
+                ZDOID.None,
+                reporter.m_characterID);
         }
     }
 
@@ -246,17 +255,16 @@ internal static class KillAttributionServer
             sequence,
             serverTimeSeconds);
 
-        try
-        {
-            killerPeer.m_rpc.Invoke(
+        if (!KillAttributionRpcAttempt.TrySend(
+                killerPeer.m_rpc.IsConnected(),
+                () => killerPeer.m_rpc.Invoke(
                 KillAttributionProtocol.ConfirmedRpc,
-                KillAttributionProtocol.BuildConfirmation(confirmation));
-        }
-        catch (Exception exception)
+                KillAttributionProtocol.BuildConfirmation(confirmation)),
+                out string deliveryFailure))
         {
             State.ReleaseFailedDelivery(report.VictimId);
             EmitRejected(
-                $"delivery_failed_{exception.GetType().Name}",
+                deliveryFailure,
                 report.OperationId,
                 report.VictimId,
                 report.KillerId);
@@ -295,12 +303,72 @@ internal static class KillAttributionServer
                 report.KillerId,
                 sequence,
                 serverTimeSeconds);
-            KillChainDeliveryRuntime.Deliver(
-                killerPeer,
-                transition,
-                "qualifying_kill",
-                Chains);
+            TrySendTransition(killerPeer, transition, "qualifying_kill");
         }
+    }
+
+    private static void TrySendTransition(
+        KillChainTransition<ZDOID> transition,
+        string reason)
+    {
+        ZNetPeer? killerPeer = FindReadyPeer(transition.Killer);
+        if (killerPeer == null)
+        {
+            EmitTransition(transition, reason, "not_delivered", "killer_not_connected");
+            return;
+        }
+
+        TrySendTransition(killerPeer, transition, reason);
+    }
+
+    private static void TrySendTransition(
+        ZNetPeer killerPeer,
+        KillChainTransition<ZDOID> transition,
+        string reason)
+    {
+        if (KillAttributionRpcAttempt.TrySend(
+                killerPeer.m_rpc.IsConnected(),
+                () => killerPeer.m_rpc.Invoke(
+                    KillAttributionProtocol.ChainTransitionRpc,
+                    KillAttributionProtocol.BuildChainTransition(
+                        new KillChainTransitionMessage(
+                            transition.Killer,
+                            transition.Kind,
+                            transition.Tier,
+                            transition.KillCount,
+                            transition.ServerSequence,
+                            transition.ServerTimeSeconds,
+                            transition.ExpiresAtServerTimeSeconds))),
+                out string failure))
+        {
+            EmitTransition(transition, reason, "delivered", string.Empty);
+            return;
+        }
+
+        EmitTransition(transition, reason, "not_delivered", failure);
+    }
+
+    private static void EmitTransition(
+        KillChainTransition<ZDOID> transition,
+        string reason,
+        string status,
+        string failure)
+    {
+        ServerDiagnostics.Emit(
+            DiagnosticEvent.Create("PlayerCombat", "kill_chain_transition")
+                .String("operation_phase", "chain_transition")
+                .String("status", status)
+                .String("reason", reason)
+                .String("failure", failure)
+                .String("killer_id", transition.Killer.ToString())
+                .String("transition", transition.Kind.ToString())
+                .String("tier", transition.Tier.ToString())
+                .Integer("kill_count", transition.KillCount)
+                .Integer("server_sequence", transition.ServerSequence)
+                .Number("server_time_seconds", transition.ServerTimeSeconds)
+                .Number(
+                    "expires_at_server_time_seconds",
+                    transition.ExpiresAtServerTimeSeconds));
     }
 
     internal static ZNetPeer? FindReadyPeer(ZDOID characterId)

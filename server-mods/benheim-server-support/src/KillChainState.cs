@@ -79,7 +79,6 @@ internal sealed class KillChainState<TKiller>
                     results.Add(
                         CreateTerminalTransition(
                             pair.Key,
-                            KillChainTransitionKind.Expired,
                             pair.Value.ServerSequence,
                             serverTimeSeconds));
                 }
@@ -89,29 +88,6 @@ internal sealed class KillChainState<TKiller>
             {
                 chains.Remove(results[index].Killer);
             }
-        }
-    }
-
-    internal bool ResetKiller(
-        TKiller killer,
-        double serverTimeSeconds,
-        out KillChainTransition<TKiller> transition)
-    {
-        lock (sync)
-        {
-            if (!chains.TryGetValue(killer, out ActiveChain current))
-            {
-                transition = default;
-                return false;
-            }
-
-            chains.Remove(killer);
-            transition = CreateTerminalTransition(
-                killer,
-                KillChainTransitionKind.Reset,
-                current.ServerSequence,
-                serverTimeSeconds);
-            return true;
         }
     }
 
@@ -198,13 +174,12 @@ internal sealed class KillChainState<TKiller>
 
     private static KillChainTransition<TKiller> CreateTerminalTransition(
         TKiller killer,
-        KillChainTransitionKind kind,
         long serverSequence,
         double serverTimeSeconds)
     {
         return new KillChainTransition<TKiller>(
             killer,
-            kind,
+            KillChainTransitionKind.Expired,
             KillChainTier.None,
             killCount: 0,
             serverSequence,

@@ -55,7 +55,6 @@ internal enum EarnedStateTransitionReason
     TierReplaced,
     LifecycleReset,
     ServerChainExpired,
-    ServerChainReset,
     ServerChainAlreadyExpired,
     EffectUnavailable,
     NativeApplicationFailed
@@ -79,8 +78,7 @@ internal enum BerserkerChainTransitionKind
     Activated,
     Refreshed,
     Escalated,
-    Expired,
-    Reset
+    Expired
 }
 
 internal enum BerserkerChainTier
@@ -284,8 +282,7 @@ internal sealed class BerserkerChainTransition
         bool active = kind == BerserkerChainTransitionKind.Activated
             || kind == BerserkerChainTransitionKind.Refreshed
             || kind == BerserkerChainTransitionKind.Escalated;
-        bool terminal = kind == BerserkerChainTransitionKind.Expired
-            || kind == BerserkerChainTransitionKind.Reset;
+        bool terminal = kind == BerserkerChainTransitionKind.Expired;
         bool validShape = kind switch
         {
             BerserkerChainTransitionKind.Progressed =>
@@ -298,8 +295,6 @@ internal sealed class BerserkerChainTransition
             BerserkerChainTransitionKind.Escalated =>
                 tier == BerserkerChainTier.Slaughterhouse && killCount == 6,
             BerserkerChainTransitionKind.Expired =>
-                tier == BerserkerChainTier.None && killCount == 0,
-            BerserkerChainTransitionKind.Reset =>
                 tier == BerserkerChainTier.None && killCount == 0,
             _ => false
         };

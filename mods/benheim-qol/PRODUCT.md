@@ -183,9 +183,15 @@ limits.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.63` is the current private-test candidate. It combines the
-owner-authoritative Put Away protocol, collider inspection, the private typed
-diagnostics path, and the other changes that remain unproven below.
+Benheim `0.1.64` is the current private-test candidate. It adds three
+experimental earned combat states: CLUTCH, UNTOUCHABLE, and
+BERSERKER/SLAUGHTERHOUSE. None has gameplay proof, and existing adrenaline
+behavior is unchanged. The candidate also includes the unproven
+owner-authoritative Put Away protocol, collider inspection, private typed
+diagnostics, and other candidate changes described below.
+BERSERKER/SLAUGHTERHOUSE uses Kill Attribution V2. See the root
+[Gameplay Breakdown](../../PRODUCT.md#gameplay-breakdown) for its required
+client and server versions and compatibility boundary.
 
 Private-test diagnostic sharing still needs one live ingest and query pass.
 The first configured run tells the player what is shared. `Share Diagnostics`

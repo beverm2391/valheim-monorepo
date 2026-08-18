@@ -19,9 +19,9 @@ adrenaline. Bold aggression while outnumbered can also increase an action's
 reward.
 
 Earned combat states use local above-player activation text, an appropriate
-native-style effect, and a visible status while their bonus is active. The
-Ben has approved the candidates below for experimentation. Gameplay testing has
-not confirmed their tuning or presentation.
+native-style effect, and a visible status while their bonus is active. Ben
+approved the candidates below for experimentation. None has passed gameplay
+testing, including its trigger, effects, tuning, or presentation.
 
 ### CLUTCH
 
@@ -37,8 +37,8 @@ entry presentation. Accepted damage does not cancel the state.
 
 On entry, CLUTCH adds `CLUTCH!` to the originating defense's local blue Bonus
 text and plays Valheim's native adrenaline-charm activation cue. `CLUTCH` uses
-the Lingering Healing Mead icon for its native status. Death, player or world
-change, and plugin teardown clear the state.
+the Lingering Healing Mead icon for its native status. Death, switching
+characters or worlds, and ending the current Benheim session clear the state.
 
 ### UNTOUCHABLE
 
@@ -55,20 +55,24 @@ loaded in the same world.
 Any accepted health loss resets the streak and quietly removes the active tier.
 This includes direct attacks, damage over time, fire, falls, and environmental
 damage. A contact that causes no health loss does not reset it. The state has no
-decay or cooldown. It does not persist across death, a player or world change,
-or a plugin session.
+decay or cooldown. Death, switching characters or worlds, and ending the
+current Benheim session reset the streak and remove the active tier.
 
 Each new tier adds `UNTOUCHABLE!`, `UNTOUCHABLE II!`, or `UNTOUCHABLE III!` to
 the originating defense's local blue Bonus text. It also plays the native
 adrenaline-charm activation cue. Tier replacement keeps one modifier and one
 Wolf Sight status icon. The native indefinite status shows no countdown.
 
-### BERSERKER
+### BERSERKER / SLAUGHTERHOUSE
 
-`BERSERKER` rewards a rolling chain of server-confirmed kills. Tier I applies
-native Slightly Resistant physical protection to blunt, slash, and pierce
-damage only. It reduces those damage types by 25% and adds 50% stamina
-regeneration.
+`BERSERKER` and `SLAUGHTERHOUSE` are two tiers of one earned state that rewards
+a rolling chain of server-confirmed kills. [Benheim Server
+Support](../../../../server-mods/benheim-server-support/PRODUCT.md) owns kill
+qualification, thresholds, and the rolling window.
+
+Tier I, `BERSERKER`, applies native Slightly Resistant physical protection to
+blunt, slash, and pierce damage only. It reduces those damage types by 25% and
+adds 50% stamina regeneration.
 
 Tier II replaces Tier I and presents `SLAUGHTERHOUSE!`. It applies native
 Resistant physical protection to the same three damage types, reducing them by
@@ -80,6 +84,11 @@ other earned states. A confirmed kill that does not advance the tier refreshes
 the one active effect and countdown without replaying the local Bonus text or
 charm cue. Both tiers reuse the Crystal Heart status icon. Expiration and
 removal are quiet.
+
+Benheim waits up to five seconds for a matching Kill Attribution V2 capability
+from the server. If none arrives, BERSERKER/SLAUGHTERHOUSE remains inactive.
+Benheim shows one center-screen warning per session. It keeps the warning in the
+Controls panel's Warnings block until the matching capability arrives.
 
 One confirmed defense can produce an adrenaline message and multiple
 earned-state titles. Benheim combines them into one local Bonus text in the

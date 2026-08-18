@@ -2,18 +2,25 @@ using BenheimQoL.Infrastructure;
 using BenheimQoL.PlayerCombat;
 using HarmonyLib;
 using System;
+using UnityEngine;
 
 namespace BenheimQoL.KillAttribution;
 
 [HarmonyPatch]
 internal static class KillAttributionClient
 {
+    private const float CapabilityTimeoutSeconds = 5f;
+
+    private static ZRpc? connectionServerRpc;
     private static ZRpc? compatibleServerRpc;
+    private static float capabilityDeadline;
+    private static bool deathResetPending;
     private static readonly KillChainDeliveryCursor ChainDelivery =
         new KillChainDeliveryCursor();
 
     internal static bool HasCompatibleServer =>
         compatibleServerRpc != null
+        && compatibleServerRpc.IsConnected()
         && ReferenceEquals(compatibleServerRpc, ZNet.instance?.GetServerRPC());
 
     [HarmonyPatch(typeof(ZNet), "OnNewConnection")]
@@ -25,21 +32,48 @@ internal static class KillAttributionClient
             return;
         }
 
+        connectionServerRpc = peer.m_rpc;
         compatibleServerRpc = null;
+        capabilityDeadline = Time.realtimeSinceStartup + CapabilityTimeoutSeconds;
+        deathResetPending = false;
         ChainDelivery.Reset();
+        HealthReporting.BeginKillAttributionConnection();
         peer.m_rpc.Register<int>(KillAttributionProtocol.CapabilityRpc, OnCapability);
         peer.m_rpc.Register<ZPackage>(KillAttributionProtocol.ConfirmedRpc, OnConfirmed);
         peer.m_rpc.Register<ZPackage>(
             KillAttributionProtocol.ChainTransitionRpc,
             OnChainTransition);
+        peer.m_rpc.Register(
+            KillAttributionProtocol.ChainResetAcknowledgedRpc,
+            OnChainResetAcknowledged);
     }
 
     [HarmonyPatch(typeof(ZNet), "OnDestroy")]
     [HarmonyPrefix]
     private static void BeforeNetworkDestroy()
     {
+        connectionServerRpc = null;
         compatibleServerRpc = null;
+        deathResetPending = false;
         ChainDelivery.Reset();
+        HealthReporting.ReportKillAttributionAvailable();
+    }
+
+    internal static void Update()
+    {
+        float now = Time.realtimeSinceStartup;
+        ZRpc? serverRpc = ZNet.instance?.GetServerRPC();
+        if (serverRpc == null || !ReferenceEquals(serverRpc, connectionServerRpc))
+        {
+            return;
+        }
+
+        if (!HasCompatibleServer && now >= capabilityDeadline)
+        {
+            HealthReporting.ReportKillAttributionUnavailable(
+                "no matching Kill Attribution V2 capability was received");
+        }
+
     }
 
     internal static void Report(LethalHitObservation observation)
@@ -57,24 +91,21 @@ internal static class KillAttributionClient
             return;
         }
 
-        try
+        if (KillAttributionRpcAttempt.TrySend(
+                serverRpc.IsConnected(),
+                () => serverRpc.Invoke(
+                    KillAttributionProtocol.ReportRpc,
+                    KillAttributionProtocol.BuildReport(
+                        operationId,
+                        observation.VictimId,
+                        observation.KillerId)),
+                out string failure))
         {
-            serverRpc.Invoke(
-                KillAttributionProtocol.ReportRpc,
-                KillAttributionProtocol.BuildReport(
-                    operationId,
-                    observation.VictimId,
-                    observation.KillerId));
             EmitReport(operationId, observation, "sent", "owner_lethal_transition");
+            return;
         }
-        catch (Exception exception)
-        {
-            EmitReport(
-                operationId,
-                observation,
-                "not_sent",
-                $"send_failed_{exception.GetType().Name}");
-        }
+
+        EmitReport(operationId, observation, "not_sent", failure);
     }
 
     internal static void ReportLocalDeath(Player player)
@@ -86,25 +117,12 @@ internal static class KillAttributionClient
             return;
         }
 
-        ZRpc? serverRpc = ZNet.instance.GetServerRPC();
-        if (serverRpc == null || !HasCompatibleServer)
-        {
-            return;
-        }
+        deathResetPending = true;
 
-        try
+        ZRpc? serverRpc = ZNet.instance.GetServerRPC();
+        if (serverRpc != null && HasCompatibleServer)
         {
-            serverRpc.Invoke(KillAttributionProtocol.ChainResetRpc);
-            Diagnostics.Emit(
-                DiagnosticEvent.Create("PlayerCombat", "kill_chain_reset_requested")
-                    .String("reason", "death"));
-        }
-        catch (Exception exception)
-        {
-            Diagnostics.Emit(
-                DiagnosticEvent.Create("PlayerCombat", "kill_chain_reset_not_sent")
-                    .String("reason", "death")
-                    .String("failure", exception.GetType().Name));
+            TrySendDeathReset(serverRpc);
         }
     }
 
@@ -115,7 +133,23 @@ internal static class KillAttributionClient
             return;
         }
 
-        compatibleServerRpc = version == KillAttributionProtocol.Version ? rpc : null;
+        compatibleServerRpc = version == KillAttributionProtocol.Version
+            && rpc.IsConnected()
+                ? rpc
+                : null;
+        if (compatibleServerRpc != null)
+        {
+            HealthReporting.ReportKillAttributionAvailable();
+            if (deathResetPending)
+            {
+                TrySendDeathReset(rpc);
+            }
+        }
+        else
+        {
+            HealthReporting.ReportKillAttributionUnavailable(
+                $"server protocol {version} is incompatible with required V{KillAttributionProtocol.Version}");
+        }
         Diagnostics.Emit(
             DiagnosticEvent.Create("PlayerCombat", "kill_feed_capability")
                 .Integer("protocol_version", version)
@@ -181,6 +215,12 @@ internal static class KillAttributionClient
             return;
         }
 
+        if (deathResetPending)
+        {
+            EmitDeliveryRejected("chain_transition_before_death_barrier");
+            return;
+        }
+
         if (!ChainDelivery.TryAccept(message.Kind, message.ServerSequence))
         {
             EmitDeliveryRejected("chain_sequence_not_new");
@@ -194,7 +234,6 @@ internal static class KillAttributionClient
             KillChainTransitionKind.Refreshed => BerserkerChainTransitionKind.Refreshed,
             KillChainTransitionKind.Escalated => BerserkerChainTransitionKind.Escalated,
             KillChainTransitionKind.Expired => BerserkerChainTransitionKind.Expired,
-            KillChainTransitionKind.Reset => BerserkerChainTransitionKind.Reset,
             _ => throw new ArgumentOutOfRangeException(nameof(message.Kind))
         };
         BerserkerChainTier tier = message.Tier switch
@@ -230,6 +269,49 @@ internal static class KillAttributionClient
                 .String("reason", reason)
                 .String("victim_id", observation.VictimId.ToString())
                 .String("killer_id", observation.KillerId.ToString()));
+    }
+
+    private static void TrySendDeathReset(ZRpc serverRpc)
+    {
+        if (KillAttributionRpcAttempt.TrySend(
+                serverRpc.IsConnected(),
+                () => serverRpc.Invoke(KillAttributionProtocol.ChainResetRpc),
+                out string failure))
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("PlayerCombat", "kill_chain_reset_requested")
+                    .String("reason", "death"));
+            return;
+        }
+
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("PlayerCombat", "kill_chain_reset_not_sent")
+                .String("reason", "death")
+                .String("failure", failure));
+    }
+
+    private static void OnChainResetAcknowledged(ZRpc rpc)
+    {
+        if (!ReferenceEquals(rpc, ZNet.instance?.GetServerRPC()))
+        {
+            EmitDeliveryRejected("chain_reset_ack_non_server_sender");
+            return;
+        }
+
+        if (!deathResetPending)
+        {
+            EmitDeliveryRejected("chain_reset_ack_without_death");
+            return;
+        }
+
+        // Valheim's reliable connection preserves the server's send order.
+        // Therefore every pre-reset transition has already been observed and
+        // ignored before this acknowledgment can arrive.
+        deathResetPending = false;
+        ChainDelivery.Reset();
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("PlayerCombat", "kill_chain_reset_acknowledged")
+                .String("reason", "death"));
     }
 
     private static void EmitDeliveryRejected(string reason)

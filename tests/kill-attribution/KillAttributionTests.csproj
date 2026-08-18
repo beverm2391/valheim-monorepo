@@ -7,12 +7,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillAttributionProtocol.cs" Link="KillAttributionProtocol.cs" />
+    <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillAttributionRpcAttempt.cs" Link="KillAttributionRpcAttempt.cs" />
     <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillChainDeliveryCursor.cs" Link="KillChainDeliveryCursor.cs" />
     <Compile Include="../../mods/benheim-qol/src/KillAttribution/LethalHitObservation.cs" Link="LethalHitObservation.cs" />
     <Compile Include="../../server-mods/benheim-server-support/src/ConfirmedKillState.cs" Link="ConfirmedKillState.cs" />
     <Compile Include="../../server-mods/benheim-server-support/src/KillChainState.cs" Link="KillChainState.cs" />
-    <Compile Include="../../server-mods/benheim-server-support/src/KillChainDeliveryQueue.cs" Link="KillChainDeliveryQueue.cs" />
-    <Compile Include="../../server-mods/benheim-server-support/src/KillChainDeliveryAttempt.cs" Link="KillChainDeliveryAttempt.cs" />
     <Compile Include="../../server-mods/benheim-server-support/src/VictimQualification.cs" Link="VictimQualification.cs" />
   </ItemGroup>
 </Project>

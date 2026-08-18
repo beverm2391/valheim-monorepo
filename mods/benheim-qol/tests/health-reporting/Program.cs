@@ -101,6 +101,30 @@ namespace HealthReportingTests
             Require(HealthReporting.GameplayActionsEnabled, "session reset re-enables gameplay actions");
             Require(HealthReporting.KeybindInspectionDetail == null, "session reset clears old warnings");
 
+            HealthReporting.BeginKillAttributionConnection();
+            HealthReporting.ReportKillAttributionUnavailable("capability timeout");
+            HealthReporting.ReportKillAttributionUnavailable("capability timeout");
+            Require(
+                HealthReporting.KillAttributionDetail?.Contains("capability timeout", StringComparison.Ordinal) == true,
+                "kill attribution failure remains visible while capability is unavailable");
+            Require(BenheimQoL.Plugin.Log.Warnings.Count == 3, "identical capability warnings are deduplicated");
+
+            HealthReporting.UpdateCriticalMessage();
+            HealthReporting.UpdateCriticalMessage();
+            Require(
+                Player.m_localPlayer.MessageCount == 2,
+                "the BERSERKER compatibility warning is shown once per session");
+
+            HealthReporting.ReportKillAttributionAvailable();
+            Require(
+                HealthReporting.KillAttributionDetail == null,
+                "a matching capability clears the connection warning");
+            HealthReporting.ReportKillAttributionUnavailable("new connection timeout");
+            HealthReporting.UpdateCriticalMessage();
+            Require(
+                Player.m_localPlayer.MessageCount == 2,
+                "a later connection warning does not replay the session message");
+
             Console.WriteLine("health reporting state, deduplication, fail-closed, and message checks passed");
             return 0;
         }

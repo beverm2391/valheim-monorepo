@@ -153,8 +153,7 @@ internal static class TestSupport
         BerserkerChainTier tier,
         int killCount)
     {
-        bool terminal = kind == BerserkerChainTransitionKind.Expired
-            || kind == BerserkerChainTransitionKind.Reset;
+        bool terminal = kind == BerserkerChainTransitionKind.Expired;
         return new BerserkerChainTransition(
             PlayerCombatContext.Capture(player),
             kind,

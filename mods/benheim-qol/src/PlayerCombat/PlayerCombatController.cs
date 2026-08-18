@@ -212,12 +212,6 @@ internal sealed class PlayerCombatController
                     transition.Context,
                     EarnedStateTransitionReason.ServerChainExpired);
                 break;
-            case BerserkerChainTransitionKind.Reset:
-                Deactivate(
-                    EarnedCombatState.Berserker,
-                    transition.Context,
-                    EarnedStateTransitionReason.ServerChainReset);
-                break;
         }
     }
 

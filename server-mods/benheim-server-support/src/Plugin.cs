@@ -9,7 +9,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.serversupport";
     public const string PluginName = "Benheim Server Support";
-    public const string PluginVersion = "0.1.1";
+    public const string PluginVersion = "0.1.2";
 
     internal static ManualLogSource Log { get; private set; } = null!;
     private Harmony? harmony;
@@ -20,7 +20,7 @@ public sealed class Plugin : BaseUnityPlugin
         ServerDiagnostics.Begin(Paths.BepInExRootPath, PluginVersion);
         harmony = new Harmony(PluginGuid);
         harmony.PatchAll();
-        Logger.LogInfo($"{PluginName} {PluginVersion} loaded with the Put Away lease coordinator.");
+        Logger.LogInfo($"{PluginName} {PluginVersion} loaded with Put Away and confirmed-kill coordination.");
     }
 
     private void Update()

@@ -25,13 +25,18 @@ The requester restores rejected remainders from the accepted result. The server
 does not inspect or mutate chest contents itself.
 
 Version `0.1.1` is deployed and its exact plugin load is runtime-confirmed. The
-owner-routing adaptation passes automated checks but remains gameplay-unproven. The owning
-[Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md) defines Put
-Away's player-visible behavior and acceptance boundary.
+owner-routing adaptation passes automated checks but remains gameplay-unproven.
+The owning [Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md)
+defines Put Away's player-visible behavior and acceptance boundary.
 
 The [shared protocol](../../shared/benheim-inventory-protocol/PROTOCOL.md) owns
 the transaction runtime and typed-event lifecycle. Automated source and build
 gates cover the server boundary.
+
+Candidate `0.1.2` owns Kill Attribution V2 and the server-authoritative
+confirmed-kill chain described below. See the root
+[Gameplay Breakdown](../../PRODUCT.md#gameplay-breakdown) for its required
+client version and compatibility boundary.
 
 Server Support accepts a direct Player lethal-hit report only from the
 authenticated peer that is connected and currently owns the defeated
@@ -41,22 +46,21 @@ victim identities. It assigns each accepted report one server time and an order
 for that killer. Only the confirmed killer's client receives the confirmation.
 Player Combat decides what the confirmed kill earns.
 
-This first feed covers only direct Player lethal-hit reports. It does not infer
-credit for damage over time, kills made by tames, turrets, traps, environmental
-deaths, assists, or kill steals. It trusts Benheim's authenticated victim owner
-as Valheim's damage authority. This feed does not provide hostile-client proof
-or serve as an anti-cheat boundary. Automated checks pass for authority,
-message format, duplicate handling, ordering, and the build. Multiplayer
-gameplay remains unproven.
+Kill Attribution V2 covers only direct Player lethal-hit reports. It does not
+infer credit for damage over time, kills by tames, turrets, traps,
+environmental deaths, assists, or kill steals. It treats Benheim's
+authenticated victim owner as Valheim's damage authority. The protocol does not
+prove behavior against a hostile client and is not an anti-cheat boundary.
+Automated checks cover authority, message format, duplicate handling, ordering,
+and the build. Multiplayer gameplay remains unproven.
 
-Server Support owns one non-persistent experimental chain for each confirmed
-killer. Each qualifying kill adds one to that chain and moves its deadline to
-ten seconds after the kill. Server Support produces an activation transition
-for the `BERSERKER` tier after three qualifying kills and an escalation
-transition for the `SLAUGHTERHOUSE` tier after six. Other qualifying kills
-produce `Progressed` or `Refreshed` transitions without requesting another
-activation presentation. Player Combat decides what those transitions earn.
-Kills received together still advance the chain one at a time in server order.
+Server Support keeps one non-persistent experimental chain for each confirmed
+killer. Each qualifying kill increments the chain and resets its deadline to
+ten seconds after that kill. Three qualifying kills activate `BERSERKER`; six
+escalate it to `SLAUGHTERHOUSE`. Other qualifying kills extend or refresh the
+chain without replaying the activation presentation. Player Combat owns the
+bonuses and presentation for both tiers. Kills received together advance one at
+a time in server order.
 
 Server Support qualifies a victim only when its authoritative state is
 untamed. A loaded boss qualifies. Any other creature must have native
@@ -72,5 +76,17 @@ creature, such as an aggravated Dverger, as hostile.
 Ten seconds without another qualifying kill expires the chain. The killer's
 death resets the chain. The killer's disconnect, a world reset, or plugin
 teardown clears the chain. Server Support sends each transition only to that
-killer's client. Automated checks also pass for qualification, thresholds, the
-rolling window, expiry, and reset behavior.
+killer's client. Automated checks pass for qualification, thresholds, the
+rolling window, expiry, and reset behavior. The `0.1.2` confirmed-kill chain
+remains gameplay-unproven.
+
+Kill Attribution V2 uses Valheim's reliable, ordered transport while the peer
+remains connected. Benheim sends reports, confirmations, resets, and
+transitions only over an active RPC connection. Disconnecting tears down the
+peer and clears that peer's server chain.
+
+After the killer dies, that client ignores chain transitions until the server
+acknowledges the chain reset. Valheim's send order places the acknowledgment
+after every pre-reset transition and before every post-reset transition.
+Reconnecting ends the wait because the server creates new state for the new
+peer.

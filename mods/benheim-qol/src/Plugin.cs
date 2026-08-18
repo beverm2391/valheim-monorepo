@@ -9,6 +9,7 @@ using BenheimQoL.EnemyTiers;
 using BenheimQoL.Repair;
 using BenheimQoL.Shortcuts;
 using BenheimQoL.PlayerCombat;
+using BenheimQoL.KillAttribution;
 using HarmonyLib;
 using UnityEngine;
 
@@ -19,7 +20,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.63";
+    public const string PluginVersion = "0.1.64";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -71,6 +72,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         HealthReporting.UpdateCriticalMessage();
+        KillAttributionClient.Update();
         RemoteDiagnostics.Update();
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();

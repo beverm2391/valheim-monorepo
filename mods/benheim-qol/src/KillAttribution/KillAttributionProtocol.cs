@@ -17,6 +17,8 @@ internal static class KillAttributionProtocol
     internal const string ConfirmedRpc = "Benheim_Kill_Confirmed_V2";
     internal const string ChainTransitionRpc = "Benheim_Kill_Chain_Transition_V2";
     internal const string ChainResetRpc = "Benheim_Kill_Chain_Reset_V2";
+    internal const string ChainResetAcknowledgedRpc =
+        "Benheim_Kill_Chain_Reset_Acknowledged_V2";
 
     private const int OperationIdLength = 32;
     private const int MaximumPrefabNameLength = 128;
@@ -220,7 +222,6 @@ internal static class KillAttributionProtocol
             case KillChainTransitionKind.Escalated:
                 return tier == KillChainTier.Slaughterhouse && killCount == 6;
             case KillChainTransitionKind.Expired:
-            case KillChainTransitionKind.Reset:
                 return tier == KillChainTier.None
                     && killCount == 0
                     && expiresAtServerTimeSeconds == 0d;
@@ -251,8 +252,7 @@ internal enum KillChainTransitionKind
     Activated = 2,
     Refreshed = 3,
     Escalated = 4,
-    Expired = 5,
-    Reset = 6
+    Expired = 5
 }
 
 internal enum KillChainTier

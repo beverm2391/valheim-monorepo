@@ -3,7 +3,7 @@ namespace BenheimQoL.KillAttribution;
 /// <summary>
 /// Rejects replayed or reordered server transition facts before they reach the
 /// local Player Combat bus. Active transitions advance with confirmed-kill
-/// order. A terminal fact deliberately carries the last kill's order, so it is
+/// order. An expiry deliberately carries the last kill's order, so it is
 /// accepted exactly once only while that chain is locally open.
 /// </summary>
 internal sealed class KillChainDeliveryCursor
@@ -13,9 +13,7 @@ internal sealed class KillChainDeliveryCursor
 
     internal bool TryAccept(KillChainTransitionKind kind, long serverSequence)
     {
-        bool terminal = kind == KillChainTransitionKind.Expired
-            || kind == KillChainTransitionKind.Reset;
-        if (terminal)
+        if (kind == KillChainTransitionKind.Expired)
         {
             if (!chainOpen || serverSequence != lastServerSequence)
             {

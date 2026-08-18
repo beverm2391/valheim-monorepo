@@ -116,9 +116,8 @@ Assert(
     "the client cursor should reject replayed, stale, and duplicate-terminal transition facts");
 deliveryCursor.Reset();
 Assert(
-    deliveryCursor.TryAccept(KillChainTransitionKind.Progressed, 1L)
-    && deliveryCursor.TryAccept(KillChainTransitionKind.Reset, 1L),
-    "a new network session should accept a fresh chain and its same-sequence terminal fact");
+    deliveryCursor.TryAccept(KillChainTransitionKind.Progressed, 1L),
+    "a reset cursor should accept a fresh server chain");
 
 Player killer = new Player
 {
@@ -293,14 +292,10 @@ Assert(
     chains.Advance("killer-a", 8L, 128d).KillCount == 1,
     "a kill at or after the deadline should begin a new chain");
 
+chains.RemoveKiller("killer-a");
 Assert(
-    chains.ResetKiller("killer-a", 129d, out KillChainTransition<string> reset)
-    && reset.Kind == KillChainTransitionKind.Reset
-    && reset.KillCount == 0
-    && !chains.ResetKiller("killer-a", 130d, out _),
-    "death should clear one killer once and emit one reset transition");
-
-chains.Advance("killer-a", 9L, 130d);
+    chains.Advance("killer-a", 9L, 130d).KillCount == 1,
+    "death should clear the active server chain before acknowledgment");
 chains.Advance("killer-b", 2L, 130d);
 chains.RemoveKiller("killer-a");
 Assert(
@@ -312,37 +307,9 @@ Assert(
     chains.Advance("killer-b", 4L, 132d).KillCount == 1,
     "world or plugin reset should clear every chain");
 
-KillChainDeliveryQueue<string, string> pending =
-    new KillChainDeliveryQueue<string, string>(maximumPerKiller: 2);
-Assert(
-    pending.Enqueue("killer-a", "activate")
-    && pending.Enqueue("killer-a", "refresh")
-    && !pending.Enqueue("killer-a", "overflow")
-    && pending.Enqueue("killer-b", "other")
-    && pending.KillerCount == 2,
-    "failed transition delivery should be retained in a bounded per-killer queue");
-Assert(
-    pending.TryPeek("killer-a", out string firstPending)
-    && firstPending == "activate",
-    "a failed send should leave the activation at the head for retry");
-pending.ReplaceHead("killer-a", "activate-retry");
-Assert(
-    pending.TryPeek("killer-a", out string retriedPending)
-    && retriedPending == "activate-retry",
-    "a failed retry should update its retry record without changing order");
-pending.MarkDelivered("killer-a");
-Assert(
-    pending.TryPeek("killer-a", out string secondPending)
-    && secondPending == "refresh",
-    "a later refresh must remain blocked until the activation is delivered");
-pending.RemoveKiller("killer-a");
-Assert(
-    !pending.HasPending("killer-a") && pending.HasPending("killer-b"),
-    "abandoning one disconnected killer must preserve other pending deliveries");
-
 int transportSends = 0;
 Assert(
-    !KillChainDeliveryAttempt.TrySend(
+    !KillAttributionRpcAttempt.TrySend(
         isConnected: false,
         () => transportSends++,
         out string disconnectedFailure)
@@ -350,14 +317,14 @@ Assert(
     && disconnectedFailure == "rpc_disconnected",
     "a disconnected Valheim RPC must fail before its silent no-op Invoke can discard the transition");
 Assert(
-    !KillChainDeliveryAttempt.TrySend(
+    !KillAttributionRpcAttempt.TrySend(
         isConnected: true,
         () => throw new InvalidOperationException(),
         out string exceptionFailure)
     && exceptionFailure == "delivery_failed_InvalidOperationException",
-    "a thrown send must remain a failed attempt for the retry outbox");
+    "a thrown send must remain an explicit failed invocation");
 Assert(
-    KillChainDeliveryAttempt.TrySend(
+    KillAttributionRpcAttempt.TrySend(
         isConnected: true,
         () => transportSends++,
         out string sentFailure)

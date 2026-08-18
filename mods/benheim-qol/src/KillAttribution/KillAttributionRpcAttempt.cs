@@ -1,12 +1,13 @@
 using System;
 
-namespace BenheimServerSupport;
+namespace BenheimQoL.KillAttribution;
 
 /// <summary>
 /// Turns Valheim's silent disconnected-RPC no-op into an explicit failed
-/// attempt so the ordered outbox retains the transition for retry.
+/// attempt. Callers can then reject or visibly degrade the operation instead
+/// of claiming that an invocation was delivered.
 /// </summary>
-internal static class KillChainDeliveryAttempt
+internal static class KillAttributionRpcAttempt
 {
     internal static bool TrySend(bool isConnected, Action send, out string failure)
     {
