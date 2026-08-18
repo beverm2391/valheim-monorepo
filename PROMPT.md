@@ -256,6 +256,12 @@ also renders its readable `[diag]` line. Use
 event files, filter fields, or find operations that started without a terminal
 event. The command uses only the Python standard library.
 
+After a world loads, manually run `bh debug catalog effects|text|ui [filter]`.
+Choose one category and add an optional filter. The command previews matching native effects, text sources, or usable UI components.
+It atomically overwrites `BepInEx/BenheimRuntimeCatalog.ndjson` with count summaries and stable donor identities.
+A readiness error identifies ObjectDB, TMP, or UI systems that are still loading.
+The snapshot stays local, bypasses remote diagnostics, and reports only effect and component sprite identities instead of raw sprite enumeration.
+
 Normal packages stay credential-free. Use scoped secrets for `package-private-test.sh`;
 rotate its token if an archive leaves Ben, Johnny, and Ozi or before public release.
 

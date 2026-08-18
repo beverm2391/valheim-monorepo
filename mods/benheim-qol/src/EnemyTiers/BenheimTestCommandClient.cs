@@ -56,6 +56,11 @@ internal static class BenheimTestCommandClient
             return true;
         }
 
+        if (RuntimePrimitiveCatalogCommand.TryExecute(args.Args, args.Context))
+        {
+            return true;
+        }
+
         if (!BoarTestCommandProtocol.TryParseSpawnBoar(args.Args, out int stars) ||
             !BoarTestCommandProtocol.TryResolveLevel(stars, out int level))
         {
@@ -100,6 +105,7 @@ internal static class BenheimTestCommandClient
         context.AddString("  0 = unstarred, 1 = one star, 2 = two stars");
         context.AddString("  bh debug colliders on|off");
         context.AddString("  locally show live capsules for nearby non-player Characters");
+        RuntimePrimitiveCatalogCommand.PrintUsage(context);
     }
 
     private static bool EnsureResultRpcRegistered()
