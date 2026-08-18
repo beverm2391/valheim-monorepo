@@ -25,3 +25,13 @@ internal static class KillAttributionPatches
         }
     }
 }
+
+[HarmonyPatch(typeof(Player), "OnDeath")]
+internal static class KillChainDeathPatch
+{
+    [HarmonyPostfix]
+    private static void AfterPlayerDeath(Player __instance)
+    {
+        KillAttributionClient.ReportLocalDeath(__instance);
+    }
+}

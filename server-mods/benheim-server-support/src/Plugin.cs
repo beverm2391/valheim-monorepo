@@ -23,8 +23,14 @@ public sealed class Plugin : BaseUnityPlugin
         Logger.LogInfo($"{PluginName} {PluginVersion} loaded with the Put Away lease coordinator.");
     }
 
+    private void Update()
+    {
+        KillAttributionServer.Update();
+    }
+
     private void OnDestroy()
     {
+        KillAttributionServer.Reset();
         InventoryTransactionRuntime.Shutdown();
         PutAwayLeaseServer.Reset();
         harmony?.UnpatchSelf();

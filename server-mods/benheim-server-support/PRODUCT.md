@@ -48,3 +48,29 @@ as Valheim's damage authority. This feed does not provide hostile-client proof
 or serve as an anti-cheat boundary. Automated checks pass for authority,
 message format, duplicate handling, ordering, and the build. Multiplayer
 gameplay remains unproven.
+
+Server Support owns one non-persistent experimental chain for each confirmed
+killer. Each qualifying kill adds one to that chain and moves its deadline to
+ten seconds after the kill. Server Support produces an activation transition
+for the `BERSERKER` tier after three qualifying kills and an escalation
+transition for the `SLAUGHTERHOUSE` tier after six. Other qualifying kills
+produce `Progressed` or `Refreshed` transitions without requesting another
+activation presentation. Player Combat decides what those transitions earn.
+Kills received together still advance the chain one at a time in server order.
+
+Server Support qualifies a victim only when its authoritative state is
+untamed. A loaded boss qualifies. Any other creature must have native
+`MonsterAI` and a native Valheim monster faction. The canonical Boar remains
+excluded even though it has that same AI-and-faction combination. Deer do not
+qualify because they use `AnimalAI`. Installed bird prefabs do not advance the
+chain because they have no `Character`. Stars and level do not affect the count.
+Boss status is an exception to the AI-and-faction requirement, but each boss
+still adds only one. If the victim's prefab or `Character` data is missing, the
+chain does not advance. This qualification rule does not treat a neutral
+creature, such as an aggravated Dverger, as hostile.
+
+Ten seconds without another qualifying kill expires the chain. The killer's
+death resets the chain. The killer's disconnect, a world reset, or plugin
+teardown clears the chain. Server Support sends each transition only to that
+killer's client. Automated checks also pass for qualification, thresholds, the
+rolling window, expiry, and reset behavior.

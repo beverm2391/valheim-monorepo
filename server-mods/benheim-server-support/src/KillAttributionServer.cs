@@ -2,6 +2,7 @@ using BenheimQoL.Infrastructure;
 using BenheimQoL.KillAttribution;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BenheimServerSupport;
@@ -13,9 +14,14 @@ internal static class KillAttributionServer
     // report arrives immediately; retaining recent victim IDs prevents it from
     // incrementing the canonical sequence while bounding server memory.
     private const int RecentVictimCapacity = 4096;
+    private static readonly int CanonicalBoarPrefabHash = "Boar".GetStableHashCode();
 
     private static readonly ConfirmedKillState<ZDOID, ZDOID> State =
         new ConfirmedKillState<ZDOID, ZDOID>(RecentVictimCapacity);
+    private static readonly KillChainState<ZDOID> Chains =
+        new KillChainState<ZDOID>();
+    private static readonly List<KillChainTransition<ZDOID>> ExpiredChains =
+        new List<KillChainTransition<ZDOID>>();
 
     [HarmonyPatch(typeof(ZNet), "OnNewConnection")]
     [HarmonyPostfix]
@@ -31,6 +37,9 @@ internal static class KillAttributionServer
         peer.m_rpc.Register<ZPackage>(
             KillAttributionProtocol.ReportRpc,
             (rpc, package) => OnReport(peer, rpc, package));
+        peer.m_rpc.Register(
+            KillAttributionProtocol.ChainResetRpc,
+            rpc => OnChainReset(peer, rpc));
         peer.m_rpc.Invoke(
             KillAttributionProtocol.CapabilityRpc,
             KillAttributionProtocol.Version);
@@ -43,6 +52,8 @@ internal static class KillAttributionServer
         if (!peer.m_characterID.IsNone())
         {
             State.RemoveKiller(peer.m_characterID);
+            Chains.RemoveKiller(peer.m_characterID);
+            KillChainDeliveryRuntime.RemoveKiller(peer.m_characterID);
         }
     }
 
@@ -50,7 +61,39 @@ internal static class KillAttributionServer
     [HarmonyPrefix]
     private static void BeforeNetworkDestroy()
     {
+        Reset();
+    }
+
+    internal static void Update()
+    {
+        if (ZNet.instance == null || !ZNet.instance.IsServer())
+        {
+            return;
+        }
+
+        double serverTimeSeconds = ZNet.instance.GetTimeSeconds();
+        KillChainDeliveryRuntime.Update(serverTimeSeconds, Chains);
+        ExpireDueChains(serverTimeSeconds);
+    }
+
+    private static void ExpireDueChains(double serverTimeSeconds)
+    {
+        Chains.CollectExpired(serverTimeSeconds, ExpiredChains);
+        for (int index = 0; index < ExpiredChains.Count; index++)
+        {
+            KillChainDeliveryRuntime.Deliver(
+                ExpiredChains[index],
+                "inactivity",
+                Chains);
+        }
+    }
+
+    internal static void Reset()
+    {
         State.Reset();
+        Chains.Reset();
+        ExpiredChains.Clear();
+        KillChainDeliveryRuntime.Reset();
     }
 
     internal static void ConfirmServerOwned(LethalHitObservation observation)
@@ -111,6 +154,29 @@ internal static class KillAttributionServer
         Confirm(report, victim);
     }
 
+    private static void OnChainReset(ZNetPeer reporter, ZRpc rpc)
+    {
+        if (ZNet.instance == null
+            || !ZNet.instance.IsServer()
+            || !ReferenceEquals(rpc, reporter.m_rpc)
+            || !reporter.IsReady()
+            || reporter.m_socket == null
+            || reporter.m_characterID.IsNone())
+        {
+            EmitRejected("unauthenticated_chain_reset", string.Empty, ZDOID.None, ZDOID.None);
+            return;
+        }
+
+        double serverTimeSeconds = ZNet.instance.GetTimeSeconds();
+        if (Chains.ResetKiller(
+                reporter.m_characterID,
+                serverTimeSeconds,
+                out KillChainTransition<ZDOID> transition))
+        {
+            KillChainDeliveryRuntime.Deliver(reporter, transition, "death", Chains);
+        }
+    }
+
     private static void Confirm(KillReport report, ZDO victim)
     {
         if (victim.GetLong(ZDOVars.s_playerID, 0L) != 0L)
@@ -143,6 +209,30 @@ internal static class KillAttributionServer
             prefabName = prefabName.Substring(0, 128);
         }
 
+        bool isBoss = characterPrefab != null && characterPrefab.IsBoss();
+        bool isTamed = victim.GetBool(ZDOVars.s_tamed, false);
+        bool hasMonsterAi = prefab != null && prefab.GetComponent<MonsterAI>() != null;
+        bool isCanonicalBoar = prefabHash == CanonicalBoarPrefabHash;
+        bool qualifiesForChain = characterPrefab != null
+            && VictimQualification.IsHostileCreature(
+                characterPrefab.GetFaction(),
+                isBoss,
+                isTamed,
+                hasMonsterAi,
+                isCanonicalBoar);
+        string qualification = characterPrefab == null
+            ? "prefab_character_missing"
+            : isTamed
+                ? "tamed"
+                : isCanonicalBoar
+                    ? "passive_boar"
+                    : !hasMonsterAi && !isBoss
+                        ? "non_monster_ai"
+                        : qualifiesForChain
+                            ? "hostile_creature"
+                            : "non_hostile_faction";
+        double serverTimeSeconds = ZNet.instance.GetTimeSeconds();
+
         ConfirmedKillMessage confirmation = new ConfirmedKillMessage(
             report.OperationId,
             report.VictimId,
@@ -150,11 +240,11 @@ internal static class KillAttributionServer
             prefabHash,
             prefabName,
             Math.Max(1, victim.GetInt(ZDOVars.s_level, 1)),
-            characterPrefab != null && characterPrefab.IsBoss(),
-            victim.GetBool(ZDOVars.s_tamed, false),
+            isBoss,
+            isTamed,
             victim.GetPosition(),
             sequence,
-            ZNet.instance.GetTimeSeconds());
+            serverTimeSeconds);
 
         try
         {
@@ -186,11 +276,34 @@ internal static class KillAttributionServer
                 .Integer("victim_level", confirmation.VictimLevel)
                 .Boolean("victim_boss", confirmation.VictimIsBoss)
                 .Boolean("victim_tamed", confirmation.VictimIsTamed)
+                .Boolean("victim_monster_ai", hasMonsterAi)
+                .Boolean("victim_canonical_boar", isCanonicalBoar)
+                .String(
+                    "victim_faction",
+                    characterPrefab == null
+                        ? "unknown"
+                        : characterPrefab.GetFaction().ToString())
+                .Boolean("chain_qualifies", qualifiesForChain)
+                .String("chain_qualification", qualification)
                 .Integer("server_sequence", sequence)
                 .Number("server_time_seconds", confirmation.ServerTimeSeconds));
+
+        if (qualifiesForChain)
+        {
+            ExpireDueChains(serverTimeSeconds);
+            KillChainTransition<ZDOID> transition = Chains.Advance(
+                report.KillerId,
+                sequence,
+                serverTimeSeconds);
+            KillChainDeliveryRuntime.Deliver(
+                killerPeer,
+                transition,
+                "qualifying_kill",
+                Chains);
+        }
     }
 
-    private static ZNetPeer? FindReadyPeer(ZDOID characterId)
+    internal static ZNetPeer? FindReadyPeer(ZDOID characterId)
     {
         if (ZNet.instance == null)
         {
@@ -225,4 +338,5 @@ internal static class KillAttributionServer
                 .String("victim_id", victimId.IsNone() ? string.Empty : victimId.ToString())
                 .String("killer_id", killerId.IsNone() ? string.Empty : killerId.ToString()));
     }
+
 }

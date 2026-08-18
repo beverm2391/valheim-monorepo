@@ -9,6 +9,8 @@ namespace BenheimQoL.KillAttribution;
 internal static class KillAttributionClient
 {
     private static ZRpc? compatibleServerRpc;
+    private static readonly KillChainDeliveryCursor ChainDelivery =
+        new KillChainDeliveryCursor();
 
     internal static bool HasCompatibleServer =>
         compatibleServerRpc != null
@@ -24,8 +26,12 @@ internal static class KillAttributionClient
         }
 
         compatibleServerRpc = null;
+        ChainDelivery.Reset();
         peer.m_rpc.Register<int>(KillAttributionProtocol.CapabilityRpc, OnCapability);
         peer.m_rpc.Register<ZPackage>(KillAttributionProtocol.ConfirmedRpc, OnConfirmed);
+        peer.m_rpc.Register<ZPackage>(
+            KillAttributionProtocol.ChainTransitionRpc,
+            OnChainTransition);
     }
 
     [HarmonyPatch(typeof(ZNet), "OnDestroy")]
@@ -33,6 +39,7 @@ internal static class KillAttributionClient
     private static void BeforeNetworkDestroy()
     {
         compatibleServerRpc = null;
+        ChainDelivery.Reset();
     }
 
     internal static void Report(LethalHitObservation observation)
@@ -67,6 +74,37 @@ internal static class KillAttributionClient
                 observation,
                 "not_sent",
                 $"send_failed_{exception.GetType().Name}");
+        }
+    }
+
+    internal static void ReportLocalDeath(Player player)
+    {
+        if (player != Player.m_localPlayer
+            || ZNet.instance == null
+            || ZNet.instance.IsServer())
+        {
+            return;
+        }
+
+        ZRpc? serverRpc = ZNet.instance.GetServerRPC();
+        if (serverRpc == null || !HasCompatibleServer)
+        {
+            return;
+        }
+
+        try
+        {
+            serverRpc.Invoke(KillAttributionProtocol.ChainResetRpc);
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("PlayerCombat", "kill_chain_reset_requested")
+                    .String("reason", "death"));
+        }
+        catch (Exception exception)
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("PlayerCombat", "kill_chain_reset_not_sent")
+                    .String("reason", "death")
+                    .String("failure", exception.GetType().Name));
         }
     }
 
@@ -118,6 +156,64 @@ internal static class KillAttributionClient
                 message.Position,
                 message.ServerSequence,
                 message.ServerTimeSeconds));
+    }
+
+    private static void OnChainTransition(ZRpc rpc, ZPackage package)
+    {
+        if (!ReferenceEquals(rpc, ZNet.instance?.GetServerRPC()))
+        {
+            EmitDeliveryRejected("chain_non_server_sender");
+            return;
+        }
+
+        if (!KillAttributionProtocol.TryReadChainTransition(
+                package,
+                out KillChainTransitionMessage message))
+        {
+            EmitDeliveryRejected("invalid_chain_payload");
+            return;
+        }
+
+        Player? localPlayer = Player.m_localPlayer;
+        if (localPlayer == null || localPlayer.GetZDOID() != message.KillerId)
+        {
+            EmitDeliveryRejected("chain_killer_not_local_player");
+            return;
+        }
+
+        if (!ChainDelivery.TryAccept(message.Kind, message.ServerSequence))
+        {
+            EmitDeliveryRejected("chain_sequence_not_new");
+            return;
+        }
+
+        BerserkerChainTransitionKind kind = message.Kind switch
+        {
+            KillChainTransitionKind.Progressed => BerserkerChainTransitionKind.Progressed,
+            KillChainTransitionKind.Activated => BerserkerChainTransitionKind.Activated,
+            KillChainTransitionKind.Refreshed => BerserkerChainTransitionKind.Refreshed,
+            KillChainTransitionKind.Escalated => BerserkerChainTransitionKind.Escalated,
+            KillChainTransitionKind.Expired => BerserkerChainTransitionKind.Expired,
+            KillChainTransitionKind.Reset => BerserkerChainTransitionKind.Reset,
+            _ => throw new ArgumentOutOfRangeException(nameof(message.Kind))
+        };
+        BerserkerChainTier tier = message.Tier switch
+        {
+            KillChainTier.None => BerserkerChainTier.None,
+            KillChainTier.Berserker => BerserkerChainTier.Berserker,
+            KillChainTier.Slaughterhouse => BerserkerChainTier.Slaughterhouse,
+            _ => throw new ArgumentOutOfRangeException(nameof(message.Tier))
+        };
+
+        PlayerCombatRuntime.Publish(
+            new BerserkerChainTransition(
+                PlayerCombatContext.Capture(localPlayer),
+                kind,
+                tier,
+                message.KillCount,
+                message.ServerSequence,
+                message.ServerTimeSeconds,
+                message.ExpiresAtServerTimeSeconds));
     }
 
     private static void EmitReport(

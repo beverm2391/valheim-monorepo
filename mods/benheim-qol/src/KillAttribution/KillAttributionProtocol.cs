@@ -11,10 +11,12 @@ namespace BenheimQoL.KillAttribution;
 /// </summary>
 internal static class KillAttributionProtocol
 {
-    internal const int Version = 1;
-    internal const string CapabilityRpc = "Benheim_Kill_Capability_V1";
-    internal const string ReportRpc = "Benheim_Kill_Report_V1";
-    internal const string ConfirmedRpc = "Benheim_Kill_Confirmed_V1";
+    internal const int Version = 2;
+    internal const string CapabilityRpc = "Benheim_Kill_Capability_V2";
+    internal const string ReportRpc = "Benheim_Kill_Report_V2";
+    internal const string ConfirmedRpc = "Benheim_Kill_Confirmed_V2";
+    internal const string ChainTransitionRpc = "Benheim_Kill_Chain_Transition_V2";
+    internal const string ChainResetRpc = "Benheim_Kill_Chain_Reset_V2";
 
     private const int OperationIdLength = 32;
     private const int MaximumPrefabNameLength = 128;
@@ -137,6 +139,127 @@ internal static class KillAttributionProtocol
             return false;
         }
     }
+
+    internal static ZPackage BuildChainTransition(KillChainTransitionMessage message)
+    {
+        ZPackage package = new ZPackage();
+        package.Write(Version);
+        package.Write(message.KillerId);
+        package.Write((int)message.Kind);
+        package.Write((int)message.Tier);
+        package.Write(message.KillCount);
+        package.Write(message.ServerSequence);
+        package.Write(message.ServerTimeSeconds);
+        package.Write(message.ExpiresAtServerTimeSeconds);
+        return package;
+    }
+
+    internal static bool TryReadChainTransition(
+        ZPackage package,
+        out KillChainTransitionMessage message)
+    {
+        message = default;
+        try
+        {
+            int version = package.ReadInt();
+            ZDOID killerId = package.ReadZDOID();
+            KillChainTransitionKind kind = (KillChainTransitionKind)package.ReadInt();
+            KillChainTier tier = (KillChainTier)package.ReadInt();
+            int killCount = package.ReadInt();
+            long serverSequence = package.ReadLong();
+            double serverTimeSeconds = package.ReadDouble();
+            double expiresAtServerTimeSeconds = package.ReadDouble();
+            if (version != Version
+                || killerId.IsNone()
+                || !TransitionShapeIsValid(kind, tier, killCount, expiresAtServerTimeSeconds)
+                || serverSequence < 1L
+                || !FiniteNonNegative(serverTimeSeconds)
+                || !FiniteNonNegative(expiresAtServerTimeSeconds)
+                || (TransitionHasDeadline(kind)
+                    && expiresAtServerTimeSeconds <= serverTimeSeconds)
+                || package.GetPos() != package.Size())
+            {
+                return false;
+            }
+
+            message = new KillChainTransitionMessage(
+                killerId,
+                kind,
+                tier,
+                killCount,
+                serverSequence,
+                serverTimeSeconds,
+                expiresAtServerTimeSeconds);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private static bool TransitionShapeIsValid(
+        KillChainTransitionKind kind,
+        KillChainTier tier,
+        int killCount,
+        double expiresAtServerTimeSeconds)
+    {
+        switch (kind)
+        {
+            case KillChainTransitionKind.Progressed:
+                return tier == KillChainTier.None
+                    && killCount >= 1
+                    && killCount < 3;
+            case KillChainTransitionKind.Activated:
+                return tier == KillChainTier.Berserker && killCount == 3;
+            case KillChainTransitionKind.Refreshed:
+                return (tier == KillChainTier.Berserker
+                        && killCount > 3
+                        && killCount < 6)
+                    || (tier == KillChainTier.Slaughterhouse && killCount > 6);
+            case KillChainTransitionKind.Escalated:
+                return tier == KillChainTier.Slaughterhouse && killCount == 6;
+            case KillChainTransitionKind.Expired:
+            case KillChainTransitionKind.Reset:
+                return tier == KillChainTier.None
+                    && killCount == 0
+                    && expiresAtServerTimeSeconds == 0d;
+            default:
+                return false;
+        }
+    }
+
+    private static bool TransitionHasDeadline(KillChainTransitionKind kind)
+    {
+        return kind == KillChainTransitionKind.Progressed
+            || kind == KillChainTransitionKind.Activated
+            || kind == KillChainTransitionKind.Refreshed
+            || kind == KillChainTransitionKind.Escalated;
+    }
+
+    private static bool FiniteNonNegative(double value)
+    {
+        return !double.IsNaN(value)
+            && !double.IsInfinity(value)
+            && value >= 0d;
+    }
+}
+
+internal enum KillChainTransitionKind
+{
+    Progressed = 1,
+    Activated = 2,
+    Refreshed = 3,
+    Escalated = 4,
+    Expired = 5,
+    Reset = 6
+}
+
+internal enum KillChainTier
+{
+    None = 0,
+    Berserker = 1,
+    Slaughterhouse = 2
 }
 
 internal readonly struct KillReport
@@ -192,4 +315,33 @@ internal readonly struct ConfirmedKillMessage
     internal Vector3 Position { get; }
     internal long ServerSequence { get; }
     internal double ServerTimeSeconds { get; }
+}
+
+internal readonly struct KillChainTransitionMessage
+{
+    internal KillChainTransitionMessage(
+        ZDOID killerId,
+        KillChainTransitionKind kind,
+        KillChainTier tier,
+        int killCount,
+        long serverSequence,
+        double serverTimeSeconds,
+        double expiresAtServerTimeSeconds)
+    {
+        KillerId = killerId;
+        Kind = kind;
+        Tier = tier;
+        KillCount = killCount;
+        ServerSequence = serverSequence;
+        ServerTimeSeconds = serverTimeSeconds;
+        ExpiresAtServerTimeSeconds = expiresAtServerTimeSeconds;
+    }
+
+    internal ZDOID KillerId { get; }
+    internal KillChainTransitionKind Kind { get; }
+    internal KillChainTier Tier { get; }
+    internal int KillCount { get; }
+    internal long ServerSequence { get; }
+    internal double ServerTimeSeconds { get; }
+    internal double ExpiresAtServerTimeSeconds { get; }
 }

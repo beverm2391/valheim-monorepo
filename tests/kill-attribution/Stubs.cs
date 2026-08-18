@@ -21,6 +21,23 @@ public readonly struct ZDOID : IEquatable<ZDOID>
 
 public class Character
 {
+    public enum Faction
+    {
+        Players,
+        AnimalsVeg,
+        ForestMonsters,
+        Undead,
+        Demon,
+        MountainMonsters,
+        SeaMonsters,
+        PlainsMonsters,
+        Boss,
+        MistlandsMonsters,
+        Dverger,
+        PlayerSpawned,
+        TrainingDummy
+    }
+
     public bool Owner { get; set; }
     public bool PlayerCharacter { get; set; }
     public float Health { get; set; }

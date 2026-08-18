@@ -68,6 +68,58 @@ Assert(
     && confirmation.ServerTimeSeconds == 2048.5d,
     "the server-owned confirmation facts should round-trip exactly");
 
+KillChainTransitionMessage originalTransition = new KillChainTransitionMessage(
+    killerId,
+    KillChainTransitionKind.Activated,
+    KillChainTier.Berserker,
+    killCount: 3,
+    serverSequence: 9L,
+    serverTimeSeconds: 200d,
+    expiresAtServerTimeSeconds: 210d);
+ZPackage transitionBytes = KillAttributionProtocol.BuildChainTransition(originalTransition);
+Assert(
+    KillAttributionProtocol.TryReadChainTransition(
+        new ZPackage(transitionBytes.GetArray()),
+        out KillChainTransitionMessage transition)
+    && transition.KillerId == killerId
+    && transition.Kind == KillChainTransitionKind.Activated
+    && transition.Tier == KillChainTier.Berserker
+    && transition.KillCount == 3
+    && transition.ServerSequence == 9L
+    && transition.ServerTimeSeconds == 200d
+    && transition.ExpiresAtServerTimeSeconds == 210d,
+    "the typed chain transition should round-trip exactly");
+
+KillChainTransitionMessage invalidTransition = new KillChainTransitionMessage(
+    killerId,
+    KillChainTransitionKind.Escalated,
+    KillChainTier.Berserker,
+    killCount: 6,
+    serverSequence: 10L,
+    serverTimeSeconds: 201d,
+    expiresAtServerTimeSeconds: 211d);
+Assert(
+    !KillAttributionProtocol.TryReadChainTransition(
+        new ZPackage(KillAttributionProtocol.BuildChainTransition(invalidTransition).GetArray()),
+        out _),
+    "the wire parser must reject a tier that contradicts the transition kind");
+
+KillChainDeliveryCursor deliveryCursor = new KillChainDeliveryCursor();
+Assert(
+    deliveryCursor.TryAccept(KillChainTransitionKind.Progressed, 4L)
+    && !deliveryCursor.TryAccept(KillChainTransitionKind.Progressed, 4L)
+    && !deliveryCursor.TryAccept(KillChainTransitionKind.Activated, 3L)
+    && deliveryCursor.TryAccept(KillChainTransitionKind.Activated, 5L)
+    && deliveryCursor.TryAccept(KillChainTransitionKind.Expired, 5L)
+    && !deliveryCursor.TryAccept(KillChainTransitionKind.Expired, 5L)
+    && !deliveryCursor.TryAccept(KillChainTransitionKind.Refreshed, 5L),
+    "the client cursor should reject replayed, stale, and duplicate-terminal transition facts");
+deliveryCursor.Reset();
+Assert(
+    deliveryCursor.TryAccept(KillChainTransitionKind.Progressed, 1L)
+    && deliveryCursor.TryAccept(KillChainTransitionKind.Reset, 1L),
+    "a new network session should accept a fresh chain and its same-sequence terminal fact");
+
 Player killer = new Player
 {
     Owner = true,
@@ -141,5 +193,176 @@ Assert(state.TryConfirm("victim-d", "killer-a", out long afterDisconnect) && aft
 state.Reset();
 Assert(state.TryConfirm("victim-d", "killer-a", out long afterReset) && afterReset == 1L,
     "world teardown should clear duplicate and sequence state");
+
+Assert(
+    VictimQualification.IsHostileCreature(
+        Character.Faction.ForestMonsters,
+        isBoss: false,
+        isTamed: false,
+        hasMonsterAi: true,
+        isCanonicalBoar: false),
+    "native hostile monster factions should qualify");
+Assert(
+    VictimQualification.IsHostileCreature(
+        Character.Faction.Boss,
+        isBoss: true,
+        isTamed: false,
+        hasMonsterAi: true,
+        isCanonicalBoar: false),
+    "native bosses should qualify even though IsMonsterFaction excludes Boss");
+Assert(
+    !VictimQualification.IsHostileCreature(
+        Character.Faction.ForestMonsters,
+        isBoss: false,
+        isTamed: false,
+        hasMonsterAi: false,
+        isCanonicalBoar: false),
+    "AnimalAI hunting creatures such as deer must not qualify even when Valheim gives them a monster faction");
+Assert(
+    !VictimQualification.IsHostileCreature(
+        Character.Faction.ForestMonsters,
+        isBoss: false,
+        isTamed: false,
+        hasMonsterAi: true,
+        isCanonicalBoar: true),
+    "the canonical passive Boar prefab must not qualify despite its MonsterAI and monster faction");
+Assert(
+    !VictimQualification.IsHostileCreature(
+        Character.Faction.PlainsMonsters,
+        isBoss: false,
+        isTamed: true,
+        hasMonsterAi: true,
+        isCanonicalBoar: false),
+    "a tamed creature must never qualify even when its prefab has a hostile faction");
+Assert(
+    !VictimQualification.IsHostileCreature(
+        Character.Faction.Dverger,
+        isBoss: false,
+        isTamed: false,
+        hasMonsterAi: true,
+        isCanonicalBoar: false),
+    "neutral native factions must not qualify");
+
+KillChainState<string> chains = new KillChainState<string>();
+KillChainTransition<string> chain1 = chains.Advance("killer-a", 1L, 100d);
+KillChainTransition<string> chain2 = chains.Advance("killer-a", 2L, 109d);
+KillChainTransition<string> chain3 = chains.Advance("killer-a", 3L, 118d);
+Assert(
+    chain1.Kind == KillChainTransitionKind.Progressed
+    && chain1.KillCount == 1
+    && chain1.ExpiresAtServerTimeSeconds == 110d
+    && chain2.Kind == KillChainTransitionKind.Progressed
+    && chain2.KillCount == 2
+    && chain2.ExpiresAtServerTimeSeconds == 119d
+    && chain3.Kind == KillChainTransitionKind.Activated
+    && chain3.Tier == KillChainTier.Berserker
+    && chain3.KillCount == 3
+    && chain3.ExpiresAtServerTimeSeconds == 128d,
+    "each qualifying kill should add one and refresh a rolling ten-second window");
+
+KillChainTransition<string> chain4 = chains.Advance("killer-a", 4L, 118d);
+KillChainTransition<string> chain5 = chains.Advance("killer-a", 5L, 118d);
+KillChainTransition<string> chain6 = chains.Advance("killer-a", 6L, 118d);
+KillChainTransition<string> chain7 = chains.Advance("killer-a", 7L, 118d);
+Assert(
+    chain4.Kind == KillChainTransitionKind.Refreshed
+    && chain4.Tier == KillChainTier.Berserker
+    && chain5.Kind == KillChainTransitionKind.Refreshed
+    && chain5.Tier == KillChainTier.Berserker
+    && chain6.Kind == KillChainTransitionKind.Escalated
+    && chain6.Tier == KillChainTier.Slaughterhouse
+    && chain7.Kind == KillChainTransitionKind.Refreshed
+    && chain7.Tier == KillChainTier.Slaughterhouse,
+    "canonical server order should advance simultaneous kills through both tiers");
+
+KillChainTransition<string> otherKiller = chains.Advance("killer-b", 1L, 118d);
+Assert(
+    otherKiller.KillCount == 1 && otherKiller.Tier == KillChainTier.None,
+    "chains must remain individual per killer");
+
+List<KillChainTransition<string>> expired = new List<KillChainTransition<string>>();
+chains.CollectExpired(127.999d, expired);
+Assert(expired.Count == 0, "a chain should remain active before its deadline");
+chains.CollectExpired(128d, expired);
+Assert(
+    expired.Count == 2
+    && expired.TrueForAll(item => item.Kind == KillChainTransitionKind.Expired)
+    && expired.TrueForAll(item => item.KillCount == 0),
+    "ten seconds without another qualifying kill should expire every due chain");
+Assert(
+    chains.Advance("killer-a", 8L, 128d).KillCount == 1,
+    "a kill at or after the deadline should begin a new chain");
+
+Assert(
+    chains.ResetKiller("killer-a", 129d, out KillChainTransition<string> reset)
+    && reset.Kind == KillChainTransitionKind.Reset
+    && reset.KillCount == 0
+    && !chains.ResetKiller("killer-a", 130d, out _),
+    "death should clear one killer once and emit one reset transition");
+
+chains.Advance("killer-a", 9L, 130d);
+chains.Advance("killer-b", 2L, 130d);
+chains.RemoveKiller("killer-a");
+Assert(
+    chains.Advance("killer-a", 10L, 131d).KillCount == 1
+    && chains.Advance("killer-b", 3L, 131d).KillCount == 2,
+    "disconnect should clear only the disconnected killer's chain");
+chains.Reset();
+Assert(
+    chains.Advance("killer-b", 4L, 132d).KillCount == 1,
+    "world or plugin reset should clear every chain");
+
+KillChainDeliveryQueue<string, string> pending =
+    new KillChainDeliveryQueue<string, string>(maximumPerKiller: 2);
+Assert(
+    pending.Enqueue("killer-a", "activate")
+    && pending.Enqueue("killer-a", "refresh")
+    && !pending.Enqueue("killer-a", "overflow")
+    && pending.Enqueue("killer-b", "other")
+    && pending.KillerCount == 2,
+    "failed transition delivery should be retained in a bounded per-killer queue");
+Assert(
+    pending.TryPeek("killer-a", out string firstPending)
+    && firstPending == "activate",
+    "a failed send should leave the activation at the head for retry");
+pending.ReplaceHead("killer-a", "activate-retry");
+Assert(
+    pending.TryPeek("killer-a", out string retriedPending)
+    && retriedPending == "activate-retry",
+    "a failed retry should update its retry record without changing order");
+pending.MarkDelivered("killer-a");
+Assert(
+    pending.TryPeek("killer-a", out string secondPending)
+    && secondPending == "refresh",
+    "a later refresh must remain blocked until the activation is delivered");
+pending.RemoveKiller("killer-a");
+Assert(
+    !pending.HasPending("killer-a") && pending.HasPending("killer-b"),
+    "abandoning one disconnected killer must preserve other pending deliveries");
+
+int transportSends = 0;
+Assert(
+    !KillChainDeliveryAttempt.TrySend(
+        isConnected: false,
+        () => transportSends++,
+        out string disconnectedFailure)
+    && transportSends == 0
+    && disconnectedFailure == "rpc_disconnected",
+    "a disconnected Valheim RPC must fail before its silent no-op Invoke can discard the transition");
+Assert(
+    !KillChainDeliveryAttempt.TrySend(
+        isConnected: true,
+        () => throw new InvalidOperationException(),
+        out string exceptionFailure)
+    && exceptionFailure == "delivery_failed_InvalidOperationException",
+    "a thrown send must remain a failed attempt for the retry outbox");
+Assert(
+    KillChainDeliveryAttempt.TrySend(
+        isConnected: true,
+        () => transportSends++,
+        out string sentFailure)
+    && transportSends == 1
+    && sentFailure == string.Empty,
+    "a connected successful send should be the only transport path marked delivered");
 
 Console.WriteLine("Kill attribution authority and server ordering checks passed");
