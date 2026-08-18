@@ -65,9 +65,13 @@ internal static class AdrenalineAwardFeedbackPatch
         AdrenalineFeedback.EndModifiedAmountCapture(__state);
     }
 
-    private static Exception? Finalizer(Exception? __exception, AdrenalineFeedback.Award? __state)
+    private static Exception? Finalizer(
+        Player __instance,
+        Exception? __exception,
+        AdrenalineFeedback.Award? __state)
     {
         AdrenalineFeedback.EndModifiedAmountCapture(__state);
+        PlayerCombatRuntime.CompletePerfectDefensePresentation(__instance, adrenalineLine: null);
         return __exception;
     }
 }

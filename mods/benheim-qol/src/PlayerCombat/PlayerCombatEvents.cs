@@ -24,6 +24,72 @@ internal enum EarnedCombatState
     Berserker
 }
 
+internal enum ClutchDecisionOutcome
+{
+    Activate,
+    Refresh,
+    Reject
+}
+
+internal enum ClutchDecisionReason
+{
+    CriticalHealth,
+    HealthThresholdNotMet
+}
+
+internal enum EarnedStateTransitionKind
+{
+    Activated,
+    Refreshed,
+    Expired,
+    Removed,
+    Rejected
+}
+
+internal enum EarnedStateTransitionReason
+{
+    NativeEffectApplied,
+    NativeEffectRefreshed,
+    NativeDurationElapsed,
+    AcceptedDamage,
+    TierReplaced,
+    LifecycleReset,
+    ServerChainExpired,
+    ServerChainReset,
+    ServerChainAlreadyExpired,
+    EffectUnavailable,
+    NativeApplicationFailed
+}
+
+internal enum UntouchableProgressOutcome
+{
+    StreakIncremented,
+    TierActivated,
+    TierEscalated
+}
+
+internal enum UntouchableResetReason
+{
+    AcceptedDamage
+}
+
+internal enum BerserkerChainTransitionKind
+{
+    Progressed,
+    Activated,
+    Refreshed,
+    Escalated,
+    Expired,
+    Reset
+}
+
+internal enum BerserkerChainTier
+{
+    None,
+    Berserker,
+    Slaughterhouse
+}
+
 /// <summary>
 /// Captures the player facts that were true when a combat event occurred.
 /// The Player reference identifies the ephemeral controller; health values are
@@ -67,6 +133,219 @@ internal sealed class PerfectDefenseConfirmed
     internal PerfectDefenseKind Kind { get; }
     internal float? BlockTimer { get; }
     internal float? TimedBlockBonus { get; }
+}
+
+/// <summary>
+/// Records the CLUTCH rule's decision from the immutable perfect-defense
+/// snapshot. Native output happens only after an eligible decision.
+/// </summary>
+internal sealed class ClutchDecision
+{
+    internal ClutchDecision(
+        PlayerCombatContext context,
+        PerfectDefenseKind defense,
+        float healthThreshold,
+        ClutchDecisionOutcome outcome,
+        ClutchDecisionReason reason)
+    {
+        Context = context ?? throw new ArgumentNullException(nameof(context));
+        Defense = defense;
+        HealthThreshold = healthThreshold;
+        Outcome = outcome;
+        Reason = reason;
+    }
+
+    internal PlayerCombatContext Context { get; }
+    internal PerfectDefenseKind Defense { get; }
+    internal float HealthThreshold { get; }
+    internal ClutchDecisionOutcome Outcome { get; }
+    internal ClutchDecisionReason Reason { get; }
+}
+
+/// <summary>
+/// Records the accepted native-output lifecycle for an earned combat state.
+/// Presentation and diagnostics project this fact but do not decide gameplay.
+/// </summary>
+internal sealed class EarnedStateTransition
+{
+    internal EarnedStateTransition(
+        PlayerCombatContext context,
+        EarnedCombatState state,
+        int tier,
+        EarnedStateTransitionKind kind,
+        EarnedStateTransitionReason reason)
+    {
+        if (tier <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(tier));
+        }
+
+        Context = context ?? throw new ArgumentNullException(nameof(context));
+        State = state;
+        Tier = tier;
+        Kind = kind;
+        Reason = reason;
+    }
+
+    internal PlayerCombatContext Context { get; }
+    internal EarnedCombatState State { get; }
+    internal int Tier { get; }
+    internal EarnedStateTransitionKind Kind { get; }
+    internal EarnedStateTransitionReason Reason { get; }
+}
+
+/// <summary>
+/// One mixed parry-and-dodge streak update and any tier decision it makes.
+/// The event is emitted once per confirmed defense without per-frame traffic.
+/// </summary>
+internal sealed class UntouchableProgress
+{
+    internal UntouchableProgress(
+        PlayerCombatContext context,
+        PerfectDefenseKind defense,
+        int previousStreak,
+        int currentStreak,
+        int previousTier,
+        int currentTier,
+        UntouchableProgressOutcome outcome)
+    {
+        Context = context ?? throw new ArgumentNullException(nameof(context));
+        Defense = defense;
+        PreviousStreak = previousStreak;
+        CurrentStreak = currentStreak;
+        PreviousTier = previousTier;
+        CurrentTier = currentTier;
+        Outcome = outcome;
+    }
+
+    internal PlayerCombatContext Context { get; }
+    internal PerfectDefenseKind Defense { get; }
+    internal int PreviousStreak { get; }
+    internal int CurrentStreak { get; }
+    internal int PreviousTier { get; }
+    internal int CurrentTier { get; }
+    internal UntouchableProgressOutcome Outcome { get; }
+}
+
+internal sealed class UntouchableReset
+{
+    internal UntouchableReset(
+        AcceptedPlayerDamage damage,
+        int previousStreak,
+        int previousTier,
+        UntouchableResetReason reason)
+    {
+        Damage = damage ?? throw new ArgumentNullException(nameof(damage));
+        PreviousStreak = previousStreak;
+        PreviousTier = previousTier;
+        Reason = reason;
+    }
+
+    internal AcceptedPlayerDamage Damage { get; }
+    internal int PreviousStreak { get; }
+    internal int PreviousTier { get; }
+    internal UntouchableResetReason Reason { get; }
+}
+
+/// <summary>
+/// One authoritative server-chain transition delivered to the validated local
+/// killer. The server owns chain timing; the native client duration is only an
+/// output/countdown safety bound.
+/// </summary>
+internal sealed class BerserkerChainTransition
+{
+    internal BerserkerChainTransition(
+        PlayerCombatContext context,
+        BerserkerChainTransitionKind kind,
+        BerserkerChainTier tier,
+        int killCount,
+        long serverSequence,
+        double serverTimeSeconds,
+        double expiresAtServerTimeSeconds)
+    {
+        if (killCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(killCount));
+        }
+
+        if (serverSequence < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(serverSequence));
+        }
+
+        if (double.IsNaN(serverTimeSeconds)
+            || double.IsInfinity(serverTimeSeconds)
+            || double.IsNaN(expiresAtServerTimeSeconds)
+            || double.IsInfinity(expiresAtServerTimeSeconds))
+        {
+            throw new ArgumentException("Chain transition times must be finite.");
+        }
+
+        bool active = kind == BerserkerChainTransitionKind.Activated
+            || kind == BerserkerChainTransitionKind.Refreshed
+            || kind == BerserkerChainTransitionKind.Escalated;
+        bool terminal = kind == BerserkerChainTransitionKind.Expired
+            || kind == BerserkerChainTransitionKind.Reset;
+        bool validShape = kind switch
+        {
+            BerserkerChainTransitionKind.Progressed =>
+                tier == BerserkerChainTier.None && killCount is >= 1 and <= 2,
+            BerserkerChainTransitionKind.Activated =>
+                tier == BerserkerChainTier.Berserker && killCount == 3,
+            BerserkerChainTransitionKind.Refreshed =>
+                (tier == BerserkerChainTier.Berserker && killCount is >= 4 and <= 5)
+                || (tier == BerserkerChainTier.Slaughterhouse && killCount > 6),
+            BerserkerChainTransitionKind.Escalated =>
+                tier == BerserkerChainTier.Slaughterhouse && killCount == 6,
+            BerserkerChainTransitionKind.Expired =>
+                tier == BerserkerChainTier.None && killCount == 0,
+            BerserkerChainTransitionKind.Reset =>
+                tier == BerserkerChainTier.None && killCount == 0,
+            _ => false
+        };
+        if (!validShape)
+        {
+            throw new ArgumentException("Chain transition kind, tier, and count are inconsistent.");
+        }
+
+        if (active && expiresAtServerTimeSeconds <= serverTimeSeconds)
+        {
+            throw new ArgumentException("Active chain transitions require a future server expiry.");
+        }
+
+        if ((kind == BerserkerChainTransitionKind.Progressed
+                && expiresAtServerTimeSeconds <= serverTimeSeconds)
+            || (terminal && expiresAtServerTimeSeconds != 0d))
+        {
+            throw new ArgumentException("Chain transition expiry is inconsistent with its lifecycle.");
+        }
+
+        Context = context ?? throw new ArgumentNullException(nameof(context));
+        Kind = kind;
+        Tier = tier;
+        KillCount = killCount;
+        ServerSequence = serverSequence;
+        ServerTimeSeconds = serverTimeSeconds;
+        ExpiresAtServerTimeSeconds = expiresAtServerTimeSeconds;
+    }
+
+    internal PlayerCombatContext Context { get; }
+    internal BerserkerChainTransitionKind Kind { get; }
+    internal BerserkerChainTier Tier { get; }
+    internal int KillCount { get; }
+    internal long ServerSequence { get; }
+    internal double ServerTimeSeconds { get; }
+    internal double ExpiresAtServerTimeSeconds { get; }
+    internal float RemainingDurationSeconds(double currentServerTimeSeconds)
+    {
+        if (double.IsNaN(currentServerTimeSeconds)
+            || double.IsInfinity(currentServerTimeSeconds))
+        {
+            throw new ArgumentException("Current server time must be finite.");
+        }
+
+        return (float)Math.Max(0d, ExpiresAtServerTimeSeconds - currentServerTimeSeconds);
+    }
 }
 
 internal sealed class AcceptedPlayerDamage

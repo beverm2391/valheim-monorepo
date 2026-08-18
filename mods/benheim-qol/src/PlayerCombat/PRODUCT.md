@@ -18,25 +18,77 @@ health can increase the reward for ordinary melee that already earns
 adrenaline. Bold aggression while outnumbered can also increase an action's
 reward.
 
-Earned combat states use a large activation message, an appropriate
-native-style effect, and a visible status while their bonus is active. The first
-states are:
+Earned combat states use local above-player activation text, an appropriate
+native-style effect, and a visible status while their bonus is active. The
+Ben has approved the candidates below for experimentation. Gameplay testing has
+not confirmed their tuning or presentation.
 
-- `UNTOUCHABLE` rewards consecutive perfect defenses without taking damage.
-  Its damage bonus escalates as the streak grows. Once earned, the bonus remains
-  until the player takes damage.
-- `CLUTCH` rewards a perfect defense while the player is at critical health. It
-  grants strong health regeneration rather than instant healing. Its first
-  version activates when a player at critical health makes a perfect defense.
-  It does not claim that the avoided attack would have been lethal.
-- `BERSERKER` rewards confirmed kills within a short chain. More kills escalate
-  the same chain into `SLAUGHTERHOUSE!`. The state grants damage resistance and
-  stamina regeneration so the player can sustain bold aggression.
+### CLUTCH
 
-The exact thresholds, bonus strengths, caps, and presentation remain open
-pending gameplay testing. `CLUTCH` must use the same activation rule for perfect
-parries and perfect dodges. Exact avoided-damage evidence may refine the rule
-later.
+`CLUTCH` activates when a confirmed perfect parry or perfect dodge occurs while
+the player has less than 30 health. It does not claim that the avoided attack
+would have been lethal.
+
+The state recovers 60 health over six seconds at 10 health per second. Native
+healing caps the result at maximum health. Another confirmed perfect parry or
+perfect dodge while the player has less than 30 health refreshes the same
+six-second effect. It does not add another effect or icon, and it does not replay
+entry presentation. Accepted damage does not cancel the state.
+
+On entry, CLUTCH adds `CLUTCH!` to the originating defense's local blue Bonus
+text and plays Valheim's native adrenaline-charm activation cue. `CLUTCH` uses
+the Lingering Healing Mead icon for its native status. Death, player or world
+change, and plugin teardown clear the state.
+
+### UNTOUCHABLE
+
+Every confirmed perfect parry or perfect dodge increments one shared streak.
+The two defense types can mix, and a defense that activates CLUTCH also counts.
+The streak has no timer or encounter reset. It remains through portals,
+sailing, sleep, downtime, and separate encounters while the same player is
+loaded in the same world.
+
+- Tier I starts at five defenses and adds 10% to all outgoing player damage.
+- Tier II starts at eight defenses and replaces Tier I with a 20% bonus.
+- Tier III starts at twelve defenses and replaces Tier II with a 30% bonus.
+
+Any accepted health loss resets the streak and quietly removes the active tier.
+This includes direct attacks, damage over time, fire, falls, and environmental
+damage. A contact that causes no health loss does not reset it. The state has no
+decay or cooldown. It does not persist across death, a player or world change,
+or a plugin session.
+
+Each new tier adds `UNTOUCHABLE!`, `UNTOUCHABLE II!`, or `UNTOUCHABLE III!` to
+the originating defense's local blue Bonus text. It also plays the native
+adrenaline-charm activation cue. Tier replacement keeps one modifier and one
+Wolf Sight status icon. The native indefinite status shows no countdown.
+
+### BERSERKER
+
+`BERSERKER` rewards a rolling chain of server-confirmed kills. Tier I applies
+native Slightly Resistant physical protection to blunt, slash, and pierce
+damage only. It reduces those damage types by 25% and adds 50% stamina
+regeneration.
+
+Tier II replaces Tier I and presents `SLAUGHTERHOUSE!`. It applies native
+Resistant physical protection to the same three damage types, reducing them by
+50%, and adds 100% stamina regeneration. Neither tier changes elemental,
+poison, or spirit resistance. Neither tier changes outgoing damage.
+
+Entry and escalation use the same local Bonus text and native charm cue as the
+other earned states. A confirmed kill that does not advance the tier refreshes
+the one active effect and countdown without replaying the local Bonus text or
+charm cue. Both tiers reuse the Crystal Heart status icon. Expiration and
+removal are quiet.
+
+One confirmed defense can produce an adrenaline message and multiple
+earned-state titles. Benheim combines them into one local Bonus text in the
+order that the defense earns them. It also plays at most one charm cue for that
+defense. This rule does not combine unrelated actions or callbacks.
+
+None of the three states adds extra adrenaline. Existing perfect-defense
+adrenaline behavior remains unchanged. Exact avoided-damage evidence may refine
+CLUTCH later.
 
 [Adrenaline](../Adrenaline/PRODUCT.md) owns meter behavior and tuning.
 [Weapon Rhythm](../WeaponRhythm/PRODUCT.md),

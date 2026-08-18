@@ -18,7 +18,9 @@ internal static class PlayerCombatRuntime
     private static readonly EarnedStatePresentation Presentation =
         new EarnedStatePresentation();
     private static readonly NativeEarnedStateOutput Output =
-        new NativeEarnedStateOutput(Effects, Presentation);
+        new NativeEarnedStateOutput(Effects);
+    private static readonly RuntimeFactPublisher Facts =
+        new RuntimeFactPublisher();
 
     private static LocalGameEventBus? events;
 
@@ -31,12 +33,29 @@ internal static class PlayerCombatRuntime
 
         events = new LocalGameEventBus(LogSubscriberFailure);
         AdrenalineFeedback.Reset();
+        Presentation.Reset();
+        Effects.Configure(
+            ClutchMechanic.CreateEffectDefinition(),
+            UntouchableMechanic.CreateEffectDefinition(1),
+            UntouchableMechanic.CreateEffectDefinition(2),
+            UntouchableMechanic.CreateEffectDefinition(3),
+            BerserkerMechanic.CreateEffectDefinition(1),
+            BerserkerMechanic.CreateEffectDefinition(2));
 
         // Controllers and native gameplay adapters subscribe before diagnostic
         // projections. Telemetry can fail, but it cannot cancel a decision.
         events.Subscribe<PerfectDefenseConfirmed>(ObservePerfectDefense);
         events.Subscribe<PerfectDefenseConfirmed>(AdrenalineFeedback.ObservePerfectDefense);
         events.Subscribe<PerfectDefenseConfirmed>(PlayerCombatDiagnostics.Project);
+
+        events.Subscribe<ClutchDecision>(PlayerCombatDiagnostics.Project);
+        events.Subscribe<UntouchableProgress>(PlayerCombatDiagnostics.Project);
+        events.Subscribe<UntouchableReset>(PlayerCombatDiagnostics.Project);
+        events.Subscribe<EarnedStateTransition>(Presentation.Observe);
+        events.Subscribe<EarnedStateTransition>(PlayerCombatDiagnostics.Project);
+
+        events.Subscribe<BerserkerChainTransition>(ObserveBerserkerTransition);
+        events.Subscribe<BerserkerChainTransition>(PlayerCombatDiagnostics.Project);
 
         events.Subscribe<AcceptedPlayerDamage>(ObserveAcceptedDamage);
         events.Subscribe<AcceptedPlayerDamage>(PlayerCombatDiagnostics.Project);
@@ -50,18 +69,6 @@ internal static class PlayerCombatRuntime
         events.Subscribe<ConfirmedKill>(PlayerCombatDiagnostics.Project);
     }
 
-    internal static void ConfigureEffects(
-        params EarnedStateEffectDefinition[] definitions)
-    {
-        ObjectDB? database = ObjectDB.instance;
-        Effects.Unregister();
-        Effects.Configure(definitions);
-        if (database != null)
-        {
-            Effects.Register(database);
-        }
-    }
-
     internal static void RegisterNativeEffects(ObjectDB database)
     {
         Effects.Register(database);
@@ -70,6 +77,32 @@ internal static class PlayerCombatRuntime
     internal static void Publish(PerfectDefenseConfirmed perfectDefense)
     {
         events?.Publish(perfectDefense);
+    }
+
+    internal static void BeginPerfectDefensePresentation(PlayerCombatContext context)
+    {
+        Presentation.BeginPerfectDefense(context);
+    }
+
+    internal static void CompletePerfectDefensePresentation(
+        Player player,
+        string? adrenalineLine,
+        bool nativeCharmActivated = false)
+    {
+        try
+        {
+            Presentation.CompletePerfectDefense(
+                player,
+                adrenalineLine,
+                nativeCharmActivated);
+        }
+        catch (Exception exception)
+        {
+            Presentation.Reset();
+            TryEmitDiagnostic(
+                DiagnosticEvent.Create("PlayerCombat", "earned_state_presentation_failed")
+                    .String("error", Diagnostics.Flatten(exception.Message)));
+        }
     }
 
     internal static void Publish(AcceptedPlayerDamage damage)
@@ -91,6 +124,15 @@ internal static class PlayerCombatRuntime
         events?.Publish(confirmedKill);
     }
 
+    /// <summary>
+    /// The server-chain adapter calls this after validating its
+    /// authoritative transition for the current local killer.
+    /// </summary>
+    internal static void Publish(BerserkerChainTransition transition)
+    {
+        events?.Publish(transition);
+    }
+
     internal static void EndWorld()
     {
         events?.Publish(
@@ -103,7 +145,8 @@ internal static class PlayerCombatRuntime
         if (current == null)
         {
             ResetControllers();
-            Effects.Unregister();
+            Effects.Reset();
+            Presentation.Reset();
             return;
         }
 
@@ -111,18 +154,28 @@ internal static class PlayerCombatRuntime
             new PlayerCombatSessionEnded(PlayerCombatEndReason.PluginTeardown));
         current.Reset();
         events = null;
-        Effects.Unregister();
+        Effects.Reset();
+        Presentation.Reset();
         AdrenalineFeedback.Reset();
     }
 
     internal static void ObserveEffectStopped(
         Player player,
         EarnedCombatState state,
-        int tier)
+        int tier,
+        bool expired)
     {
-        if (Controllers.TryGetValue(player, out PlayerCombatController? controller))
+        if (Controllers.TryGetValue(player, out PlayerCombatController? controller)
+            && controller.ForgetStoppedOutput(state, tier)
+            && expired)
         {
-            controller.ForgetStoppedOutput(state, tier);
+            events?.Publish(
+                new EarnedStateTransition(
+                    PlayerCombatContext.Capture(player),
+                    state,
+                    tier,
+                    EarnedStateTransitionKind.Expired,
+                    EarnedStateTransitionReason.NativeDurationElapsed));
         }
     }
 
@@ -137,6 +190,11 @@ internal static class PlayerCombatRuntime
         {
             controller.Observe(damage);
         }
+    }
+
+    private static void ObserveBerserkerTransition(BerserkerChainTransition transition)
+    {
+        GetOrCreate(transition.Context.Player).Observe(transition);
     }
 
     private static void ObservePlayerEnded(PlayerCombatEnded ended)
@@ -166,7 +224,7 @@ internal static class PlayerCombatRuntime
     {
         if (!Controllers.TryGetValue(player, out PlayerCombatController? controller))
         {
-            controller = new PlayerCombatController(player, Output);
+            controller = new PlayerCombatController(player, Output, Facts);
             Controllers.Add(player, controller);
         }
 
@@ -194,9 +252,45 @@ internal static class PlayerCombatRuntime
 
     private static void LogSubscriberFailure(Type eventType, Exception exception)
     {
-        Diagnostics.Event(
-            "PlayerCombat",
-            "game_event_subscriber_failed",
-            $"event_type={eventType.Name} error={Diagnostics.Flatten(exception.Message)}");
+        TryEmitDiagnostic(
+            DiagnosticEvent.Create("PlayerCombat", "game_event_subscriber_failed")
+                .String("event_type", eventType.Name)
+                .String("error", Diagnostics.Flatten(exception.Message)));
+    }
+
+    private static void TryEmitDiagnostic(DiagnosticEvent diagnosticEvent)
+    {
+        try
+        {
+            Diagnostics.Emit(diagnosticEvent);
+        }
+        catch
+        {
+            // Diagnostic output cannot interrupt native callbacks, subscriber
+            // isolation, or deterministic lifecycle cleanup.
+        }
+    }
+
+    private sealed class RuntimeFactPublisher : IPlayerCombatFactPublisher
+    {
+        public void Publish(ClutchDecision decision)
+        {
+            events?.Publish(decision);
+        }
+
+        public void Publish(UntouchableProgress progress)
+        {
+            events?.Publish(progress);
+        }
+
+        public void Publish(UntouchableReset reset)
+        {
+            events?.Publish(reset);
+        }
+
+        public void Publish(EarnedStateTransition transition)
+        {
+            events?.Publish(transition);
+        }
     }
 }

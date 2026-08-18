@@ -1,7 +1,23 @@
 using System;
+using System.Collections.Generic;
 
 namespace UnityEngine
 {
+    public class Object
+    {
+        public string name = string.Empty;
+        public static void Destroy(Object value) { }
+    }
+
+    public class ScriptableObject : Object
+    {
+        public static T CreateInstance<T>() where T : ScriptableObject, new() => new T();
+    }
+
+    public sealed class Sprite : Object
+    {
+    }
+
     public readonly struct Vector3
     {
         public Vector3(float x, float y, float z)
@@ -11,10 +27,54 @@ namespace UnityEngine
             this.z = z;
         }
 
+        public static Vector3 up => new Vector3(0f, 1f, 0f);
+        public static Vector3 operator +(Vector3 left, Vector3 right) =>
+            new Vector3(left.x + right.x, left.y + right.y, left.z + right.z);
+        public static Vector3 operator *(Vector3 value, float scale) =>
+            new Vector3(value.x * scale, value.y * scale, value.z * scale);
+
         public readonly float x;
         public readonly float y;
         public readonly float z;
     }
+
+    public readonly struct Quaternion
+    {
+        public static Quaternion identity => new Quaternion();
+    }
+
+    public sealed class Transform
+    {
+        public Vector3 position;
+    }
+
+    public sealed class GameObject : Object
+    {
+        private readonly Dictionary<Type, object> components = new Dictionary<Type, object>();
+
+        public void AddComponent<T>(T component) where T : class
+        {
+            components[typeof(T)] = component;
+        }
+
+        public T? GetComponent<T>() where T : class
+        {
+            return components.TryGetValue(typeof(T), out object? value) ? (T)value : null;
+        }
+    }
+
+    public static class Mathf
+    {
+        public static float Max(float left, float right) => Math.Max(left, right);
+        public static float Min(float left, float right) => Math.Min(left, right);
+    }
+}
+
+public sealed class ZNet
+{
+    public static ZNet? instance { get; set; }
+    public double TimeSeconds { get; set; }
+    public double GetTimeSeconds() => TimeSeconds;
 }
 
 public readonly struct ZDOID
@@ -27,32 +87,169 @@ public readonly struct ZDOID
     public long Id { get; }
 }
 
+public static class Skills
+{
+    public enum SkillType
+    {
+        None,
+        All
+    }
+}
+
+public static class HitData
+{
+    public enum DamageType
+    {
+        Blunt,
+        Slash,
+        Pierce,
+        Fire,
+        Frost,
+        Lightning,
+        Poison,
+        Spirit
+    }
+
+    public enum DamageModifier
+    {
+        Normal,
+        Resistant,
+        SlightlyResistant
+    }
+
+    public struct DamageModPair
+    {
+        public DamageType m_type;
+        public DamageModifier m_modifier;
+    }
+}
+
 public class Character
 {
 }
 
-public class StatusEffect
+public class StatusEffect : UnityEngine.ScriptableObject
 {
-    public string name = string.Empty;
+    public string m_name = string.Empty;
+    public string m_category = string.Empty;
+    public UnityEngine.Sprite? m_icon;
+    public string m_tooltip = string.Empty;
+    public float m_ttl;
+    public string m_startMessage = string.Empty;
+    public string m_stopMessage = string.Empty;
     public Character? m_character;
+    protected float m_time;
 
     public int NameHash() => name.GetHashCode(StringComparison.Ordinal);
+
+    public virtual StatusEffect Clone() => (StatusEffect)MemberwiseClone();
+
+    public virtual void Setup(Character character)
+    {
+        m_character = character;
+    }
+
     public virtual void Stop() { }
+
+    public virtual void UpdateStatusEffect(float dt)
+    {
+        m_time += dt;
+    }
+
+    public virtual bool IsDone() => m_ttl > 0f && m_time > m_ttl;
+
+    public virtual void ResetTime()
+    {
+        m_time = 0f;
+    }
 }
 
 public class SE_Stats : StatusEffect
 {
+    public float m_tickInterval;
+    public float m_healthPerTickMinHealthPercentage;
+    public float m_healthPerTick;
+    public Skills.SkillType m_modifyAttackSkill;
+    public float m_damageModifier = 1f;
+    public float m_staminaRegenMultiplier = 1f;
+    public List<HitData.DamageModPair> m_mods = new List<HitData.DamageModPair>();
+
+    private float tickTimer;
+
+    public override void UpdateStatusEffect(float dt)
+    {
+        base.UpdateStatusEffect(dt);
+        if (m_tickInterval <= 0f)
+        {
+            return;
+        }
+
+        tickTimer += dt;
+        if (tickTimer >= m_tickInterval)
+        {
+            tickTimer = 0f;
+            if (m_character is Player player
+                && player.GetHealth() / player.GetMaxHealth()
+                    >= m_healthPerTickMinHealthPercentage)
+            {
+                player.Heal(m_healthPerTick);
+            }
+        }
+    }
+}
+
+public sealed class EffectList
+{
+    public bool Available { get; set; }
+    public int CreateCount { get; private set; }
+
+    public bool HasEffects() => Available;
+
+    public UnityEngine.GameObject[] Create(
+        UnityEngine.Vector3 position,
+        UnityEngine.Quaternion rotation)
+    {
+        CreateCount++;
+        return Array.Empty<UnityEngine.GameObject>();
+    }
+}
+
+public sealed class ItemDrop
+{
+    public ItemData m_itemData = new ItemData();
+
+    public sealed class ItemData
+    {
+        public SharedData m_shared = new SharedData();
+    }
+
+    public sealed class SharedData
+    {
+        public StatusEffect? m_consumeStatusEffect;
+        public StatusEffect? m_fullAdrenalineSE;
+    }
 }
 
 public sealed class SEMan
 {
-    private readonly System.Collections.Generic.Dictionary<int, StatusEffect> active =
-        new System.Collections.Generic.Dictionary<int, StatusEffect>();
+    private readonly Player owner;
+    private readonly Dictionary<int, StatusEffect> active =
+        new Dictionary<int, StatusEffect>();
+
+    internal SEMan(Player owner)
+    {
+        this.owner = owner;
+    }
 
     public StatusEffect? AddStatusEffect(int hash, bool resetTime = false)
     {
-        if (active.ContainsKey(hash))
+        if (active.TryGetValue(hash, out StatusEffect? current))
         {
+            if (resetTime)
+            {
+                current.ResetTime();
+            }
+
             return null;
         }
 
@@ -62,43 +259,78 @@ public sealed class SEMan
             return null;
         }
 
-        active.Add(hash, definition);
-        return definition;
+        StatusEffect clone = definition.Clone();
+        active.Add(hash, clone);
+        clone.Setup(owner);
+        return clone;
     }
 
     public bool HaveStatusEffect(int hash) => active.ContainsKey(hash);
 
+    public StatusEffect? GetStatusEffect(int hash) =>
+        active.TryGetValue(hash, out StatusEffect? value) ? value : null;
+
     public bool RemoveStatusEffect(int hash, bool quiet = false)
     {
-        return active.Remove(hash);
+        if (!active.TryGetValue(hash, out StatusEffect? effect))
+        {
+            return false;
+        }
+
+        active.Remove(hash);
+        effect.Stop();
+        return true;
     }
+
+    internal void Tick(float dt)
+    {
+        List<int> expired = new List<int>();
+        foreach ((int hash, StatusEffect effect) in active)
+        {
+            effect.UpdateStatusEffect(dt);
+            if (effect.IsDone())
+            {
+                expired.Add(hash);
+            }
+        }
+
+        foreach (int hash in expired)
+        {
+            RemoveStatusEffect(hash);
+        }
+    }
+
+    internal int Count => active.Count;
 }
 
 public sealed class ObjectDB
 {
+    private readonly Dictionary<string, UnityEngine.GameObject> items =
+        new Dictionary<string, UnityEngine.GameObject>();
+
     public ObjectDB()
     {
         instance = this;
     }
 
     public static ObjectDB? instance { get; private set; }
-    public System.Collections.Generic.List<StatusEffect> m_StatusEffects { get; } =
-        new System.Collections.Generic.List<StatusEffect>();
+    public List<StatusEffect> m_StatusEffects { get; } = new List<StatusEffect>();
 
     public StatusEffect? GetStatusEffect(int hash)
     {
         return m_StatusEffects.Find(effect => effect.NameHash() == hash);
     }
-}
 
-public sealed class MessageHud
-{
-    public static MessageHud? instance;
-    public string? LastBanner { get; private set; }
-
-    public void ShowBiomeFoundMsg(string message, bool playStinger)
+    public UnityEngine.GameObject? GetItemPrefab(string name)
     {
-        LastBanner = message;
+        return items.TryGetValue(name, out UnityEngine.GameObject? value) ? value : null;
+    }
+
+    internal void AddItem(string name, ItemDrop item)
+    {
+        UnityEngine.GameObject prefab = new UnityEngine.GameObject { name = name };
+        prefab.AddComponent(item);
+        items.Add(name, prefab);
     }
 }
 
@@ -108,22 +340,55 @@ public sealed class Player : Character
     {
         Health = health;
         MaximumHealth = maximumHealth;
+        statusEffects = new SEMan(this);
     }
 
+    public static Player? m_localPlayer;
     public float Health { get; set; }
     public float MaximumHealth { get; }
-    private readonly SEMan statusEffects = new SEMan();
+    public float Adrenaline { get; set; }
+    public float MaximumAdrenaline { get; set; }
+    public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
+    public EffectList m_adrenalinePopEffects = new EffectList();
+
+    private readonly SEMan statusEffects;
 
     public float GetHealth() => Health;
     public float GetMaxHealth() => MaximumHealth;
+    public float GetAdrenaline() => Adrenaline;
+    public float GetMaxAdrenaline() => MaximumAdrenaline;
     public SEMan GetSEMan() => statusEffects;
+    public void Heal(float amount) => Health = Math.Min(MaximumHealth, Health + amount);
 }
 
 namespace BenheimQoL.Infrastructure
 {
+    internal sealed class DiagnosticEvent
+    {
+        internal static DiagnosticEvent Create(string domain, string name) => new DiagnosticEvent();
+        internal DiagnosticEvent String(string key, string value) => this;
+        internal DiagnosticEvent Integer(string key, long value) => this;
+    }
+
     internal static class Diagnostics
     {
         internal static void Event(string feature, string action, string details = "") { }
+        internal static void Emit(DiagnosticEvent diagnosticEvent) { }
+    }
+
+    internal static class WorldFeedback
+    {
+        internal static List<string> Messages { get; } = new List<string>();
+
+        internal static void ShowAbovePlayer(Player player, string text)
+        {
+            Messages.Add(text);
+        }
+
+        internal static void Reset()
+        {
+            Messages.Clear();
+        }
     }
 }
 
@@ -132,13 +397,37 @@ namespace BenheimQoL.PlayerCombat
     internal static class PlayerCombatRuntime
     {
         internal static int StoppedEffects { get; private set; }
+        internal static int ExpiredEffects { get; private set; }
+        internal static EarnedStatePresentation? Presentation { get; set; }
 
         internal static void ObserveEffectStopped(
             Player player,
             EarnedCombatState state,
-            int tier)
+            int tier,
+            bool expired)
         {
             StoppedEffects++;
+            if (expired)
+            {
+                ExpiredEffects++;
+            }
+        }
+
+        internal static void ResetStops()
+        {
+            StoppedEffects = 0;
+            ExpiredEffects = 0;
+        }
+
+        internal static void CompletePerfectDefensePresentation(
+            Player player,
+            string? adrenalineLine,
+            bool nativeCharmActivated = false)
+        {
+            Presentation?.CompletePerfectDefense(
+                player,
+                adrenalineLine,
+                nativeCharmActivated);
         }
     }
 }

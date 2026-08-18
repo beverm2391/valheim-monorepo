@@ -68,6 +68,7 @@ internal static class PerfectDefenseObservation
         }
 
         current.Confirmed = true;
+        PlayerCombatRuntime.BeginPerfectDefensePresentation(current.Context);
         PlayerCombatRuntime.Publish(
             new PerfectDefenseConfirmed(
                 current.Context,

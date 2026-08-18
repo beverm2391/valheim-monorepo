@@ -1,171 +1,430 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using BenheimQoL.Adrenaline;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.PlayerCombat;
 using UnityEngine;
+using static TestSupport;
 
-TestOrderedFailureIsolationAndReset();
-TestControllerLifecycle();
-TestNativeEffectRegistrationAndOutput();
-TestConfirmedKillFactsAreImmutable();
+SupportTests.TestOrderedFailureIsolationAndReset();
+SupportTests.TestClutchDecisionRefreshAndDamageLifecycle();
+TestUntouchableMixedDefenseTiersAndDamageReset();
+TestRejectedUntouchableEscalationKeepsPriorTier();
+TestBerserkerConsumesAuthoritativeChainTransitions();
+TestExpiredBerserkerTransitionClearsPriorOutput();
+TestNativeEffectsRegistrationHealingAndReplacement();
+TestMissingNativeIconRejectsRegistration();
+TestEntryPresentationAndPerDefenseCharmCoalescing();
+TestNativeCharmActivationSuppressesDuplicateEarnedStateCue();
+TestBerserkerTransitionValidation();
+SupportTests.TestConfirmedKillFactsAreImmutable();
 
-Console.WriteLine("player combat event, controller, and lifecycle checks passed");
+Console.WriteLine("player combat earned-state checks passed");
 
-static void TestOrderedFailureIsolationAndReset()
-{
-    List<string> calls = new List<string>();
-    int failures = 0;
-    LocalGameEventBus events = new LocalGameEventBus((type, exception) =>
-    {
-        Expect(type == typeof(TestFact), "failure reports the published event type");
-        Expect(exception.Message == "expected", "failure reports the subscriber exception");
-        failures++;
-    });
-
-    events.Subscribe<TestFact>(_ => calls.Add("first"));
-    events.Subscribe<TestFact>(_ => throw new InvalidOperationException("expected"));
-    IDisposable last = events.Subscribe<TestFact>(_ => calls.Add("last"));
-    events.Publish(new TestFact());
-
-    Expect(string.Join(",", calls) == "first,last", "later subscribers run after one fails");
-    Expect(failures == 1, "one failed subscriber is reported once");
-
-    last.Dispose();
-    events.Publish(new TestFact());
-    Expect(string.Join(",", calls) == "first,last,first", "disposed subscriber stays removed");
-
-    events.Reset();
-    events.Publish(new TestFact());
-    Expect(string.Join(",", calls) == "first,last,first", "reset removes every subscriber");
-}
-
-static void TestControllerLifecycle()
+static void TestUntouchableMixedDefenseTiersAndDamageReset()
 {
     Player player = new Player(80f, 100f);
     FakeOutput output = new FakeOutput();
-    PlayerCombatController controller = new PlayerCombatController(player, output);
+    FactRecorder facts = new FactRecorder();
+    PlayerCombatController controller = new PlayerCombatController(player, output, facts);
 
-    controller.Observe(
-        new PerfectDefenseConfirmed(
-            PlayerCombatContext.Capture(player),
-            PerfectDefenseKind.Parry,
-            blockTimer: 0.1f,
-            timedBlockBonus: 1.5f));
-    controller.Observe(
-        new PerfectDefenseConfirmed(
-            PlayerCombatContext.Capture(player),
-            PerfectDefenseKind.Dodge));
-    Expect(controller.ConsecutivePerfectDefenses == 2, "confirmed defenses build the streak");
+    for (int defense = 1; defense <= 12; defense++)
+    {
+        controller.Observe(
+            Defense(
+                player,
+                defense % 2 == 0 ? PerfectDefenseKind.Dodge : PerfectDefenseKind.Parry));
 
-    Expect(controller.Earn(EarnedCombatState.Untouchable, 1), "untouchable output activates");
-    Expect(controller.Earn(EarnedCombatState.Clutch, 1), "clutch output activates");
-    Expect(controller.HasEarned(EarnedCombatState.Untouchable), "untouchable is tracked");
+        int expectedTier = defense >= 12 ? 3 : defense >= 8 ? 2 : defense >= 5 ? 1 : 0;
+        Expect(controller.ConsecutivePerfectDefenses == defense,
+            $"defense {defense} increments the shared streak");
+        Expect(controller.EarnedTier(EarnedCombatState.Untouchable) == expectedTier,
+            $"defense {defense} selects only the approved tier");
+    }
+
+    Expect(output.ActiveTier(EarnedCombatState.Untouchable) == 3,
+        "tier replacement leaves one active UNTOUCHABLE modifier");
+    Expect(facts.Untouchable[4].Outcome == UntouchableProgressOutcome.TierActivated,
+        "the fifth defense activates Tier I");
+    Expect(facts.Untouchable[7].Outcome == UntouchableProgressOutcome.TierEscalated,
+        "the eighth defense escalates Tier II");
+    Expect(facts.Untouchable[11].Outcome == UntouchableProgressOutcome.TierEscalated,
+        "the twelfth defense escalates Tier III");
 
     PlayerCombatContext before = PlayerCombatContext.Capture(player);
-    player.Health = 65f;
+    player.Health = 79f;
     controller.Observe(new AcceptedPlayerDamage(before, PlayerCombatContext.Capture(player)));
-    Expect(controller.ConsecutivePerfectDefenses == 0, "accepted damage clears the streak");
-    Expect(!controller.HasEarned(EarnedCombatState.Untouchable), "accepted damage ends untouchable");
-    Expect(controller.HasEarned(EarnedCombatState.Clutch), "accepted damage does not invent clutch expiry");
+    Expect(controller.ConsecutivePerfectDefenses == 0, "accepted health loss resets the streak");
+    Expect(!controller.HasEarned(EarnedCombatState.Untouchable),
+        "accepted health loss quietly removes the active tier");
+    Expect(facts.Resets[^1].Damage.HealthLost == 1f,
+        "reset fact retains accepted health loss");
 
-    controller.Reset();
-    Expect(!controller.HasEarned(EarnedCombatState.Clutch), "lifecycle reset clears clutch");
-    Expect(output.Deactivations.Count == 2, "each active native output is removed once");
-
-    output.AllowActivation = false;
-    Expect(!controller.Earn(EarnedCombatState.Berserker, 1), "failed native output rejects earning");
-    Expect(!controller.HasEarned(EarnedCombatState.Berserker), "failed output is not tracked as active");
+    controller.Observe(Defense(player, PerfectDefenseKind.Dodge));
+    PlayerCombatContext unchanged = PlayerCombatContext.Capture(player);
+    int resetsBefore = facts.Resets.Count;
+    controller.Observe(new AcceptedPlayerDamage(unchanged, PlayerCombatContext.Capture(player)));
+    Expect(controller.ConsecutivePerfectDefenses == 1,
+        "zero-health-loss contact does not reset the streak");
+    Expect(facts.Resets.Count == resetsBefore,
+        "zero-health-loss contact emits no reset fact");
 }
 
-static void TestConfirmedKillFactsAreImmutable()
+static void TestRejectedUntouchableEscalationKeepsPriorTier()
 {
-    Player player = new Player(40f, 100f);
-    ConfirmedKill confirmedKill = new ConfirmedKill(
-        PlayerCombatContext.Capture(player),
-        new ZDOID(1),
-        new ZDOID(2),
-        "Troll",
-        123,
-        3,
-        victimWasBoss: false,
-        victimWasTamed: false,
-        new Vector3(4f, 5f, 6f),
-        serverSequence: 7,
-        serverTimeSeconds: 8.5);
+    Player player = new Player(80f, 100f);
+    FakeOutput output = new FakeOutput();
+    FactRecorder facts = new FactRecorder();
+    PlayerCombatController controller = new PlayerCombatController(player, output, facts);
 
-    Expect(confirmedKill.ServerSequence == 7, "server sequence stays on the gameplay fact");
-    Expect(confirmedKill.ServerTimeSeconds == 8.5, "server time stays on the gameplay fact");
-    foreach (PropertyInfo property in typeof(ConfirmedKill).GetProperties(
-        BindingFlags.Instance | BindingFlags.NonPublic))
+    for (int defense = 1; defense <= 7; defense++)
     {
-        Expect(!property.CanWrite, $"{property.Name} is immutable");
+        controller.Observe(Defense(player, PerfectDefenseKind.Parry));
     }
+
+    output.Reject(EarnedCombatState.Untouchable, 2);
+    controller.Observe(Defense(player, PerfectDefenseKind.Dodge));
+
+    Expect(controller.EarnedTier(EarnedCombatState.Untouchable) == 1,
+        "rejected UNTOUCHABLE escalation retains the working prior tier");
+    Expect(facts.Untouchable[^1].CurrentTier == 1
+            && facts.Untouchable[^1].Outcome == UntouchableProgressOutcome.StreakIncremented,
+        "UNTOUCHABLE progress reports actual state after rejected output");
+    Expect(facts.Transitions[^1].Kind == EarnedStateTransitionKind.Rejected,
+        "rejected UNTOUCHABLE escalation emits the shared rejection fact");
 }
 
-static void TestNativeEffectRegistrationAndOutput()
+static void TestNativeEffectsRegistrationHealingAndReplacement()
 {
-    ObjectDB database = new ObjectDB();
-    EarnedStateStatusEffect clutch = new EarnedStateStatusEffect
-    {
-        name = "SE_Benheim_Clutch"
-    };
+    ObjectDB database = CreateNativeIconDatabase();
+    EarnedStateEffectDefinition clutch = ClutchMechanic.CreateEffectDefinition();
+    EarnedStateEffectDefinition untouchable1 = UntouchableMechanic.CreateEffectDefinition(1);
+    EarnedStateEffectDefinition untouchable2 = UntouchableMechanic.CreateEffectDefinition(2);
+    EarnedStateEffectDefinition untouchable3 = UntouchableMechanic.CreateEffectDefinition(3);
+    EarnedStateEffectDefinition berserker1 = BerserkerMechanic.CreateEffectDefinition(1);
+    EarnedStateEffectDefinition berserker2 = BerserkerMechanic.CreateEffectDefinition(2);
     EarnedStateEffectCatalog catalog = new EarnedStateEffectCatalog();
     catalog.Configure(
-        new EarnedStateEffectDefinition(
-            EarnedCombatState.Clutch,
-            1,
-            clutch,
-            "CLUTCH"));
-
+        clutch,
+        untouchable1,
+        untouchable2,
+        untouchable3,
+        berserker1,
+        berserker2);
     catalog.Register(database);
     catalog.Register(database);
-    Expect(database.m_StatusEffects.Count == 1, "native registration is duplicate-safe");
 
-    MessageHud.instance = new MessageHud();
-    Player player = new Player(20f, 100f);
-    NativeEarnedStateOutput output = new NativeEarnedStateOutput(
-        catalog,
-        new EarnedStatePresentation());
-    Expect(output.Activate(player, EarnedCombatState.Clutch, 1), "registered native output activates");
-    Expect(player.GetSEMan().HaveStatusEffect(clutch.NameHash()), "native effect is applied by hash");
-    Expect(MessageHud.instance.LastBanner == "CLUTCH", "shared presenter uses the activation copy");
+    Expect(database.m_StatusEffects.Count == 6, "registration is duplicate-safe");
+    Expect(clutch.Effect.m_icon != null, "CLUTCH copies the lingering-healing icon Sprite");
+    Expect(clutch.Effect.m_ttl == 6f, "CLUTCH lasts six seconds");
+    Expect(clutch.Effect.m_tickInterval == 1f && clutch.Effect.m_healthPerTick == 10f,
+        "CLUTCH heals ten health each second");
+    Expect(untouchable3.Effect.m_ttl == 0f,
+        "UNTOUCHABLE uses native indefinite status presentation without a timer");
+    Expect(untouchable3.Effect.m_modifyAttackSkill == Skills.SkillType.All,
+        "UNTOUCHABLE modifies all outgoing attack skills");
+    Expect(Math.Abs(untouchable3.Effect.m_damageModifier - 1.30f) < 0.001f,
+        "UNTOUCHABLE Tier III adds thirty percent damage");
+    Expect(clutch.Effect.m_category != untouchable1.Effect.m_category,
+        "earned states use non-conflicting native categories");
+    Expect(berserker1.Effect.m_mods.Count == 3,
+        "BERSERKER configures only blunt, slash, and pierce resistance");
+    Expect(berserker1.Effect.m_mods.TrueForAll(
+            pair => pair.m_modifier == HitData.DamageModifier.SlightlyResistant),
+        "BERSERKER uses native SlightlyResistant");
+    Expect(berserker2.Effect.m_mods.TrueForAll(
+            pair => pair.m_modifier == HitData.DamageModifier.Resistant),
+        "SLAUGHTERHOUSE uses native Resistant");
+    Expect(berserker1.Effect.m_staminaRegenMultiplier == 1.5f
+            && berserker2.Effect.m_staminaRegenMultiplier == 2f,
+        "Berserker tiers use approved native stamina regeneration multipliers");
 
-    output.Deactivate(player, EarnedCombatState.Clutch, 1);
-    Expect(!player.GetSEMan().HaveStatusEffect(clutch.NameHash()), "native output removes by hash");
+    PlayerCombatRuntime.ResetStops();
+    Player player = new Player(20f, 70f);
+    NativeEarnedStateOutput output = new NativeEarnedStateOutput(catalog);
+    Expect(output.Activate(player, EarnedCombatState.Clutch, 1).Outcome
+            == EarnedStateOutputOutcome.Activated,
+        "registered CLUTCH activates through SEMan by hash");
+    for (int second = 0; second < 6; second++)
+    {
+        player.GetSEMan().Tick(1.01f);
+    }
 
-    clutch.m_character = player;
-    clutch.Stop();
-    Expect(PlayerCombatRuntime.StoppedEffects == 1, "native expiry closes controller lifecycle");
+    Expect(player.Health == 70f, "native healing is capped by maximum health");
+    Expect(PlayerCombatRuntime.ExpiredEffects == 1, "native duration reports CLUTCH expiry");
 
-    catalog.Unregister();
+    Player refreshPlayer = new Player(20f, 200f);
+    output.Activate(refreshPlayer, EarnedCombatState.Clutch, 1);
+    refreshPlayer.GetSEMan().Tick(1.01f);
+    Expect(output.Activate(refreshPlayer, EarnedCombatState.Clutch, 1).Outcome
+            == EarnedStateOutputOutcome.Refreshed,
+        "retrigger refreshes the same native effect");
+    Expect(refreshPlayer.GetSEMan().Count == 1,
+        "CLUTCH refresh does not duplicate the effect or icon");
+    for (int second = 0; second < 6; second++)
+    {
+        refreshPlayer.GetSEMan().Tick(1.01f);
+    }
+
+    Expect(refreshPlayer.Health == 90f,
+        "CLUTCH refresh restarts one complete sixty-health recovery window");
+
+    output.Deactivate(refreshPlayer, EarnedCombatState.Clutch, 1);
+    output.Activate(player, EarnedCombatState.Untouchable, 1);
+    output.Deactivate(player, EarnedCombatState.Untouchable, 1);
+    output.Activate(player, EarnedCombatState.Untouchable, 2);
+    Expect(player.GetSEMan().Count == 1,
+        "UNTOUCHABLE tier replacement leaves one native effect and icon");
+
+    output.Deactivate(player, EarnedCombatState.Untouchable, 2);
+    output.Activate(player, EarnedCombatState.Berserker, 1, durationSeconds: 6.5f);
+    StatusEffect? activeBerserker = player.GetSEMan().GetStatusEffect(
+        berserker1.Effect.NameHash());
+    Expect(activeBerserker != null && Math.Abs(activeBerserker.m_ttl - 6.5f) < 0.001f,
+        "BERSERKER native countdown uses authoritative remaining duration");
+    output.Deactivate(player, EarnedCombatState.Berserker, 1);
+    output.Activate(player, EarnedCombatState.Berserker, 2, durationSeconds: 4f);
+    Expect(player.GetSEMan().Count == 1,
+        "SLAUGHTERHOUSE replacement cannot stack native modifiers or icons");
+
+    catalog.Reset();
     Expect(database.m_StatusEffects.Count == 0, "plugin teardown unregisters owned templates");
 }
 
-static void Expect(bool condition, string message)
+static void TestMissingNativeIconRejectsRegistration()
 {
-    if (!condition)
-    {
-        throw new InvalidOperationException(message);
-    }
+    ObjectDB database = new ObjectDB();
+    EarnedStateEffectDefinition clutch = ClutchMechanic.CreateEffectDefinition();
+    EarnedStateEffectCatalog catalog = new EarnedStateEffectCatalog();
+    catalog.Configure(clutch);
+    catalog.Register(database);
+
+    Expect(database.m_StatusEffects.Count == 0,
+        "a missing source-proven icon rejects custom effect registration");
+    Expect(!catalog.TryGet(EarnedCombatState.Clutch, 1, out _),
+        "an unregistered effect cannot control gameplay output");
+    catalog.Reset();
 }
 
-internal sealed class TestFact
+static void TestBerserkerConsumesAuthoritativeChainTransitions()
 {
+    ZNet.instance = new ZNet { TimeSeconds = 104d };
+    Player player = new Player(100f, 100f);
+    FakeOutput output = new FakeOutput();
+    FactRecorder facts = new FactRecorder();
+    PlayerCombatController controller = new PlayerCombatController(player, output, facts);
+
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Progressed,
+        BerserkerChainTier.None,
+        killCount: 2));
+    Expect(!controller.HasEarned(EarnedCombatState.Berserker),
+        "server progress below Tier I has no native output");
+
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Activated,
+        BerserkerChainTier.Berserker,
+        killCount: 3));
+    Expect(controller.EarnedTier(EarnedCombatState.Berserker) == 1,
+        "authoritative activation applies BERSERKER Tier I");
+    Expect(Math.Abs(output.LastDurationSeconds!.Value - 6f) < 0.001f,
+        "native countdown subtracts delivery latency using synchronized server time");
+
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Refreshed,
+        BerserkerChainTier.Berserker,
+        killCount: 4));
+    Expect(facts.Transitions[^1].Kind == EarnedStateTransitionKind.Refreshed,
+        "intermediate kill refresh stays presentation-silent");
+
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Escalated,
+        BerserkerChainTier.Slaughterhouse,
+        killCount: 6));
+    Expect(controller.EarnedTier(EarnedCombatState.Berserker) == 2,
+        "authoritative escalation replaces Tier I with SLAUGHTERHOUSE");
+    Expect(output.ActiveTier(EarnedCombatState.Berserker) == 2,
+        "Berserker tiers never overlap native modifiers or icons");
+
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Expired,
+        BerserkerChainTier.None,
+        killCount: 0));
+    Expect(!controller.HasEarned(EarnedCombatState.Berserker),
+        "authoritative expiry quietly removes the local output");
+    ZNet.instance = null;
 }
 
-internal sealed class FakeOutput : IEarnedStateOutput
+static void TestExpiredBerserkerTransitionClearsPriorOutput()
 {
-    internal bool AllowActivation { get; set; } = true;
-    internal List<string> Deactivations { get; } = new List<string>();
+    ZNet.instance = new ZNet { TimeSeconds = 100d };
+    Player player = new Player(100f, 100f);
+    FakeOutput output = new FakeOutput();
+    FactRecorder facts = new FactRecorder();
+    PlayerCombatController controller = new PlayerCombatController(player, output, facts);
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Activated,
+        BerserkerChainTier.Berserker,
+        killCount: 3));
 
-    public bool Activate(Player player, EarnedCombatState state, int tier)
-    {
-        return AllowActivation;
-    }
+    ZNet.instance.TimeSeconds = 111d;
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Refreshed,
+        BerserkerChainTier.Berserker,
+        killCount: 4));
 
-    public void Deactivate(Player player, EarnedCombatState state, int tier)
+    Expect(!controller.HasEarned(EarnedCombatState.Berserker)
+            && output.ActiveTier(EarnedCombatState.Berserker) == 0,
+        "an already-expired authoritative transition clears prior BERSERKER output");
+    Expect(facts.Transitions[^1].Kind == EarnedStateTransitionKind.Rejected
+            && facts.Transitions[^1].Reason
+                == EarnedStateTransitionReason.ServerChainAlreadyExpired,
+        "expired active delivery records its typed activation rejection");
+    ZNet.instance = null;
+}
+
+static void TestEntryPresentationAndPerDefenseCharmCoalescing()
+{
+    WorldFeedback.Reset();
+    Player player = new Player(20f, 100f);
+    Player.m_localPlayer = player;
+    player.m_adrenalinePopEffects.Available = true;
+    EarnedStatePresentation presentation = new EarnedStatePresentation();
+    PlayerCombatContext sharedDefense = PlayerCombatContext.Capture(player);
+    presentation.BeginPerfectDefense(sharedDefense);
+
+    presentation.Observe(Transition(
+        sharedDefense,
+        EarnedCombatState.Clutch,
+        1,
+        EarnedStateTransitionKind.Activated));
+    presentation.Observe(Transition(
+        sharedDefense,
+        EarnedCombatState.Untouchable,
+        1,
+        EarnedStateTransitionKind.Activated));
+    presentation.Observe(Transition(
+        sharedDefense,
+        EarnedCombatState.Clutch,
+        1,
+        EarnedStateTransitionKind.Refreshed));
+
+    presentation.CompletePerfectDefense(
+        player,
+        "Perfect parry +10",
+        nativeCharmActivated: false);
+
+    Expect(WorldFeedback.Messages.Count == 1,
+        "one defense emits one local Bonus world-text instance");
+    Expect(WorldFeedback.Messages[0] == "Perfect parry +10\nCLUTCH!\nUNTOUCHABLE!",
+        "adrenaline and state lines retain causal order while refresh emits none");
+    Expect(player.m_adrenalinePopEffects.CreateCount == 1,
+        "states entered by one defense share one native charm one-shot");
+
+    presentation.Observe(Transition(
+        PlayerCombatContext.Capture(player),
+        EarnedCombatState.Untouchable,
+        2,
+        EarnedStateTransitionKind.Activated));
+    Expect(WorldFeedback.Messages[^1] == "UNTOUCHABLE II!",
+        "tier escalation emits its approved title");
+    Expect(player.m_adrenalinePopEffects.CreateCount == 2,
+        "an unrelated activation dispatch replays the one-shot");
+
+    presentation.Observe(Transition(
+        PlayerCombatContext.Capture(player),
+        EarnedCombatState.Berserker,
+        1,
+        EarnedStateTransitionKind.Activated));
+    Expect(WorldFeedback.Messages[^1] == "BERSERKER!",
+        "Berserker activation uses the shared local Bonus world-text lane");
+
+    int messagesBeforeRefresh = WorldFeedback.Messages.Count;
+    int cuesBeforeRefresh = player.m_adrenalinePopEffects.CreateCount;
+    presentation.Observe(Transition(
+        PlayerCombatContext.Capture(player),
+        EarnedCombatState.Berserker,
+        1,
+        EarnedStateTransitionKind.Refreshed));
+    Expect(WorldFeedback.Messages.Count == messagesBeforeRefresh
+            && player.m_adrenalinePopEffects.CreateCount == cuesBeforeRefresh,
+        "Berserker refresh replays neither title nor charm cue");
+
+    presentation.Observe(Transition(
+        PlayerCombatContext.Capture(player),
+        EarnedCombatState.Berserker,
+        2,
+        EarnedStateTransitionKind.Activated));
+    Expect(WorldFeedback.Messages[^1] == "SLAUGHTERHOUSE!",
+        "Berserker escalation uses the approved replacement title");
+}
+
+static void TestNativeCharmActivationSuppressesDuplicateEarnedStateCue()
+{
+    WorldFeedback.Reset();
+    Player player = new Player(20f, 100f)
     {
-        Deactivations.Add($"{state}:{tier}");
-    }
+        Adrenaline = 0f,
+        MaximumAdrenaline = 100f
+    };
+    Player.m_localPlayer = player;
+    player.m_adrenalinePopEffects.Available = true;
+    EarnedStatePresentation presentation = new EarnedStatePresentation();
+    PlayerCombatRuntime.Presentation = presentation;
+    PlayerCombatContext defense = PlayerCombatContext.Capture(player);
+    presentation.BeginPerfectDefense(defense);
+    presentation.Observe(Transition(
+        defense,
+        EarnedCombatState.Clutch,
+        1,
+        EarnedStateTransitionKind.Activated));
+
+    AdrenalineFeedback.Award award = new AdrenalineFeedback.Award(
+        "Perfect parry",
+        before: 90f,
+        maximum: 100f)
+    {
+        NativeModifiedAmount = 20f
+    };
+    AdrenalineFeedback.ShowAward(player, award);
+
+    Expect(WorldFeedback.Messages[^1] == "Perfect parry +10\nCLUTCH!",
+        "native charm activation retains coalesced adrenaline and state text");
+    Expect(player.m_adrenalinePopEffects.CreateCount == 0,
+        "earned-state presentation does not duplicate Valheim's native charm cue");
+    PlayerCombatRuntime.Presentation = null;
+}
+
+static void TestBerserkerTransitionValidation()
+{
+    Player player = new Player(100f, 100f);
+    BerserkerChainTransition transition = new BerserkerChainTransition(
+        PlayerCombatContext.Capture(player),
+        BerserkerChainTransitionKind.Activated,
+        BerserkerChainTier.Berserker,
+        killCount: 3,
+        serverSequence: 12,
+        serverTimeSeconds: 20d,
+        expiresAtServerTimeSeconds: 26.5d);
+    Expect(Math.Abs(transition.RemainingDurationSeconds(20d) - 6.5f) < 0.001f,
+        "server timing facts produce the native countdown safety duration");
+
+    ExpectThrows<ArgumentException>(
+        () => new BerserkerChainTransition(
+            PlayerCombatContext.Capture(player),
+            BerserkerChainTransitionKind.Activated,
+            BerserkerChainTier.None,
+            killCount: 3,
+            serverSequence: 12,
+            serverTimeSeconds: 20d,
+            expiresAtServerTimeSeconds: 30d),
+        "an activation cannot carry a missing tier");
 }

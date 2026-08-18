@@ -8,8 +8,12 @@
   <ItemGroup>
     <Compile Include="../../src/Infrastructure/LocalGameEventBus.cs" Link="LocalGameEventBus.cs" />
     <Compile Include="../../src/PlayerCombat/PlayerCombatEvents.cs" Link="PlayerCombatEvents.cs" />
+    <Compile Include="../../src/PlayerCombat/ClutchMechanic.cs" Link="ClutchMechanic.cs" />
+    <Compile Include="../../src/PlayerCombat/UntouchableMechanic.cs" Link="UntouchableMechanic.cs" />
+    <Compile Include="../../src/PlayerCombat/BerserkerMechanic.cs" Link="BerserkerMechanic.cs" />
     <Compile Include="../../src/PlayerCombat/PlayerCombatController.cs" Link="PlayerCombatController.cs" />
     <Compile Include="../../src/PlayerCombat/EarnedStateEffects.cs" Link="EarnedStateEffects.cs" />
     <Compile Include="../../src/PlayerCombat/EarnedStatePresentation.cs" Link="EarnedStatePresentation.cs" />
+    <Compile Include="../../src/Adrenaline/AdrenalineFeedback.cs" Link="AdrenalineFeedback.cs" />
   </ItemGroup>
 </Project>

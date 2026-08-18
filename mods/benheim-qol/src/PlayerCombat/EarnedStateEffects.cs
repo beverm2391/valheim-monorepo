@@ -1,8 +1,33 @@
 using System;
 using System.Collections.Generic;
 using BenheimQoL.Infrastructure;
+using UnityEngine;
 
 namespace BenheimQoL.PlayerCombat;
+
+internal enum NativeStatusIconSourceKind
+{
+    ConsumeStatusEffect,
+    FullAdrenalineStatusEffect
+}
+
+internal sealed class NativeStatusIconSource
+{
+    internal NativeStatusIconSource(
+        string itemPrefab,
+        string statusEffectIdentity,
+        NativeStatusIconSourceKind kind)
+    {
+        ItemPrefab = itemPrefab ?? throw new ArgumentNullException(nameof(itemPrefab));
+        StatusEffectIdentity = statusEffectIdentity
+            ?? throw new ArgumentNullException(nameof(statusEffectIdentity));
+        Kind = kind;
+    }
+
+    internal string ItemPrefab { get; }
+    internal string StatusEffectIdentity { get; }
+    internal NativeStatusIconSourceKind Kind { get; }
+}
 
 internal sealed class EarnedStateEffectDefinition
 {
@@ -10,7 +35,7 @@ internal sealed class EarnedStateEffectDefinition
         EarnedCombatState state,
         int tier,
         EarnedStateStatusEffect effect,
-        string activationMessage)
+        NativeStatusIconSource iconSource)
     {
         if (tier <= 0)
         {
@@ -20,14 +45,13 @@ internal sealed class EarnedStateEffectDefinition
         State = state;
         Tier = tier;
         Effect = effect ?? throw new ArgumentNullException(nameof(effect));
-        ActivationMessage = activationMessage
-            ?? throw new ArgumentNullException(nameof(activationMessage));
+        IconSource = iconSource ?? throw new ArgumentNullException(nameof(iconSource));
     }
 
     internal EarnedCombatState State { get; }
     internal int Tier { get; }
     internal EarnedStateStatusEffect Effect { get; }
-    internal string ActivationMessage { get; }
+    internal NativeStatusIconSource IconSource { get; }
 }
 
 /// <summary>
@@ -41,10 +65,11 @@ internal sealed class EarnedStateStatusEffect : SE_Stats
 
     public override void Stop()
     {
+        bool expired = IsDone();
         base.Stop();
         if (m_character is Player player)
         {
-            PlayerCombatRuntime.ObserveEffectStopped(player, State, Tier);
+            PlayerCombatRuntime.ObserveEffectStopped(player, State, Tier, expired);
         }
     }
 }
@@ -67,7 +92,7 @@ internal sealed class EarnedStateEffectCatalog
             throw new InvalidOperationException("Unregister earned-state effects before reconfiguration.");
         }
 
-        definitions.Clear();
+        DestroyDefinitions();
         for (int index = 0; index < configuredDefinitions.Length; index++)
         {
             EarnedStateEffectDefinition definition = configuredDefinitions[index]
@@ -100,6 +125,12 @@ internal sealed class EarnedStateEffectCatalog
         registeredDatabase = database;
         foreach (EarnedStateEffectDefinition definition in definitions.Values)
         {
+            if (!TryResolveIcon(database, definition, out string iconFailure))
+            {
+                EmitRegistrationRejected(definition, iconFailure);
+                continue;
+            }
+
             StatusEffect? existing = database.GetStatusEffect(definition.Effect.NameHash());
             if (existing == null)
             {
@@ -107,10 +138,7 @@ internal sealed class EarnedStateEffectCatalog
             }
             else if (existing != definition.Effect)
             {
-                Diagnostics.Event(
-                    "PlayerCombat",
-                    "earned_state_effect_registration_rejected",
-                    $"state={definition.State} tier={definition.Tier} reason=hash_conflict");
+                EmitRegistrationRejected(definition, "hash_conflict");
             }
         }
     }
@@ -130,6 +158,12 @@ internal sealed class EarnedStateEffectCatalog
         }
     }
 
+    internal void Reset()
+    {
+        Unregister();
+        DestroyDefinitions();
+    }
+
     internal bool TryGet(
         EarnedCombatState state,
         int tier,
@@ -142,7 +176,85 @@ internal sealed class EarnedStateEffectCatalog
 
         ObjectDB? database = registeredDatabase;
         return database != null
+            && definition.Effect.m_icon != null
             && database.GetStatusEffect(definition.Effect.NameHash()) == definition.Effect;
+    }
+
+    private static bool TryResolveIcon(
+        ObjectDB database,
+        EarnedStateEffectDefinition definition,
+        out string failure)
+    {
+        if (definition.Effect.m_icon != null)
+        {
+            failure = string.Empty;
+            return true;
+        }
+
+        NativeStatusIconSource source = definition.IconSource;
+        GameObject? iconPrefab = database.GetItemPrefab(source.ItemPrefab);
+        if (iconPrefab == null || iconPrefab.name != source.ItemPrefab)
+        {
+            failure = "icon_prefab_missing";
+            return false;
+        }
+
+        ItemDrop? item = iconPrefab.GetComponent<ItemDrop>();
+        if (item == null)
+        {
+            failure = "icon_item_missing";
+            return false;
+        }
+
+        StatusEffect? nativeEffect = source.Kind == NativeStatusIconSourceKind.ConsumeStatusEffect
+            ? item.m_itemData.m_shared.m_consumeStatusEffect
+            : item.m_itemData.m_shared.m_fullAdrenalineSE;
+        if (nativeEffect == null || nativeEffect.name != source.StatusEffectIdentity)
+        {
+            failure = "icon_status_effect_missing";
+            return false;
+        }
+
+        if (nativeEffect.m_icon == null)
+        {
+            failure = "icon_unavailable";
+            return false;
+        }
+
+        definition.Effect.m_icon = nativeEffect.m_icon;
+        failure = string.Empty;
+        return true;
+    }
+
+    private static void EmitRegistrationRejected(
+        EarnedStateEffectDefinition definition,
+        string reason)
+    {
+        try
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("PlayerCombat", "earned_state_effect_registration_rejected")
+                    .String("state", definition.State.ToString())
+                    .Integer("tier", definition.Tier)
+                    .String("reason", reason)
+                    .String("icon_prefab", definition.IconSource.ItemPrefab)
+                    .String("icon_status_effect", definition.IconSource.StatusEffectIdentity));
+        }
+        catch
+        {
+            // A diagnostic failure cannot turn an unavailable optional effect
+            // into a plugin startup failure.
+        }
+    }
+
+    private void DestroyDefinitions()
+    {
+        foreach (EarnedStateEffectDefinition definition in definitions.Values)
+        {
+            UnityEngine.Object.Destroy(definition.Effect);
+        }
+
+        definitions.Clear();
     }
 
     private readonly struct EffectKey : IEquatable<EffectKey>
@@ -179,41 +291,48 @@ internal sealed class EarnedStateEffectCatalog
 internal sealed class NativeEarnedStateOutput : IEarnedStateOutput
 {
     private readonly EarnedStateEffectCatalog effects;
-    private readonly EarnedStatePresentation presentation;
 
-    internal NativeEarnedStateOutput(
-        EarnedStateEffectCatalog effects,
-        EarnedStatePresentation presentation)
+    internal NativeEarnedStateOutput(EarnedStateEffectCatalog effects)
     {
         this.effects = effects ?? throw new ArgumentNullException(nameof(effects));
-        this.presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
     }
 
-    public bool Activate(Player player, EarnedCombatState state, int tier)
+    public EarnedStateOutputResult Activate(
+        Player player,
+        EarnedCombatState state,
+        int tier,
+        float? durationSeconds = null)
     {
+        if (durationSeconds.HasValue && durationSeconds.Value <= 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(durationSeconds));
+        }
+
         if (!effects.TryGet(state, tier, out EarnedStateEffectDefinition definition))
         {
-            Diagnostics.Event(
-                "PlayerCombat",
-                "earned_state_activation_rejected",
-                $"state={state} tier={tier} reason=effect_unavailable");
-            return false;
+            return EarnedStateOutputResult.Rejected(
+                EarnedStateTransitionReason.EffectUnavailable);
         }
 
         int effectHash = definition.Effect.NameHash();
         SEMan statusEffects = player.GetSEMan();
-        StatusEffect? applied = statusEffects.AddStatusEffect(effectHash, resetTime: true);
-        if (applied == null && !statusEffects.HaveStatusEffect(effectHash))
+        bool wasActive = statusEffects.HaveStatusEffect(effectHash);
+        statusEffects.AddStatusEffect(effectHash, resetTime: true);
+        StatusEffect? activeEffect = statusEffects.GetStatusEffect(effectHash);
+        if (activeEffect == null)
         {
-            Diagnostics.Event(
-                "PlayerCombat",
-                "earned_state_activation_rejected",
-                $"state={state} tier={tier} reason=native_application_failed");
-            return false;
+            return EarnedStateOutputResult.Rejected(
+                EarnedStateTransitionReason.NativeApplicationFailed);
         }
 
-        presentation.ShowActivation(definition.ActivationMessage);
-        return true;
+        if (durationSeconds.HasValue)
+        {
+            activeEffect.m_ttl = durationSeconds.Value;
+        }
+
+        return wasActive
+            ? EarnedStateOutputResult.Refreshed()
+            : EarnedStateOutputResult.Activated();
     }
 
     public void Deactivate(Player player, EarnedCombatState state, int tier)
