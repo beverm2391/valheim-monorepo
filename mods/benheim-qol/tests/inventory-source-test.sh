@@ -8,6 +8,7 @@ marker="$root/src/Inventory/PocketMarker.cs"
 controller="$root/src/Inventory/PocketItemController.cs"
 protection="$root/src/Inventory/PocketItems.cs"
 quick_stack="$root/src/Inventory/QuickStack.cs"
+quick_stack_validation="$root/src/Inventory/QuickStackLeaseValidation.cs"
 quick_stack_transfer="$root/src/Inventory/QuickStackTransfer.cs"
 quick_stack_diagnostics="$root/src/Inventory/QuickStackDiagnostics.cs"
 quick_stack_location="$root/src/Inventory/QuickStackLocation.cs"
@@ -120,7 +121,7 @@ if grep -Fq 'MessageHud.MessageType.TopLeft' "$controller" "$quick_stack"; then
 fi
 grep -Fq 'QuickStackLocation.Format(operation.Player, container)' "$quick_stack"
 grep -Fq 'QuickStackDiagnostics.ItemMoved' "$quick_stack"
-grep -Fq 'InventoryTransactions.TryBeginDeposit' "$quick_stack"
+grep -Fq 'InventoryTransactions.TryBeginDeposit' "$quick_stack_validation"
 grep -Fq 'InventoryTransactionWire.WriteItem' "$protocol_root/InventoryTransactionClient.cs"
 grep -Fq 'source.RemoveItem(sourceItem, sourceItem.m_stack)' "$protocol_root/InventoryTransactionClient.cs"
 grep -Fq 'RestoreRemainder' "$protocol_root/InventoryTransactionClient.cs"
@@ -129,7 +130,7 @@ grep -Fq 'target.AddItem(item.Clone())' "$protocol_root/InventoryTransactionOwne
 grep -Fq 'BeginBulkStack' "$quick_stack"
 grep -Fq 'PluginVersion = "0.1.65"' "$client_plugin"
 if rg -n 'ClaimOwnership|container\.StackAll\(\)|QuickStackContainerWrite|QuickStackResponseGuard' \
-    "$quick_stack" "$quick_stack_transfer" "$protocol_root"; then
+    "$quick_stack" "$quick_stack_validation" "$quick_stack_transfer" "$protocol_root"; then
   printf 'Put Away must not restore requester-local chest writes or native uncorrelated responses\n' >&2
   exit 1
 fi
