@@ -140,6 +140,15 @@ static void TestNativeEffectsRegistrationHealingAndReplacement()
             && berserker2.Effect.m_staminaRegenMultiplier == 2f,
         "Berserker tiers use approved native stamina regeneration multipliers");
 
+    Sprite firstUntouchableIcon = untouchable1.Effect.m_icon
+        ?? throw new InvalidOperationException("UNTOUCHABLE icon was not registered");
+    ObjectDB currentDatabase = CreateNativeIconDatabase();
+    catalog.Register(currentDatabase);
+    Expect(database.m_StatusEffects.Count == 0
+            && currentDatabase.m_StatusEffects.Count == 6,
+        "ObjectDB replacement unregisters old templates and registers the populated current database");
+    Expect(untouchable1.Effect.m_icon != firstUntouchableIcon,
+        "registration rebinds the icon from the current ObjectDB instead of retaining an earlier lifecycle donor");
     PlayerCombatRuntime.ResetStops();
     Player player = new Player(20f, 70f);
     NativeEarnedStateOutput output = new NativeEarnedStateOutput(catalog);
@@ -150,10 +159,8 @@ static void TestNativeEffectsRegistrationHealingAndReplacement()
     {
         player.GetSEMan().Tick(1.01f);
     }
-
     Expect(player.Health == 70f, "native healing is capped by maximum health");
     Expect(PlayerCombatRuntime.ExpiredEffects == 1, "native duration reports CLUTCH expiry");
-
     Player refreshPlayer = new Player(20f, 200f);
     output.Activate(refreshPlayer, EarnedCombatState.Clutch, 1);
     refreshPlayer.GetSEMan().Tick(1.01f);
@@ -166,12 +173,23 @@ static void TestNativeEffectsRegistrationHealingAndReplacement()
     {
         refreshPlayer.GetSEMan().Tick(1.01f);
     }
-
     Expect(refreshPlayer.Health == 90f,
         "CLUTCH refresh restarts one complete sixty-health recovery window");
-
     output.Deactivate(refreshPlayer, EarnedCombatState.Clutch, 1);
-    output.Activate(player, EarnedCombatState.Untouchable, 1);
+    Expect(output.Activate(player, EarnedCombatState.Untouchable, 1).Outcome
+            == EarnedStateOutputOutcome.Activated,
+        "UNTOUCHABLE activates only after native status and HUD presence are established");
+    List<StatusEffect> visibleEffects = new List<StatusEffect>();
+    player.GetSEMan().GetHUDStatusEffects(visibleEffects);
+    Expect(visibleEffects.Count == 1
+            && visibleEffects[0].m_icon != null
+            && visibleEffects[0].m_icon!.name == "wolf-sight",
+        "UNTOUCHABLE is present in Valheim's native top-bar status source");
+    player.GetSEMan().Tick(60f);
+    visibleEffects.Clear();
+    player.GetSEMan().GetHUDStatusEffects(visibleEffects);
+    Expect(player.GetSEMan().Count == 1 && visibleEffects.Count == 1,
+        "UNTOUCHABLE remains active and top-bar-visible without a timer");
     output.Deactivate(player, EarnedCombatState.Untouchable, 1);
     output.Activate(player, EarnedCombatState.Untouchable, 2);
     Expect(player.GetSEMan().Count == 1,
@@ -189,7 +207,8 @@ static void TestNativeEffectsRegistrationHealingAndReplacement()
         "SLAUGHTERHOUSE replacement cannot stack native modifiers or icons");
 
     catalog.Reset();
-    Expect(database.m_StatusEffects.Count == 0, "plugin teardown unregisters owned templates");
+    Expect(currentDatabase.m_StatusEffects.Count == 0,
+        "plugin teardown unregisters owned templates");
 }
 
 static void TestMissingNativeIconRejectsRegistration()

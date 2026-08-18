@@ -57,7 +57,8 @@ internal enum EarnedStateTransitionReason
     ServerChainExpired,
     ServerChainAlreadyExpired,
     EffectUnavailable,
-    NativeApplicationFailed
+    NativeApplicationFailed,
+    NativeHudPresenceFailed
 }
 
 internal enum UntouchableProgressOutcome

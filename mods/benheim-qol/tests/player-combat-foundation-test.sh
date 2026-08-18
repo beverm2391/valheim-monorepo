@@ -127,7 +127,7 @@ grep -Fq 'DiagnosticEvent.Create("PlayerCombat", "berserker_chain_transition")' 
 # combat traffic.
 grep -Fq '[HarmonyPatch(typeof(ObjectDB), "Awake")]' "$native_patches"
 grep -Fq '[HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.CopyOtherDB))]' "$native_patches"
-grep -Fq '[HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]' "$native_patches"
+grep -Fq '[HarmonyPatch(typeof(Character), nameof(Character.SetHealth))]' "$native_patches"
 grep -Fq '[HarmonyPatch(typeof(Player), "OnDeath")]' "$native_patches"
 grep -Fq '[HarmonyPatch(typeof(Player), "OnDestroy")]' "$native_patches"
 grep -Fq '[HarmonyPatch(typeof(ZNet), "OnDestroy")]' "$native_patches"
@@ -138,13 +138,16 @@ if rg -n 'PlayerCombatRuntime\.Publish|PerfectDefenseObservation' "$plugin" | gr
   exit 1
 fi
 
-# Native direct and damage-over-time paths converge on ApplyDamage after armor,
-# block, and resistance resolution. Observing RPC_Damage would miss these ticks.
+# Native direct damage, damage-over-time, health costs, and maximum-health
+# reductions converge on SetHealth. Observing ApplyDamage would miss health
+# costs, while observing RPC_Damage would also miss local status-effect ticks.
 native_tree="$("$root/scripts/ensure-valheim-source.sh" | tail -n 1)"
 grep -Fq 'ApplyDamage(hit, showDamageText: true, triggerEffects: true' "$native_tree/Character.cs"
 grep -Fq 'm_character.ApplyDamage(hitData, showDamageText: true, triggerEffects: false);' "$native_tree/SE_Burning.cs"
 grep -Fq 'm_character.ApplyDamage(hitData, showDamageText: true, triggerEffects: false);' "$native_tree/SE_Poison.cs"
 grep -Fq 'm_character.ApplyDamage(hitData, showDamageText: true, triggerEffects: false);' "$native_tree/SE_Smoke.cs"
+grep -Fq 'public void UseHealth(float hp)' "$native_tree/Character.cs"
+grep -Fq 'SetHealth(health);' "$native_tree/Character.cs"
 
 # Native SE_Stats ticks call owner-routed Heal; Heal caps at maximum health.
 grep -Fq 'if (m_healthPerTick > 0f)' "$native_tree/SE_Stats.cs"

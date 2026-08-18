@@ -10,11 +10,16 @@ namespace BenheimQoL.KillAttribution;
 internal static class KillAttributionClient
 {
     private const float CapabilityTimeoutSeconds = 5f;
+    private const float CapabilityRetryIntervalSeconds = 1f;
 
     private static ZRpc? connectionServerRpc;
     private static ZRpc? compatibleServerRpc;
-    private static float capabilityDeadline;
+    private static ZNetPeer? connectionPeer;
     private static bool deathResetPending;
+    private static readonly KillAttributionCapabilityRetry CapabilityRetry =
+        new KillAttributionCapabilityRetry(
+            CapabilityTimeoutSeconds,
+            CapabilityRetryIntervalSeconds);
     private static readonly KillChainDeliveryCursor ChainDelivery =
         new KillChainDeliveryCursor();
 
@@ -34,10 +39,10 @@ internal static class KillAttributionClient
 
         connectionServerRpc = peer.m_rpc;
         compatibleServerRpc = null;
-        capabilityDeadline = Time.realtimeSinceStartup + CapabilityTimeoutSeconds;
+        connectionPeer = peer;
         deathResetPending = false;
+        CapabilityRetry.Reset();
         ChainDelivery.Reset();
-        HealthReporting.BeginKillAttributionConnection();
         peer.m_rpc.Register<int>(KillAttributionProtocol.CapabilityRpc, OnCapability);
         peer.m_rpc.Register<ZPackage>(KillAttributionProtocol.ConfirmedRpc, OnConfirmed);
         peer.m_rpc.Register<ZPackage>(
@@ -46,6 +51,11 @@ internal static class KillAttributionClient
         peer.m_rpc.Register(
             KillAttributionProtocol.ChainResetAcknowledgedRpc,
             OnChainResetAcknowledged);
+        EmitCapability(
+            "registration",
+            "registered",
+            "server_response_handler",
+            protocolVersion: KillAttributionProtocol.Version);
     }
 
     [HarmonyPatch(typeof(ZNet), "OnDestroy")]
@@ -54,9 +64,10 @@ internal static class KillAttributionClient
     {
         connectionServerRpc = null;
         compatibleServerRpc = null;
+        connectionPeer = null;
         deathResetPending = false;
+        CapabilityRetry.Reset();
         ChainDelivery.Reset();
-        HealthReporting.ReportKillAttributionAvailable();
     }
 
     internal static void Update()
@@ -68,12 +79,38 @@ internal static class KillAttributionClient
             return;
         }
 
-        if (!HasCompatibleServer && now >= capabilityDeadline)
+        if (HasCompatibleServer || CapabilityRetry.Finished)
         {
-            HealthReporting.ReportKillAttributionUnavailable(
-                "no matching Kill Attribution V2 capability was received");
+            return;
         }
 
+        if (!CapabilityRetry.Started)
+        {
+            CapabilityRetry.Begin(now);
+            EmitCapability(
+                "readiness",
+                "accepted",
+                "current_server_rpc_established",
+                protocolVersion: KillAttributionProtocol.Version);
+        }
+
+        if (CapabilityRetry.TryBeginAttempt(now, out int attempt))
+        {
+            TryRequestCapability(serverRpc, attempt);
+        }
+
+        if (CapabilityRetry.HasTimedOut(now))
+        {
+            CapabilityRetry.Finish();
+            HealthReporting.ReportKillAttributionUnavailable(
+                "no matching Kill Attribution V2 capability was received");
+            EmitCapability(
+                "response",
+                "rejected",
+                "capability_timeout",
+                protocolVersion: 0,
+                attempt: CapabilityRetry.Attempts);
+        }
     }
 
     internal static void Report(LethalHitObservation observation)
@@ -130,30 +167,99 @@ internal static class KillAttributionClient
     {
         if (!ReferenceEquals(rpc, ZNet.instance?.GetServerRPC()))
         {
+            EmitCapability(
+                "response",
+                "rejected",
+                "non_current_server_rpc",
+                version,
+                CapabilityRetry.Attempts);
             return;
         }
 
-        compatibleServerRpc = version == KillAttributionProtocol.Version
-            && rpc.IsConnected()
-                ? rpc
-                : null;
+        CapabilityRetry.Finish();
+        bool protocolMatches = version == KillAttributionProtocol.Version;
+        bool rpcConnected = rpc.IsConnected();
+        compatibleServerRpc = protocolMatches && rpcConnected ? rpc : null;
         if (compatibleServerRpc != null)
         {
             HealthReporting.ReportKillAttributionAvailable();
+            EmitCapability(
+                "response",
+                "accepted",
+                "matching_protocol",
+                version,
+                CapabilityRetry.Attempts);
             if (deathResetPending)
             {
                 TrySendDeathReset(rpc);
             }
         }
-        else
+        else if (!protocolMatches)
         {
             HealthReporting.ReportKillAttributionUnavailable(
                 $"server protocol {version} is incompatible with required V{KillAttributionProtocol.Version}");
+            EmitCapability(
+                "response",
+                "rejected",
+                "incompatible_protocol",
+                version,
+                CapabilityRetry.Attempts);
         }
+        else
+        {
+            HealthReporting.ReportKillAttributionUnavailable(
+                "matching Kill Attribution V2 capability arrived over a disconnected server RPC");
+            EmitCapability(
+                "response",
+                "rejected",
+                "rpc_disconnected",
+                version,
+                CapabilityRetry.Attempts);
+        }
+    }
+
+    private static void TryRequestCapability(ZRpc serverRpc, int attempt)
+    {
+        if (KillAttributionRpcAttempt.TrySend(
+                serverRpc.IsConnected(),
+                () => serverRpc.Invoke(
+                    KillAttributionProtocol.CapabilityRequestRpc,
+                    KillAttributionProtocol.Version),
+                out string failure))
+        {
+            EmitCapability(
+                "request",
+                "sent",
+                "current_server_rpc",
+                KillAttributionProtocol.Version,
+                attempt);
+            return;
+        }
+
+        EmitCapability(
+            "request",
+            "rejected",
+            failure,
+            KillAttributionProtocol.Version,
+            attempt);
+    }
+
+    private static void EmitCapability(
+        string phase,
+        string status,
+        string reason,
+        int protocolVersion,
+        int attempt = 0)
+    {
         Diagnostics.Emit(
             DiagnosticEvent.Create("PlayerCombat", "kill_feed_capability")
-                .Integer("protocol_version", version)
-                .Boolean("compatible", compatibleServerRpc != null));
+                .String("operation_phase", phase)
+                .String("status", status)
+                .String("reason", reason)
+                .Integer("protocol_version", protocolVersion)
+                .Integer("required_protocol_version", KillAttributionProtocol.Version)
+                .Integer("attempt", attempt)
+                .Integer("peer_uid", connectionPeer?.m_uid ?? 0L));
     }
 
     private static void OnConfirmed(ZRpc rpc, ZPackage package)

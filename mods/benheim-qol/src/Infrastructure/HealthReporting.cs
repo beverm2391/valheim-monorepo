@@ -76,11 +76,6 @@ internal static class HealthReporting
             $"owner={KeybindInspectionOwner} key=shortcuts.keybind_inspection detail={Diagnostics.Flatten(keybindInspectionDetail)}");
     }
 
-    internal static void BeginKillAttributionConnection()
-    {
-        killAttributionDetail = null;
-    }
-
     internal static void ReportKillAttributionUnavailable(string detail)
     {
         string message =

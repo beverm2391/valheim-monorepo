@@ -2,8 +2,8 @@ using HarmonyLib;
 
 namespace BenheimQoL.PlayerCombat;
 
-[HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]
-internal static class AcceptedPlayerDamagePatch
+[HarmonyPatch(typeof(Character), nameof(Character.SetHealth))]
+internal static class AcceptedPlayerHealthLossPatch
 {
     private static void Prefix(Character __instance, out PlayerCombatContext? __state)
     {

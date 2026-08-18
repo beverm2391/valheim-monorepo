@@ -18,6 +18,10 @@ grep -Fq 'victim.IsOwner()' "$client/LethalHitObservation.cs"
 grep -Fq '!(hit.GetAttacker() is Player killer)' "$client/LethalHitObservation.cs"
 grep -Fq 'ZNet.instance.GetServerRPC()' "$client/KillAttributionClient.cs"
 grep -Fq 'KillAttributionProtocol.CapabilityRpc' "$client/KillAttributionClient.cs"
+grep -Fq 'KillAttributionProtocol.CapabilityRequestRpc' "$client/KillAttributionClient.cs"
+grep -Fq 'CapabilityRetry.TryBeginAttempt' "$client/KillAttributionClient.cs"
+grep -Fq '"current_server_rpc_established"' "$client/KillAttributionClient.cs"
+grep -Fq '"capability_timeout"' "$client/KillAttributionClient.cs"
 grep -Fq 'HasCompatibleServer' "$client/KillAttributionClient.cs"
 grep -Fq 'ReferenceEquals(rpc, ZNet.instance?.GetServerRPC())' "$client/KillAttributionClient.cs"
 grep -Fq 'PlayerCombatRuntime.Publish(' "$client/KillAttributionClient.cs"
@@ -34,6 +38,9 @@ grep -Fq 'KillAttributionProtocol.ChainResetRpc' "$client/KillAttributionClient.
 
 grep -Fq 'ReferenceEquals(rpc, reporter.m_rpc)' "$server"
 grep -Fq 'KillAttributionProtocol.CapabilityRpc' "$server"
+grep -Fq 'KillAttributionProtocol.CapabilityRequestRpc' "$server"
+grep -Fq '"client_request_handler"' "$server"
+grep -Fq '"incompatible_protocol"' "$server"
 grep -Fq 'victim.GetOwner() != reporter.m_uid' "$server"
 grep -Fq 'victim.GetLong(ZDOVars.s_playerID, 0L) != 0L' "$server"
 grep -Fq 'peer.m_characterID == characterId' "$server"
@@ -68,10 +75,12 @@ grep -Fq 'public bool IsMonsterFaction(float time)' <<<"$character_source"
 grep -Fq 'm_faction != Faction.ForestMonsters' <<<"$character_source"
 grep -Fq 'return m_faction == Faction.MistlandsMonsters;' <<<"$character_source"
 
-# Benheim relies on Valheim's connection-scoped reliable transport instead of
-# building a second retry protocol. Steam queues reliable messages, PlayFab
-# retains acknowledged in-flight messages, and ZNet destroys disconnected
-# peers rather than reconnecting an existing ZRpc.
+# Capability discovery retries the request because handler registration and
+# ZNet's current-server identity become ready at different times. Once an RPC
+# invocation begins, Benheim relies on Valheim's connection-scoped reliable
+# transport. Steam queues reliable messages, PlayFab retains acknowledged
+# in-flight messages, and ZNet destroys disconnected peers instead of
+# reconnecting an existing ZRpc.
 zrpc_source="$($root/mods/benheim-qol/scripts/decompile-valheim.sh ZRpc)"
 grep -Fq 'if (IsConnected())' <<<"$zrpc_source"
 grep -Fq 'SendPackage(m_pkg);' <<<"$zrpc_source"

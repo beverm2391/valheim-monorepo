@@ -270,6 +270,17 @@ public sealed class SEMan
     public StatusEffect? GetStatusEffect(int hash) =>
         active.TryGetValue(hash, out StatusEffect? value) ? value : null;
 
+    public void GetHUDStatusEffects(List<StatusEffect> effects)
+    {
+        foreach (StatusEffect effect in active.Values)
+        {
+            if (effect.m_icon != null)
+            {
+                effects.Add(effect);
+            }
+        }
+    }
+
     public bool RemoveStatusEffect(int hash, bool quiet = false)
     {
         if (!active.TryGetValue(hash, out StatusEffect? effect))

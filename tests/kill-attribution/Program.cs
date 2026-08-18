@@ -332,4 +332,31 @@ Assert(
     && sentFailure == string.Empty,
     "a connected successful send should be the only transport path marked delivered");
 
+KillAttributionCapabilityRetry capabilityRetry =
+    new KillAttributionCapabilityRetry(timeoutSeconds: 5f, retryIntervalSeconds: 1f);
+Assert(
+    !capabilityRetry.TryBeginAttempt(20f, out _),
+    "capability requests must not start before Valheim exposes the current server RPC");
+capabilityRetry.Begin(20f);
+Assert(
+    capabilityRetry.TryBeginAttempt(20f, out int firstAttempt)
+    && firstAttempt == 1
+    && !capabilityRetry.TryBeginAttempt(20.5f, out _)
+    && capabilityRetry.TryBeginAttempt(21f, out int secondAttempt)
+    && secondAttempt == 2,
+    "capability discovery should send immediately and retry at the bounded cadence");
+Assert(
+    !capabilityRetry.HasTimedOut(24.999f)
+    && capabilityRetry.HasTimedOut(25f),
+    "the warning boundary should begin five seconds after the current server RPC is established");
+capabilityRetry.Finish();
+Assert(
+    !capabilityRetry.TryBeginAttempt(26f, out _)
+    && !capabilityRetry.HasTimedOut(26f),
+    "an accepted or explicitly incompatible response should stop retries and timeout replacement");
+capabilityRetry.Reset();
+Assert(
+    !capabilityRetry.Started && !capabilityRetry.Finished && capabilityRetry.Attempts == 0,
+    "disconnect should clear all capability retry state");
+
 Console.WriteLine("Kill attribution authority and server ordering checks passed");

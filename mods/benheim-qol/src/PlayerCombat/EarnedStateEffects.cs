@@ -127,6 +127,7 @@ internal sealed class EarnedStateEffectCatalog
         {
             if (!TryResolveIcon(database, definition, out string iconFailure))
             {
+                database.m_StatusEffects.Remove(definition.Effect);
                 EmitRegistrationRejected(definition, iconFailure);
                 continue;
             }
@@ -135,10 +136,23 @@ internal sealed class EarnedStateEffectCatalog
             if (existing == null)
             {
                 database.m_StatusEffects.Add(definition.Effect);
+                EmitStatus(
+                    definition,
+                    "registration",
+                    "registered",
+                    "current_objectdb_icon_resolved");
             }
             else if (existing != definition.Effect)
             {
                 EmitRegistrationRejected(definition, "hash_conflict");
+            }
+            else
+            {
+                EmitStatus(
+                    definition,
+                    "registration",
+                    "registered",
+                    "already_registered");
             }
         }
     }
@@ -185,12 +199,6 @@ internal sealed class EarnedStateEffectCatalog
         EarnedStateEffectDefinition definition,
         out string failure)
     {
-        if (definition.Effect.m_icon != null)
-        {
-            failure = string.Empty;
-            return true;
-        }
-
         NativeStatusIconSource source = definition.IconSource;
         GameObject? iconPrefab = database.GetItemPrefab(source.ItemPrefab);
         if (iconPrefab == null || iconPrefab.name != source.ItemPrefab)
@@ -233,7 +241,9 @@ internal sealed class EarnedStateEffectCatalog
         try
         {
             Diagnostics.Emit(
-                DiagnosticEvent.Create("PlayerCombat", "earned_state_effect_registration_rejected")
+                DiagnosticEvent.Create("PlayerCombat", "earned_state_status")
+                    .String("operation_phase", "registration")
+                    .String("status", "rejected")
                     .String("state", definition.State.ToString())
                     .Integer("tier", definition.Tier)
                     .String("reason", reason)
@@ -244,6 +254,31 @@ internal sealed class EarnedStateEffectCatalog
         {
             // A diagnostic failure cannot turn an unavailable optional effect
             // into a plugin startup failure.
+        }
+    }
+
+    private static void EmitStatus(
+        EarnedStateEffectDefinition definition,
+        string phase,
+        string status,
+        string reason)
+    {
+        try
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("PlayerCombat", "earned_state_status")
+                    .String("operation_phase", phase)
+                    .String("status", status)
+                    .String("reason", reason)
+                    .String("state", definition.State.ToString())
+                    .Integer("tier", definition.Tier)
+                    .String("icon_prefab", definition.IconSource.ItemPrefab)
+                    .String("icon_status_effect", definition.IconSource.StatusEffectIdentity)
+                    .String("icon_sprite", definition.Effect.m_icon?.name ?? string.Empty));
+        }
+        catch
+        {
+            // Diagnostics cannot interrupt ObjectDB lifecycle registration.
         }
     }
 
@@ -321,6 +356,11 @@ internal sealed class NativeEarnedStateOutput : IEarnedStateOutput
         StatusEffect? activeEffect = statusEffects.GetStatusEffect(effectHash);
         if (activeEffect == null)
         {
+            EmitStatus(
+                definition,
+                "application",
+                "rejected",
+                "native_application_failed");
             return EarnedStateOutputResult.Rejected(
                 EarnedStateTransitionReason.NativeApplicationFailed);
         }
@@ -329,6 +369,36 @@ internal sealed class NativeEarnedStateOutput : IEarnedStateOutput
         {
             activeEffect.m_ttl = durationSeconds.Value;
         }
+
+        EmitStatus(
+            definition,
+            "application",
+            wasActive ? "refreshed" : "applied",
+            "native_status_effect_present");
+
+        List<StatusEffect> hudEffects = new List<StatusEffect>();
+        statusEffects.GetHUDStatusEffects(hudEffects);
+        bool visibleInNativeHud = activeEffect.m_icon != null
+            && hudEffects.Contains(activeEffect);
+        if (!visibleInNativeHud)
+        {
+            statusEffects.RemoveStatusEffect(effectHash, quiet: true);
+            EmitStatus(
+                definition,
+                "presence",
+                "rejected",
+                activeEffect.m_icon == null
+                    ? "active_icon_missing"
+                    : "native_hud_list_missing");
+            return EarnedStateOutputResult.Rejected(
+                EarnedStateTransitionReason.NativeHudPresenceFailed);
+        }
+
+        EmitStatus(
+            definition,
+            "presence",
+            "present",
+            "native_hud_list_contains_effect");
 
         return wasActive
             ? EarnedStateOutputResult.Refreshed()
@@ -339,7 +409,37 @@ internal sealed class NativeEarnedStateOutput : IEarnedStateOutput
     {
         if (effects.TryGet(state, tier, out EarnedStateEffectDefinition definition))
         {
-            player.GetSEMan().RemoveStatusEffect(definition.Effect.NameHash(), quiet: true);
+            bool removed = player.GetSEMan().RemoveStatusEffect(
+                definition.Effect.NameHash(),
+                quiet: true);
+            EmitStatus(
+                definition,
+                "removal",
+                removed ? "removed" : "absent",
+                "controller_requested");
+        }
+    }
+
+    private static void EmitStatus(
+        EarnedStateEffectDefinition definition,
+        string phase,
+        string status,
+        string reason)
+    {
+        try
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("PlayerCombat", "earned_state_status")
+                    .String("operation_phase", phase)
+                    .String("status", status)
+                    .String("reason", reason)
+                    .String("state", definition.State.ToString())
+                    .Integer("tier", definition.Tier)
+                    .String("effect", definition.Effect.name));
+        }
+        catch
+        {
+            // Native status application and cleanup cannot depend on telemetry.
         }
     }
 }

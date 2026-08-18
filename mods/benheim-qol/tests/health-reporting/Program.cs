@@ -101,7 +101,6 @@ namespace HealthReportingTests
             Require(HealthReporting.GameplayActionsEnabled, "session reset re-enables gameplay actions");
             Require(HealthReporting.KeybindInspectionDetail == null, "session reset clears old warnings");
 
-            HealthReporting.BeginKillAttributionConnection();
             HealthReporting.ReportKillAttributionUnavailable("capability timeout");
             HealthReporting.ReportKillAttributionUnavailable("capability timeout");
             Require(
@@ -114,6 +113,11 @@ namespace HealthReportingTests
             Require(
                 Player.m_localPlayer.MessageCount == 2,
                 "the BERSERKER compatibility warning is shown once per session");
+
+            HealthReporting.ReportKillAttributionUnavailable("new connection pending");
+            Require(
+                HealthReporting.KillAttributionDetail?.Contains("new connection pending", StringComparison.Ordinal) == true,
+                "a new connection cannot hide a genuine capability warning before a match arrives");
 
             HealthReporting.ReportKillAttributionAvailable();
             Require(

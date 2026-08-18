@@ -62,6 +62,8 @@ Each new tier adds `UNTOUCHABLE!`, `UNTOUCHABLE II!`, or `UNTOUCHABLE III!` to
 the originating defense's local blue Bonus text. It also plays the native
 adrenaline-charm activation cue. Tier replacement keeps one modifier and one
 Wolf Sight status icon. The native indefinite status shows no countdown.
+Benheim treats a tier as active only when Valheim applies the tier's native
+effect and includes that effect in the native status bar.
 
 ### BERSERKER / SLAUGHTERHOUSE
 
@@ -85,10 +87,13 @@ the one active effect and countdown without replaying the local Bonus text or
 charm cue. Both tiers reuse the Crystal Heart status icon. Expiration and
 removal are quiet.
 
-Benheim waits up to five seconds for a matching Kill Attribution V2 capability
-from the server. If none arrives, BERSERKER/SLAUGHTERHOUSE remains inactive.
-Benheim shows one center-screen warning per session. It keeps the warning in the
-Controls panel's Warnings block until the matching capability arrives.
+After Valheim makes the current server connection available, Benheim starts
+capability discovery. Benheim requests a Kill Attribution V2 capability and
+retries that request for up to five seconds. Benheim accepts only a matching
+Kill Attribution V2 response from that connection. If no matching response
+arrives, the BERSERKER/SLAUGHTERHOUSE state remains inactive. Benheim shows one
+center-screen warning per session and keeps the warning in the Controls panel's
+Warnings block until the matching Kill Attribution V2 capability arrives.
 
 One confirmed defense can produce an adrenaline message and multiple
 earned-state titles. Benheim combines them into one local Bonus text in the
@@ -98,6 +103,13 @@ defense. This rule does not combine unrelated actions or callbacks.
 None of the three states adds extra adrenaline. Existing perfect-defense
 adrenaline behavior remains unchanged. Exact avoided-damage evidence may refine
 CLUTCH later.
+
+Automated checks cover capability retries, effect registration in Valheim's
+current object database (`ObjectDB`) with a loaded native icon, inclusion in the
+native status-bar source, the indefinite UNTOUCHABLE lifetime, tier replacement,
+and the native health-loss path used by damage and health costs. These checks
+do not establish gameplay acceptance. The UNTOUCHABLE native-status fix and the
+Kill Attribution capability-discovery fix still need a gameplay retest.
 
 [Adrenaline](../Adrenaline/PRODUCT.md) owns meter behavior and tuning.
 [Weapon Rhythm](../WeaponRhythm/PRODUCT.md),

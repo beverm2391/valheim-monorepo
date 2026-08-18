@@ -12,6 +12,7 @@ namespace BenheimQoL.KillAttribution;
 internal static class KillAttributionProtocol
 {
     internal const int Version = 2;
+    internal const string CapabilityRequestRpc = "Benheim_Kill_Capability_Request_V2";
     internal const string CapabilityRpc = "Benheim_Kill_Capability_V2";
     internal const string ReportRpc = "Benheim_Kill_Report_V2";
     internal const string ConfirmedRpc = "Benheim_Kill_Confirmed_V2";

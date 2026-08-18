@@ -1,4 +1,5 @@
 using BenheimQoL.Infrastructure;
+using static BenheimServerSupport.KillAttributionDiagnostics;
 using BenheimQoL.KillAttribution;
 using HarmonyLib;
 using System;
@@ -34,25 +35,78 @@ internal static class KillAttributionServer
 
         // The captured peer binds every report to its authenticated direct
         // connection. The client cannot select a different reporting sender.
+        peer.m_rpc.Register<int>(
+            KillAttributionProtocol.CapabilityRequestRpc,
+            (rpc, version) => OnCapabilityRequest(peer, rpc, version));
         peer.m_rpc.Register<ZPackage>(
             KillAttributionProtocol.ReportRpc,
             (rpc, package) => OnReport(peer, rpc, package));
         peer.m_rpc.Register(
             KillAttributionProtocol.ChainResetRpc,
             rpc => OnChainReset(peer, rpc));
-        if (!KillAttributionRpcAttempt.TrySend(
-                peer.m_rpc.IsConnected(),
-                () => peer.m_rpc.Invoke(
+        KillAttributionDiagnostics.EmitCapability(
+            peer,
+            "registration",
+            "registered",
+            "client_request_handler",
+            0,
+            KillAttributionProtocol.Version);
+    }
+
+    private static void OnCapabilityRequest(
+        ZNetPeer reporter,
+        ZRpc rpc,
+        int requestedVersion)
+    {
+        if (ZNet.instance == null
+            || !ZNet.instance.IsServer()
+            || !ReferenceEquals(rpc, reporter.m_rpc)
+            || reporter.m_socket == null
+            || !rpc.IsConnected())
+        {
+            KillAttributionDiagnostics.EmitCapability(
+                reporter,
+                "request",
+                "rejected",
+                "non_current_client_rpc",
+                requestedVersion,
+                KillAttributionProtocol.Version);
+            return;
+        }
+
+        bool compatible = requestedVersion == KillAttributionProtocol.Version;
+        KillAttributionDiagnostics.EmitCapability(
+            reporter,
+            "request",
+            compatible ? "accepted" : "rejected",
+            compatible ? "matching_protocol" : "incompatible_protocol",
+            requestedVersion,
+            KillAttributionProtocol.Version);
+
+        if (KillAttributionRpcAttempt.TrySend(
+                rpc.IsConnected(),
+                () => rpc.Invoke(
                     KillAttributionProtocol.CapabilityRpc,
                     KillAttributionProtocol.Version),
                 out string failure))
         {
-            EmitRejected(
-                failure,
-                string.Empty,
-                ZDOID.None,
-                peer.m_characterID);
+            KillAttributionDiagnostics.EmitCapability(
+                reporter,
+                "response",
+                "sent",
+                compatible ? "matching_protocol" : "incompatible_protocol",
+                requestedVersion,
+                KillAttributionProtocol.Version);
+            return;
         }
+
+        KillAttributionDiagnostics.EmitCapability(
+            reporter,
+            "response",
+            "rejected",
+            failure,
+            requestedVersion,
+            KillAttributionProtocol.Version);
     }
 
     [HarmonyPatch(typeof(ZNet), nameof(ZNet.Disconnect), typeof(ZNetPeer))]
@@ -389,22 +443,6 @@ internal static class KillAttributionServer
         }
 
         return null;
-    }
-
-    private static void EmitRejected(
-        string reason,
-        string operationId,
-        ZDOID victimId,
-        ZDOID killerId)
-    {
-        ServerDiagnostics.Emit(
-            DiagnosticEvent.Create("PlayerCombat", "kill_report_rejected")
-                .String("operation_id", operationId)
-                .String("operation_phase", "validation")
-                .String("status", "rejected")
-                .String("reason", reason)
-                .String("victim_id", victimId.IsNone() ? string.Empty : victimId.ToString())
-                .String("killer_id", killerId.IsNone() ? string.Empty : killerId.ToString()));
     }
 
 }
