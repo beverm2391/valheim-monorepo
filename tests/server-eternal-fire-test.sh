@@ -53,7 +53,7 @@ expected_checksum=8f452cc68d839b7a843676c89b479e357c2b932db8f0f02106de5c5cfde451
 actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 [[ "$actual_checksum" == "$expected_checksum" ]] || fail "first-party plugin checksum changed"
 assert_contains "installer pins the first-party plugin checksum" "$expected_checksum" "$installer"
-test_commands_checksum=946c94c5144f624e05f39d29fea3c96d624f65307c0f876d292e3681a9e4b0c3
+test_commands_checksum=2a15b0714a81ae518ac1d8ab8d0f8e16a87eecc39d4e32ca8b75316b0d051db2
 actual_test_commands_checksum="$(shasum -a 256 "$test_commands_plugin" | awk '{print $1}')"
 [[ "$actual_test_commands_checksum" == "$test_commands_checksum" ]] || fail "test-command plugin checksum changed"
 assert_contains "installer pins the test-command plugin checksum" "$test_commands_checksum" "$installer"
