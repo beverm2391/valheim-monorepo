@@ -13,7 +13,9 @@ internal static class PutAwayLeaseClient
     internal const float ResultWaitSeconds = 5f;
 
     private static ZRpc? registeredServerRpc;
+    private static ZRpc? readinessSentServerRpc;
     private static string? pendingOperationId;
+    private static bool pendingValidation;
     private static string? heldOperationId;
     private static float requestedAt;
     private static PutAwayLeaseResult? completedResult;
@@ -30,7 +32,9 @@ internal static class PutAwayLeaseClient
         }
 
         ZRpc? serverRpc = ZNet.instance?.GetServerRPC();
-        if (serverRpc == null || !EnsureResultRpcRegistered(serverRpc))
+        if (serverRpc == null
+            || !EnsureResultRpcRegistered(serverRpc)
+            || !EnsurePeerReadinessSent(serverRpc))
         {
             reason = "compatible_server_unavailable";
             return false;
@@ -38,6 +42,7 @@ internal static class PutAwayLeaseClient
 
         string operationId = Diagnostics.NewOperationId();
         pendingOperationId = operationId;
+        pendingValidation = false;
         requestedAt = now;
         Diagnostics.Emit(
             DiagnosticEvent.Create("Inventory", "quick_stack_lease_requested")
@@ -57,16 +62,51 @@ internal static class PutAwayLeaseClient
         }
     }
 
+    internal static bool TryValidate(string operationId, float now, out string reason)
+    {
+        reason = string.Empty;
+        if (heldOperationId != operationId || pendingOperationId != null)
+        {
+            reason = "lease_not_held";
+            return false;
+        }
+
+        ZRpc? serverRpc = ZNet.instance?.GetServerRPC();
+        if (serverRpc == null || !serverRpc.IsConnected())
+        {
+            reason = "compatible_server_unavailable";
+            return false;
+        }
+
+        pendingOperationId = operationId;
+        pendingValidation = true;
+        requestedAt = now;
+        try
+        {
+            serverRpc.Invoke(PutAwayLeaseProtocol.RequestRpc, operationId);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            pendingOperationId = null;
+            pendingValidation = false;
+            reason = $"validation_send_failed_{exception.GetType().Name}";
+            return false;
+        }
+    }
+
     internal static void Update(float now)
     {
         ZRpc? serverRpc = ZNet.instance?.GetServerRPC();
         if (serverRpc != null)
         {
             EnsureResultRpcRegistered(serverRpc);
+            EnsurePeerReadinessSent(serverRpc);
         }
         else
         {
             registeredServerRpc = null;
+            readinessSentServerRpc = null;
         }
 
         if (pendingOperationId == null || now - requestedAt < ResultWaitSeconds)
@@ -75,9 +115,19 @@ internal static class PutAwayLeaseClient
         }
 
         string operationId = pendingOperationId;
+        bool wasValidation = pendingValidation;
         pendingOperationId = null;
+        pendingValidation = false;
+        if (heldOperationId == operationId)
+        {
+            heldOperationId = null;
+        }
         TrySendRelease(operationId, "result_timeout");
-        completedResult = new PutAwayLeaseResult(operationId, false, "server_no_response");
+        completedResult = new PutAwayLeaseResult(
+            operationId,
+            false,
+            "server_no_response",
+            wasValidation);
         EmitResult(operationId, PutAwayLeaseProtocol.Rejected, "server_no_response");
     }
 
@@ -103,6 +153,7 @@ internal static class PutAwayLeaseClient
         string? operationId = heldOperationId ?? pendingOperationId;
         heldOperationId = null;
         pendingOperationId = null;
+        pendingValidation = false;
         completedResult = null;
         if (operationId != null)
         {
@@ -110,6 +161,7 @@ internal static class PutAwayLeaseClient
         }
 
         registeredServerRpc = null;
+        readinessSentServerRpc = null;
     }
 
     private static bool EnsureResultRpcRegistered(ZRpc serverRpc)
@@ -132,6 +184,44 @@ internal static class PutAwayLeaseClient
         }
     }
 
+    private static bool EnsurePeerReadinessSent(ZRpc serverRpc)
+    {
+        if (ReferenceEquals(readinessSentServerRpc, serverRpc))
+        {
+            if (serverRpc.IsConnected())
+            {
+                return true;
+            }
+
+            readinessSentServerRpc = null;
+            return false;
+        }
+
+        if (!serverRpc.IsConnected())
+        {
+            readinessSentServerRpc = null;
+            return false;
+        }
+
+        try
+        {
+            serverRpc.Invoke(
+                PutAwayLeaseProtocol.PeerReadyRpc,
+                PutAwayLeaseProtocol.Generation);
+            readinessSentServerRpc = serverRpc;
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("Inventory", "put_away_peer_ready_sent")
+                    .String("operation_phase", "peer_readiness")
+                    .Integer("protocol_generation", PutAwayLeaseProtocol.Generation));
+            return true;
+        }
+        catch
+        {
+            readinessSentServerRpc = null;
+            return false;
+        }
+    }
+
     private static void OnResult(ZRpc rpc, string operationId, string outcome, string reason)
     {
         if (!ReferenceEquals(rpc, ZNet.instance?.GetServerRPC()))
@@ -146,14 +236,23 @@ internal static class PutAwayLeaseClient
             return;
         }
 
+        bool wasValidation = pendingValidation;
         pendingOperationId = null;
+        pendingValidation = false;
         bool granted = outcome == PutAwayLeaseProtocol.Granted;
         if (granted)
         {
-            heldOperationId = operationId;
+            if (!wasValidation)
+            {
+                heldOperationId = operationId;
+            }
         }
 
-        completedResult = new PutAwayLeaseResult(operationId, granted, reason);
+        completedResult = new PutAwayLeaseResult(
+            operationId,
+            granted,
+            reason,
+            wasValidation);
         EmitResult(operationId, outcome, reason);
     }
 
@@ -204,14 +303,20 @@ internal static class PutAwayLeaseClient
 
 internal sealed class PutAwayLeaseResult
 {
-    internal PutAwayLeaseResult(string operationId, bool granted, string reason)
+    internal PutAwayLeaseResult(
+        string operationId,
+        bool granted,
+        string reason,
+        bool isValidation)
     {
         OperationId = operationId;
         Granted = granted;
         Reason = reason;
+        IsValidation = isValidation;
     }
 
     internal string OperationId { get; }
     internal bool Granted { get; }
     internal string Reason { get; }
+    internal bool IsValidation { get; }
 }

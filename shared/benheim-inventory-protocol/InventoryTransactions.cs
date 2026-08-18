@@ -11,14 +11,7 @@ namespace BenheimInventoryProtocol;
 /// </summary>
 internal static partial class InventoryTransactions
 {
-    internal const int ProtocolVersion = 3;
     internal const int MaxItemsPerDeposit = 64;
-    internal const string DepositRequestRpc = "Benheim.Inventory.v3.DepositRequest";
-    internal const string OwnerExecuteRpc = "Benheim.Inventory.v3.OwnerExecute";
-    internal const string OwnerResultRpc = "Benheim.Inventory.v3.OwnerResult";
-    internal const string DepositResultRpc = "Benheim.Inventory.v3.DepositResult";
-    internal const string ReceiptAckRpc = "Benheim.Inventory.v3.ReceiptAck";
-    internal const string OwnerReceiptAckRpc = "Benheim.Inventory.v3.OwnerReceiptAck";
 
     private static readonly Dictionary<string, PendingDeposit> ClientPending = new();
     private static readonly ConnectedTransactionRouter<ZDOID> ServerRouter = new();
@@ -32,7 +25,7 @@ internal static partial class InventoryTransactions
         diagnosticSink = sink;
         Emit(
             InventoryTransactionDiagnosticEvent.Create("initialized", HostRole())
-                .Integer("protocol_version", ProtocolVersion)
+                .Integer("protocol_version", InventoryTransactionProtocol.Version)
                 .Code("product_version", productVersion));
     }
 
@@ -86,7 +79,7 @@ internal static partial class InventoryTransactions
 
     internal static bool IsExpectedServer(long sender) => sender != 0L && sender == GetServerPeerId();
     internal static void Emit(InventoryTransactionDiagnosticEvent diagnosticEvent) =>
-        diagnosticSink?.Emit(diagnosticEvent);
+        InventoryTransactionDiagnosticProjection.EmitBestEffort(diagnosticSink, diagnosticEvent);
 
     internal static int CountReserved(IReadOnlyList<ReservedDepositItem> items) =>
         items.Sum(item => item.Item.m_stack);
@@ -98,6 +91,22 @@ internal static partial class InventoryTransactions
 
     internal static bool HasUnsettledClientDeposit =>
         ClientPending.Count > 0;
+
+    internal static void RemoveServerRequester(long requester)
+    {
+        if (requester == 0L)
+        {
+            return;
+        }
+
+        int removedCount = ServerRouter.RemoveRequester(requester);
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create("server_requester_disconnected", "server_router")
+                .Code("operation_phase", "disconnect_cleanup")
+                .Code("status", "removed")
+                .Integer("requester_peer", requester)
+                .Integer("removed_count", removedCount));
+    }
 
     internal static string DescribeReserved(IReadOnlyList<ReservedDepositItem> items) =>
         DescribeItemCounts(items.Select(item => (ItemName(item.Item), item.Item.m_stack)));
@@ -181,15 +190,27 @@ internal static partial class InventoryTransactions
     {
         if (ReferenceEquals(registeredRpc, ZRoutedRpc.instance)) return;
         registeredRpc = ZRoutedRpc.instance;
-        registeredRpc.Register<ZPackage>(DepositRequestRpc, RpcDepositRequest);
-        registeredRpc.Register<ZPackage>(OwnerExecuteRpc, InventoryTransactionOwner.Handle);
-        registeredRpc.Register<ZPackage>(OwnerResultRpc, RpcOwnerResult);
-        registeredRpc.Register<ZPackage>(DepositResultRpc, RpcDepositResult);
-        registeredRpc.Register<ZPackage>(ReceiptAckRpc, RpcReceiptAck);
-        registeredRpc.Register<ZPackage>(OwnerReceiptAckRpc, InventoryTransactionOwner.HandleReceiptAck);
+        registeredRpc.Register<ZPackage>(
+            InventoryTransactionProtocol.DepositRequestRpc,
+            RpcDepositRequest);
+        registeredRpc.Register<ZPackage>(
+            InventoryTransactionProtocol.OwnerExecuteRpc,
+            InventoryTransactionOwner.Handle);
+        registeredRpc.Register<ZPackage>(
+            InventoryTransactionProtocol.OwnerResultRpc,
+            RpcOwnerResult);
+        registeredRpc.Register<ZPackage>(
+            InventoryTransactionProtocol.DepositResultRpc,
+            RpcDepositResult);
+        registeredRpc.Register<ZPackage>(
+            InventoryTransactionProtocol.ReceiptAckRpc,
+            RpcReceiptAck);
+        registeredRpc.Register<ZPackage>(
+            InventoryTransactionProtocol.OwnerReceiptAckRpc,
+            InventoryTransactionOwner.HandleReceiptAck);
         Emit(
             InventoryTransactionDiagnosticEvent.Create("rpc_registered", HostRole())
-                .Integer("protocol_version", ProtocolVersion)
+                .Integer("protocol_version", InventoryTransactionProtocol.Version)
                 .Boolean("server", ZNet.instance.IsServer()));
     }
 

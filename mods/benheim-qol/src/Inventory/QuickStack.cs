@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BenheimQoL.InventoryFeature;
 
-internal static class QuickStack
+internal static partial class QuickStack
 {
     internal const float Radius = 30f;
 
@@ -120,24 +120,23 @@ internal static class QuickStack
                 continue;
             }
 
-            operation.CurrentContainer = container;
+            operation.PendingContainer = container;
+            operation.PendingCandidates = candidates;
             Diagnostics.Event(
                 "Inventory",
-                "quick_stack_request_container",
+                "quick_stack_validate_container",
                 $"container=\"{container.gameObject.name}\" index={operation.NextContainerIndex}/{operation.Containers.Count} " +
                 $"items={candidates.Count}");
-            if (InventoryTransactions.TryBeginDeposit(
+            if (PutAwayLeaseClient.TryValidate(
                     operation.OperationId,
-                    operation.Player,
-                    container,
-                    candidates,
-                    result => CompleteContainer(operation, container, result)))
+                    Time.unscaledTime,
+                    out string validationReason))
             {
                 return;
             }
 
-            operation.CurrentContainer = null;
-            operation.BusyContainers++;
+            CancelBeforeReservation(operation, validationReason);
+            return;
         }
 
         Finish(operation);
@@ -308,9 +307,15 @@ internal static class QuickStack
         PutAwayLeaseClient.Update(Time.unscaledTime);
         if (PutAwayLeaseClient.TryTakeResult(out PutAwayLeaseResult? leaseResult))
         {
-            HandleLeaseResult(leaseResult!);
+            if (leaseResult!.IsValidation)
+            {
+                BeginDepositAfterLeaseValidation(leaseResult);
+            }
+            else
+            {
+                HandleLeaseResult(leaseResult);
+            }
         }
-
     }
 
     private static void HandleLeaseResult(PutAwayLeaseResult result)

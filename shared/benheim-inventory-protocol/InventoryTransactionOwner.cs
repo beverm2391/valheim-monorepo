@@ -39,6 +39,11 @@ internal static class InventoryTransactionOwner
                 out ZDOID containerId,
                 out List<RequestedDepositItem> requestedItems))
         {
+            SendResult(requester, InventoryTransactionWire.BuildResponse(
+                transactionId,
+                payloadHash,
+                DepositStatus.InvalidRequest,
+                Array.Empty<int>()));
             InventoryTransactions.Emit(
                 InventoryTransactionDiagnosticEvent.Create(
                         "owner_validation_result",
@@ -48,16 +53,16 @@ internal static class InventoryTransactionOwner
                     .Code("status", "invalid_request")
                     .Code("reason", "invalid_request")
                     .Integer("requested_count", 0));
-            SendResult(requester, InventoryTransactionWire.BuildResponse(
-                transactionId,
-                payloadHash,
-                DepositStatus.InvalidRequest,
-                Array.Empty<int>()));
             return;
         }
 
         if (!TryResolveOwnedContainer(containerId, out Container? container, out ZDO? zdo))
         {
+            SendResult(requester, InventoryTransactionWire.BuildResponse(
+                transactionId,
+                payloadHash,
+                DepositStatus.StaleOwner,
+                Array.Empty<int>()));
             InventoryTransactions.Emit(
                 InventoryTransactionDiagnosticEvent.Create(
                         "owner_validation_result",
@@ -72,17 +77,14 @@ internal static class InventoryTransactionOwner
                     .Integer("owner_peer", zdo?.GetOwner() ?? 0L)
                     .Integer("requested_count", InventoryTransactions.CountRequested(requestedItems))
                     .Text("requested_items", InventoryTransactions.DescribeRequested(requestedItems)));
-            SendResult(requester, InventoryTransactionWire.BuildResponse(
-                transactionId,
-                payloadHash,
-                DepositStatus.StaleOwner,
-                Array.Empty<int>()));
             return;
         }
 
         if (InventoryTransactionReceipts.TryRead(
                 zdo!, transactionId, payloadHash, out DepositStatus cachedStatus, out List<int> cachedAccepted))
         {
+            SendResult(requester, InventoryTransactionWire.BuildResponse(
+                transactionId, payloadHash, cachedStatus, cachedAccepted));
             InventoryTransactions.Emit(
                 InventoryTransactionDiagnosticEvent.Create("owner_duplicate", "chest_owner")
                     .Code("correlation", transactionId)
@@ -101,14 +103,17 @@ internal static class InventoryTransactionOwner
                     .Text("requested_items", InventoryTransactions.DescribeRequested(requestedItems))
                     .Text("accepted_items", InventoryTransactions.DescribeAccepted(requestedItems, cachedAccepted))
                     .Text("contents_after", InventoryTransactions.DescribeInventory(container!.GetInventory())));
-            SendResult(requester, InventoryTransactionWire.BuildResponse(
-                transactionId, payloadHash, cachedStatus, cachedAccepted));
             return;
         }
 
         int itemCount = requestedItems.Count;
         if (!InventoryTransactionReceipts.CanRecord(zdo!, transactionId))
         {
+            SendResult(requester, InventoryTransactionWire.BuildResponse(
+                transactionId,
+                payloadHash,
+                DepositStatus.ReceiptCapacity,
+                Zeroes(itemCount)));
             InventoryTransactions.Emit(
                 InventoryTransactionDiagnosticEvent.Create(
                         "owner_receipt_capacity",
@@ -128,11 +133,6 @@ internal static class InventoryTransactionOwner
                     .Number("chest_position_z", container.transform.position.z)
                     .Text("requested_items", InventoryTransactions.DescribeRequested(requestedItems))
                     .Text("contents_before", InventoryTransactions.DescribeInventory(container!.GetInventory())));
-            SendResult(requester, InventoryTransactionWire.BuildResponse(
-                transactionId,
-                payloadHash,
-                DepositStatus.ReceiptCapacity,
-                Zeroes(itemCount)));
             return;
         }
 
@@ -156,6 +156,8 @@ internal static class InventoryTransactionOwner
         }
 
         InventoryTransactionReceipts.Record(zdo!, transactionId, payloadHash, validation, accepted);
+        SendResult(requester, InventoryTransactionWire.BuildResponse(
+            transactionId, payloadHash, validation, accepted));
         InventoryTransactionDiagnosticEvent resultEvent =
             InventoryTransactionDiagnosticEvent.Create("owner_result", "chest_owner")
                 .Code("correlation", transactionId)
@@ -181,8 +183,6 @@ internal static class InventoryTransactionOwner
             resultEvent.Code("exception_type", exceptionType);
         }
         InventoryTransactions.Emit(resultEvent);
-        SendResult(requester, InventoryTransactionWire.BuildResponse(
-            transactionId, payloadHash, validation, accepted));
     }
 
     private static DepositStatus Validate(
@@ -368,7 +368,7 @@ internal static class InventoryTransactionOwner
         envelope.Write(response);
         ZRoutedRpc.instance.InvokeRoutedRPC(
             InventoryTransactions.GetServerPeerId(),
-            InventoryTransactions.OwnerResultRpc,
+            InventoryTransactionProtocol.OwnerResultRpc,
             envelope);
     }
 

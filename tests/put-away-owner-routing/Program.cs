@@ -224,6 +224,108 @@ Expect(handoffChest.CountsEqual(Counts(("Stone", 5))) && handoffClient.Source["S
 Expect(handoffClient.Cache.CountsEqual(handoffChest.Items),
     "post-apply ownership handoff converges requester and owner contents");
 
+// Reconnect recovery is unsupported. Once the authenticated requester peer
+// disconnects, neither an in-flight route nor its completed replay cache has
+// a valid consumer and both must be reclaimed without disturbing other peers.
+ConnectedTransactionRouter<string> disconnectRouter = new();
+byte[] disconnectRequest = Encoding.UTF8.GetBytes("disconnect-request");
+Expect(
+    disconnectRouter.ReceiveRequest(
+        "pending-disconnect",
+        requester: 40L,
+        payloadHash: "pending-hash",
+        disconnectRequest,
+        container: "pending-chest",
+        currentOwner: 50L).Action == ServerRequestAction.Route,
+    "disconnect cleanup control creates a pending requester route");
+Expect(
+    disconnectRouter.ReceiveRequest(
+        "completed-disconnect",
+        requester: 40L,
+        payloadHash: "completed-hash",
+        disconnectRequest,
+        container: "completed-chest",
+        currentOwner: 50L).Action == ServerRequestAction.Route,
+    "disconnect cleanup control creates a completable requester route");
+Expect(
+    disconnectRouter.ReceiveOwnerResult(
+        "completed-disconnect",
+        requester: 40L,
+        payloadHash: "completed-hash",
+        sender: 50L,
+        currentOwner: 50L,
+        responseBytes: new byte[] { 7 },
+        completedAt: 1f,
+        ownerReportedStale: false) == OwnerResultAction.Complete,
+    "disconnect cleanup control creates a completed requester route");
+Expect(
+    disconnectRouter.ReceiveRequest(
+        "other-completed",
+        requester: 41L,
+        payloadHash: "other-hash",
+        disconnectRequest,
+        container: "other-chest",
+        currentOwner: 51L).Action == ServerRequestAction.Route,
+    "disconnect cleanup control creates another requester's route");
+Expect(
+    disconnectRouter.ReceiveOwnerResult(
+        "other-completed",
+        requester: 41L,
+        payloadHash: "other-hash",
+        sender: 51L,
+        currentOwner: 51L,
+        responseBytes: new byte[] { 8 },
+        completedAt: 1f,
+        ownerReportedStale: false) == OwnerResultAction.Complete,
+    "disconnect cleanup control completes another requester's route");
+Expect(
+    disconnectRouter.ReceiveRequest(
+        "pending-disconnect",
+        requester: 99L,
+        payloadHash: "pending-hash",
+        disconnectRequest,
+        container: "pending-chest",
+        currentOwner: 50L).Action == ServerRequestAction.Conflict,
+    "pending route remains correlated before requester disconnect");
+Expect(
+    disconnectRouter.ReceiveRequest(
+        "completed-disconnect",
+        requester: 99L,
+        payloadHash: "completed-hash",
+        disconnectRequest,
+        container: "completed-chest",
+        currentOwner: 50L).Action == ServerRequestAction.Conflict,
+    "completed route remains correlated before requester disconnect");
+Expect(disconnectRouter.RemoveRequester(40L) == 2,
+    "disconnect removes the requester's pending and completed routes");
+Expect(
+    disconnectRouter.ReceiveRequest(
+        "pending-disconnect",
+        requester: 99L,
+        payloadHash: "pending-hash",
+        disconnectRequest,
+        container: "pending-chest",
+        currentOwner: 50L).Action == ServerRequestAction.Route,
+    "disconnected requester's pending route was reclaimed");
+Expect(
+    disconnectRouter.ReceiveRequest(
+        "completed-disconnect",
+        requester: 99L,
+        payloadHash: "completed-hash",
+        disconnectRequest,
+        container: "completed-chest",
+        currentOwner: 50L).Action == ServerRequestAction.Route,
+    "disconnected requester's completed route was reclaimed");
+Expect(
+    disconnectRouter.ReceiveRequest(
+        "other-completed",
+        requester: 41L,
+        payloadHash: "other-hash",
+        disconnectRequest,
+        container: "other-chest",
+        currentOwner: 51L).Action == ServerRequestAction.Replay,
+    "disconnect cleanup preserves another requester's completed route");
+
 Console.WriteLine("Put Away owner-authoritative stale-payload integration checks passed.");
 
 static Dictionary<string, int> Counts(params (string Item, int Count)[] entries) =>

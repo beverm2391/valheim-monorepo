@@ -4,12 +4,14 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 repo_root="$(cd "$root/../.." && pwd)"
 quick_stack="$root/src/Inventory/QuickStack.cs"
+lease_validation="$root/src/Inventory/QuickStackLeaseValidation.cs"
 patches="$root/src/Inventory/QuickStackPatches.cs"
 client="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionClient.cs"
 server="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionServer.cs"
 owner="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionOwner.cs"
 wire="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionWire.cs"
 composition="$repo_root/shared/benheim-inventory-protocol/InventoryTransactions.cs"
+protocol="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionProtocol.cs"
 routing="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionRoutingCore.cs"
 settlement="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionSettlement.cs"
 diagnostics="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionDiagnostics.cs"
@@ -17,7 +19,33 @@ runtime="$root/src/Inventory/InventoryTransactionRuntime.cs"
 diagnostic_sink="$root/src/Inventory/InventoryTransactionDiagnosticSink.cs"
 
 # The requester reserves first and never writes its cached destination chest.
-grep -Fq 'InventoryTransactions.TryBeginDeposit' "$quick_stack"
+grep -Fq 'InventoryTransactions.TryBeginDeposit' "$lease_validation"
+grep -Fq 'PutAwayLeaseClient.TryValidate(' "$quick_stack"
+request_next_block="$(sed -n '/private static void RequestNextContainer/,/private static void CompleteContainer/p' "$quick_stack")"
+if printf '%s\n' "$request_next_block" | grep -Fq 'InventoryTransactions.TryBeginDeposit'; then
+  printf 'Put Away must validate the active lease before each source reservation\n' >&2
+  exit 1
+fi
+validation_block="$(sed -n '/private static void BeginDepositAfterLeaseValidation/,/private static void CancelBeforeReservation/p' "$lease_validation")"
+stale_validation_block="$(printf '%s\n' "$validation_block" | sed -n '1,/reason=stale_validation_result/p')"
+if printf '%s\n' "$stale_validation_block" | grep -Eq 'container == null|candidates == null|!container|!operation.Player'; then
+  printf 'destroyed or missing validation context must cancel the active batch, not return as stale\n' >&2
+  exit 1
+fi
+context_loss_line="$(printf '%s\n' "$validation_block" | grep -n -m1 'if (!container || candidates == null || !operation.Player)' | cut -d: -f1)"
+context_cancel_line="$(printf '%s\n' "$validation_block" | grep -n -m1 'CancelBeforeReservation(operation, "validation_context_unavailable")' | cut -d: -f1)"
+validation_reject_line="$(printf '%s\n' "$validation_block" | grep -n -m1 '!leaseResult.Granted' | cut -d: -f1)"
+reservation_line="$(printf '%s\n' "$validation_block" | grep -n -m1 'InventoryTransactions.TryBeginDeposit' | cut -d: -f1)"
+if [[ -z "$context_loss_line" || -z "$context_cancel_line" || -z "$validation_reject_line" || -z "$reservation_line" \
+    || "$context_loss_line" -ge "$context_cancel_line" || "$context_cancel_line" -ge "$reservation_line" \
+    || "$validation_reject_line" -ge "$reservation_line" ]]; then
+  printf 'a failed cohort validation must stop before inventory reservation\n' >&2
+  exit 1
+fi
+cancel_block="$(sed -n '/private static void CancelBeforeReservation/,$p' "$lease_validation")"
+grep -Fq 'activeOperation = null;' <<<"$cancel_block"
+grep -Fq 'PutAwayLeaseClient.Release(reason);' <<<"$cancel_block"
+grep -Fq 'InventoryTransactions.BatchFinished(' <<<"$cancel_block"
 grep -Fq 'source.RemoveItem(sourceItem, sourceItem.m_stack)' "$client"
 grep -Fq 'SendDepositRequest(pending);' "$client"
 remove_line="$(grep -nF 'source.RemoveItem(sourceItem, sourceItem.m_stack)' "$client" | cut -d: -f1)"
@@ -32,7 +60,7 @@ fi
 grep -Fq 'string payloadHash = InventoryTransactionWire.Hash(requestBytes);' "$server"
 grep -Fq 'long owner = ResolveOwner(containerId);' "$server"
 grep -Fq 'ServerRouter.ReceiveRequest' "$server"
-grep -Fq 'InvokeRoutedRPC(decision.Owner, OwnerExecuteRpc, envelope)' "$server"
+grep -Fq 'InventoryTransactionProtocol.OwnerExecuteRpc' "$server"
 grep -Fq 'sender != route.RoutedOwner' "$routing"
 grep -Fq 'sender != currentOwner' "$routing"
 grep -Fq 'view.IsOwner()' "$owner"
@@ -56,8 +84,8 @@ grep -Fq 'rejected[index] = reserved[index] - accepted[index]' "$settlement"
 grep -Fq 'ClientPending.TryGetValue(transactionId' "$client"
 grep -Fq 'ConnectedTransactionRouter<ZDOID> ServerRouter' "$composition"
 grep -Fq 'InventoryTransactionReceipts.TryRead' "$owner"
-grep -Fq 'protocolVersion != InventoryTransactions.ProtocolVersion' "$wire"
-grep -Fq 'ProtocolVersion = 3' "$composition"
+grep -Fq 'protocolVersion != InventoryTransactionProtocol.Version' "$wire"
+grep -Fq 'Version = 4' "$protocol"
 
 # Put Away completes immediately after exact settlement. One-way receipt
 # cleanup follows, but it cannot retain Quick Stack or the
@@ -123,6 +151,7 @@ grep -Fq 'PocketItems.IsPocketed(scope.Player, item)' "$quick_stack"
 dotnet run --project "$repo_root/tests/put-away-owner-routing/PutAwayOwnerRoutingTests.csproj"
 dotnet run --project "$repo_root/tests/inventory-transaction-receipts/InventoryTransactionReceiptTests.csproj"
 dotnet run --project "$repo_root/tests/put-away-receipt-ack/PutAwayReceiptAckTests.csproj"
+dotnet run --project "$repo_root/tests/put-away-protocol-compatibility/PutAwayProtocolCompatibilityTests.csproj"
 dotnet run --project "$repo_root/tests/inventory-transaction-diagnostics/InventoryTransactionDiagnosticTests.csproj"
 
 printf 'owner-authoritative Put Away source and conservation checks passed\n'

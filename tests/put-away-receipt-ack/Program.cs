@@ -85,6 +85,25 @@ Expect(
     && otherPeerRejectionReason == "completed_correlation_mismatch",
     "production cleanup authorization accepted another routed peer");
 
+ZPackage acknowledgementWithTrailingData =
+    InventoryTransactionReceiptAcknowledgementCodec.Write(
+        decodedTransactionId,
+        decodedPayloadHash,
+        decodedContainerId);
+acknowledgementWithTrailingData.Write(99);
+acknowledgementWithTrailingData.SetPos(0);
+Expect(
+    !InventoryTransactionReceiptAcknowledgementCodec.TryAuthorize(
+        acknowledgementWithTrailingData,
+        router,
+        requesterPeer,
+        out _,
+        out _,
+        out _,
+        out string trailingDataRejectionReason)
+    && trailingDataRejectionReason == "malformed_ack",
+    "receipt cleanup accepted trailing bytes from another payload generation");
+
 // This reproduces the 0.1.64 failure class. The dedicated server can lack the
 // remote Player scene object even though routed peer identity and completion
 // correlation are valid. That redundant lookup must not reject cleanup.

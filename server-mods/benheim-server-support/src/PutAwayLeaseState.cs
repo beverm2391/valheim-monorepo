@@ -4,26 +4,46 @@ namespace BenheimServerSupport;
 
 /// <summary>
 /// A single in-memory lease. Equality is by the authenticated connection object
-/// supplied by Valheim, not by an identity claimed in the request payload.
+/// supplied by Valheim, not by an identity claimed in the request payload. The
+/// acquisition cohort must remain unchanged for later reservation validation.
 /// </summary>
 internal sealed class PutAwayLeaseState<TPeer> where TPeer : class
 {
     private readonly object sync = new object();
     private TPeer? owner;
     private string operationId = string.Empty;
+    private long cohortRevision;
 
     internal bool TryAcquire(TPeer peer, string requestedOperationId)
     {
+        return TryAcquireOrValidate(peer, requestedOperationId, 0L)
+            == PutAwayLeaseRequestDecision.Acquired;
+    }
+
+    internal PutAwayLeaseRequestDecision TryAcquireOrValidate(
+        TPeer peer,
+        string requestedOperationId,
+        long currentCohortRevision)
+    {
         lock (sync)
         {
-            if (owner != null)
+            if (owner == null)
             {
-                return false;
+                owner = peer;
+                operationId = requestedOperationId;
+                cohortRevision = currentCohortRevision;
+                return PutAwayLeaseRequestDecision.Acquired;
             }
 
-            owner = peer;
-            operationId = requestedOperationId;
-            return true;
+            if (!EqualityComparer<TPeer>.Default.Equals(owner, peer)
+                || operationId != requestedOperationId)
+            {
+                return PutAwayLeaseRequestDecision.Busy;
+            }
+
+            return cohortRevision == currentCohortRevision
+                ? PutAwayLeaseRequestDecision.Validated
+                : PutAwayLeaseRequestDecision.CohortChanged;
         }
     }
 
@@ -71,5 +91,14 @@ internal sealed class PutAwayLeaseState<TPeer> where TPeer : class
     {
         owner = null;
         operationId = string.Empty;
+        cohortRevision = 0L;
     }
+}
+
+internal enum PutAwayLeaseRequestDecision
+{
+    Acquired,
+    Validated,
+    CohortChanged,
+    Busy,
 }

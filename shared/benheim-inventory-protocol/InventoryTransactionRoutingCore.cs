@@ -225,6 +225,39 @@ internal sealed class ConnectedTransactionRouter<TContainer>
         }
     }
 
+    internal int RemoveRequester(long requester)
+    {
+        List<string> pendingTransactions = new List<string>();
+        foreach (KeyValuePair<string, PendingRoute> pair in pending)
+        {
+            if (pair.Value.Requester == requester)
+            {
+                pendingTransactions.Add(pair.Key);
+            }
+        }
+
+        List<string> completedTransactions = new List<string>();
+        foreach (KeyValuePair<string, CompletedRoute> pair in completed)
+        {
+            if (pair.Value.Requester == requester)
+            {
+                completedTransactions.Add(pair.Key);
+            }
+        }
+
+        foreach (string transactionId in pendingTransactions)
+        {
+            pending.Remove(transactionId);
+        }
+
+        foreach (string transactionId in completedTransactions)
+        {
+            completed.Remove(transactionId);
+        }
+
+        return pendingTransactions.Count + completedTransactions.Count;
+    }
+
     internal void Clear()
     {
         pending.Clear();

@@ -32,26 +32,38 @@ fresh.
   connected. It never becomes an uncorrelated local retry.
 - Exact requester settlement completes the deposit. Receipt cleanup cannot
   retain the Put Away batch or global lease.
+- Before Put Away scans chests or reserves items, every connected peer must
+  announce the current Put Away generation: lease `v2` and transaction `v4`.
+- The server records the connected-peer cohort at lease grant and validates the
+  same cohort before each container reservation. A join, disconnect, or
+  readiness change stops the batch before its next reservation. The lease
+  remains with the holder until the holder releases it.
+- Writing diagnostic events is best effort. A diagnostic failure cannot interrupt
+  mutation, result delivery, settlement, completion, or receipt cleanup.
 
 ## Flow
 
-1. Benheim Server Support grants the requester the global Put Away lease before
-   scanning starts.
-2. The requester selects a chest, creates an immutable transaction ID, chest
-   ID, request payload, and payload hash, then reserves the selected source
-   stacks in memory before sending the request.
-3. The server deduplicates the transaction, resolves the chest's current owner,
+1. Benheim Server Support grants the requester the global Put Away lease only
+   after every connected peer announces the current Put Away generation.
+   Scanning starts after the grant.
+2. Before each container reservation, the requester asks the server to validate
+   the active lease and its connected-peer cohort. If the server rejects
+   validation, the requester stops the batch before that reservation.
+3. After validation, the requester selects a chest, creates an immutable
+   transaction ID, chest ID, request payload, and payload hash, then reserves
+   the selected source stacks in memory before sending the request.
+4. The server deduplicates the transaction, resolves the chest's current owner,
    and routes the request to that peer.
-4. The owner confirms ownership and validates the requester, access, distance,
+5. The owner confirms ownership and validates the requester, access, distance,
    item match, chest use, and live capacity.
-5. The owner applies accepted items to its inventory, records a receipt on the
+6. The owner applies accepted items to its inventory, records a receipt on the
    chest ZDO, and returns accepted counts through the server.
-6. The server accepts a result only from the latest owner it resolved. The
+7. The server accepts a result only from the latest owner it resolved. The
    requester then requires a matching transaction ID and payload hash. It
    settles every accepted, refunded, or emergency-dropped item exactly once.
    Settlement completes the deposit so the batch can continue and eventually
    release the lease.
-7. After completion, the requester sends exactly one best-effort, one-way
+8. After completion, the requester sends exactly one best-effort, one-way
    receipt cleanup request. It keeps no cleanup state and does not retry. The
    server requires the completed correlation and original routed sender, then
    forwards the request to the chest's current owner. The owner sends no
@@ -64,13 +76,14 @@ fresh.
 | Protocol component | Invariant protected | Concrete failure if removed | Proving test |
 | --- | --- | --- | --- |
 | Global server lease | At most one Benheim Put Away batch enters scanning and mutation | Two requesters mutate replicated chest snapshots concurrently | `Put Away lease exclusion checks passed` |
+| Every connected peer announces the current Put Away generation, and the server validates the recorded connected-peer cohort before each container reservation | Put Away stops before scanning or reservation if any connected peer has not announced the generation; a cohort change stops the batch before its next reservation while the lease remains with the holder until the holder releases it | A legacy peer enters mutation, then disagrees about cleanup and retains the lease or fills the receipt ledger | `Put Away mixed-version pre-reservation compatibility checks passed` plus after-grant cohort-change controls |
 | Immutable transaction ID plus payload hash | Results and retries attach only to their request | A stale or conflicting result refunds or commits the wrong reservation | `Put Away owner-authoritative stale-payload integration checks passed` |
 | Server routes to the current owner and accepts only the latest resolved owner's result; requester validates the transaction ID and payload hash | Only authoritative contents are read and changed | A requester overwrites a newer chest with its stale cache, or a delayed old-owner result settles after rerouting | `Put Away owner-authoritative stale-payload integration checks passed` |
 | Owner receipt and server completion cache | A retry applies at most once across routing and ownership changes | Lost responses duplicate accepted items | receipt codec test plus the connected-retry integration case |
 | Accepted counts and requester remainder restoration | Player, chest, and explicit refund-drop item counts are conserved | Partial capacity loses rejected items or duplicates accepted items | stale-payload, partial-capacity, and filled-inventory refund cases |
 | Exact settlement before completion | Completion reflects every accepted, refunded, or emergency-dropped item | Early completion hides an unsettled remainder and can lose or duplicate items | source ordering guard, filled-inventory refund case, and receipt-acknowledgement wire/liveness case |
 | One-way current-owner receipt cleanup | Completed receipt entries are normally reclaimed without becoming a transaction liveness gate | Removing cleanup can eventually exhaust receipt capacity; confirmed cleanup adds state and failure modes without protecting item integrity | receipt-acknowledgement wire/liveness case |
-| Complete typed transaction events | Requester, router, and owner decisions can be correlated across peers with the exact chest state that informed them | A runtime failure appears successful or cannot be distinguished from stale state | `inventory transaction typed diagnostic schema checks passed` |
+| Best-effort typed transaction events | Requester, router, and owner decisions can be correlated, and diagnostic failures cannot interrupt mutation, result delivery, settlement, completion, or receipt cleanup | A throwing sink interrupts delivery or completion, or repeats an emergency refund drop | throwing-sink and post-drop controls plus `inventory transaction typed diagnostic schema checks passed` |
 
 Use these invariant names in tests and reviews. A test must include the unsafe
 control when the failure can otherwise pass under both implementations.
@@ -124,10 +137,20 @@ so the completed batch and global lease remained occupied until disconnect.
 
 The current source keeps owner receipts and routed-sender correlation, makes
 exact settlement the completion boundary, and reduces receipt removal to
-one-way cleanup. Automated stale-payload, lease, receipt, and real Valheim
-package/routed-identity checks are green. This correction is not deployed and
-is not gameplay-proven. It still needs the authorized multiplayer test before
-it can be called fixed:
+one-way cleanup. It also moves the lease to generation `v2` and the transaction
+protocol to generation `v4`. Put Away stops before scanning or reservation
+unless every connected peer announces the current Put Away generation. The
+server also validates the recorded connected-peer cohort before each container
+reservation. A join, disconnect, or readiness change stops the batch before its
+next reservation. The lease remains with the holder until the holder releases
+it. The protocol catches diagnostic failures before they can interrupt the
+transaction.
+When the requester disconnects, the server removes that requester's pending and
+completed route entries. Automated stale-payload,
+lease, mixed-version, receipt, throwing-sink, disconnect-cleanup, and real
+Valheim package/routed-identity checks are green. These corrections are not
+deployed and are not gameplay-proven. They still need the authorized
+multiplayer test before they can be called fixed:
 
 - A and B contend for the lease; the loser moves nothing.
 - A deposits, then B deposits from a deliberately stale equal-revision cache.
@@ -163,7 +186,10 @@ Transaction events preserve the complete evidence deliberately constructed by
 each protocol role, including chest and peer IDs, revisions, contents, item
 counts, positions, attempts, status, and reasons. Client-hosted roles use the
 existing readable log, local NDJSON, and direct-client diagnostic path. The
-dedicated server writes the same typed fields to readable diagnostics.
+dedicated server writes the same typed fields to readable diagnostics. The
+protocol sends each result and completes each settlement or callback before it
+writes the related diagnostic event. A diagnostic sink failure cannot change
+transaction progress.
 
 `client_result` means the requester completed exact settlement from a result
 forwarded by the latest owner the server resolved. Final Put Away callbacks and
@@ -178,6 +204,9 @@ claim.
 
 The protocol fails closed when the server, owner, requester, access check,
 transaction identity, receipt capacity, or compatible protocol is unavailable.
+Put Away stops before scanning or reservation if any connected peer has not
+announced the current Put Away generation. A connected-peer cohort change after
+lease grant stops the batch before its next container reservation.
 An ambiguous reserved request remains correlated and retryable while the
 session stays connected instead of being locally restored as if the owner had
 not committed.
@@ -188,6 +217,8 @@ Away availability. It cannot lose or duplicate items, repeat settlement, or
 retain the completed batch and lease.
 
 Crash and reconnect recovery during an in-flight reservation are unsupported.
+When a requester disconnects, the server removes that requester's pending and
+completed route entries.
 Persistent journals and audit trails, legacy-protocol upgrades, and a general
 capability platform are deferred. The removed historical platform included
 those paths, but they never became proven Current Behavior. Ben explicitly

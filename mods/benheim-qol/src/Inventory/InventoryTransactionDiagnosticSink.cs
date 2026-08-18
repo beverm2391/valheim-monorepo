@@ -17,6 +17,14 @@ internal sealed class InventoryTransactionDiagnosticSink : IInventoryTransaction
 
     public void Emit(InventoryTransactionDiagnosticEvent source)
     {
+        if (source.Name == "client_refund_dropped")
+        {
+            // The world drop has already happened. Keep its player-facing
+            // warning independent from the telemetry pipeline so a broken
+            // serializer or remote sink cannot hide the refund.
+            TopLeftFeedbackHud.ShowTransient("Put Away refund dropped nearby. Pick it up.");
+        }
+
         DiagnosticEvent target = DiagnosticEvent.Create(
             InventoryTransactionDiagnosticEvent.Domain,
             source.Name);
@@ -40,9 +48,5 @@ internal sealed class InventoryTransactionDiagnosticSink : IInventoryTransaction
         }
 
         Diagnostics.Emit(target);
-        if (source.Name == "client_refund_dropped")
-        {
-            TopLeftFeedbackHud.ShowTransient("Put Away refund dropped nearby. Pick it up.");
-        }
     }
 }

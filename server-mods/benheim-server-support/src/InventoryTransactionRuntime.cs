@@ -34,6 +34,16 @@ internal static class InventoryTransactionRuntime
         Shutdown();
     }
 
+    [HarmonyPatch(typeof(ZNet), nameof(ZNet.Disconnect), typeof(ZNetPeer))]
+    [HarmonyPrefix]
+    private static void BeforePeerDisconnect(ZNetPeer peer)
+    {
+        if (ZNet.instance != null && ZNet.instance.IsServer())
+        {
+            InventoryTransactions.RemoveServerRequester(peer.m_uid);
+        }
+    }
+
     internal static void Shutdown()
     {
         if (!initialized)

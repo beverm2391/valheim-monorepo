@@ -117,6 +117,58 @@ Expect(
     BenheimQoL.InventoryFeature.TopLeftFeedbackHud.Messages.Contains(
         "Put Away refund dropped nearby. Pick it up."),
     "world-drop fallback has prominent visible feedback");
+
+// A refund drop is already committed before this event is projected. Recreate
+// a broken downstream telemetry sink. The unsafe direct call aborts both
+// attempts after the drop, demonstrating the duplicate-producing control.
+InventoryTransactionDiagnosticEvent postDropEvent =
+    InventoryTransactionDiagnosticEvent.Create(
+            "client_refund_dropped",
+            "requester",
+            InventoryTransactionDiagnosticLevel.Warning)
+        .Code("operation_id", OperationId)
+        .Code("correlation", Correlation)
+        .Code("operation_phase", "refund")
+        .Code("status", "dropped")
+        .Code("reason", "inventory_full")
+        .Integer("dropped_count", 5);
+Diagnostics.ThrowOnEmit = true;
+int unsafeWorldDropCount = 0;
+bool unsafeRequesterCompleted = false;
+for (int attempt = 0; attempt < 2 && !unsafeRequesterCompleted; attempt++)
+{
+    unsafeWorldDropCount++;
+    try
+    {
+        ClientSink.Instance.Emit(postDropEvent);
+        unsafeRequesterCompleted = true;
+    }
+    catch (InvalidOperationException)
+    {
+    }
+}
+Expect(false, unsafeRequesterCompleted, "unsafe throwing sink control interrupts requester completion");
+Expect(2, unsafeWorldDropCount, "unsafe throwing sink control reproduces a duplicate post-drop retry");
+
+// The production projection boundary swallows that same failure. Settlement
+// reaches completion on its first attempt, so no second world drop occurs.
+int warningCountBeforeFailure = BenheimQoL.InventoryFeature.TopLeftFeedbackHud.Messages.Count;
+int worldDropCount = 0;
+bool requesterCompleted = false;
+for (int attempt = 0; attempt < 2 && !requesterCompleted; attempt++)
+{
+    worldDropCount++;
+    InventoryTransactionDiagnosticProjection.EmitBestEffort(ClientSink.Instance, postDropEvent);
+    requesterCompleted = true;
+}
+Diagnostics.ThrowOnEmit = false;
+Expect(true, requesterCompleted, "throwing telemetry cannot interrupt requester completion");
+Expect(1, worldDropCount, "post-drop telemetry failure cannot cause a duplicate refund drop on retry");
+Expect(
+    warningCountBeforeFailure + 1,
+    BenheimQoL.InventoryFeature.TopLeftFeedbackHud.Messages.Count,
+    "refund warning remains visible when telemetry projection fails");
+
 ClientSink.Instance.Emit(
     InventoryTransactionDiagnosticEvent.Create("future_evidence", "observer")
         .Code("error_path", "/Users/example/Valheim/log.txt")

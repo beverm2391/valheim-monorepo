@@ -205,3 +205,32 @@ internal interface IInventoryTransactionDiagnosticSink
 {
     void Emit(InventoryTransactionDiagnosticEvent diagnosticEvent);
 }
+
+/// <summary>
+/// Keeps observability outside the transaction's liveness boundary. A broken
+/// logger, serializer, or remote diagnostic sink must never interrupt item
+/// settlement, result delivery, or cleanup.
+/// </summary>
+internal static class InventoryTransactionDiagnosticProjection
+{
+    internal static void EmitBestEffort(
+        IInventoryTransactionDiagnosticSink? sink,
+        InventoryTransactionDiagnosticEvent diagnosticEvent)
+    {
+        if (sink == null)
+        {
+            return;
+        }
+
+        try
+        {
+            sink.Emit(diagnosticEvent);
+        }
+        catch (Exception)
+        {
+            // Diagnostics have no authority over transaction progress. There
+            // is intentionally no fallback emission here: the fallback could
+            // fail for the same reason and re-enter the transaction path.
+        }
+    }
+}

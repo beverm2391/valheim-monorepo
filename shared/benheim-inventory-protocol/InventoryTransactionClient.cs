@@ -21,7 +21,7 @@ internal static partial class InventoryTransactions
         Inventory source = player.GetInventory();
         string transactionId = Guid.NewGuid().ToString("N");
         ZPackage request = new ZPackage();
-        request.Write(ProtocolVersion); request.Write(transactionId);
+        request.Write(InventoryTransactionProtocol.Version); request.Write(transactionId);
         request.Write(Game.instance.GetPlayerProfile().GetPlayerID()); request.Write(containerId); request.Write(candidates.Count);
         List<ItemDrop.ItemData> sourceItems = new();
         List<ReservedDepositItem> reserved = new();
@@ -228,7 +228,6 @@ internal static partial class InventoryTransactions
         }
         DepositResult result = new DepositResult(status, entries);
         ClientPending.Remove(transactionId);
-        EmitSettledResult(pending, result, completedSettlement.Accepted, refunded, dropped);
         try
         {
             pending.Callback(result);
@@ -236,6 +235,7 @@ internal static partial class InventoryTransactions
         finally
         {
             TrySendReceiptAcknowledgement(pending);
+            EmitSettledResult(pending, result, completedSettlement.Accepted, refunded, dropped);
         }
     }
 
@@ -275,7 +275,9 @@ internal static partial class InventoryTransactions
                 pending.TransactionId,
                 pending.PayloadHash,
                 pending.ContainerId);
-            ZRoutedRpc.instance.InvokeRoutedRPC(ReceiptAckRpc, acknowledgement);
+            ZRoutedRpc.instance.InvokeRoutedRPC(
+                InventoryTransactionProtocol.ReceiptAckRpc,
+                acknowledgement);
             Emit(
                 InventoryTransactionDiagnosticEvent.Create("client_receipt_ack_sent", "requester")
                     .Code("operation_id", pending.OperationId)
@@ -324,7 +326,9 @@ internal static partial class InventoryTransactions
     }
 
     private static void SendDepositRequest(PendingDeposit pending) =>
-        ZRoutedRpc.instance.InvokeRoutedRPC(DepositRequestRpc, new ZPackage(pending.RequestBytes));
+        ZRoutedRpc.instance.InvokeRoutedRPC(
+            InventoryTransactionProtocol.DepositRequestRpc,
+            new ZPackage(pending.RequestBytes));
 
     private static bool TryGetContainerId(Container container, out ZDOID id)
     {

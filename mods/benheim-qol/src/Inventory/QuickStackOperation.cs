@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BenheimInventoryProtocol;
 
 namespace BenheimQoL.InventoryFeature;
 
@@ -52,6 +53,8 @@ internal sealed class QuickStackOperation
     internal List<Container> Containers { get; }
     internal bool InventoryWasOpen { get; }
     internal int NextContainerIndex { get; set; }
+    internal Container? PendingContainer { get; set; }
+    internal List<DepositCandidate>? PendingCandidates { get; set; }
     internal Container? CurrentContainer { get; set; }
     internal int MovedItems { get; set; }
     internal int BusyContainers { get; set; }

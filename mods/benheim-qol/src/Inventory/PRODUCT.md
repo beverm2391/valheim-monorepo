@@ -81,8 +81,15 @@ the same durability contract and pass the stale-payload regression proof.
   request correlation, owner validation, reservation, receipts, connected
   deposit retries, stale-payload controls, and their tests. The deployed `0.1.64`
   adaptation exposed a blocking receipt-cleanup regression. The current source
-  correction passes automated checks but is not deployed. It remains in
-  development until the authorized multiplayer gameplay test passes.
+  correction uses lease generation `v2` and transaction generation `v4`. Put
+  Away stops before scanning or reservation unless every connected peer
+  announces the current Put Away generation to Server Support `0.1.3`. Before
+  each container reservation, the client asks the server to confirm that the
+  connected-peer cohort has not changed since the lease grant. A join,
+  disconnect, or readiness change stops the batch before its next reservation.
+  The lease remains with the holder until the holder releases it. These controls
+  pass automated checks but are not deployed. Put Away remains in development
+  until the authorized multiplayer gameplay test passes.
 - Each completed transfer moves each accepted item once. Put Away returns each
   rejected item to the player's inventory. As an emergency fallback only, if
   the inventory cannot accept a rejected remainder during settlement, Put Away
@@ -96,7 +103,8 @@ the same durability contract and pass the stale-payload regression proof.
   native character and world save lifecycle remains unchanged.
 - Put Away emits complete typed transaction evidence. The
   [protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md) owns the
-  event lifecycle, correlation, and fields.
+  event lifecycle, correlation, and fields. Diagnostic failures cannot block
+  item settlement, result delivery, batch completion, or lease release.
 - Crash or reconnect recovery during an in-flight reservation is unsupported.
 - The transfer must work with either player as the requester or current chest
   owner, and a completed transfer must remain visible after ownership changes.

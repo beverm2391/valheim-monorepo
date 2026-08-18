@@ -27,16 +27,32 @@ proved owner mutation, result forwarding, and exact requester settlement. It
 also showed that the old receipt-removal gate could retain the completed batch
 and lease until disconnect.
 
-The current source correction removes receipt cleanup from the completion gate.
-It passes automated checks but is not deployed or gameplay-proven. The owning
-[Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md) defines
+The `0.1.3` candidate uses lease generation `v2` and transaction generation
+`v4`. Put Away stops before chest scanning or item reservation unless every
+connected peer has announced the current Put Away generation. The candidate no
+longer waits for receipt removal before it completes a Put Away batch. Before
+each container reservation, Server Support confirms that the connected-peer
+cohort has not changed since the lease grant. A cohort change causes validation
+to fail. The lease remains with the holder until the holder releases it.
+Diagnostic failures cannot interrupt result delivery or settlement. When a
+requester disconnects, the server removes that requester's pending and
+completed route entries. These changes pass automated checks but are not
+deployed or gameplay-proven.
+
+The owning [Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md) defines
 Put Away's player-visible behavior and acceptance boundary. The [shared
 protocol](../../shared/benheim-inventory-protocol/PROTOCOL.md) owns cleanup
 correlation, routing, the transaction runtime, and typed-event lifecycle.
 Automated source and build gates cover the server boundary.
 
-Version `0.1.2` also implements Kill Attribution V2 and the server-authoritative
-confirmed-kill chain described below. See the root
+Version `0.1.2` implements Kill Attribution V2 and the server-authoritative
+confirmed-kill chain described below. Version `0.1.3` replaces the one-time
+response that version `0.1.2` sent when the client connected. The new flow
+validates each client request for Kill Attribution V2 capability and responds
+over the current connection. The client retries for up to five seconds.
+Automated checks cover requests, responses, retries, and timeouts. A gameplay
+retest must confirm that the client no longer shows a false capability warning
+when the server is updated. See the root
 [Gameplay Breakdown](../../PRODUCT.md#gameplay-breakdown) for its required
 client version and compatibility boundary.
 

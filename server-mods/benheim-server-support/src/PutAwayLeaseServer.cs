@@ -2,6 +2,7 @@ using BenheimQoL.Infrastructure;
 using BenheimQoL.InventoryFeature;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 
 namespace BenheimServerSupport;
 
@@ -9,6 +10,8 @@ namespace BenheimServerSupport;
 internal static class PutAwayLeaseServer
 {
     private static readonly PutAwayLeaseState<ZNetPeer> Lease = new PutAwayLeaseState<ZNetPeer>();
+    private static readonly PutAwayPeerReadinessState<ZNetPeer> PeerReadiness =
+        new PutAwayPeerReadinessState<ZNetPeer>();
 
     [HarmonyPatch(typeof(ZNet), "OnNewConnection")]
     [HarmonyPostfix]
@@ -21,6 +24,10 @@ internal static class PutAwayLeaseServer
 
         // Direct connection callbacks bind the request to Valheim's authenticated
         // peer. No routed sender ID from the client is trusted.
+        PeerReadiness.Track(peer);
+        peer.m_rpc.Register<int>(
+            PutAwayLeaseProtocol.PeerReadyRpc,
+            (rpc, generation) => OnPeerReady(peer, rpc, generation));
         peer.m_rpc.Register<string>(
             PutAwayLeaseProtocol.RequestRpc,
             (rpc, operationId) => OnRequest(peer, rpc, operationId));
@@ -33,13 +40,40 @@ internal static class PutAwayLeaseServer
     [HarmonyPrefix]
     private static void BeforeDisconnect(ZNetPeer peer)
     {
+        PeerReadiness.Remove(peer);
         if (Lease.TryReleasePeer(peer, out string operationId))
         {
             Emit("put_away_lease_released", operationId, peer, "peer_disconnected");
         }
     }
 
-    internal static void Reset() => Lease.Reset();
+    internal static void Reset()
+    {
+        Lease.Reset();
+        PeerReadiness.Reset();
+    }
+
+    private static void OnPeerReady(ZNetPeer peer, ZRpc rpc, int generation)
+    {
+        if (ZNet.instance == null
+            || !ZNet.instance.IsServer()
+            || !ReferenceEquals(rpc, peer.m_rpc)
+            || peer.m_socket == null
+            || !rpc.IsConnected()
+            || !PeerReadiness.TryRecord(peer, generation))
+        {
+            Emit("put_away_peer_readiness_rejected", string.Empty, peer, "non_current_peer");
+            return;
+        }
+
+        Emit(
+            "put_away_peer_readiness_recorded",
+            string.Empty,
+            peer,
+            generation == PutAwayLeaseProtocol.Generation
+                ? "matching_generation"
+                : "incompatible_generation");
+    }
 
     private static void OnRequest(ZNetPeer peer, ZRpc rpc, string operationId)
     {
@@ -66,13 +100,49 @@ internal static class PutAwayLeaseServer
             return;
         }
 
-        if (!Lease.TryAcquire(peer, safeOperationId))
+        List<ZNetPeer> connectedPeers = ZNet.instance.GetPeers();
+        if (!connectedPeers.Contains(peer))
+        {
+            Reject(rpc, safeOperationId, peer, "requester_not_connected");
+            return;
+        }
+
+        if (!PeerReadiness.AllConnectedPeersMatch(
+                connectedPeers,
+                PutAwayLeaseProtocol.Generation,
+                out string peerReadinessReason,
+                out long cohortRevision))
+        {
+            Reject(rpc, safeOperationId, peer, peerReadinessReason);
+            return;
+        }
+
+        PutAwayLeaseRequestDecision decision = Lease.TryAcquireOrValidate(
+            peer,
+            safeOperationId,
+            cohortRevision);
+        if (decision == PutAwayLeaseRequestDecision.Busy)
         {
             Reject(rpc, safeOperationId, peer, "busy");
             return;
         }
 
-        Emit("put_away_lease_granted", safeOperationId, peer, "mutation_allowed");
+        if (decision == PutAwayLeaseRequestDecision.CohortChanged)
+        {
+            // Keep the lease until the holder receives this rejection and
+            // releases it. Its previous deposit may only just have settled;
+            // another batch must not enter during that handoff.
+            Reject(rpc, safeOperationId, peer, "peer_cohort_changed");
+            return;
+        }
+
+        Emit(
+            decision == PutAwayLeaseRequestDecision.Acquired
+                ? "put_away_lease_granted"
+                : "put_away_lease_validated",
+            safeOperationId,
+            peer,
+            "mutation_allowed");
         if (!TrySendResult(rpc, safeOperationId, PutAwayLeaseProtocol.Granted, "granted"))
         {
             // The requester cannot enter Put Away without the grant. Clear this

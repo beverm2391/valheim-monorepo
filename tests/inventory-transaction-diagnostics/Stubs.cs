@@ -5,9 +5,15 @@ namespace BenheimQoL.Infrastructure
     internal static class Diagnostics
     {
         internal static List<DiagnosticEvent> Captured { get; } = new List<DiagnosticEvent>();
+        internal static bool ThrowOnEmit { get; set; }
 
         internal static void Emit(DiagnosticEvent diagnosticEvent)
         {
+            if (ThrowOnEmit)
+            {
+                throw new System.InvalidOperationException("throwing diagnostic sink control");
+            }
+
             Captured.Add(diagnosticEvent);
         }
     }

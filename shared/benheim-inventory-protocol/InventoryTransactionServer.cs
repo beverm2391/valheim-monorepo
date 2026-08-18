@@ -49,6 +49,7 @@ internal static partial class InventoryTransactions
             owner);
         if (decision.Action == ServerRequestAction.Replay)
         {
+            SendClientResult(sender, decision.ResponseBytes!);
             Emit(
                 InventoryTransactionDiagnosticEvent.Create("server_result_replayed", "server_router")
                     .Code("correlation", transactionId)
@@ -59,12 +60,12 @@ internal static partial class InventoryTransactions
                     .Integer("requester_peer", sender)
                     .Integer("requested_count", CountRequested(routedItems))
                     .Text("requested_items", DescribeRequested(routedItems)));
-            SendClientResult(sender, decision.ResponseBytes!);
             return;
         }
 
         if (decision.Action == ServerRequestAction.Conflict)
         {
+            SendClientResult(sender, ConflictResponse(transactionId, payloadHash));
             Emit(
                 InventoryTransactionDiagnosticEvent.Create(
                         "server_request_rejected",
@@ -78,7 +79,6 @@ internal static partial class InventoryTransactions
                     .Integer("requester_peer", sender)
                     .Integer("requested_count", CountRequested(routedItems))
                     .Text("requested_items", DescribeRequested(routedItems)));
-            SendClientResult(sender, ConflictResponse(transactionId, payloadHash));
             return;
         }
 
@@ -103,7 +103,10 @@ internal static partial class InventoryTransactions
         ZPackage envelope = new ZPackage();
         envelope.Write(sender);
         envelope.Write(new ZPackage(requestBytes));
-        ZRoutedRpc.instance.InvokeRoutedRPC(decision.Owner, OwnerExecuteRpc, envelope);
+        ZRoutedRpc.instance.InvokeRoutedRPC(
+            decision.Owner,
+            InventoryTransactionProtocol.OwnerExecuteRpc,
+            envelope);
         Emit(
             InventoryTransactionDiagnosticEvent.Create(
                     decision.Rerouted ? "server_rerouted" : "server_routed",
@@ -199,6 +202,7 @@ internal static partial class InventoryTransactions
             return;
         }
 
+        SendClientResult(requester, responseBytes);
         Emit(
             InventoryTransactionDiagnosticEvent.Create("server_result_forwarded", "server_router")
                 .Code("correlation", transactionId)
@@ -208,7 +212,6 @@ internal static partial class InventoryTransactions
                 .Integer("requester_peer", requester)
                 .Integer("owner_peer", sender)
                 .Integer("accepted_count", CountAccepted(accepted)));
-        SendClientResult(requester, responseBytes);
     }
 
     private static void RpcReceiptAck(long sender, ZPackage acknowledgement)
@@ -261,7 +264,10 @@ internal static partial class InventoryTransactions
             transactionId,
             payloadHash,
             containerId);
-        ZRoutedRpc.instance.InvokeRoutedRPC(owner, OwnerReceiptAckRpc, ownerAcknowledgement);
+        ZRoutedRpc.instance.InvokeRoutedRPC(
+            owner,
+            InventoryTransactionProtocol.OwnerReceiptAckRpc,
+            ownerAcknowledgement);
         Emit(
             InventoryTransactionDiagnosticEvent.Create("server_receipt_ack_routed", "server_router")
                 .Code("correlation", transactionId)
@@ -274,7 +280,10 @@ internal static partial class InventoryTransactions
 
     private static void SendClientResult(long requester, byte[] responseBytes)
     {
-        ZRoutedRpc.instance.InvokeRoutedRPC(requester, DepositResultRpc, new ZPackage(responseBytes));
+        ZRoutedRpc.instance.InvokeRoutedRPC(
+            requester,
+            InventoryTransactionProtocol.DepositResultRpc,
+            new ZPackage(responseBytes));
     }
 
     private static void ExpireServerResults(float now)
@@ -289,7 +298,7 @@ internal static partial class InventoryTransactions
         try
         {
             ZPackage request = new ZPackage(requestBytes);
-            if (request.ReadInt() != ProtocolVersion)
+            if (request.ReadInt() != InventoryTransactionProtocol.Version)
             {
                 return false;
             }

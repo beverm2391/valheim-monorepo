@@ -35,7 +35,8 @@ internal static class InventoryTransactionReceiptAcknowledgementCodec
             containerId = package.ReadZDOID();
             if (string.IsNullOrEmpty(transactionId)
                 || string.IsNullOrEmpty(payloadHash)
-                || containerId.IsNone())
+                || containerId.IsNone()
+                || package.GetPos() != package.Size())
             {
                 return false;
             }

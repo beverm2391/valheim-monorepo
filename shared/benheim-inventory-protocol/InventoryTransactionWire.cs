@@ -47,7 +47,7 @@ internal static class InventoryTransactionWire
         IReadOnlyList<int> accepted)
     {
         ZPackage response = new ZPackage();
-        response.Write(InventoryTransactions.ProtocolVersion);
+        response.Write(InventoryTransactionProtocol.Version);
         response.Write(transactionId);
         response.Write(payloadHash);
         response.Write((int)status);
@@ -77,7 +77,7 @@ internal static class InventoryTransactionWire
         {
             ZPackage request = new ZPackage(requestBytes);
             protocolVersion = request.ReadInt();
-            if (protocolVersion != InventoryTransactions.ProtocolVersion)
+            if (protocolVersion != InventoryTransactionProtocol.Version)
             {
                 return false;
             }
@@ -138,7 +138,7 @@ internal static class InventoryTransactionWire
         accepted = new List<int>();
         try
         {
-            if (package.ReadInt() != InventoryTransactions.ProtocolVersion)
+            if (package.ReadInt() != InventoryTransactionProtocol.Version)
             {
                 status = DepositStatus.InvalidRequest;
                 return false;
