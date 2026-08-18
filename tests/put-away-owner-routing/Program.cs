@@ -119,7 +119,7 @@ Expect(!InventoryTransactionLifecyclePolicy.CanSettle(localPlayerAvailable: fals
 Expect(InventoryTransactionLifecyclePolicy.CanSettle(localPlayerAvailable: true),
     "owner result can settle when the local player can receive every remainder");
 Expect(!InventoryTransactionLifecyclePolicy.CanResetBatch(hasUnsettledDeposit: true),
-    "context reset cannot release a batch before exact settlement and receipt acknowledgement");
+    "context reset cannot release a batch before exact settlement");
 Expect(InventoryTransactionLifecyclePolicy.CanResetBatch(hasUnsettledDeposit: false),
     "context reset remains available when no deposit is settling");
 
@@ -201,38 +201,22 @@ Expect(
         handoffRequest.PayloadHash,
         container: "other-chest"),
     "receipt acknowledgement cannot clear another chest receipt");
-handoffRouter.ExpireCompleted(olderThan: 100f);
+handoffRouter.ExpireCompleted(olderThan: 2f);
 Expect(
     handoffRouter.MatchesCompleted(
         handoffRequest.OperationId,
         requester: 10L,
         handoffRequest.PayloadHash,
         container: "chest-handoff"),
-    "unacknowledged connected receipt correlation does not expire");
-Expect(
-    handoffRouter.MarkReceiptAcknowledged(
-        handoffRequest.OperationId,
-        requester: 10L,
-        handoffRequest.PayloadHash,
-        container: "chest-handoff",
-        acknowledgedAt: 110f),
-    "current-owner confirmation marks the matching receipt acknowledged");
-handoffRouter.ExpireCompleted(olderThan: 100f);
-Expect(
-    handoffRouter.MatchesCompleted(
-        handoffRequest.OperationId,
-        requester: 10L,
-        handoffRequest.PayloadHash,
-        container: "chest-handoff"),
-    "acknowledged correlation remains for the confirmation replay window");
-handoffRouter.ExpireCompleted(olderThan: 120f);
+    "completed correlation remains for the connected retry window");
+handoffRouter.ExpireCompleted(olderThan: 4f);
 Expect(
     !handoffRouter.MatchesCompleted(
         handoffRequest.OperationId,
         requester: 10L,
         handoffRequest.PayloadHash,
         container: "chest-handoff"),
-    "acknowledged correlation expires after its replay window");
+    "completed correlation expires after its replay window");
 handoffClient.Accept(newOwnerReplay);
 handoffChest.ReplicateTo(handoffClient);
 Expect(handoffChest.CountsEqual(Counts(("Stone", 5))) && handoffClient.Source["Stone"] == 0,

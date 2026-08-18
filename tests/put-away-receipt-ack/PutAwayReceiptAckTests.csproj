@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ValheimGameDir Condition="'$(ValheimGameDir)' == ''">$(HOME)/Library/Application Support/Steam/steamapps/common/Valheim</ValheimGameDir>
+    <ValheimManagedDir>$(ValheimGameDir)/valheim.app/Contents/Resources/Data/Managed</ValheimManagedDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../shared/benheim-inventory-protocol/InventoryTransactionReceiptAcknowledgementCodec.cs" Link="InventoryTransactionReceiptAcknowledgementCodec.cs" />
+    <Compile Include="../../shared/benheim-inventory-protocol/InventoryTransactionRoutingCore.cs" Link="InventoryTransactionRoutingCore.cs" />
+    <Compile Include="../../shared/benheim-inventory-protocol/InventoryTransactionSettlement.cs" Link="InventoryTransactionSettlement.cs" />
+    <Compile Include="../../server-mods/benheim-server-support/src/PutAwayLeaseState.cs" Link="PutAwayLeaseState.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="assembly_valheim">
+      <HintPath>$(ValheimManagedDir)/assembly_valheim.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="assembly_utils">
+      <HintPath>$(ValheimManagedDir)/assembly_utils.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ValheimManagedDir)/UnityEngine.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ValheimManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

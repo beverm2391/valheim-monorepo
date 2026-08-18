@@ -79,20 +79,21 @@ the same durability contract and pass the stale-payload regression proof.
 - The [Put Away owner-authoritative
   protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md) owns
   request correlation, owner validation, reservation, receipts, connected
-  retries, stale-payload controls, and their tests. The current adaptation is
-  deployed and passes automated checks. It remains in development until the
-  authorized multiplayer gameplay test passes.
+  deposit retries, stale-payload controls, and their tests. The deployed `0.1.64`
+  adaptation exposed a blocking receipt-cleanup regression. The current source
+  correction passes automated checks but is not deployed. It remains in
+  development until the authorized multiplayer gameplay test passes.
 - Each completed transfer moves each accepted item once. Put Away returns each
   rejected item to the player's inventory. As an emergency fallback only, if
   the inventory cannot accept a rejected remainder during settlement, Put Away
   drops that exact remainder nearby and shows `Put Away refund dropped nearby.
   Pick it up.` Every connected player must see the same chest state, including
   after chest ownership changes.
-- Put Away reports success only after the requester has settled every accepted,
-  refunded, or emergency-dropped item from a correlated owner result and the
-  current owner has acknowledged receipt removal. Put Away does not force or
-  gate on a character save. Valheim's native character and world save
-  lifecycle remains unchanged.
+- Put Away reports success after the requester has settled every accepted,
+  refunded, or emergency-dropped item from a correlated owner result. It then
+  sends one-way owner receipt cleanup; cleanup does not retain the batch or
+  global lease. Put Away does not force or gate on a character save. Valheim's
+  native character and world save lifecycle remains unchanged.
 - Put Away emits complete typed transaction evidence. The
   [protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md) owns the
   event lifecycle, correlation, and fields.

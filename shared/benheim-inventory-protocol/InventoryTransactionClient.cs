@@ -159,25 +159,6 @@ internal static partial class InventoryTransactions
             return;
         }
 
-        // A connected retry can replay the owner result while the requester is
-        // retrying only its receipt acknowledgement. Settlement already moved
-        // the accepted/refunded/dropped counts exactly once, so never run it a
-        // second time for a duplicate result.
-        if (pending.Settled != null)
-        {
-            Emit(
-                InventoryTransactionDiagnosticEvent.Create("client_result_duplicate", "requester")
-                    .Code("operation_id", pending.OperationId)
-                    .Code("correlation", pending.TransactionId)
-                    .Code("chest_id", StableChestId(pending.ContainerId))
-                    .Code("operation_phase", "owner_result")
-                    .Code("status", "settled_receipt_ack_pending")
-                    .Code("reason", "duplicate_result_after_settlement")
-                    .Integer("attempt", pending.Attempts));
-            TrySendSettledReceiptAck(pending);
-            return;
-        }
-
         List<int> reservedCounts = pending.Items.Select(item => item.Item.m_stack).ToList();
         if (!InventoryTransactionSettlement.TryCreate(
                 reservedCounts,
@@ -246,12 +227,78 @@ internal static partial class InventoryTransactions
             accepted[index] = acceptedAmount;
         }
         DepositResult result = new DepositResult(status, entries);
-        pending.Settled = new SettledDeposit(
-            result,
-            completedSettlement.Accepted,
-            refunded,
-            dropped);
-        TrySendSettledReceiptAck(pending);
+        ClientPending.Remove(transactionId);
+        EmitSettledResult(pending, result, completedSettlement.Accepted, refunded, dropped);
+        try
+        {
+            pending.Callback(result);
+        }
+        finally
+        {
+            TrySendReceiptAcknowledgement(pending);
+        }
+    }
+
+    private static void EmitSettledResult(
+        PendingDeposit pending,
+        DepositResult result,
+        IReadOnlyList<int> accepted,
+        IReadOnlyList<int> refunded,
+        IReadOnlyList<int> dropped)
+    {
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create("client_result", "requester")
+                .Code("operation_id", pending.OperationId)
+                .Code("correlation", pending.TransactionId)
+                .Code("chest_id", StableChestId(pending.ContainerId))
+                .Code("operation_phase", "settled")
+                .Code("status", "settled")
+                .Code("reason", StatusCode(result.Status))
+                .Integer("attempt", pending.Attempts)
+                .Integer("revision_after", CurrentRevision(pending.ContainerId))
+                .Integer("requested_count", CountReserved(pending.Items))
+                .Integer("accepted_count", accepted.Sum())
+                .Integer("refunded_count", refunded.Sum())
+                .Integer("dropped_count", dropped.Sum())
+                .Text("requested_items", DescribeReserved(pending.Items))
+                .Text("accepted_items", DescribeAccepted(pending.Items, accepted))
+                .Text("refunded_items", DescribeRefunded(pending.Items, refunded))
+                .Text("dropped_items", DescribeAccepted(pending.Items, dropped))
+                .Text("contents_after", DescribeLocalChest(pending.ContainerId)));
+    }
+
+    private static void TrySendReceiptAcknowledgement(PendingDeposit pending)
+    {
+        try
+        {
+            ZPackage acknowledgement = InventoryTransactionReceiptAcknowledgementCodec.Write(
+                pending.TransactionId,
+                pending.PayloadHash,
+                pending.ContainerId);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ReceiptAckRpc, acknowledgement);
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create("client_receipt_ack_sent", "requester")
+                    .Code("operation_id", pending.OperationId)
+                    .Code("correlation", pending.TransactionId)
+                    .Code("chest_id", StableChestId(pending.ContainerId))
+                    .Code("operation_phase", "receipt_cleanup")
+                    .Code("status", "sent"));
+        }
+        catch (Exception exception)
+        {
+            Emit(
+                InventoryTransactionDiagnosticEvent.Create(
+                        "client_receipt_ack_failed",
+                        "requester",
+                        InventoryTransactionDiagnosticLevel.Warning)
+                    .Code("operation_id", pending.OperationId)
+                    .Code("correlation", pending.TransactionId)
+                    .Code("chest_id", StableChestId(pending.ContainerId))
+                    .Code("operation_phase", "receipt_cleanup")
+                    .Code("status", "failed")
+                    .Code("reason", "send_failed")
+                    .Code("exception_type", exception.GetType().Name));
+        }
     }
 
     private static void RetryClientTransactions(float now)
@@ -261,12 +308,6 @@ internal static partial class InventoryTransactions
             if (now - pending.LastSentAt < RetryInterval) continue;
             pending.LastSentAt = now;
             pending.Attempts++;
-            if (pending.Settled != null)
-            {
-                TrySendSettledReceiptAck(pending);
-                continue;
-            }
-
             SendDepositRequest(pending);
             Emit(
                 InventoryTransactionDiagnosticEvent.Create("client_retry", "requester")

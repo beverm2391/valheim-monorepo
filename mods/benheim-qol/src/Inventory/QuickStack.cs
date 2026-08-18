@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BenheimInventoryProtocol;
 using BenheimQoL.Infrastructure;
@@ -156,43 +157,85 @@ internal static class QuickStack
             return;
         }
 
-        string containerDisplayName = Localize(container.GetHoverName());
-        string containerLocation = QuickStackLocation.Format(operation.Player, container);
-        int movedItems = 0;
-        foreach (DepositResultEntry entry in result.Entries)
+        try
         {
-            if (entry.Accepted <= 0)
+            string containerDisplayName = Localize(container.GetHoverName());
+            string containerLocation = QuickStackLocation.Format(operation.Player, container);
+            int movedItems = 0;
+            foreach (DepositResultEntry entry in result.Entries)
             {
-                continue;
+                if (entry.Accepted <= 0)
+                {
+                    continue;
+                }
+
+                movedItems += entry.Accepted;
+                operation.Summary.Add(
+                    container.GetInstanceID(),
+                    containerDisplayName,
+                    containerLocation,
+                    Localize(entry.Item.m_shared.m_name),
+                    entry.Accepted);
+                QuickStackDiagnostics.ItemMoved(
+                    operation.OperationId,
+                    entry.Item,
+                    entry.Accepted,
+                    container,
+                    containerLocation);
             }
 
-            movedItems += entry.Accepted;
-            operation.Summary.Add(
-                container.GetInstanceID(),
-                containerDisplayName,
-                containerLocation,
-                Localize(entry.Item.m_shared.m_name),
-                entry.Accepted);
-            QuickStackDiagnostics.ItemMoved(
-                operation.OperationId,
-                entry.Item,
-                entry.Accepted,
-                container,
-                containerLocation);
-        }
+            operation.MovedItems += movedItems;
+            if (!result.Succeeded)
+            {
+                operation.BusyContainers++;
+            }
 
-        operation.MovedItems += movedItems;
-        if (!result.Succeeded)
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_container_result",
+                $"container=\"{container.gameObject.name}\" status={result.Status} moved={movedItems}");
+        }
+        catch (Exception exception)
         {
             operation.BusyContainers++;
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_container_completion_failed",
+                $"status={result.Status} exception={exception.GetType().Name}");
         }
+        finally
+        {
+            operation.CurrentContainer = null;
+            ContinueAfterSettledContainer(operation);
+        }
+    }
 
-        operation.CurrentContainer = null;
-        Diagnostics.Event(
-            "Inventory",
-            "quick_stack_container_result",
-            $"container=\"{container.gameObject.name}\" status={result.Status} moved={movedItems}");
-        RequestNextContainer();
+    private static void ContinueAfterSettledContainer(QuickStackOperation operation)
+    {
+        try
+        {
+            RequestNextContainer();
+        }
+        catch (Exception exception)
+        {
+            // Exact requester settlement is already complete. A stale Unity
+            // object or presentation failure must not retain the global lease.
+            if (activeOperation == operation)
+            {
+                activeOperation = null;
+                PutAwayLeaseClient.Release("container_completion_failed");
+                InventoryTransactions.BatchFinished(
+                    operation.OperationId,
+                    "cancelled",
+                    "container_completion_failed",
+                    operation.MovedItems);
+            }
+
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_completion_failed",
+                $"exception={exception.GetType().Name}");
+        }
     }
 
     internal static QuickStackBulkScope? BeginBulkStack(Inventory target, Inventory source)

@@ -100,7 +100,6 @@ internal sealed class ConnectedTransactionRouter<TContainer>
         internal TContainer Container { get; }
         internal byte[] ResponseBytes { get; }
         internal float CompletedAt { get; }
-        internal float? AcknowledgedAt { get; set; }
     }
 
     private readonly Dictionary<string, PendingRoute> pending = new Dictionary<string, PendingRoute>();
@@ -209,34 +208,12 @@ internal sealed class ConnectedTransactionRouter<TContainer>
             && EqualityComparer<TContainer>.Default.Equals(route.Container, container);
     }
 
-    internal bool MarkReceiptAcknowledged(
-        string transactionId,
-        long requester,
-        string payloadHash,
-        TContainer container,
-        float acknowledgedAt)
-    {
-        if (!MatchesCompleted(transactionId, requester, payloadHash, container))
-        {
-            return false;
-        }
-
-        completed[transactionId].AcknowledgedAt = acknowledgedAt;
-        return true;
-    }
-
     internal void ExpireCompleted(float olderThan)
     {
         List<string> expired = new List<string>();
         foreach (KeyValuePair<string, CompletedRoute> pair in completed)
         {
-            // An unacknowledged owner receipt is the connected retry
-            // authority. Expiring it would strand an already-settled
-            // requester and leak the receipt forever. Once acknowledged, keep
-            // the correlation for the normal replay window in case the client
-            // confirmation itself is lost.
-            if (pair.Value.AcknowledgedAt.HasValue
-                && pair.Value.AcknowledgedAt.Value < olderThan)
+            if (pair.Value.CompletedAt < olderThan)
             {
                 expired.Add(pair.Key);
             }

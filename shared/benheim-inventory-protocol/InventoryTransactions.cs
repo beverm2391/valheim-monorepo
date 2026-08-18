@@ -19,8 +19,6 @@ internal static partial class InventoryTransactions
     internal const string DepositResultRpc = "Benheim.Inventory.v3.DepositResult";
     internal const string ReceiptAckRpc = "Benheim.Inventory.v3.ReceiptAck";
     internal const string OwnerReceiptAckRpc = "Benheim.Inventory.v3.OwnerReceiptAck";
-    internal const string OwnerReceiptAckResultRpc = "Benheim.Inventory.v3.OwnerReceiptAckResult";
-    internal const string ReceiptAckResultRpc = "Benheim.Inventory.v3.ReceiptAckResult";
 
     private static readonly Dictionary<string, PendingDeposit> ClientPending = new();
     private static readonly ConnectedTransactionRouter<ZDOID> ServerRouter = new();
@@ -52,9 +50,7 @@ internal static partial class InventoryTransactions
                         .Code("operation_id", pending.OperationId)
                         .Code("correlation", pending.TransactionId)
                         .Code("operation_phase", "unsupported_shutdown")
-                        .Code("status", pending.Settled == null
-                            ? "reservation_pending"
-                            : "settled_receipt_ack_pending")
+                        .Code("status", "reservation_pending")
                         .Code("reason", "reconnect_recovery_unsupported")
                         .Integer("pending_count", ClientPending.Count));
             }
@@ -191,8 +187,6 @@ internal static partial class InventoryTransactions
         registeredRpc.Register<ZPackage>(DepositResultRpc, RpcDepositResult);
         registeredRpc.Register<ZPackage>(ReceiptAckRpc, RpcReceiptAck);
         registeredRpc.Register<ZPackage>(OwnerReceiptAckRpc, InventoryTransactionOwner.HandleReceiptAck);
-        registeredRpc.Register<ZPackage>(OwnerReceiptAckResultRpc, RpcOwnerReceiptAckResult);
-        registeredRpc.Register<ZPackage>(ReceiptAckResultRpc, RpcReceiptAckResult);
         Emit(
             InventoryTransactionDiagnosticEvent.Create("rpc_registered", HostRole())
                 .Integer("protocol_version", ProtocolVersion)

@@ -55,13 +55,19 @@ internal static class InventoryTransactionReceipts
             transactionId);
     }
 
-    internal static void Remove(ZDO zdo, string transactionId, string payloadHash)
+    internal static bool Remove(ZDO zdo, string transactionId, string payloadHash)
     {
-        zdo.Set(
-            ReceiptKey,
-            InventoryTransactionReceiptCodec.Remove(
-                zdo.GetString(ReceiptKey),
-                transactionId,
-                payloadHash));
+        string current = zdo.GetString(ReceiptKey);
+        string updated = InventoryTransactionReceiptCodec.Remove(
+            current,
+            transactionId,
+            payloadHash);
+        if (updated == current)
+        {
+            return false;
+        }
+
+        zdo.Set(ReceiptKey, updated);
+        return true;
     }
 }

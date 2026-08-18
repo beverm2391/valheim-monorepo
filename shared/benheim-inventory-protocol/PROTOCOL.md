@@ -30,6 +30,8 @@ fresh.
 - Connected peers converge on the owner's committed chest contents.
 - An ambiguous response remains pending and correlated while the session stays
   connected. It never becomes an uncorrelated local retry.
+- Exact requester settlement completes the deposit. Receipt cleanup cannot
+  retain the Put Away batch or global lease.
 
 ## Flow
 
@@ -46,13 +48,16 @@ fresh.
    chest ZDO, and returns accepted counts through the server.
 6. The server accepts a result only from the latest owner it resolved. The
    requester then requires a matching transaction ID and payload hash. It
-   settles every accepted, refunded, or emergency-dropped item and sends the
-   receipt acknowledgement. If sending the acknowledgement fails while
-   connected, the requester retries only that acknowledgement and does not
-   repeat settlement.
-7. The current owner removes the receipt and confirms that removal through the
-   server. Only then does the requester report success or continue the batch.
-   The lease is released when the Put Away batch finishes.
+   settles every accepted, refunded, or emergency-dropped item exactly once.
+   Settlement completes the deposit so the batch can continue and eventually
+   release the lease.
+7. After completion, the requester sends exactly one best-effort, one-way
+   receipt cleanup request. It keeps no cleanup state and does not retry. The
+   server requires the completed correlation and original routed sender, then
+   forwards the request to the chest's current owner. The owner sends no
+   cleanup confirmation through the server. A lost or rejected cleanup does
+   not repeat settlement, reopen completion, delay callbacks, or retain the
+   batch or lease.
 
 ## Traceability
 
@@ -63,7 +68,8 @@ fresh.
 | Server routes to the current owner and accepts only the latest resolved owner's result; requester validates the transaction ID and payload hash | Only authoritative contents are read and changed | A requester overwrites a newer chest with its stale cache, or a delayed old-owner result settles after rerouting | `Put Away owner-authoritative stale-payload integration checks passed` |
 | Owner receipt and server completion cache | A retry applies at most once across routing and ownership changes | Lost responses duplicate accepted items | receipt codec test plus the connected-retry integration case |
 | Accepted counts and requester remainder restoration | Player, chest, and explicit refund-drop item counts are conserved | Partial capacity loses rejected items or duplicates accepted items | stale-payload, partial-capacity, and filled-inventory refund cases |
-| Exact settlement and current-owner receipt removal before success | Completion reflects every accepted, refunded, or emergency-dropped item and leaves no connected receipt leak | Early success hides an unsettled remainder or repeated ownership races exhaust receipt capacity | source ordering guard, filled-inventory refund case, and receipt-acknowledgement retry case |
+| Exact settlement before completion | Completion reflects every accepted, refunded, or emergency-dropped item | Early completion hides an unsettled remainder and can lose or duplicate items | source ordering guard, filled-inventory refund case, and receipt-acknowledgement wire/liveness case |
+| One-way current-owner receipt cleanup | Completed receipt entries are normally reclaimed without becoming a transaction liveness gate | Removing cleanup can eventually exhaust receipt capacity; confirmed cleanup adds state and failure modes without protecting item integrity | receipt-acknowledgement wire/liveness case |
 | Complete typed transaction events | Requester, router, and owner decisions can be correlated across peers with the exact chest state that informed them | A runtime failure appears successful or cannot be distinguished from stale state | `inventory transaction typed diagnostic schema checks passed` |
 
 Use these invariant names in tests and reviews. A test must include the unsafe
@@ -110,10 +116,18 @@ owner applying each deposit and gave immediate two-client visibility before it
 was removed. Its retry, partial-capacity, protocol-mismatch, and interrupted
 recovery behavior remained in development.
 
-The current adaptation uses the same owner-authority and correlation model
-inside Benheim Server Support. Automated stale-payload, lease, and receipt
-checks are green. The adaptation is not deployed and is not gameplay-proven.
-It still needs the authorized multiplayer test before it can be called fixed:
+Benheim `0.1.64` with Server Support `0.1.2` proved owner mutation, result
+forwarding, and exact requester settlement in live multiplayer. It also exposed
+an invalid completion gate: the server rejected every receipt acknowledgement
+after trying to find the routed requester in its local `Player` scene objects,
+so the completed batch and global lease remained occupied until disconnect.
+
+The current source keeps owner receipts and routed-sender correlation, makes
+exact settlement the completion boundary, and reduces receipt removal to
+one-way cleanup. Automated stale-payload, lease, receipt, and real Valheim
+package/routed-identity checks are green. This correction is not deployed and
+is not gameplay-proven. It still needs the authorized multiplayer test before
+it can be called fixed:
 
 - A and B contend for the lease; the loser moves nothing.
 - A deposits, then B deposits from a deliberately stale equal-revision cache.
@@ -123,11 +137,9 @@ It still needs the authorized multiplayer test before it can be called fixed:
 - Transfer ownership after the owner applies and records its receipt but before
   the server accepts the result. Delay or lose that result, retry while still
   connected, and prove exact-once application plus peer convergence.
-- After exact settlement, make one receipt-acknowledgement send fail while
-  still connected. Also move chest ownership so the old owner rejects one
-  acknowledgement. The requester retries only the acknowledgement, does not
-  settle items again, and finishes after the current owner confirms receipt
-  removal.
+- After exact settlement, prove a lost or rejected receipt cleanup cannot keep
+  the Put Away batch or global lease occupied. A second Put Away must start
+  without reconnecting.
 
 No source test proves live ZDO replication. Captured gameplay logs are test
 evidence and are not committed.
@@ -153,14 +165,14 @@ counts, positions, attempts, status, and reasons. Client-hosted roles use the
 existing readable log, local NDJSON, and direct-client diagnostic path. The
 dedicated server writes the same typed fields to readable diagnostics.
 
-`client_result` means the server forwarded a result from the latest owner it
-resolved. The requester then completes exact settlement and sends the receipt
-acknowledgement. If sending the acknowledgement fails while connected, it
-retries only that acknowledgement and does not repeat settlement. Final Put
-Away callbacks and terminal batch events occur only after exact settlement and
-the current owner's receipt-removal acknowledgement returns through the server.
-The `owner_receipt_acknowledged` event proves receipt removal. Put Away does not
-force, retry, or gate on a character save and makes no disk-persistence claim.
+`client_result` means the requester completed exact settlement from a result
+forwarded by the latest owner the server resolved. Final Put Away callbacks and
+terminal batch events follow settlement without waiting for receipt cleanup.
+`client_receipt_ack_sent` records that single cleanup send;
+`owner_receipt_acknowledged` is an owner-local removal event, not a response to
+the requester. Neither event is a commit or completion boundary. Put Away does
+not force, retry, or gate on a character save and makes no disk-persistence
+claim.
 
 ## Supported Failures and Non-Goals
 
@@ -169,6 +181,11 @@ transaction identity, receipt capacity, or compatible protocol is unavailable.
 An ambiguous reserved request remains correlated and retryable while the
 session stays connected instead of being locally restored as if the owner had
 not committed.
+
+Receipt cleanup is best effort after completion. A lost cleanup can leave one
+bounded owner receipt behind; a full ledger then fails closed and reduces Put
+Away availability. It cannot lose or duplicate items, repeat settlement, or
+retain the completed batch and lease.
 
 Crash and reconnect recovery during an in-flight reservation are unsupported.
 Persistent journals and audit trails, legacy-protocol upgrades, and a general

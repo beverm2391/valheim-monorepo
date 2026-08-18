@@ -20,19 +20,20 @@ simultaneous Put Away before the losing client scans or moves items.
 
 ## In Development
 
-Version `0.1.2` also implements the shared owner-authoritative Put Away protocol.
-The server correlates and routes each immutable deposit request to the chest's
-current owner. That owner validates and changes the authoritative inventory.
-The requester restores rejected remainders from the accepted result. The server
-does not inspect or mutate chest contents itself.
+The deployed `0.1.2` routes immutable deposit requests to the chest's current
+owner and forwards owner results. The owner validates and changes the chest;
+the server does not inspect or mutate chest contents. Live `0.1.64` gameplay
+proved owner mutation, result forwarding, and exact requester settlement. It
+also showed that the old receipt-removal gate could retain the completed batch
+and lease until disconnect.
 
-The owner-routing adaptation passes automated checks but remains gameplay-unproven.
-The owning [Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md)
-defines Put Away's player-visible behavior and acceptance boundary.
-
-The [shared protocol](../../shared/benheim-inventory-protocol/PROTOCOL.md) owns
-the transaction runtime and typed-event lifecycle. Automated source and build
-gates cover the server boundary.
+The current source correction removes receipt cleanup from the completion gate.
+It passes automated checks but is not deployed or gameplay-proven. The owning
+[Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md) defines
+Put Away's player-visible behavior and acceptance boundary. The [shared
+protocol](../../shared/benheim-inventory-protocol/PROTOCOL.md) owns cleanup
+correlation, routing, the transaction runtime, and typed-event lifecycle.
+Automated source and build gates cover the server boundary.
 
 Version `0.1.2` also implements Kill Attribution V2 and the server-authoritative
 confirmed-kill chain described below. See the root

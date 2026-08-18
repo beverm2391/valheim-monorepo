@@ -6,7 +6,6 @@ repo_root="$(cd "$root/../.." && pwd)"
 quick_stack="$root/src/Inventory/QuickStack.cs"
 patches="$root/src/Inventory/QuickStackPatches.cs"
 client="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionClient.cs"
-client_receipt="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionClientReceipt.cs"
 server="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionServer.cs"
 owner="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionOwner.cs"
 wire="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionWire.cs"
@@ -60,34 +59,35 @@ grep -Fq 'InventoryTransactionReceipts.TryRead' "$owner"
 grep -Fq 'protocolVersion != InventoryTransactions.ProtocolVersion' "$wire"
 grep -Fq 'ProtocolVersion = 3' "$composition"
 
-# Put Away completes exact settlement, receives the current owner's receipt
-# acknowledgement through the server, then invokes Quick Stack's completion
-# callback. A filled inventory uses the
+# Put Away completes immediately after exact settlement. One-way receipt
+# cleanup follows, but it cannot retain Quick Stack or the
+# global lease. A filled inventory uses the
 # emergency nearby-drop path and visible one-shot warning. Valheim retains its
 # native save lifecycle.
 grep -Fq 'InventoryTransactionSettlement completedSettlement' "$client"
-grep -Fq 'TrySendSettledReceiptAck(pending);' "$client"
-ack_line="$(grep -nF 'private static void RpcReceiptAckResult' "$client_receipt" | cut -d: -f1)"
-remove_pending_line="$(grep -nF 'ClientPending.Remove(pending.TransactionId);' "$client_receipt" | cut -d: -f1)"
-callback_line="$(grep -nF 'pending.Callback(settled.Result);' "$client_receipt" | cut -d: -f1)"
-if (( ack_line >= remove_pending_line || remove_pending_line >= callback_line )); then
-  printf 'Put Away success must follow settlement and current-owner receipt acknowledgement\n' >&2
+grep -Fq 'ClientPending.Remove(transactionId);' "$client"
+grep -Fq 'TrySendReceiptAcknowledgement(pending);' "$client"
+grep -Fq 'pending.Callback(result);' "$client"
+remove_pending_line="$(grep -nF 'ClientPending.Remove(transactionId);' "$client" | cut -d: -f1)"
+callback_line="$(grep -nF 'pending.Callback(result);' "$client" | cut -d: -f1)"
+cleanup_line="$(grep -nF 'TrySendReceiptAcknowledgement(pending);' "$client" | cut -d: -f1)"
+if (( remove_pending_line >= callback_line || callback_line >= cleanup_line )); then
+  printf 'exact settlement must clear the pending request before Put Away completion\n' >&2
   exit 1
 fi
-grep -Fq 'settled_receipt_acknowledged' "$client_receipt"
-grep -Fq 'client_receipt_ack_pending' "$client_receipt"
-grep -Fq 'ReceiptAckResultRpc' "$composition"
-grep -Fq 'OwnerReceiptAckResultRpc' "$composition"
-grep -Fq 'ServerRouter.MatchesCompleted' "$server"
-grep -Fq 'ServerRouter.MarkReceiptAcknowledged' "$server"
-grep -Fq 'pair.Value.AcknowledgedAt.HasValue' "$routing"
-grep -Fq 'if (pending.Settled != null)' "$client"
-grep -Fq 'duplicate_result_after_settlement' "$client"
-retry_line="$(grep -nF 'private static void RetryClientTransactions' "$client" | cut -d: -f1)"
-settled_retry_line="$(tail -n +"$retry_line" "$client" | grep -nF 'if (pending.Settled != null)' | head -1 | cut -d: -f1)"
-deposit_retry_line="$(tail -n +"$retry_line" "$client" | grep -nF 'SendDepositRequest(pending);' | head -1 | cut -d: -f1)"
-if (( settled_retry_line >= deposit_retry_line )); then
-  printf 'settled deposits must retry only receipt acknowledgement before request retry\n' >&2
+grep -Fq 'finally' "$client"
+grep -Fq 'ContinueAfterSettledContainer(operation);' "$quick_stack"
+grep -Fq 'PutAwayLeaseClient.Release("container_completion_failed");' "$quick_stack"
+grep -Fq 'client_receipt_ack_sent' "$client"
+grep -Fq 'InventoryTransactionReceiptAcknowledgementCodec.TryAuthorize(' "$server"
+grep -Fq 'pair.Value.CompletedAt < olderThan' "$routing"
+if rg -n 'ReceiptAckResultRpc|OwnerReceiptAckResultRpc|MarkReceiptAcknowledged|AcknowledgedAt|pending\.Settled' \
+    "$client" "$server" "$owner" "$composition" "$routing"; then
+  printf 'receipt cleanup must stay one-way and outside transaction state\n' >&2
+  exit 1
+fi
+if rg -n 'RequestBelongsToSender|Player\.GetAllPlayers' "$server"; then
+  printf 'routed sender identity must not depend on dedicated-server Player scene objects\n' >&2
   exit 1
 fi
 grep -Fq 'InventoryTransactionRefundPlacement.WorldDrop' "$client"
@@ -122,6 +122,7 @@ grep -Fq 'PocketItems.IsPocketed(scope.Player, item)' "$quick_stack"
 
 dotnet run --project "$repo_root/tests/put-away-owner-routing/PutAwayOwnerRoutingTests.csproj"
 dotnet run --project "$repo_root/tests/inventory-transaction-receipts/InventoryTransactionReceiptTests.csproj"
+dotnet run --project "$repo_root/tests/put-away-receipt-ack/PutAwayReceiptAckTests.csproj"
 dotnet run --project "$repo_root/tests/inventory-transaction-diagnostics/InventoryTransactionDiagnosticTests.csproj"
 
 printf 'owner-authoritative Put Away source and conservation checks passed\n'

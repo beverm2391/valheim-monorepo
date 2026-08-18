@@ -218,72 +218,14 @@ internal static partial class InventoryTransactions
             return;
         }
 
-        try
-        {
-            string transactionId = acknowledgement.ReadString();
-            string payloadHash = acknowledgement.ReadString();
-            ZDOID containerId = acknowledgement.ReadZDOID();
-            byte[] requestBytes = acknowledgement.ReadByteArray();
-            if (payloadHash != InventoryTransactionWire.Hash(requestBytes)
-                || !InventoryTransactionWire.TryReadRequest(
-                    requestBytes,
-                    out _,
-                    out string requestTransactionId,
-                    out long requestPlayerId,
-                    out ZDOID requestContainerId,
-                    out _)
-                || requestTransactionId != transactionId
-                || requestContainerId != containerId
-                || !RequestBelongsToSender(sender, requestPlayerId)
-                || !ServerRouter.MatchesCompleted(
-                    transactionId,
-                    sender,
-                    payloadHash,
-                    containerId))
-            {
-                Emit(
-                    InventoryTransactionDiagnosticEvent.Create(
-                            "server_receipt_ack_rejected",
-                            "server_router",
-                            InventoryTransactionDiagnosticLevel.Warning)
-                        .Code("operation_phase", "receipt_ack")
-                        .Code("status", "rejected")
-                        .Code("reason", "invalid_ack"));
-                return;
-            }
-
-            long owner = ResolveOwner(containerId);
-            if (owner == 0L)
-            {
-                Emit(
-                    InventoryTransactionDiagnosticEvent.Create(
-                            "server_receipt_ack_rejected",
-                            "server_router",
-                            InventoryTransactionDiagnosticLevel.Warning)
-                        .Code("correlation", transactionId)
-                        .Code("chest_id", StableChestId(containerId))
-                        .Code("operation_phase", "receipt_ack")
-                        .Code("status", "pending")
-                        .Code("reason", "owner_unavailable"));
-                return;
-            }
-
-            ZPackage ownerAcknowledgement = new ZPackage();
-            ownerAcknowledgement.Write(sender);
-            ownerAcknowledgement.Write(transactionId);
-            ownerAcknowledgement.Write(payloadHash);
-            ownerAcknowledgement.Write(containerId);
-            ZRoutedRpc.instance.InvokeRoutedRPC(owner, OwnerReceiptAckRpc, ownerAcknowledgement);
-            Emit(
-                InventoryTransactionDiagnosticEvent.Create("server_receipt_ack_routed", "server_router")
-                    .Code("correlation", transactionId)
-                    .Code("chest_id", StableChestId(containerId))
-                    .Code("operation_phase", "receipt_ack")
-                    .Code("status", "sent")
-                    .Integer("requester_peer", sender)
-                    .Integer("owner_peer", owner));
-        }
-        catch (Exception ex)
+        if (!InventoryTransactionReceiptAcknowledgementCodec.TryAuthorize(
+                acknowledgement,
+                ServerRouter,
+                sender,
+                out string transactionId,
+                out string payloadHash,
+                out ZDOID containerId,
+                out string rejectionReason))
         {
             Emit(
                 InventoryTransactionDiagnosticEvent.Create(
@@ -292,90 +234,42 @@ internal static partial class InventoryTransactions
                         InventoryTransactionDiagnosticLevel.Warning)
                     .Code("operation_phase", "receipt_ack")
                     .Code("status", "rejected")
-                    .Code("reason", "invalid_ack")
-                    .Code("exception_type", ex.GetType().Name));
-        }
-    }
-
-    private static void RpcOwnerReceiptAckResult(long sender, ZPackage acknowledgement)
-    {
-        if (ZNet.instance == null || !ZNet.instance.IsServer())
-        {
+                    .Code("correlation", transactionId)
+                    .Code("chest_id", StableChestId(containerId))
+                    .Code("reason", rejectionReason)
+                    .Integer("requester_peer", sender));
             return;
         }
 
-        try
-        {
-            long requester = acknowledgement.ReadLong();
-            string transactionId = acknowledgement.ReadString();
-            string payloadHash = acknowledgement.ReadString();
-            ZDOID containerId = acknowledgement.ReadZDOID();
-            long currentOwner = ResolveOwner(containerId);
-            if (sender == 0L
-                || sender != currentOwner
-                || !ServerRouter.MatchesCompleted(
-                    transactionId,
-                    requester,
-                    payloadHash,
-                    containerId))
-            {
-                Emit(
-                    InventoryTransactionDiagnosticEvent.Create(
-                            "server_receipt_ack_result_rejected",
-                            "server_router",
-                            InventoryTransactionDiagnosticLevel.Warning)
-                        .Code("correlation", transactionId)
-                        .Code("chest_id", StableChestId(containerId))
-                        .Code("operation_phase", "receipt_ack")
-                        .Code("status", "rejected")
-                        .Code("reason", "not_current_owner_or_completed_result")
-                        .Integer("requester_peer", requester)
-                        .Integer("owner_peer", sender));
-                return;
-            }
-
-            ServerRouter.MarkReceiptAcknowledged(
-                transactionId,
-                requester,
-                payloadHash,
-                containerId,
-                Time.realtimeSinceStartup);
-
-            ZPackage clientAcknowledgement = new ZPackage();
-            clientAcknowledgement.Write(transactionId);
-            clientAcknowledgement.Write(payloadHash);
-            ZRoutedRpc.instance.InvokeRoutedRPC(
-                requester,
-                ReceiptAckResultRpc,
-                clientAcknowledgement);
-            Emit(
-                InventoryTransactionDiagnosticEvent.Create("server_receipt_ack_confirmed", "server_router")
-                    .Code("correlation", transactionId)
-                    .Code("chest_id", StableChestId(containerId))
-                    .Code("operation_phase", "receipt_ack")
-                    .Code("status", "confirmed")
-                    .Integer("requester_peer", requester)
-                    .Integer("owner_peer", sender));
-        }
-        catch (Exception ex)
+        long owner = ResolveOwner(containerId);
+        if (owner == 0L)
         {
             Emit(
                 InventoryTransactionDiagnosticEvent.Create(
-                        "server_receipt_ack_result_rejected",
+                        "server_receipt_ack_rejected",
                         "server_router",
                         InventoryTransactionDiagnosticLevel.Warning)
+                    .Code("correlation", transactionId)
+                    .Code("chest_id", StableChestId(containerId))
                     .Code("operation_phase", "receipt_ack")
-                    .Code("status", "rejected")
-                    .Code("reason", "invalid_ack_result")
-                    .Code("exception_type", ex.GetType().Name));
+                    .Code("status", "pending")
+                    .Code("reason", "owner_unavailable"));
+            return;
         }
-    }
 
-    private static bool RequestBelongsToSender(long sender, long playerId)
-    {
-        Player? requester = Player.GetAllPlayers().Find(
-            player => player && player.GetOwner() == sender);
-        return requester && requester.GetPlayerID() == playerId;
+        ZPackage ownerAcknowledgement = InventoryTransactionReceiptAcknowledgementCodec.Write(
+            transactionId,
+            payloadHash,
+            containerId);
+        ZRoutedRpc.instance.InvokeRoutedRPC(owner, OwnerReceiptAckRpc, ownerAcknowledgement);
+        Emit(
+            InventoryTransactionDiagnosticEvent.Create("server_receipt_ack_routed", "server_router")
+                .Code("correlation", transactionId)
+                .Code("chest_id", StableChestId(containerId))
+                .Code("operation_phase", "receipt_ack")
+                .Code("status", "sent")
+                .Integer("requester_peer", sender)
+                .Integer("owner_peer", owner));
     }
 
     private static void SendClientResult(long requester, byte[] responseBytes)
