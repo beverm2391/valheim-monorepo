@@ -35,7 +35,9 @@ use it to find controls and passive features.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep
   their native behavior. The shortcut does nothing while the player is typing
   or while a menu, password field, or other text input is active. This
-  suppression still needs gameplay or diagnostic proof.
+  suppression still needs gameplay proof. Each relevant `/` keypress produces
+  one typed `Shortcuts.native_console_shortcut` event. The event records an
+  `opened` or `rejected` result and the exact stable reason.
 - The Controls tab lists plain `R` for Loadout Swap and explains that it
   replaces Hide weapons when both loadouts are available.
 - When a Benheim shortcut overlaps a different currently configured Valheim

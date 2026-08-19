@@ -19,9 +19,18 @@ The Production module fills routine station inputs without repeated clicks.
 - At crafting stations that use the Cooking skill, crafted food has a bonus
   chance equal to the player's Cooking factor multiplied by `0.50`. Retrieving
   completed food through a native `CookingStation` uses the same chance. A
-  successful bonus roll adds exactly one additional item. Other crafting skills
-  keep Valheim's native bonus chances. This behavior has source-level proof but
-  still needs gameplay proof.
+  successful bonus roll increments Valheim's native bonus count by exactly one.
+  Valheim owns how that count contributes to aggregate multicraft output. Other
+  crafting skills keep Valheim's native bonus chances. Each Cooking roll
+  produces one typed `Cooking.native_bonus_roll` event. The event records the
+  native game's roll, the Cooking factor, the configured chance, the resulting
+  effective chance, the outcome, and the exact bonus increment. For crafting,
+  it also reports the exact native result increment. For completed-food
+  retrieval, it reports the exact native result count. For the first
+  non-Cooking roll, the event reports
+  the native bonus gate that Benheim preserves. Benheim does not log every
+  unrelated craft. This behavior has source-level proof but still needs typed
+  gameplay proof.
 - The Stone Oven takes half as long to bake each recipe. Its done-to-burn
   window is also halved.
 - Other cooking stations and fuel use remain unchanged.

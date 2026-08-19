@@ -5,7 +5,10 @@ using System.Reflection.Emit;
 
 public class InventoryGui
 {
+    public static InventoryGui m_instance = new InventoryGui();
+    public static InventoryGui instance => m_instance;
     public float m_craftBonusChance;
+    public int m_craftBonusAmount;
 }
 
 public class CookingStation
@@ -45,6 +48,45 @@ public class Player
     public CraftingStation? GetCurrentCraftingStation()
     {
         return station;
+    }
+}
+
+namespace UnityEngine
+{
+    public static class Random
+    {
+        public static float value => 0f;
+    }
+}
+
+namespace BenheimQoL.Infrastructure
+{
+    internal sealed class DiagnosticEvent
+    {
+        private readonly Dictionary<string, int> integers = new Dictionary<string, int>();
+
+        internal static DiagnosticEvent Create(string domain, string name) => new DiagnosticEvent();
+        internal DiagnosticEvent String(string name, string? value) => this;
+        internal DiagnosticEvent Integer(string name, int value)
+        {
+            integers[name] = value;
+            return this;
+        }
+        internal DiagnosticEvent Number(string name, float value) => this;
+        internal DiagnosticEvent Boolean(string name, bool value) => this;
+        internal int IntegerValue(string name) => integers[name];
+    }
+
+    internal static class Diagnostics
+    {
+        internal static int Emitted { get; private set; }
+        internal static DiagnosticEvent? Last { get; private set; }
+
+        internal static void Emit(DiagnosticEvent diagnosticEvent)
+        {
+            Last = diagnosticEvent;
+            Emitted++;
+        }
     }
 }
 

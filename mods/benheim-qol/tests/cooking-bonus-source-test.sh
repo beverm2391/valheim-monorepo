@@ -23,8 +23,23 @@ grep -Fq '[HarmonyPatch(typeof(CookingStation), "OnInteract")]' "$source_file"
 grep -Fq 'if (replaced != 1)' "$source_file"
 grep -Fq 'code.opcode = OpCodes.Call;' "$source_file"
 grep -Fq 'code.operand = replacement;' "$source_file"
+grep -Fq 'DiagnosticEvent.Create("Cooking", "native_bonus_roll")' "$source_file"
+grep -Fq '.String("source", source)' "$source_file"
+grep -Fq '.Boolean("cooking_gate", cookingGate)' "$source_file"
+grep -Fq '.Number("configured_base_chance", configuredBaseChance)' "$source_file"
+grep -Fq '.Number("native_skill_factor", nativeSkillFactor)' "$source_file"
+grep -Fq '.Number("effective_chance", effectiveChance)' "$source_file"
+grep -Fq '.Number("roll", nativeRoll)' "$source_file"
+grep -Fq '.Boolean("succeeded", succeeded)' "$source_file"
+grep -Fq '.Integer("bonus_count", bonusCount)' "$source_file"
+grep -Fq '"native_result_increment",' "$source_file"
+grep -Fq '.Integer("native_result_increment", nativeResultIncrement)' "$source_file"
+grep -Fq '"native_result_count",' "$source_file"
+grep -Fq 'bool report = cookingGate || !nonCookingGuardReported;' "$source_file"
+grep -Fq 'codes.Insert(index + 2, new CodeInstruction(OpCodes.Call, rollObserver));' "$source_file"
+grep -Fq '? OpCodes.Brfalse_S' "$source_file"
 
-if rg -n 'm_craftBonusChance\s*=|m_craftBonusAmount|RaiseSkill|InvokeRPC|RPC_|m_cookTime|m_secPerFuel' "$source_file"; then
+if rg -n 'm_craftBonusChance\s*=|m_craftBonusAmount\s*=|RaiseSkill|InvokeRPC|RPC_|m_cookTime|m_secPerFuel' "$source_file"; then
   printf 'Cooking bonus must only replace native chance reads at the two Cooking seams\n' >&2
   exit 1
 fi

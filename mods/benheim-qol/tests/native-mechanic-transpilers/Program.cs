@@ -10,10 +10,24 @@ using HarmonyLib;
 FieldInfo chanceField = typeof(InventoryGui).GetField(nameof(InventoryGui.m_craftBonusChance))!;
 MethodInfo craftResolver = Resolver(nameof(CookingBonus.ForCrafting));
 MethodInfo stationResolver = Resolver(nameof(CookingBonus.ForCookingStation));
+MethodInfo craftRollObserver = Resolver(nameof(CookingBonus.RollForCrafting));
+MethodInfo stationRollObserver = Resolver(nameof(CookingBonus.RollForCookingStation));
+MethodInfo randomValue = typeof(UnityEngine.Random).GetProperty(nameof(UnityEngine.Random.value))!.GetGetMethod()!;
 
-VerifyCookingPatch(typeof(CookingCraftBonusPatch), chanceField, craftResolver);
-VerifyCookingPatch(typeof(CookingStationBonusPatch), chanceField, stationResolver);
+VerifyCookingPatch(
+    typeof(CookingCraftBonusPatch),
+    chanceField,
+    craftResolver,
+    craftRollObserver,
+    randomValue);
+VerifyCookingPatch(
+    typeof(CookingStationBonusPatch),
+    chanceField,
+    stationResolver,
+    stationRollObserver,
+    randomValue);
 VerifyCookingScope();
+VerifyCookingRollObservation();
 VerifyComfortPatch();
 
 System.Console.WriteLine("native mechanic transpiler behavior checks passed");
@@ -25,16 +39,56 @@ static MethodInfo Resolver(string name)
         ?? throw new InvalidOperationException($"Missing Cooking bonus resolver {name}.");
 }
 
-static void VerifyCookingPatch(Type patchType, FieldInfo chanceField, MethodInfo resolver)
+static void VerifyCookingPatch(
+    Type patchType,
+    FieldInfo chanceField,
+    MethodInfo resolver,
+    MethodInfo rollObserver,
+    MethodInfo randomValue)
 {
+    CodeInstruction randomCall = new CodeInstruction(OpCodes.Call, randomValue);
     CodeInstruction nativeRead = new CodeInstruction(OpCodes.Ldfld, chanceField);
-    VerifyReplacement(patchType, Frame(nativeRead), nativeRead, OpCodes.Call, resolver);
+    CodeInstruction multiply = new CodeInstruction(OpCodes.Mul);
+    CodeInstruction failureBranch = new CodeInstruction(OpCodes.Bge_Un_S, default(Label));
+    CodeInstruction nativeCountLoad = new CodeInstruction(OpCodes.Ldloc_1);
+    List<CodeInstruction> input = Frame(
+        randomCall,
+        new CodeInstruction(OpCodes.Ldloc_0),
+        new CodeInstruction(OpCodes.Ldarg_0),
+        nativeRead,
+        multiply,
+        failureBranch,
+        nativeCountLoad,
+        new CodeInstruction(OpCodes.Nop));
+    CodeInstruction[] originalObjects = input.ToArray();
+    List<CodeInstruction> output = Invoke(patchType, input);
+    Expect(output.Count == originalObjects.Length + 1);
+    Expect(originalObjects.All(output.Contains));
+    Expect(nativeRead.opcode == OpCodes.Call && Equals(nativeRead.operand, resolver));
+    Expect(multiply.opcode == nativeCountLoad.opcode && Equals(multiply.operand, nativeCountLoad.operand));
+    int observerIndex = output.IndexOf(multiply) + 1;
+    Expect(output[observerIndex].opcode == OpCodes.Call && Equals(output[observerIndex].operand, rollObserver));
+    Expect(failureBranch.opcode == OpCodes.Brfalse_S);
+    Expect(originalObjects.All(instruction => instruction.labels.Count == 1 && instruction.blocks.Count == 1));
+
     ExpectThrows(() => Invoke(patchType, Frame(new CodeInstruction(OpCodes.Nop))));
     ExpectThrows(() => Invoke(
         patchType,
         Frame(
+            new CodeInstruction(OpCodes.Call, randomValue),
+            new CodeInstruction(OpCodes.Ldloc_0),
+            new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(OpCodes.Ldfld, chanceField),
-            new CodeInstruction(OpCodes.Ldfld, chanceField))));
+            new CodeInstruction(OpCodes.Mul),
+            new CodeInstruction(OpCodes.Bge_Un_S, default(Label)),
+            new CodeInstruction(OpCodes.Ldloc_1),
+            new CodeInstruction(OpCodes.Call, randomValue),
+            new CodeInstruction(OpCodes.Ldloc_0),
+            new CodeInstruction(OpCodes.Ldarg_0),
+            new CodeInstruction(OpCodes.Ldfld, chanceField),
+            new CodeInstruction(OpCodes.Mul),
+            new CodeInstruction(OpCodes.Bge_Un_S, default(Label)),
+            new CodeInstruction(OpCodes.Ldloc_1))));
 }
 
 static void VerifyCookingScope()
@@ -54,6 +108,47 @@ static void VerifyCookingScope()
     Player.m_localPlayer = null;
     Expect(CookingBonus.ForCrafting(inventoryGui) == 0.25f);
     Expect(CookingBonus.ForCookingStation(inventoryGui) == 0.50f);
+}
+
+static void VerifyCookingRollObservation()
+{
+    InventoryGui inventoryGui = new InventoryGui
+    {
+        m_craftBonusChance = 0.25f,
+        m_craftBonusAmount = 1
+    };
+    InventoryGui.m_instance = inventoryGui;
+    Player.m_localPlayer = new Player(new CraftingStation
+    {
+        m_craftingSkill = Skills.SkillType.Cooking
+    });
+    int before = BenheimQoL.Infrastructure.Diagnostics.Emitted;
+    Expect(CookingBonus.RollForCrafting(0.24f, 0.50f, 0.50f, 0));
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Last!.IntegerValue("bonus_count") == 1);
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Last.IntegerValue("native_bonus_count_after") == 1);
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Last.IntegerValue("native_result_increment") == 1);
+    Expect(CookingBonus.RollForCrafting(0.24f, 0.50f, 0.50f, 1));
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Last!.IntegerValue("bonus_count") == 1);
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Last.IntegerValue("native_bonus_count_after") == 2);
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Last.IntegerValue("native_result_increment") == 2);
+    Expect(!CookingBonus.RollForCrafting(0.25f, 0.50f, 0.50f, 2));
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Emitted == before + 3);
+
+    Player.m_localPlayer = new Player(new CraftingStation
+    {
+        m_craftingSkill = Skills.SkillType.Other
+    });
+    before = BenheimQoL.Infrastructure.Diagnostics.Emitted;
+    Expect(CookingBonus.RollForCrafting(0.24f, 1f, inventoryGui.m_craftBonusChance, 0));
+    Expect(CookingBonus.RollForCrafting(0.24f, 1f, inventoryGui.m_craftBonusChance, 1));
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Emitted == before + 1);
+
+    before = BenheimQoL.Infrastructure.Diagnostics.Emitted;
+    Expect(CookingBonus.RollForCookingStation(0.24f, 0.50f, 0.50f, 1));
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Last!.IntegerValue("native_result_count") == 2);
+    Expect(!CookingBonus.RollForCookingStation(0.25f, 0.50f, 0.50f, 1));
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Last!.IntegerValue("native_result_count") == 1);
+    Expect(BenheimQoL.Infrastructure.Diagnostics.Emitted == before + 2);
 }
 
 static void VerifyComfortPatch()
