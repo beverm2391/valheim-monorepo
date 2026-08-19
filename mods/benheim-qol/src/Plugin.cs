@@ -34,6 +34,8 @@ public sealed class Plugin : BaseUnityPlugin
         PlayerCombatRuntime.BeginSession();
         DiagnosticsSharingSettings.Initialize(Config);
         RemoteDiagnostics.Begin(Paths.ConfigPath);
+        DiagnosticsSharingSettings.ApplyLegacyPrivateTestDefault(
+            RemoteDiagnostics.IsConfigured);
         BenheimTestCommandClient.InitializeConsole();
         BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();

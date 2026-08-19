@@ -9,7 +9,7 @@ namespace BenheimQoL.PlayerCombat;
 /// </summary>
 internal static class BerserkerMechanic
 {
-    internal const float DurationSeconds = 10f;
+    internal const float DurationSeconds = 30f;
     internal const string EffectCategory = "Benheim.EarnedState.Berserker";
     internal const string ResistanceIconItemPrefab = "TrinketSilverResist";
     internal const string ResistanceIconStatusEffect = "TrinketSilverResist";

@@ -9,9 +9,12 @@ internal static class DiagnosticsSharingSettings
     private static ConfigEntry<bool>? shareDiagnostics;
     private static ConfigEntry<bool>? noticeShown;
     private static ConfigEntry<string>? clientId;
+    private static ConfigEntry<bool>? legacyPrivateDefaultMigrated;
 
     internal static bool ShareDiagnostics => shareDiagnostics?.Value ?? true;
     internal static bool NoticeShown => noticeShown?.Value ?? false;
+    internal static bool LegacyPrivateDefaultMigrated =>
+        legacyPrivateDefaultMigrated?.Value ?? false;
     internal static string ClientId { get; private set; } = string.Empty;
 
     internal static void Initialize(ConfigFile config)
@@ -31,6 +34,11 @@ internal static class DiagnosticsSharingSettings
             "Pseudonymous Client ID",
             string.Empty,
             "Random local identifier used only to correlate private test diagnostics.");
+        legacyPrivateDefaultMigrated = config.Bind(
+            Section,
+            "Legacy Private-Test Sharing Default Migrated",
+            false,
+            "Tracks the one-time migration that enables sharing for legacy private-test configs.");
 
         ClientId = Guid.TryParseExact(clientId.Value, "N", out Guid parsed)
             ? parsed.ToString("N")
@@ -38,6 +46,20 @@ internal static class DiagnosticsSharingSettings
         if (clientId.Value != ClientId)
         {
             clientId.Value = ClientId;
+        }
+    }
+
+    internal static void ApplyLegacyPrivateTestDefault(bool privateTestConfigured)
+    {
+        if (privateTestConfigured
+            && legacyPrivateDefaultMigrated != null
+            && !legacyPrivateDefaultMigrated.Value)
+        {
+            if (shareDiagnostics != null)
+            {
+                shareDiagnostics.Value = true;
+            }
+            legacyPrivateDefaultMigrated.Value = true;
         }
     }
 

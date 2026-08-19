@@ -94,6 +94,27 @@ internal static class SupportTests
             Expect(!property.CanWrite, $"{property.Name} is immutable");
         }
     }
+
+    internal static void TestHealthLossWithoutUntouchableStateIsNotAReset()
+    {
+        Player player = new Player(100f, 100f);
+        FactRecorder facts = new FactRecorder();
+        PlayerCombatController controller = new PlayerCombatController(
+            player,
+            new FakeOutput(),
+            facts);
+        PlayerCombatContext before = PlayerCombatContext.Capture(player);
+        player.Health = 95f;
+
+        controller.Observe(
+            new AcceptedPlayerDamage(
+                before,
+                PlayerCombatContext.Capture(player),
+                AcceptedHealthLossSource.HealthCost));
+
+        Expect(facts.Resets.Count == 0,
+            "accepted health loss emits no UNTOUCHABLE reset when no streak or tier exists");
+    }
 }
 
 internal static class TestSupport
@@ -161,7 +182,7 @@ internal static class TestSupport
             killCount,
             serverSequence: 20,
             serverTimeSeconds: 100d,
-            expiresAtServerTimeSeconds: terminal ? 0d : 110d);
+            expiresAtServerTimeSeconds: terminal ? 0d : 130d);
     }
 
     internal static void Expect(bool condition, string message)

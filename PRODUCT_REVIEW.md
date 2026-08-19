@@ -81,8 +81,14 @@ Observed in `0.1.65`:
 - **Failed — UNTOUCHABLE damage reset.** Axiom recorded periodic food-expiry
   health normalization as `player_damage_accepted`, followed by
   `untouchable_reset`. Passive maximum-health normalization must not count as
-  actual harm. Ben also triggered UNTOUCHABLE and saw its icon appear, but it
-  did not remain in the native status bar.
+  actual harm. The observed one-second clamps included `26.4453 → 26.2798`,
+  `26.2798 → 26.0395`, and `26.0395 → 25`. Source tracing shows that food expiry
+  lowers maximum health through a passive health update rather than actual
+  damage. Ben also triggered UNTOUCHABLE and saw its icon appear, but it did not
+  remain in the native status bar. The replacement observer now counts actual
+  damage and intentional health costs and ignores this passive change. The
+  duplicate-outcome fix and food-normalization reset fix have automated proof
+  only; both still need the gameplay retest below.
 
 - [ ] Every player joins the updated server and waits five seconds. The
   Controls menu shows no BERSERKER Server Support warning.
@@ -98,14 +104,17 @@ Observed in `0.1.65`:
 - [ ] At eight defenses, `UNTOUCHABLE II!` appears and the outgoing damage
   bonus becomes 20%. At twelve defenses, `UNTOUCHABLE III!` appears and the
   bonus becomes 30%. One indefinite Wolf Sight icon remains throughout.
-- [ ] Take any actual health loss. The icon disappears quietly and the streak
-  resets. A blocked hit that causes no health loss does not reset it.
-- [ ] Kill three qualifying hostile monsters with no more than ten seconds
-  between consecutive kills. `BERSERKER!` appears with one Crystal Heart icon.
-  Continue the same chain to six kills. `SLAUGHTERHOUSE!` replaces the first
-  tier instead of stacking with it.
-- [ ] Let the kill window expire. The earned state disappears quietly. A later
-  chain can activate again.
+- [ ] Take actual damage and then an intentional health cost. Each clears the
+  icon and resets the streak. A blocked zero-damage contact and passive
+  maximum-health normalization caused by food expiry leave both unchanged.
+- [ ] Kill six qualifying hostile monsters, with each consecutive kill arriving
+  before the 30-second deadline. `BERSERKER!` appears with one Crystal Heart
+  icon. Kills seven through eleven refresh it. Continue the same chain to twelve kills;
+  `SLAUGHTERHOUSE!` replaces the first tier instead of stacking with it. Later
+  qualifying kills refresh SLAUGHTERHOUSE.
+- [ ] Wait until 30 seconds have passed after the latest qualifying kill. The
+  earned state disappears quietly, the chain resets, and a later chain can
+  activate again.
 
 The three earned states remain experimental even if their mechanics work.
 Ben separately judges whether their trigger difficulty, strength, icons, text,
@@ -118,10 +127,17 @@ Owner: [Benheim](mods/benheim-qol/PRODUCT.md) and
 
 Classification: unproven integration and new developer tooling.
 
-Status: **Not run**.
+Status: **Passed** for JayTrain remote forwarding; remaining scenarios are
+**Not run**.
 
-- [ ] Each player enables **Share Diagnostics** and produces at least one
-  Player Combat or Put Away event. Local readable logs and
+After Ben re-enabled Share Diagnostics for JayTrain, Axiom received that
+player's Player Combat events. Automated checks cover the one-time legacy-config
+migration and persistence after a later opt-out. Other players, complete
+typed-field queries, opt-out behavior, and the runtime catalog commands remain
+unproven.
+
+- [ ] Each player confirms **Share Diagnostics** starts enabled and produces at
+  least one Player Combat or Put Away event. Local readable logs and
   `BenheimEvents.ndjson` continue to update.
 - [ ] Query Axiom by player, client, session, event, and Put Away operation ID.
   Every typed field defined on each event must arrive without requiring friends
@@ -144,11 +160,12 @@ Owner: [Enemy Tiers](mods/benheim-qol/src/EnemyTiers/PRODUCT.md) and
 
 Classification: failed-candidate tuning and unproven debug presentation.
 
-Status: **Not run in the current candidate**.
+Status: **Passed** for the spawn commands; collider and tuning scenarios are
+**Not run**.
 
-- [ ] Run `bh help`, then `bh spawn boar 0`, `bh spawn boar 1`, and
+- [x] Run `bh help`, then `bh spawn boar 0`, `bh spawn boar 1`, and
   `bh spawn boar 2`. Each command creates the requested native tier exactly
-  once near the administrator.
+  once near the administrator. Ben proved these spawn commands in gameplay.
 - [ ] Run `bh debug colliders on`. For each Boar, compare its visible body and
   head area with its cyan capsule while it stands, turns, charges, and attacks.
 - [ ] Compare ordinary, one-star, and two-star detection, pursuit, turning,
@@ -165,7 +182,7 @@ noncanonical and must not disappear from later Product Review passes.
 
 | Behavior | Classification | Current evidence | Next proof | Status |
 | --- | --- | --- | --- | --- |
-| Perfect Impact attack-start momentum and visible text | Failed candidate | One earlier Lox operation emitted typed events showing that Perfect Impact armed and applied. Ben's current attempts emitted no arming, rejection, or terminal event and produced no visible result. | Diagnose why current melee starts do not enter the typed attack-start path before asking Ben to repeat the technique | Failed |
+| Perfect Impact attack-start momentum and visible text | Failed candidate | One earlier Lox operation emitted `airborne_melee_armed` with `start_forward_speed=8.068`, followed by `airborne_melee_applied` at `vertical_speed=-1.505`; feedback was placed and shake triggered. Ben's recent attempts emitted no new Weapon Rhythm events and produced no visible result. | Start a fresh scoped diagnosis of why current melee starts do not enter the typed attack-start path before asking Ben to repeat the technique | Blocked |
 | Headshot exact collider volume | Candidate refinement | Geometry automated; older global headshots accepted | Hit outer head-centered collider and nearby body collider on the same creature | Not run |
 | Headshot, Cleave, mining AOE, and Perfect Impact shake | Candidate tuning | Native call sites and strengths verified | Compare each outcome with its ordinary native impact and judge distinction | Not run |
 | Shared top-left receipt lane | Candidate presentation | Layout automated | Exercise Put Away, Mass Repair, pocketing, and an active native top-left message | Not run |

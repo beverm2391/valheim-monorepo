@@ -9,7 +9,9 @@ using static TestSupport;
 
 SupportTests.TestOrderedFailureIsolationAndReset();
 SupportTests.TestClutchDecisionRefreshAndDamageLifecycle();
+PerfectDefenseOutcomeIdentityTests.Run();
 TestUntouchableMixedDefenseTiersAndDamageReset();
+SupportTests.TestHealthLossWithoutUntouchableStateIsNotAReset();
 TestRejectedUntouchableEscalationKeepsPriorTier();
 TestBerserkerConsumesAuthoritativeChainTransitions();
 TestExpiredBerserkerTransitionClearsPriorOutput();
@@ -19,9 +21,7 @@ TestEntryPresentationAndPerDefenseCharmCoalescing();
 TestNativeCharmActivationSuppressesDuplicateEarnedStateCue();
 TestBerserkerTransitionValidation();
 SupportTests.TestConfirmedKillFactsAreImmutable();
-
 Console.WriteLine("player combat earned-state checks passed");
-
 static void TestUntouchableMixedDefenseTiersAndDamageReset()
 {
     Player player = new Player(80f, 100f);
@@ -238,7 +238,7 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
         player,
         BerserkerChainTransitionKind.Progressed,
         BerserkerChainTier.None,
-        killCount: 2));
+        killCount: 5));
     Expect(!controller.HasEarned(EarnedCombatState.Berserker),
         "server progress below Tier I has no native output");
 
@@ -246,17 +246,17 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
         player,
         BerserkerChainTransitionKind.Activated,
         BerserkerChainTier.Berserker,
-        killCount: 3));
+        killCount: 6));
     Expect(controller.EarnedTier(EarnedCombatState.Berserker) == 1,
         "authoritative activation applies BERSERKER Tier I");
-    Expect(Math.Abs(output.LastDurationSeconds!.Value - 6f) < 0.001f,
+    Expect(Math.Abs(output.LastDurationSeconds!.Value - 26f) < 0.001f,
         "native countdown subtracts delivery latency using synchronized server time");
 
     controller.Observe(BerserkerTransition(
         player,
         BerserkerChainTransitionKind.Refreshed,
         BerserkerChainTier.Berserker,
-        killCount: 4));
+        killCount: 7));
     Expect(facts.Transitions[^1].Kind == EarnedStateTransitionKind.Refreshed,
         "intermediate kill refresh stays presentation-silent");
 
@@ -264,7 +264,7 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
         player,
         BerserkerChainTransitionKind.Escalated,
         BerserkerChainTier.Slaughterhouse,
-        killCount: 6));
+        killCount: 12));
     Expect(controller.EarnedTier(EarnedCombatState.Berserker) == 2,
         "authoritative escalation replaces Tier I with SLAUGHTERHOUSE");
     Expect(output.ActiveTier(EarnedCombatState.Berserker) == 2,
@@ -291,14 +291,14 @@ static void TestExpiredBerserkerTransitionClearsPriorOutput()
         player,
         BerserkerChainTransitionKind.Activated,
         BerserkerChainTier.Berserker,
-        killCount: 3));
+        killCount: 6));
 
-    ZNet.instance.TimeSeconds = 111d;
+    ZNet.instance.TimeSeconds = 131d;
     controller.Observe(BerserkerTransition(
         player,
         BerserkerChainTransitionKind.Refreshed,
         BerserkerChainTier.Berserker,
-        killCount: 4));
+        killCount: 7));
 
     Expect(!controller.HasEarned(EarnedCombatState.Berserker)
             && output.ActiveTier(EarnedCombatState.Berserker) == 0,
@@ -429,7 +429,7 @@ static void TestBerserkerTransitionValidation()
         PlayerCombatContext.Capture(player),
         BerserkerChainTransitionKind.Activated,
         BerserkerChainTier.Berserker,
-        killCount: 3,
+        killCount: 6,
         serverSequence: 12,
         serverTimeSeconds: 20d,
         expiresAtServerTimeSeconds: 26.5d);
@@ -441,7 +441,7 @@ static void TestBerserkerTransitionValidation()
             PlayerCombatContext.Capture(player),
             BerserkerChainTransitionKind.Activated,
             BerserkerChainTier.None,
-            killCount: 3,
+            killCount: 6,
             serverSequence: 12,
             serverTimeSeconds: 20d,
             expiresAtServerTimeSeconds: 30d),

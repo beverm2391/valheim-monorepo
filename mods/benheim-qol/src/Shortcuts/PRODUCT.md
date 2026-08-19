@@ -12,8 +12,11 @@ use it to find controls and passive features.
 - The Controls tab uses aligned key and action columns grouped by Inventory,
   Crafting & Repair, and Farming.
 - The Features tab explains extended reach, faster portal transitions,
-  Rockbreaker, Cleave, global Bow-arrow headshots, adrenaline feedback, and
-  diagnostic export.
+  Rockbreaker, Cleave, global Bow-arrow headshots, adrenaline feedback,
+  CLUTCH, UNTOUCHABLE, BERSERKER, SLAUGHTERHOUSE, and diagnostic export. The
+  combat entries display their current triggers and bonuses. The BERSERKER and
+  SLAUGHTERHOUSE entries identify that they require Server Support. These
+  entries add no gameplay toggles.
 - The menu explains manual pocketing and automatic protection for equipped and
   hotbar items.
 - The menu lists `Left Shift` actions for production inputs, cooking slots,
@@ -50,9 +53,14 @@ use it to find controls and passive features.
 - The headshot description must stay aligned with the Archery module's proven
   behavior and remain explicit about collision-time feedback and native
   WeakSpot handling.
-- Configured private-test builds show one notice before diagnostic sharing
-  starts. The Config tab shows a persistent **Share Diagnostics** toggle.
-  Turning it off stops remote forwarding immediately. Local NDJSON stays on.
+- Configured private-test builds show one notice before remote forwarding
+  starts. The Config tab shows a persistent **Share Diagnostics** toggle, and
+  sharing starts enabled. A one-time migration enables sharing for legacy
+  private-test configurations that still use the earlier disabled default.
+  After the migration, turning off **Share Diagnostics** persists the choice
+  and stops remote forwarding immediately. Public and unconfigured builds
+  receive no remote credentials. Local diagnostics, including
+  `BenheimEvents.ndjson`, remain enabled.
 - Extended reach, Rockbreaker, and Cleave descriptions must match their current
   ranges, unlocks, and target behavior.
 

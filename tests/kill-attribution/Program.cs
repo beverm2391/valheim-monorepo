@@ -72,10 +72,10 @@ KillChainTransitionMessage originalTransition = new KillChainTransitionMessage(
     killerId,
     KillChainTransitionKind.Activated,
     KillChainTier.Berserker,
-    killCount: 3,
+    killCount: 6,
     serverSequence: 9L,
     serverTimeSeconds: 200d,
-    expiresAtServerTimeSeconds: 210d);
+    expiresAtServerTimeSeconds: 230d);
 ZPackage transitionBytes = KillAttributionProtocol.BuildChainTransition(originalTransition);
 Assert(
     KillAttributionProtocol.TryReadChainTransition(
@@ -84,17 +84,17 @@ Assert(
     && transition.KillerId == killerId
     && transition.Kind == KillChainTransitionKind.Activated
     && transition.Tier == KillChainTier.Berserker
-    && transition.KillCount == 3
+    && transition.KillCount == 6
     && transition.ServerSequence == 9L
     && transition.ServerTimeSeconds == 200d
-    && transition.ExpiresAtServerTimeSeconds == 210d,
+    && transition.ExpiresAtServerTimeSeconds == 230d,
     "the typed chain transition should round-trip exactly");
 
 KillChainTransitionMessage invalidTransition = new KillChainTransitionMessage(
     killerId,
     KillChainTransitionKind.Escalated,
     KillChainTier.Berserker,
-    killCount: 6,
+    killCount: 12,
     serverSequence: 10L,
     serverTimeSeconds: 201d,
     expiresAtServerTimeSeconds: 211d);
@@ -243,68 +243,70 @@ Assert(
     "neutral native factions must not qualify");
 
 KillChainState<string> chains = new KillChainState<string>();
-KillChainTransition<string> chain1 = chains.Advance("killer-a", 1L, 100d);
-KillChainTransition<string> chain2 = chains.Advance("killer-a", 2L, 109d);
-KillChainTransition<string> chain3 = chains.Advance("killer-a", 3L, 118d);
-Assert(
-    chain1.Kind == KillChainTransitionKind.Progressed
-    && chain1.KillCount == 1
-    && chain1.ExpiresAtServerTimeSeconds == 110d
-    && chain2.Kind == KillChainTransitionKind.Progressed
-    && chain2.KillCount == 2
-    && chain2.ExpiresAtServerTimeSeconds == 119d
-    && chain3.Kind == KillChainTransitionKind.Activated
-    && chain3.Tier == KillChainTier.Berserker
-    && chain3.KillCount == 3
-    && chain3.ExpiresAtServerTimeSeconds == 128d,
-    "each qualifying kill should add one and refresh a rolling ten-second window");
+List<KillChainTransition<string>> chain = new List<KillChainTransition<string>>();
+double rollingKillTime = 100d;
+for (int count = 1; count <= 13; count++)
+{
+    KillChainTransition<string> current = chains.Advance(
+        "killer-a",
+        count,
+        rollingKillTime);
+    chain.Add(current);
+    Assert(
+        current.KillCount == count
+        && current.ExpiresAtServerTimeSeconds == rollingKillTime + 30d,
+        $"qualifying kill {count} should reset the rolling deadline to thirty seconds");
+    rollingKillTime += 29d;
+}
 
-KillChainTransition<string> chain4 = chains.Advance("killer-a", 4L, 118d);
-KillChainTransition<string> chain5 = chains.Advance("killer-a", 5L, 118d);
-KillChainTransition<string> chain6 = chains.Advance("killer-a", 6L, 118d);
-KillChainTransition<string> chain7 = chains.Advance("killer-a", 7L, 118d);
 Assert(
-    chain4.Kind == KillChainTransitionKind.Refreshed
-    && chain4.Tier == KillChainTier.Berserker
-    && chain5.Kind == KillChainTransitionKind.Refreshed
-    && chain5.Tier == KillChainTier.Berserker
-    && chain6.Kind == KillChainTransitionKind.Escalated
-    && chain6.Tier == KillChainTier.Slaughterhouse
-    && chain7.Kind == KillChainTransitionKind.Refreshed
-    && chain7.Tier == KillChainTier.Slaughterhouse,
-    "canonical server order should advance simultaneous kills through both tiers");
+    chain.GetRange(0, 5).TrueForAll(
+        item => item.Kind == KillChainTransitionKind.Progressed
+            && item.Tier == KillChainTier.None)
+    && chain[5].Kind == KillChainTransitionKind.Activated
+    && chain[5].Tier == KillChainTier.Berserker,
+    "kills one through five progress and kill six activates BERSERKER");
+Assert(
+    chain.GetRange(6, 5).TrueForAll(
+        item => item.Kind == KillChainTransitionKind.Refreshed
+            && item.Tier == KillChainTier.Berserker)
+    && chain[11].Kind == KillChainTransitionKind.Escalated
+    && chain[11].Tier == KillChainTier.Slaughterhouse
+    && chain[12].Kind == KillChainTransitionKind.Refreshed
+    && chain[12].Tier == KillChainTier.Slaughterhouse,
+    "kills seven through eleven refresh BERSERKER; twelve escalates and later kills refresh SLAUGHTERHOUSE");
 
-KillChainTransition<string> otherKiller = chains.Advance("killer-b", 1L, 118d);
+KillChainTransition<string> otherKiller = chains.Advance("killer-b", 1L, 448d);
 Assert(
     otherKiller.KillCount == 1 && otherKiller.Tier == KillChainTier.None,
     "chains must remain individual per killer");
 
 List<KillChainTransition<string>> expired = new List<KillChainTransition<string>>();
-chains.CollectExpired(127.999d, expired);
+chains.CollectExpired(477.999d, expired);
 Assert(expired.Count == 0, "a chain should remain active before its deadline");
-chains.CollectExpired(128d, expired);
+chains.CollectExpired(478d, expired);
 Assert(
     expired.Count == 2
     && expired.TrueForAll(item => item.Kind == KillChainTransitionKind.Expired)
     && expired.TrueForAll(item => item.KillCount == 0),
-    "ten seconds without another qualifying kill should expire every due chain");
+    "thirty seconds without another qualifying kill should expire every due chain");
 Assert(
-    chains.Advance("killer-a", 8L, 128d).KillCount == 1,
+    chains.Advance("killer-a", 14L, 478d).KillCount == 1,
     "a kill at or after the deadline should begin a new chain");
 
 chains.RemoveKiller("killer-a");
 Assert(
-    chains.Advance("killer-a", 9L, 130d).KillCount == 1,
+    chains.Advance("killer-a", 15L, 480d).KillCount == 1,
     "death should clear the active server chain before acknowledgment");
-chains.Advance("killer-b", 2L, 130d);
+chains.Advance("killer-b", 2L, 480d);
 chains.RemoveKiller("killer-a");
 Assert(
-    chains.Advance("killer-a", 10L, 131d).KillCount == 1
-    && chains.Advance("killer-b", 3L, 131d).KillCount == 2,
+    chains.Advance("killer-a", 16L, 481d).KillCount == 1
+    && chains.Advance("killer-b", 3L, 481d).KillCount == 2,
     "disconnect should clear only the disconnected killer's chain");
 chains.Reset();
 Assert(
-    chains.Advance("killer-b", 4L, 132d).KillCount == 1,
+    chains.Advance("killer-b", 4L, 482d).KillCount == 1,
     "world or plugin reset should clear every chain");
 
 int transportSends = 0;

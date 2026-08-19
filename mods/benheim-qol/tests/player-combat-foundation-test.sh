@@ -4,6 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 patches="$root/src/Adrenaline/AdrenalinePatches.cs"
 observation="$root/src/PlayerCombat/PerfectDefenseObservation.cs"
+outcome_identity="$root/src/PlayerCombat/PerfectDefenseOutcomeDeduplicator.cs"
 runtime="$root/src/PlayerCombat/PlayerCombatRuntime.cs"
 diagnostics="$root/src/PlayerCombat/PlayerCombatDiagnostics.cs"
 native_patches="$root/src/PlayerCombat/PlayerCombatPatches.cs"
@@ -18,11 +19,14 @@ plugin="$root/src/Plugin.cs"
 
 # The outer hooks only open candidates. Valheim's nested adrenaline callback
 # confirms one immutable fact before positive-value filtering changes v.
-grep -Fq 'PerfectDefenseObservation.BeginParry(__instance, attacker);' "$patches"
+grep -Fq 'PerfectDefenseObservation.BeginParry(__instance, hit, attacker);' "$patches"
 grep -Fq 'PerfectDefenseObservation.BeginDodge(__instance);' "$patches"
-prefix_body="$(sed -n '/private static void Prefix(Player __instance, ref float v/,/__state =/p' "$patches")"
-if [[ "$prefix_body" != *'PerfectDefenseObservation.ConfirmFromNativeAdrenaline(__instance);'* \
-   || "$prefix_body" != *'if (v > 0f)'* ]]; then
+grep -Fq 'PerfectDefenseConfirmation confirmation =' "$patches"
+grep -Fq 'PerfectDefenseObservation.ConfirmFromNativeAdrenaline(__instance);' "$patches"
+grep -Fq 'confirmation == PerfectDefenseConfirmation.DuplicateNativeOutcome' "$patches"
+grep -Fq 'v = 0f;' "$patches"
+prefix_body="$(sed -n '/private static void Prefix(Player __instance, ref float v/,/private static void Postfix/p' "$patches")"
+if [[ "$prefix_body" != *'if (v > 0f)'* ]]; then
   printf 'perfect-defense confirmation and positive grant handling must share Player.AddAdrenaline Prefix\n' >&2
   exit 1
 fi
@@ -33,6 +37,15 @@ if (( confirm_line >= positive_line )); then
   exit 1
 fi
 grep -Fq 'current.Confirmed = true;' "$observation"
+grep -Fq 'ConfirmedOutcomes.TryAccept(current.OutcomeIdentity' "$observation"
+grep -Fq 'ConditionalWeakTable<object, TokenHolder>' "$outcome_identity"
+grep -Fq 'accepted.TryGetValue(identity' "$outcome_identity"
+grep -Fq 'NativeAttackOutcomeIdentities<Attack>' "$observation"
+grep -Fq '[HarmonyPatch(typeof(Attack), nameof(Attack.OnAttackTrigger))]' "$observation"
+grep -Fq 'if (hit.m_ranged)' "$observation"
+grep -Fq 'attack.m_loopingAttack' "$observation"
+grep -Fq 'new OutcomeIdentity(hit, "ranged_hit")' "$observation"
+grep -Fq '"duplicate_native_outcome"' "$observation"
 grep -Fq 'new PerfectDefenseConfirmed(' "$observation"
 
 # Gameplay subscribers are ordered before whole-event diagnostics. Remote
@@ -127,7 +140,12 @@ grep -Fq 'DiagnosticEvent.Create("PlayerCombat", "berserker_chain_transition")' 
 # combat traffic.
 grep -Fq '[HarmonyPatch(typeof(ObjectDB), "Awake")]' "$native_patches"
 grep -Fq '[HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.CopyOtherDB))]' "$native_patches"
-grep -Fq '[HarmonyPatch(typeof(Character), nameof(Character.SetHealth))]' "$native_patches"
+grep -Fq '[HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]' "$native_patches"
+grep -Fq '[HarmonyPatch(typeof(Character), nameof(Character.UseHealth))]' "$native_patches"
+if grep -Fq '[HarmonyPatch(typeof(Character), nameof(Character.SetHealth))]' "$native_patches"; then
+  printf 'food-driven maximum-health normalization must stay outside the accepted health-loss observer\n' >&2
+  exit 1
+fi
 grep -Fq '[HarmonyPatch(typeof(Player), "OnDeath")]' "$native_patches"
 grep -Fq '[HarmonyPatch(typeof(Player), "OnDestroy")]' "$native_patches"
 grep -Fq '[HarmonyPatch(typeof(ZNet), "OnDestroy")]' "$native_patches"
@@ -138,9 +156,8 @@ if rg -n 'PlayerCombatRuntime\.Publish|PerfectDefenseObservation' "$plugin" | gr
   exit 1
 fi
 
-# Native direct damage, damage-over-time, health costs, and maximum-health
-# reductions converge on SetHealth. Observing ApplyDamage would miss health
-# costs, while observing RPC_Damage would also miss local status-effect ticks.
+# Native harm enters through ApplyDamage or UseHealth. Food decay instead calls
+# SetMaxHealth, whose SetHealth clamp must not reset UNTOUCHABLE.
 native_tree="$("$root/scripts/ensure-valheim-source.sh" | tail -n 1)"
 grep -Fq 'ApplyDamage(hit, showDamageText: true, triggerEffects: true' "$native_tree/Character.cs"
 grep -Fq 'm_character.ApplyDamage(hitData, showDamageText: true, triggerEffects: false);' "$native_tree/SE_Burning.cs"
@@ -148,6 +165,13 @@ grep -Fq 'm_character.ApplyDamage(hitData, showDamageText: true, triggerEffects:
 grep -Fq 'm_character.ApplyDamage(hitData, showDamageText: true, triggerEffects: false);' "$native_tree/SE_Smoke.cs"
 grep -Fq 'public void UseHealth(float hp)' "$native_tree/Character.cs"
 grep -Fq 'SetHealth(health);' "$native_tree/Character.cs"
+grep -Fq 'SetMaxHealth(hp, flashBar: true);' "$native_tree/Player.cs"
+grep -Fq 'if (GetHealth() > health)' "$native_tree/Character.cs"
+grep -Fq 'Attack attack = ((!secondaryAttack)' "$native_tree/Humanoid.cs"
+grep -Fq 'm_currentAttack = attack;' "$native_tree/Humanoid.cs"
+grep -Fq 'public void OnAttackTrigger()' "$native_tree/Attack.cs"
+grep -Fq 'hitData.m_ranged = true;' "$native_tree/Projectile.cs"
+grep -Fq 'hitData.m_ranged = true;' "$native_tree/Aoe.cs"
 
 # Native SE_Stats ticks call owner-routed Heal; Heal caps at maximum health.
 grep -Fq 'if (m_healthPerTick > 0f)' "$native_tree/SE_Stats.cs"

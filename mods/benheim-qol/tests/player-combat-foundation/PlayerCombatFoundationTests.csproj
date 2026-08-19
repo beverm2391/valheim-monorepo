@@ -7,7 +7,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Infrastructure/LocalGameEventBus.cs" Link="LocalGameEventBus.cs" />
+    <Compile Include="../../src/KillAttribution/KillChainRules.cs" Link="KillChainRules.cs" />
+    <Compile Include="../../src/PlayerCombat/PerfectDefenseOutcomeDeduplicator.cs" Link="PerfectDefenseOutcomeDeduplicator.cs" />
     <Compile Include="../../src/PlayerCombat/PlayerCombatEvents.cs" Link="PlayerCombatEvents.cs" />
+    <Compile Include="../../src/PlayerCombat/PlayerCombatHealthEvents.cs" Link="PlayerCombatHealthEvents.cs" />
     <Compile Include="../../src/PlayerCombat/ClutchMechanic.cs" Link="ClutchMechanic.cs" />
     <Compile Include="../../src/PlayerCombat/UntouchableMechanic.cs" Link="UntouchableMechanic.cs" />
     <Compile Include="../../src/PlayerCombat/BerserkerMechanic.cs" Link="BerserkerMechanic.cs" />

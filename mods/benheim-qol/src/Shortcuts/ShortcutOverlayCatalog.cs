@@ -1,6 +1,8 @@
 using BenheimQoL.Archery;
 using BenheimQoL.Farming;
 using BenheimQoL.InventoryFeature;
+using BenheimQoL.KillAttribution;
+using BenheimQoL.PlayerCombat;
 using BenheimQoL.Repair;
 using UnityEngine;
 
@@ -86,8 +88,22 @@ internal static partial class ShortcutOverlay
                     "Headshots",
                     $"Bow arrows deal ×{HeadshotRules.NearMultiplier:0.##} through {HeadshotRules.NearDistanceMeters:0.#} m, scaling to ×{HeadshotRules.CapMultiplier:0.##} at {HeadshotRules.CapDistanceMeters:0.#} m"),
                 new Entry("Adrenaline", "Positive gains are doubled; perfect defenses show the actual gain"),
+                new Entry(
+                    "CLUTCH",
+                    $"Perfect parry or dodge below {ClutchMechanic.HealthThreshold:0} health: recover 60 health over {ClutchMechanic.DurationSeconds:0} seconds"),
+                new Entry(
+                    "UNTOUCHABLE",
+                    "At 5, 8, and 12 consecutive perfect defenses: +10%, +20%, or +30% outgoing damage until actual health loss"),
+                new Entry(
+                    "BERSERKER",
+                    $"At {KillChainRules.BerserkerKillThreshold} qualifying kills: 25% physical resistance and +50% stamina regeneration"),
+                new Entry(
+                    "SLAUGHTERHOUSE",
+                    $"At {KillChainRules.SlaughterhouseKillThreshold} qualifying kills: 50% physical resistance and +100% stamina regeneration"),
             },
-            "Headshot text confirms local collision-time qualification. Native WeakSpot hits stay native."),
+            $"Each qualifying kill resets the {KillChainRules.WindowSeconds:0}-second BERSERKER timer. " +
+                "BERSERKER and SLAUGHTERHOUSE require Benheim Server Support. " +
+                "Headshot text confirms local collision-time qualification. Native WeakSpot hits stay native."),
         new(
             "Diagnostics",
             new Color(0.74f, 0.7f, 1f, 1f),

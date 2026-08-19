@@ -139,6 +139,11 @@ internal sealed class PlayerCombatController
 
         int previousStreak = ConsecutivePerfectDefenses;
         int previousTier = EarnedTier(EarnedCombatState.Untouchable);
+        if (previousStreak == 0 && previousTier == 0)
+        {
+            return;
+        }
+
         ConsecutivePerfectDefenses = 0;
         facts.Publish(
             new UntouchableReset(

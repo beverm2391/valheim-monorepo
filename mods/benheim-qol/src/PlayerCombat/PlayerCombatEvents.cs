@@ -1,4 +1,5 @@
 using System;
+using BenheimQoL.KillAttribution;
 using UnityEngine;
 
 namespace BenheimQoL.PlayerCombat;
@@ -120,18 +121,24 @@ internal sealed class PerfectDefenseConfirmed
         PlayerCombatContext context,
         PerfectDefenseKind kind,
         float? blockTimer = null,
-        float? timedBlockBonus = null)
+        float? timedBlockBonus = null,
+        string outcomeSource = "synthetic",
+        int outcomeToken = 0)
     {
         Context = context ?? throw new ArgumentNullException(nameof(context));
         Kind = kind;
         BlockTimer = blockTimer;
         TimedBlockBonus = timedBlockBonus;
+        OutcomeSource = outcomeSource ?? throw new ArgumentNullException(nameof(outcomeSource));
+        OutcomeToken = outcomeToken;
     }
 
     internal PlayerCombatContext Context { get; }
     internal PerfectDefenseKind Kind { get; }
     internal float? BlockTimer { get; }
     internal float? TimedBlockBonus { get; }
+    internal string OutcomeSource { get; }
+    internal int OutcomeToken { get; }
 }
 
 /// <summary>
@@ -287,14 +294,21 @@ internal sealed class BerserkerChainTransition
         bool validShape = kind switch
         {
             BerserkerChainTransitionKind.Progressed =>
-                tier == BerserkerChainTier.None && killCount is >= 1 and <= 2,
+                tier == BerserkerChainTier.None
+                    && killCount >= 1
+                    && killCount < KillChainRules.BerserkerKillThreshold,
             BerserkerChainTransitionKind.Activated =>
-                tier == BerserkerChainTier.Berserker && killCount == 3,
+                tier == BerserkerChainTier.Berserker
+                    && killCount == KillChainRules.BerserkerKillThreshold,
             BerserkerChainTransitionKind.Refreshed =>
-                (tier == BerserkerChainTier.Berserker && killCount is >= 4 and <= 5)
-                || (tier == BerserkerChainTier.Slaughterhouse && killCount > 6),
+                (tier == BerserkerChainTier.Berserker
+                    && killCount > KillChainRules.BerserkerKillThreshold
+                    && killCount < KillChainRules.SlaughterhouseKillThreshold)
+                || (tier == BerserkerChainTier.Slaughterhouse
+                    && killCount > KillChainRules.SlaughterhouseKillThreshold),
             BerserkerChainTransitionKind.Escalated =>
-                tier == BerserkerChainTier.Slaughterhouse && killCount == 6,
+                tier == BerserkerChainTier.Slaughterhouse
+                    && killCount == KillChainRules.SlaughterhouseKillThreshold,
             BerserkerChainTransitionKind.Expired =>
                 tier == BerserkerChainTier.None && killCount == 0,
             _ => false
@@ -342,25 +356,6 @@ internal sealed class BerserkerChainTransition
 
         return (float)Math.Max(0d, ExpiresAtServerTimeSeconds - currentServerTimeSeconds);
     }
-}
-
-internal sealed class AcceptedPlayerDamage
-{
-    internal AcceptedPlayerDamage(
-        PlayerCombatContext before,
-        PlayerCombatContext after)
-    {
-        Before = before ?? throw new ArgumentNullException(nameof(before));
-        After = after ?? throw new ArgumentNullException(nameof(after));
-        if (before.Player != after.Player)
-        {
-            throw new ArgumentException("Damage contexts must identify the same player.");
-        }
-    }
-
-    internal PlayerCombatContext Before { get; }
-    internal PlayerCombatContext After { get; }
-    internal float HealthLost => Math.Max(0f, Before.Health - After.Health);
 }
 
 internal sealed class PlayerCombatEnded

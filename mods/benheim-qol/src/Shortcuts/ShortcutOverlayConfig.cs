@@ -94,7 +94,8 @@ internal static partial class ShortcutOverlay
         diagnosticsExplanation.color = Color.white;
         diagnosticsExplanation.text = RemoteDiagnostics.IsConfigured
             ? "Share Diagnostics sends typed gameplay events, your character name, and a connection ID " +
-                "from this private test build. It never sends chat or full logs. Local diagnostics always stay on."
+                "from this private test build. Sharing starts on. Turning it off preserves your choice. " +
+                "It never sends chat or full logs. Local diagnostics always stay on."
             : "Remote diagnostics are not configured in this build. Local diagnostics always stay on.";
 
         shareDiagnosticsToggle = AddConfigToggle(

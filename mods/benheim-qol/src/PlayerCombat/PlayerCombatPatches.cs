@@ -2,28 +2,64 @@ using HarmonyLib;
 
 namespace BenheimQoL.PlayerCombat;
 
-[HarmonyPatch(typeof(Character), nameof(Character.SetHealth))]
-internal static class AcceptedPlayerHealthLossPatch
+internal static class AcceptedPlayerHealthLossObservation
 {
-    private static void Prefix(Character __instance, out PlayerCombatContext? __state)
+    internal static PlayerCombatContext? Capture(Character character)
     {
-        __state = __instance is Player player && player == Player.m_localPlayer
+        return character is Player player && player == Player.m_localPlayer
             ? PlayerCombatContext.Capture(player)
             : null;
     }
 
-    private static void Postfix(Character __instance, PlayerCombatContext? __state)
+    internal static void Complete(
+        Character character,
+        PlayerCombatContext? before,
+        AcceptedHealthLossSource source)
     {
-        if (__state == null || __instance != __state.Player)
+        if (before == null || character != before.Player)
         {
             return;
         }
 
-        PlayerCombatContext after = PlayerCombatContext.Capture(__state.Player);
-        if (after.Health < __state.Health)
+        PlayerCombatContext after = PlayerCombatContext.Capture(before.Player);
+        if (after.Health < before.Health)
         {
-            PlayerCombatRuntime.Publish(new AcceptedPlayerDamage(__state, after));
+            PlayerCombatRuntime.Publish(new AcceptedPlayerDamage(before, after, source));
         }
+    }
+}
+
+[HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]
+internal static class AcceptedPlayerDamagePatch
+{
+    private static void Prefix(Character __instance, out PlayerCombatContext? __state)
+    {
+        __state = AcceptedPlayerHealthLossObservation.Capture(__instance);
+    }
+
+    private static void Postfix(Character __instance, PlayerCombatContext? __state)
+    {
+        AcceptedPlayerHealthLossObservation.Complete(
+            __instance,
+            __state,
+            AcceptedHealthLossSource.Damage);
+    }
+}
+
+[HarmonyPatch(typeof(Character), nameof(Character.UseHealth))]
+internal static class AcceptedPlayerHealthCostPatch
+{
+    private static void Prefix(Character __instance, out PlayerCombatContext? __state)
+    {
+        __state = AcceptedPlayerHealthLossObservation.Capture(__instance);
+    }
+
+    private static void Postfix(Character __instance, PlayerCombatContext? __state)
+    {
+        AcceptedPlayerHealthLossObservation.Complete(
+            __instance,
+            __state,
+            AcceptedHealthLossSource.HealthCost);
     }
 }
 
@@ -32,6 +68,7 @@ internal static class PlayerCombatDeathPatch
 {
     private static void Prefix(Player __instance)
     {
+        PerfectDefenseObservation.Reset();
         PlayerCombatRuntime.Publish(
             new PlayerCombatEnded(__instance, PlayerCombatEndReason.Death));
     }
@@ -42,7 +79,7 @@ internal static class PlayerCombatPlayerDestroyedPatch
 {
     private static void Prefix(Player __instance)
     {
-        PerfectDefenseObservation.End();
+        PerfectDefenseObservation.Reset();
         PlayerCombatRuntime.Publish(
             new PlayerCombatEnded(__instance, PlayerCombatEndReason.PlayerDestroyed));
     }
@@ -53,7 +90,7 @@ internal static class PlayerCombatWorldDestroyedPatch
 {
     private static void Prefix()
     {
-        PerfectDefenseObservation.End();
+        PerfectDefenseObservation.Reset();
         PlayerCombatRuntime.EndWorld();
     }
 }

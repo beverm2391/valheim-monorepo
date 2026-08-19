@@ -7,15 +7,11 @@ namespace BenheimServerSupport;
 /// <summary>
 /// Owns the ephemeral server chain for each confirmed killer. The deadline is
 /// rolling: every qualifying kill advances by exactly one and replaces the
-/// previous deadline with ten seconds after that kill.
+/// previous deadline with thirty seconds after that kill.
 /// </summary>
 internal sealed class KillChainState<TKiller>
     where TKiller : notnull
 {
-    internal const double WindowSeconds = 10d;
-    internal const int BerserkerThreshold = 3;
-    internal const int SlaughterhouseThreshold = 6;
-
     private readonly object sync = new object();
     private readonly Dictionary<TKiller, ActiveChain> chains =
         new Dictionary<TKiller, ActiveChain>();
@@ -44,7 +40,8 @@ internal sealed class KillChainState<TKiller>
                 count = checked(current.KillCount + 1);
             }
 
-            double expiresAt = serverTimeSeconds + WindowSeconds;
+            double expiresAt = serverTimeSeconds
+                + KillChainRules.WindowSeconds;
             chains[killer] = new ActiveChain(count, serverSequence, expiresAt);
             return CreateActiveTransition(
                 killer,
@@ -114,7 +111,7 @@ internal sealed class KillChainState<TKiller>
         double serverTimeSeconds,
         double expiresAt)
     {
-        if (count < BerserkerThreshold)
+        if (count < KillChainRules.BerserkerKillThreshold)
         {
             return new KillChainTransition<TKiller>(
                 killer,
@@ -126,7 +123,7 @@ internal sealed class KillChainState<TKiller>
                 expiresAt);
         }
 
-        if (count == BerserkerThreshold)
+        if (count == KillChainRules.BerserkerKillThreshold)
         {
             return new KillChainTransition<TKiller>(
                 killer,
@@ -138,7 +135,7 @@ internal sealed class KillChainState<TKiller>
                 expiresAt);
         }
 
-        if (count < SlaughterhouseThreshold)
+        if (count < KillChainRules.SlaughterhouseKillThreshold)
         {
             return new KillChainTransition<TKiller>(
                 killer,
@@ -150,7 +147,7 @@ internal sealed class KillChainState<TKiller>
                 expiresAt);
         }
 
-        if (count == SlaughterhouseThreshold)
+        if (count == KillChainRules.SlaughterhouseKillThreshold)
         {
             return new KillChainTransition<TKiller>(
                 killer,

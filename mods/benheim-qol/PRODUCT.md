@@ -203,10 +203,16 @@ versions and compatibility boundary.
 A live test still must prove runtime catalog command visibility and local
 snapshot cleanup.
 
-Private-test diagnostic sharing still needs one live ingest and query pass.
-The first configured run tells the player what is shared. `Share Diagnostics`
-in `Left Shift + B` persists the player's choice and stops remote forwarding
-immediately when disabled. It never disables local diagnostics.
+After Ben re-enabled Share Diagnostics for JayTrain, Axiom received that
+player's Player Combat events. Broader per-player queries and opt-out behavior
+remain unproven. Configured private-test builds start with sharing enabled, and
+the first run explains what the build shares. A one-time migration enables
+sharing for legacy private-test configurations that still use the earlier
+disabled default. After the migration, the `Share Diagnostics` toggle in
+`Left Shift + B` persists the player's choice and stops remote forwarding
+immediately when turned off. Public and unconfigured builds receive no remote
+credentials. Local diagnostics, including `BenheimEvents.ndjson`, remain
+enabled.
 
 All Benheim feedback that belongs in the top-left area shares one Benheim-owned
 lane directly beneath the live hotbar. The lane carries grouped receipts for

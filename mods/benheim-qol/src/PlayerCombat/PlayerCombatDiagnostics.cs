@@ -9,6 +9,8 @@ internal static class PlayerCombatDiagnostics
         DiagnosticEvent diagnosticEvent =
             DiagnosticEvent.Create("PlayerCombat", "perfect_defense_confirmed")
                 .String("defense", perfectDefense.Kind == PerfectDefenseKind.Parry ? "parry" : "dodge")
+                .String("outcome_source", perfectDefense.OutcomeSource)
+                .Integer("outcome_token", perfectDefense.OutcomeToken)
                 .Number("health", perfectDefense.Context.Health)
                 .Number("maximum_health", perfectDefense.Context.MaximumHealth)
                 .Number("health_fraction", perfectDefense.Context.HealthFraction);
@@ -30,6 +32,11 @@ internal static class PlayerCombatDiagnostics
     {
         Diagnostics.Emit(
             DiagnosticEvent.Create("PlayerCombat", "player_damage_accepted")
+                .String(
+                    "source",
+                    damage.Source == AcceptedHealthLossSource.Damage
+                        ? "damage"
+                        : "health_cost")
                 .Number("health_before", damage.Before.Health)
                 .Number("health_after", damage.After.Health)
                 .Number("health_lost", damage.HealthLost));

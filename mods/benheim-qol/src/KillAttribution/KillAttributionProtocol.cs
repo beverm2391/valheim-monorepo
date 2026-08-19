@@ -212,16 +212,19 @@ internal static class KillAttributionProtocol
             case KillChainTransitionKind.Progressed:
                 return tier == KillChainTier.None
                     && killCount >= 1
-                    && killCount < 3;
+                    && killCount < KillChainRules.BerserkerKillThreshold;
             case KillChainTransitionKind.Activated:
-                return tier == KillChainTier.Berserker && killCount == 3;
+                return tier == KillChainTier.Berserker
+                    && killCount == KillChainRules.BerserkerKillThreshold;
             case KillChainTransitionKind.Refreshed:
                 return (tier == KillChainTier.Berserker
-                        && killCount > 3
-                        && killCount < 6)
-                    || (tier == KillChainTier.Slaughterhouse && killCount > 6);
+                        && killCount > KillChainRules.BerserkerKillThreshold
+                        && killCount < KillChainRules.SlaughterhouseKillThreshold)
+                    || (tier == KillChainTier.Slaughterhouse
+                        && killCount > KillChainRules.SlaughterhouseKillThreshold);
             case KillChainTransitionKind.Escalated:
-                return tier == KillChainTier.Slaughterhouse && killCount == 6;
+                return tier == KillChainTier.Slaughterhouse
+                    && killCount == KillChainRules.SlaughterhouseKillThreshold;
             case KillChainTransitionKind.Expired:
                 return tier == KillChainTier.None
                     && killCount == 0

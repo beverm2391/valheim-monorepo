@@ -8,9 +8,9 @@ namespace BenheimQoL.Adrenaline;
 [HarmonyPatch(typeof(Humanoid), "BlockAttack")]
 internal static class PerfectParryContextPatch
 {
-    private static void Prefix(Humanoid __instance, Character attacker)
+    private static void Prefix(Humanoid __instance, HitData hit, Character attacker)
     {
-        PerfectDefenseObservation.BeginParry(__instance, attacker);
+        PerfectDefenseObservation.BeginParry(__instance, hit, attacker);
     }
 
     private static Exception? Finalizer(Exception? __exception)
@@ -43,7 +43,14 @@ internal static class AdrenalineAwardFeedbackPatch
         // The outer parry/dodge Prefix only identifies a candidate. Reaching
         // Valheim's nested adrenaline callback confirms the perfect defense,
         // even when the configured native award is zero.
-        PerfectDefenseObservation.ConfirmFromNativeAdrenaline(__instance);
+        PerfectDefenseConfirmation confirmation =
+            PerfectDefenseObservation.ConfirmFromNativeAdrenaline(__instance);
+        if (confirmation == PerfectDefenseConfirmation.DuplicateNativeOutcome)
+        {
+            v = 0f;
+            __state = null;
+            return;
+        }
 
         if (v > 0f)
         {

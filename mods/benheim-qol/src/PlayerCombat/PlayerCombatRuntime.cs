@@ -32,6 +32,7 @@ internal static class PlayerCombatRuntime
         }
 
         events = new LocalGameEventBus(LogSubscriberFailure);
+        PerfectDefenseObservation.Reset();
         AdrenalineFeedback.Reset();
         Presentation.Reset();
         Effects.Configure(
@@ -147,6 +148,7 @@ internal static class PlayerCombatRuntime
             ResetControllers();
             Effects.Reset();
             Presentation.Reset();
+            PerfectDefenseObservation.Reset();
             return;
         }
 
@@ -157,6 +159,7 @@ internal static class PlayerCombatRuntime
         Effects.Reset();
         Presentation.Reset();
         AdrenalineFeedback.Reset();
+        PerfectDefenseObservation.Reset();
     }
 
     internal static void ObserveEffectStopped(

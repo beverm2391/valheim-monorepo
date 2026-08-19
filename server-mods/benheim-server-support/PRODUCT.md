@@ -73,12 +73,13 @@ Automated checks cover authority, message format, duplicate handling, ordering,
 and the build. Multiplayer gameplay remains unproven.
 
 Server Support keeps one non-persistent experimental chain for each confirmed
-killer. Each qualifying kill increments the chain and resets its deadline to
-ten seconds after that kill. Three qualifying kills activate `BERSERKER`; six
-escalate it to `SLAUGHTERHOUSE`. Other qualifying kills extend or refresh the
-chain without replaying the activation presentation. Player Combat owns the
-bonuses and presentation for both tiers. Kills received together advance one at
-a time in server order.
+killer. Each qualifying kill increments the chain and resets the chain deadline
+to 30 seconds after that kill. Six qualifying kills activate `BERSERKER`;
+twelve qualifying kills escalate it to `SLAUGHTERHOUSE`. Kills seven through
+eleven refresh `BERSERKER`, and kills after twelve refresh `SLAUGHTERHOUSE`
+without replaying the activation presentation. Player Combat owns the bonuses
+and presentation for both tiers. Kills received together advance one at a time
+in server order.
 
 Server Support qualifies a victim only when its authoritative state is
 untamed. A loaded boss qualifies. Any other creature must have native
@@ -91,12 +92,14 @@ still adds only one. If the victim's prefab or `Character` data is missing, the
 chain does not advance. This qualification rule does not treat a neutral
 creature, such as an aggravated Dverger, as hostile.
 
-Ten seconds without another qualifying kill expires the chain. The killer's
+Thirty seconds without another qualifying kill expires the chain. The killer's
 death resets the chain. The killer's disconnect, a world reset, or plugin
 teardown clears the chain. Server Support sends each transition only to that
 killer's client. Automated checks pass for qualification, thresholds, the
-rolling window, expiry, and reset behavior. The `0.1.2` confirmed-kill chain
-remains gameplay-unproven.
+rolling window, expiry, and reset behavior. Ben accepted BERSERKER's title and
+native status-bar icon. Client events prove that its native effect
+applied, appeared in the HUD, refreshed, and expired. The 6/12 thresholds,
+30-second rolling chain, and SLAUGHTERHOUSE remain gameplay-unproven.
 
 Kill Attribution V2 uses Valheim's reliable, ordered transport while the peer
 remains connected. Benheim sends reports, confirmations, resets, and
