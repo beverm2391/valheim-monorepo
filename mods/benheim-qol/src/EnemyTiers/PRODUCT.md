@@ -187,16 +187,14 @@ The label does not reveal unexplored areas. It covers ordinary wilderness
 only. It does not estimate danger for dungeons, events, Alphas, or other
 authored encounters.
 
-In installed `0.1.56`, Ben confirmed that the small minimap's white
-native-styled text is legible. The `0.1.59` candidate keeps the native biome
-label unchanged. It places the title-case category `Safe`, `Sketchy`,
-`Dangerous`, or `Deadly` directly below it on the same native right edge.
-Both lines come from the same current player-area sample, which Benheim takes
-about every `0.25` seconds. The minimap publishes the factual category without
-applying the arrival logic's stability delay or boundary hysteresis. Ben has
-not yet accepted the complete `0.1.59` small-minimap presentation in gameplay.
-The accepted large-map categories and the danger words in arrival messages
-remain uppercase.
+Ben accepted the small minimap's white native-styled presentation in `0.1.65`.
+The native biome label stays unchanged. The title-case category `Safe`,
+`Sketchy`, `Dangerous`, or `Deadly` sits directly below it on the same native
+right edge. Both lines come from the same current player-area sample, which
+Benheim takes about every `0.25` seconds. The minimap publishes the factual
+category without applying the arrival logic's stability delay or boundary
+hysteresis. The accepted large-map categories and the danger words in arrival
+messages remain uppercase.
 
 An unlisted biome keeps the native biome name without a Benheim category.
 During a portal or loading transition, the map labels never expose an

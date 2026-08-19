@@ -23,15 +23,16 @@ use it to find controls and passive features.
   timestamped filename on Mac and Windows.
 - The game shows the exported filename so the player can find and attach the
   diagnostic log when reporting a problem.
+- With Valheim's native console setting enabled, Ben confirmed that `/` opens
+  the native console during normal gameplay.
 - Ben confirmed that the `0.1.48` menu presentation looks good.
 
 ## In Development
 
-- `/` opens Valheim's native console only during normal gameplay and only when
-  Valheim's native console setting is enabled. The shortcut never closes or
-  toggles the console; F5 and Escape keep their native behavior. It does
-  nothing while the player is typing or while a menu, password field, or other
-  text input is active.
+- The `/` shortcut never closes or toggles the console. F5 and Escape keep
+  their native behavior. The shortcut does nothing while the player is typing
+  or while a menu, password field, or other text input is active. This
+  suppression still needs gameplay or diagnostic proof.
 - The Controls tab lists plain `R` for Loadout Swap and explains that it
   replaces Hide weapons when both loadouts are available.
 - When a Benheim shortcut overlaps a different currently configured Valheim

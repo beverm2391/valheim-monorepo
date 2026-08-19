@@ -2,8 +2,8 @@
 
 This file is the active ledger for Benheim behavior that is deployed for
 testing but is not yet canonical. The owning `PRODUCT.md` defines the expected
-behavior. This file records version boundaries, regressions, evidence, and the
-next player proof.
+behavior. This file records version boundaries, regressions, current evidence,
+and the next proof.
 
 A behavior is canonical only when its owning `PRODUCT.md` lists it under
 **Current Behavior**. A noncanonical behavior shipped in a test candidate must
@@ -29,10 +29,14 @@ Use one result status:
 If a failed result breaks previously accepted behavior, also classify it as a
 regression.
 
-Automated, source, or runtime evidence does not equal gameplay acceptance.
-Acceptance requires the named player-visible or multiplayer result. When Ben
-accepts a behavior, move it to **Current Behavior** in the owning product file
-and remove its active row here.
+Use typed runtime events as the primary proof of mechanical outcomes, network
+settlement, random outcomes, and state transitions. Ben's observations
+corroborate that evidence. His observations remain the primary acceptance
+evidence for visual presentation and feel. Source and automated proof can
+establish that a candidate is safe to test, but they do not replace the
+evidence required by the behavior under review. When Ben accepts a behavior,
+move it to **Current Behavior** in the owning product file and remove its active
+row here.
 
 ## Stop conditions
 
@@ -74,11 +78,11 @@ Observed in `0.1.65`:
   outcomes produced two `Perfect parry` messages and two `+10` adrenaline
   awards. A later Troll attack reproduced the same duplicate. The duplication
   occurred before presentation; it was not one outcome rendered twice.
-- **Blocked — UNTOUCHABLE activation.** During the current session, periodic
-  small health decreases reset the streak before activation. No UNTOUCHABLE
-  activation or status-bar event occurred. The source of the health changes is
-  not proven. UNTOUCHABLE cannot be reviewed until the test distinguishes them
-  from actual damage.
+- **Failed — UNTOUCHABLE damage reset.** Axiom recorded periodic food-expiry
+  health normalization as `player_damage_accepted`, followed by
+  `untouchable_reset`. Passive maximum-health normalization must not count as
+  actual harm. Ben also triggered UNTOUCHABLE and saw its icon appear, but it
+  did not remain in the native status bar.
 
 - [ ] Every player joins the updated server and waits five seconds. The
   Controls menu shows no BERSERKER Server Support warning.
@@ -159,20 +163,19 @@ Status: **Not run in the current candidate**.
 These behaviors are not required to diagnose Put Away first. They remain
 noncanonical and must not disappear from later Product Review passes.
 
-| Behavior | Classification | Current evidence | Next player proof | Status |
+| Behavior | Classification | Current evidence | Next proof | Status |
 | --- | --- | --- | --- | --- |
-| Perfect Impact attack-start momentum and visible text | Failed candidate | Earlier rule applied in logs; current start gate is automated only | Sprint-jump, start a melee swing airborne, connect while descending, then judge text, shake, damage, and stagger | Not run |
+| Perfect Impact attack-start momentum and visible text | Failed candidate | One earlier Lox operation emitted typed events showing that Perfect Impact armed and applied. Ben's current attempts emitted no arming, rejection, or terminal event and produced no visible result. | Diagnose why current melee starts do not enter the typed attack-start path before asking Ben to repeat the technique | Failed |
 | Headshot exact collider volume | Candidate refinement | Geometry automated; older global headshots accepted | Hit outer head-centered collider and nearby body collider on the same creature | Not run |
 | Headshot, Cleave, mining AOE, and Perfect Impact shake | Candidate tuning | Native call sites and strengths verified | Compare each outcome with its ordinary native impact and judge distinction | Not run |
 | Shared top-left receipt lane | Candidate presentation | Layout automated | Exercise Put Away, Mass Repair, pocketing, and an active native top-left message | Not run |
-| Small-minimap title-case danger label | Candidate presentation | Earlier white treatment accepted; final alignment unaccepted | Cross biomes and portal once; verify biome/category pairing and right alignment | Not run |
 | Dangerous-area edge flash | Failed candidate presentation | Arrival logic runtime-proven; visual cue unaccepted | Enter DANGEROUS and DEADLY once with FX on, then verify suppression with FX off | Not run |
-| Cooking bonus chance | New balance behavior | Source-level proof | Craft and retrieve enough Cooking outputs to observe bonuses and verify non-Cooking crafts stay native | Not run |
+| Cooking bonus chance | New balance behavior | Ben observed cooking bonuses and said the result seems good; the bonus-roll path emits no typed event, so the configured chance and exact extra count cannot be accepted from logs | Add one typed roll/result event, then corroborate ordinary Cooking and one non-Cooking craft without grinding random samples | Blocked |
 | Comfort range at 20 meters | New balance behavior | Source-level proof | Move across the old 10-meter and new 20-meter boundaries, including another room or floor | Not run |
-| Remote station batch fill | Candidate multiplayer behavior | Some local and remote station evidence exists | Empty and nearly full remote Windmill; compare accepted, refunded, inventory, and station counts | Not run |
+| Remote station batch fill | Candidate multiplayer behavior | Axiom recorded one remote Windmill owner accepting `50/50` with `result=complete`; Ben saw the fill work | Capture requester settlement for an empty and nearly full Windmill, including accepted, refunded, inventory, and station counts | Not run |
 | Stone Oven timing and diagnostics | Candidate multiplayer behavior | Prior owner/timing logs only | Measure bake and burn windows for one recipe under the current owner | Not run |
 | Shield Generator batch fuel | New production path | Focused automated proof | Fill from empty and nearly full with exact inventory counts | Not run |
-| `/` native-console shortcut | New shortcut | Source-level proof | Enable native console, test gameplay opening, and confirm no action during chat or menus | Not run |
+| `/` native-console shortcut suppression | New shortcut | Ben accepted normal gameplay opening; the chat, menu, password, and text-input suppression guards emit no typed result | Add bounded shortcut-decision diagnostics, then confirm that `/` does nothing during chat and one menu | Not run |
 | Mass Repair denial and zero-result cases | Coverage gap | Main repair flow accepted | Test undamaged aim, station denial, ward denial, and exhausted tool cases | Not run |
 | Three-times-as-frequent Leech opportunities across zone owners | Candidate multiplayer balance | Source-level proof | Observe compatible clients exchanging zone ownership during an eligible spawn period | Not run |
 
