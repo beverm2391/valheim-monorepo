@@ -50,10 +50,34 @@ the same durability contract and pass the stale-payload regression proof.
   protection applies and show the same manual `P` again when it no longer
   applies.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing.
-- Ben confirmed the `0.1.49` solo Put Away behavior except for the dedicated
-  receipt placement. The focused multiplayer gate remains unproven.
-- A three-client `0.1.62` test confirmed that the global server lease rejects a
-  simultaneous Put Away before the losing client scans or moves items.
+- Before Put Away scans chests, Benheim Server Support grants one global lease
+  to one connected player. Another simultaneous Put Away stops before any
+  chest or inventory mutation and says `Put Away busy — retry in a few
+  seconds`.
+- Put Away routes each deposit to the current chest owner through the
+  [owner-authoritative
+  protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md). The
+  protocol owns the transaction mechanics and stale-payload controls.
+- Every connected player sees the same completed chest state, including after
+  chest ownership changes.
+- Each accepted item moves once. Rejected items return to the requester's
+  inventory. If the inventory cannot accept a rejected remainder, Put Away
+  drops that exact remainder nearby and shows `Put Away refund dropped nearby.
+  Pick it up.`
+- Put Away reports success after the requester settles every accepted,
+  refunded, or emergency-dropped item from the correlated owner result. Its
+  one-way receipt cleanup does not retain the completed batch or global lease.
+  Put Away does not force or gate on a character save, and Valheim's native
+  character and world save lifecycle remains unchanged.
+- Put Away emits complete typed transaction evidence. Diagnostic failures
+  cannot block settlement, result delivery, batch completion, or lease
+  release.
+- Ben's three-player `0.1.65` review accepted the owner-authoritative path. The
+  review covered rapid repeated use, both assignments of requester and current
+  chest owner, simultaneous contention followed by immediate reuse, and exact
+  accepted/refunded settlement. Players saw no item loss, duplication, stuck
+  batch or global lease, or chest-state disagreement.
+- Crash or reconnect recovery during an in-flight reservation is unsupported.
 
 ## In Development
 
@@ -72,44 +96,6 @@ the same durability contract and pass the stale-payload regression proof.
 - Pocket and unpocket confirmations and Put Away's already-in-progress message
   use that same lane. They never enter Valheim's native top-left status-message
   feed.
-- Before Put Away scans chests, Benheim Server Support grants one global lease
-  to one connected player. Another simultaneous Put Away stops before any
-  chest or inventory mutation and says `Put Away busy — retry in a few
-  seconds`.
-- The [Put Away owner-authoritative
-  protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md) owns
-  request correlation, owner validation, reservation, receipts, connected
-  deposit retries, stale-payload controls, and their tests. The deployed `0.1.64`
-  adaptation exposed a blocking receipt-cleanup regression. The current source
-  correction uses lease generation `v2` and transaction generation `v4`. Put
-  Away stops before scanning or reservation unless every connected peer
-  announces the current Put Away generation to Server Support `0.1.3`. Before
-  each container reservation, the client asks the server to confirm that the
-  connected-peer cohort has not changed since the lease grant. A join,
-  disconnect, or readiness change stops the batch before its next reservation.
-  The lease remains with the holder until the holder releases it. These controls
-  pass automated checks but are not deployed. Put Away remains in development
-  until the authorized multiplayer gameplay test passes.
-- Each completed transfer moves each accepted item once. Put Away returns each
-  rejected item to the player's inventory. As an emergency fallback only, if
-  the inventory cannot accept a rejected remainder during settlement, Put Away
-  drops that exact remainder nearby and shows `Put Away refund dropped nearby.
-  Pick it up.` Every connected player must see the same chest state, including
-  after chest ownership changes.
-- Put Away reports success after the requester has settled every accepted,
-  refunded, or emergency-dropped item from a correlated owner result. It then
-  sends one-way owner receipt cleanup; cleanup does not retain the batch or
-  global lease. Put Away does not force or gate on a character save. Valheim's
-  native character and world save lifecycle remains unchanged.
-- Put Away emits complete typed transaction evidence. The
-  [protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md) owns the
-  event lifecycle, correlation, and fields. Diagnostic failures cannot block
-  item settlement, result delivery, batch completion, or lease release.
-- Crash or reconnect recovery during an in-flight reservation is unsupported.
-- The transfer must work with either player as the requester or current chest
-  owner, and a completed transfer must remain visible after ownership changes.
-- The authorized multiplayer gameplay test must prove exact-once transfer and
-  peer convergence through a chest ownership change.
 - Valheim's **Place stacks** button and **Hold to stack** action must keep
   manually pocketed, equipped, and hotbar items in the player's inventory.
   Manual item moves and **Take all** must remain unchanged.

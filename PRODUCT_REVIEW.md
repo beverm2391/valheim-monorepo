@@ -48,51 +48,7 @@ case is explicitly unsupported.
 
 ## `0.1.65` critical pass
 
-### 1. Put Away conservation and convergence
-
-Owner: [Inventory](mods/benheim-qol/src/Inventory/PRODUCT.md) and the
-[owner-authoritative protocol](shared/benheim-inventory-protocol/PROTOCOL.md).
-
-Classification: regression fix. The deployed `0.1.64` path could finish exact
-item settlement but retain the completed batch and global lease. Earlier
-requester-local designs also produced stale writes and item loss. Version
-`0.1.65` changes completion cleanup and rejects incompatible peer cohorts
-before reservation.
-
-Status: **Not run**.
-
-Prepare one isolated test chest with no other nearby eligible chest. Put a
-small amount of Wood or Stone in it so Put Away considers it eligible. Each
-player records the exact matching-item count in inventory and the chest before
-each case.
-
-- [ ] **Single requester.** One player uses `Left Shift + P`. Every player then
-  opens the chest and sees the same final count. The receipt matches the moved
-  amount, and the requester loses exactly that amount.
-- [ ] **Stale-view sequence.** Player B opens and closes the chest first.
-  Player A deposits with Put Away. Without B reopening the chest, B immediately
-  deposits with Put Away. The final chest contains `base + A + B`, every peer
-  sees that result without a take-and-reinsert refresh, and both inventories
-  conserve their items.
-- [ ] **Reverse authority.** Repeat the stale-view sequence with A and B
-  reversed. The same conservation and convergence results must hold with
-  either player as the requester or current chest owner.
-- [ ] **Simultaneous contention.** Count down and have A and B use Put Away at
-  the same time. Exactly one player proceeds. The other sees
-  `Put Away busy — retry in a few seconds` before scanning or moving items.
-- [ ] **Partial capacity.** Fill every chest slot and leave room for exactly
-  two units in one matching stack. Give the requester ten units. The chest
-  accepts two, eight remain or return to the requester, and nothing drops or
-  disappears while inventory has refund room.
-- [ ] **Immediate reuse.** After each completion or busy response, start
-  another ordinary Put Away. Neither result may leave the global lease or
-  batch stuck.
-
-Pass requires exact item conservation and immediate peer convergence in every
-case. A correct receipt without matching inventories and chest state is a
-failure.
-
-### 2. Server capability and earned combat states
+### 1. Server capability and earned combat states
 
 Owner: [Player Combat](mods/benheim-qol/src/PlayerCombat/PRODUCT.md) and
 [Server Support](server-mods/benheim-server-support/PRODUCT.md).
@@ -128,7 +84,7 @@ The three earned states remain experimental even if their mechanics work.
 Ben separately judges whether their trigger difficulty, strength, icons, text,
 and charm cue feel good.
 
-### 3. Diagnostics and runtime discovery
+### 2. Diagnostics and runtime discovery
 
 Owner: [Benheim](mods/benheim-qol/PRODUCT.md) and
 [Shortcuts](mods/benheim-qol/src/Shortcuts/PRODUCT.md).
@@ -154,7 +110,7 @@ Status: **Not run**.
   fail visibly with the missing runtime prerequisite instead of writing a
   misleading empty snapshot.
 
-### 4. Starred Boar experiment
+### 3. Starred Boar experiment
 
 Owner: [Enemy Tiers](mods/benheim-qol/src/EnemyTiers/PRODUCT.md) and
 [Test Commands](server-mods/benheim-test-commands/PRODUCT.md).
