@@ -26,8 +26,8 @@ ordinary attacks depend on perfect timing.
 - Every qualified swing must show `PERFECT IMPACT` in Benheim's local feedback
   lane. It also requests one restrained Combat Feedback shake when Combat Shake
   is enabled. A multi-target or area swing presents one confirmation and one
-  shake for that swing, not one per target. The semantic confirmation must
-  remain visible when Benheim FX is off.
+  shake for that swing, not one per target. The `PERFECT IMPACT` confirmation
+  must remain visible when Benheim FX is off.
 - Ben's `0.1.59` logs proved that an earlier Perfect Impact rule qualified,
   changed the outgoing hit, and requested shake, but its text was not visible.
   The `0.1.60` candidate updates the shared transient lane and reports
@@ -38,6 +38,26 @@ ordinary attacks depend on perfect timing.
   Perfect Impact. The contact-time approach measurement failed to capture the
   intended approach momentum in those attempts. Gameplay has not yet proved the
   new attack-start gate.
+- Benheim `0.1.65` is a failed Perfect Impact candidate. One older Lox swing
+  armed at `8.068 m/s` and applied the approved multipliers while descending at
+  `-1.505 m/s`. Multiple later attempted airborne swings produced no Weapon
+  Rhythm event or visible result. Those missing events prevent a retrospective
+  mechanical diagnosis.
+- Installed Valheim `0.221.12` has one ordinary melee start path. Primary and
+  secondary input select and clone their native attack, then the clone starts
+  through the same method. Horizontal, vertical, and area attacks diverge only
+  when the animation triggers the hit. Current `0.1.65` logs prove the start,
+  direct melee damage, and stop hooks in that installed binary. Analysis of the
+  installed intermediate language (IL) proves the direct and area damage
+  attachment points. The evidence does not support an alternate clone-path
+  failure.
+- The next candidate observes each supported local attempt at the shared native
+  start boundary. A native rejection reports `native_start_rejected` only when
+  a new airborne input is rejected. Retries from that buffered input do not emit
+  an event every frame. A supported swing that starts grounded stays silent
+  unless it later becomes airborne. It then reports one terminal
+  `grounded_at_start` rejection and can never arm. Ordinary grounded swings
+  remain unlogged.
 - The rule applies to native primary and secondary horizontal, vertical, and
   area melee attacks. It does not apply to projectiles, ranged attacks, status
   or damage-over-time effects, enemy attacks, destructible or terrain hits, or
@@ -48,9 +68,16 @@ ordinary attacks depend on perfect timing.
 - Valheim's attacker still creates the native hit. The target owner still
   decides block, dodge, resistance, armor, health, stagger, and death through
   the ordinary damage path.
-- Structured diagnostics correlate each airborne attack start with its first
-  `Character` contact or the end of a swing that made no such contact. They
-  record whether forward momentum armed the swing or failed the start gate, the
-  final decision to apply or skip Perfect Impact, the forward and vertical
-  speed measurements with their thresholds, both multipliers, and the actual
-  text-lane outcome. They do not log grounded ordinary swings or every frame.
+- Structured diagnostics identify the weapon, control, native attack animation,
+  and attack type. The control is primary or secondary. The type is horizontal,
+  vertical, or area. Diagnostics record whether the native attack started and
+  whether the player was grounded at the attempt boundary. An armed operation
+  ends at its first `Character` contact or when the swing stops without one. Its
+  terminal event includes the forward and vertical speed measurements, both
+  thresholds, both multipliers, and the text-lane outcome. Diagnostics do not
+  log ordinary grounded swings or every frame.
+- Gameplay still must prove all of the following:
+
+  - A fresh attempted airborne swing produces an arm or terminal rejection.
+  - An armed descending `Character` hit applies the approved result.
+  - `PERFECT IMPACT` is visible once.

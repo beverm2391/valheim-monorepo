@@ -95,21 +95,45 @@ ExpectNear(-8f, AirborneMeleeRules.ProjectPlanarVelocityToward(-8f, 3f, 10f, 0f)
 ExpectNear(0f, AirborneMeleeRules.ProjectPlanarVelocityToward(0f, 8f, 10f, 0f),
     "pure sideways momentum cannot arm");
 
-AirborneMeleeSwingState qualifyingSwing = new(
-    "qualifying",
+AirborneMeleeStartIdentity qualifyingAttempt = new(
+    "qualifying", "$item_club", "primary", "swing_longsword", "Horizontal",
     startVerticalSpeed: 2f,
-    startForwardSpeed: 8f);
+    startForwardSpeed: 8f,
+    startedGrounded: false);
+AirborneMeleeSwingState qualifyingSwing = new(
+    qualifyingAttempt,
+    armed: true,
+    startGateObserved: true);
 ExpectTrue(qualifyingSwing.Resolve(qualified: true), "first Character contact resolves the swing");
 ExpectTrue(qualifyingSwing.Qualified, "qualified result remains available to the synchronous area outcome");
 ExpectFalse(qualifyingSwing.Resolve(qualified: true), "later area contacts cannot present or log again");
 
-AirborneMeleeSwingState consumeRejectedSwing = new(
-    "rejected",
+AirborneMeleeStartIdentity rejectedAttempt = new(
+    "rejected", "$item_sword", "secondary", "sword_secondary", "Vertical",
     startVerticalSpeed: -2f,
-    startForwardSpeed: 3f);
+    startForwardSpeed: 3f,
+    startedGrounded: false);
+AirborneMeleeSwingState consumeRejectedSwing = new(
+    rejectedAttempt,
+    armed: true,
+    startGateObserved: true);
 ExpectTrue(consumeRejectedSwing.Resolve(qualified: false), "first rejected Character contact resolves the swing");
 ExpectFalse(consumeRejectedSwing.Qualified, "a rejected swing cannot become qualified on a later target");
 ExpectFalse(consumeRejectedSwing.Resolve(qualified: true), "later target cannot reverse the terminal decision");
+
+AirborneMeleeStartIdentity groundedAttempt = new(
+    "grounded", "$item_axe", "primary", "swing_axe", "Area",
+    startVerticalSpeed: 0f,
+    startForwardSpeed: 8f,
+    startedGrounded: true);
+AirborneMeleeSwingState groundedSwing = new(
+    groundedAttempt,
+    armed: false,
+    startGateObserved: false);
+ExpectTrue(groundedSwing.MarkStartGateObserved(), "a grounded start is reported once when its swing becomes airborne");
+ExpectFalse(groundedSwing.MarkStartGateObserved(), "airborne progress never repeats a grounded-start rejection");
+ExpectFalse(groundedSwing.Armed, "a grounded start never becomes mechanically armed");
+ExpectTrue(groundedSwing.Resolved, "the grounded-start rejection is terminal");
 
 ExpectNear(-0.5f, AirborneMeleeTuning.DescentThreshold, "descent threshold rejects apex jitter");
 ExpectNear(7f, AirborneMeleeTuning.ForwardSpeedThreshold, "arm threshold requires native sprint-band momentum");

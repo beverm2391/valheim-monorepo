@@ -47,23 +47,42 @@ internal static class AirborneMeleeRules
     }
 }
 
-internal sealed class AirborneMeleeSwingState
+internal sealed class AirborneMeleeSwingState : AirborneMeleeStartIdentity
 {
     internal AirborneMeleeSwingState(
-        string operationId,
-        float startVerticalSpeed,
-        float startForwardSpeed)
+        AirborneMeleeStartIdentity attempt,
+        bool armed,
+        bool startGateObserved)
+        : base(
+            attempt.OperationId,
+            attempt.Weapon,
+            attempt.AttackControl,
+            attempt.AttackAnimation,
+            attempt.AttackType,
+            attempt.StartVerticalSpeed,
+            attempt.StartForwardSpeed,
+            attempt.StartedGrounded)
     {
-        OperationId = operationId;
-        StartVerticalSpeed = startVerticalSpeed;
-        StartForwardSpeed = startForwardSpeed;
+        Armed = armed;
+        StartGateObserved = startGateObserved;
     }
 
-    internal string OperationId { get; }
-    internal float StartVerticalSpeed { get; }
-    internal float StartForwardSpeed { get; }
+    internal bool Armed { get; }
+    internal bool StartGateObserved { get; private set; }
     internal bool Resolved { get; private set; }
     internal bool Qualified { get; private set; }
+
+    internal bool MarkStartGateObserved()
+    {
+        if (StartGateObserved)
+        {
+            return false;
+        }
+
+        StartGateObserved = true;
+        Resolved = true;
+        return true;
+    }
 
     internal bool Resolve(bool qualified)
     {
@@ -76,4 +95,64 @@ internal sealed class AirborneMeleeSwingState
         Qualified = qualified;
         return true;
     }
+}
+
+internal class AirborneMeleeStartIdentity
+{
+    internal AirborneMeleeStartIdentity(
+        string operationId,
+        string weapon,
+        string attackControl,
+        string attackAnimation,
+        string attackType,
+        float startVerticalSpeed,
+        float startForwardSpeed,
+        bool startedGrounded)
+    {
+        OperationId = operationId;
+        Weapon = weapon;
+        AttackControl = attackControl;
+        AttackAnimation = attackAnimation;
+        AttackType = attackType;
+        StartVerticalSpeed = startVerticalSpeed;
+        StartForwardSpeed = startForwardSpeed;
+        StartedGrounded = startedGrounded;
+    }
+
+    internal string OperationId { get; }
+    internal string Weapon { get; }
+    internal string AttackControl { get; }
+    internal string AttackAnimation { get; }
+    internal string AttackType { get; }
+    internal float StartVerticalSpeed { get; }
+    internal float StartForwardSpeed { get; }
+    internal bool StartedGrounded { get; }
+}
+
+internal sealed class AirborneMeleeStartAttempt : AirborneMeleeStartIdentity
+{
+    internal AirborneMeleeStartAttempt(
+        string operationId,
+        string weapon,
+        string attackControl,
+        string attackAnimation,
+        string attackType,
+        float startVerticalSpeed,
+        float startForwardSpeed,
+        bool startedGrounded,
+        bool freshInput)
+        : base(
+            operationId,
+            weapon,
+            attackControl,
+            attackAnimation,
+            attackType,
+            startVerticalSpeed,
+            startForwardSpeed,
+            startedGrounded)
+    {
+        FreshInput = freshInput;
+    }
+
+    internal bool FreshInput { get; }
 }

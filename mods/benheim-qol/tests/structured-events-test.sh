@@ -55,7 +55,9 @@ grep -Fq 'DiagnosticEvent.Create("WeaponRhythm", "airborne_melee_applied")' "$pe
 grep -Fq 'DiagnosticEvent.Create("WeaponRhythm", "airborne_melee_skipped")' "$perfect_impact"
 grep -Fq '.String("reason", "no_character_contact")' "$perfect_impact"
 grep -Fq '.String("operation_id", state.OperationId)' "$perfect_impact"
-grep -Fq '.String("operation_phase", armed ? "start" : "terminal")' "$perfect_impact"
+grep -Fq '.String("operation_phase", eventName == "airborne_melee_armed" ? "start" : "terminal")' "$perfect_impact"
 grep -Fq '.String("operation_phase", "terminal")' "$perfect_impact"
+grep -Fq '.String("weapon", attempt.Weapon)' "$perfect_impact"
+grep -Fq '.Boolean("native_attack_started", nativeAttackStarted)' "$perfect_impact"
 
 echo "structured diagnostic writer, domain wiring, and streaming query checks passed"
