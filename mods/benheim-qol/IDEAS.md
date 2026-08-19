@@ -40,6 +40,18 @@ development, its behavior and status move into the owning `PRODUCT.md`.
   poison arrow. The creature, tier, projectile, accuracy, cadence, telegraph,
   and counterplay remain open pending prefab research and gameplay testing.
 
+## Building and Travel
+
+- **Larger station build coverage:** increase the workbench and stonecutter
+  build radii so a large base needs fewer overlapping stations. The radius,
+  whether the two stations should match, and whether any other station coverage
+  belongs in the same change remain open.
+- **Portal-network management:** solve the shared world's roughly fifty-portal
+  sprawl without committing yet to a portal hub, destination selector, better
+  tagging/search, or another interaction. The goal is fewer physical portal
+  pairs and less destination-management friction while keeping shared travel
+  understandable to every player.
+
 ## Crow
 
 - **Crow:** a private server-side fourth friend for Ben, Johnny, and Ozi. A
