@@ -63,10 +63,12 @@ Status: **Failed**.
 Observed in `0.1.65`:
 
 - **Passed — player-visible BERSERKER activation.** Ben saw `BERSERKER!` appear
-  during live combat. Separately, local typed events recorded activation at
-  three kills, refreshes on later qualifying kills, and expiry after the chain
-  window. Those events do not prove the icon, stat effect, expiry presentation,
-  or SLAUGHTERHOUSE tier in gameplay.
+  during live combat and accepted its native status-bar icon. Separately, local
+  typed events recorded the native effect applying, appearing in Valheim's HUD
+  list, refreshing on later qualifying kills, and expiring after the chain
+  window. Tier I's configured 25% physical damage reduction and 50% stamina
+  regeneration have not been measured in gameplay. Expiry presentation and the
+  SLAUGHTERHOUSE tier also remain unproven.
 - **Failed — duplicate perfect-parry outcome.** One blocked Troll attack
   produced two `perfect_defense_confirmed` events milliseconds apart. The two
   outcomes produced two `Perfect parry` messages and two `+10` adrenaline
