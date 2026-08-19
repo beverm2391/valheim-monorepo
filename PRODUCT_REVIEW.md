@@ -58,10 +58,31 @@ false Server Support warning because capability discovery raced connection
 readiness. UNTOUCHABLE could activate without proving persistent native
 status-bar presence.
 
-Status: **Not run**.
+Status: **Failed**.
+
+Observed in `0.1.65`:
+
+- **Passed — player-visible BERSERKER activation.** Ben saw `BERSERKER!` appear
+  during live combat. Separately, local typed events recorded activation at
+  three kills, refreshes on later qualifying kills, and expiry after the chain
+  window. Those events do not prove the icon, stat effect, expiry presentation,
+  or SLAUGHTERHOUSE tier in gameplay.
+- **Failed — duplicate perfect-parry outcome.** One blocked Troll attack
+  produced two `perfect_defense_confirmed` events milliseconds apart. The two
+  outcomes produced two `Perfect parry` messages and two `+10` adrenaline
+  awards. A later Troll attack reproduced the same duplicate. The duplication
+  occurred before presentation; it was not one outcome rendered twice.
+- **Blocked — UNTOUCHABLE activation.** During the current session, periodic
+  small health decreases reset the streak before activation. No UNTOUCHABLE
+  activation or status-bar event occurred. The source of the health changes is
+  not proven. UNTOUCHABLE cannot be reviewed until the test distinguishes them
+  from actual damage.
 
 - [ ] Every player joins the updated server and waits five seconds. The
   Controls menu shows no BERSERKER Server Support warning.
+- [ ] One blocked Troll attack that qualifies as a perfect parry produces one
+  `perfect_defense_confirmed` event, one `Perfect parry` message, one `+10`
+  adrenaline award, and one UNTOUCHABLE streak increment.
 - [ ] Below 30 health, complete one perfect parry or perfect dodge. `CLUTCH!`
   appears in the defense feedback, the native charm cue plays once, the
   Lingering Healing Mead icon appears, and health recovers 60 over six seconds.
