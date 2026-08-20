@@ -6,7 +6,7 @@ multiplayer kill chains. It does not own test or administrator commands.
 
 ## Current Behavior
 
-The supported installer deployed Benheim Server Support `0.1.2`. The deployment
+The supported installer deployed Benheim Server Support `0.1.3`. The deployment
 check confirmed its exact plugin load, hash, world, and readiness. The deployed
 plugin grants one global Put Away lease. A compatible client must receive the
 lease before it scans chests. The server grants one connected peer and rejects
@@ -14,30 +14,33 @@ every overlapping request as busy. The client releases the lease when Put Away
 finishes, cancels, or times out. The server also releases it when the owning
 peer disconnects.
 
+Version `0.1.3` uses lease generation `v2` and transaction generation `v4`.
+Put Away stops before chest scanning or item reservation unless every connected
+peer has announced the current lease generation. Before each container
+reservation, Server Support confirms that the set of connected peers has not
+changed since it granted the lease. A change to that set causes validation to
+fail. The lease remains with the holder until the holder releases it.
+
 The lease does not inspect items, containers, distance, access, capacity, or
-ownership. The three-client test confirmed that the server rejects a
-simultaneous Put Away before the losing client scans or moves items.
+ownership. The server routes immutable deposit requests to the chest's current
+owner and forwards owner results. The owner validates and changes the chest;
+the server does not inspect or mutate chest contents. The three-client
+`0.1.65` review proved owner mutation, result forwarding, exact requester
+settlement, cleanup after receipt presentation, and immediate lease reuse. It
+also proved that the server rejects simultaneous Put Away before the losing
+client scans or moves items.
 
 ## In Development
 
-The deployed `0.1.2` routes immutable deposit requests to the chest's current
-owner and forwards owner results. The owner validates and changes the chest;
-the server does not inspect or mutate chest contents. Live `0.1.64` gameplay
-proved owner mutation, result forwarding, and exact requester settlement. It
-also showed that the old receipt-removal gate could retain the completed batch
-and lease until disconnect.
-
-The `0.1.3` candidate uses lease generation `v2` and transaction generation
-`v4`. Put Away stops before chest scanning or item reservation unless every
-connected peer has announced the current Put Away generation. The candidate no
-longer waits for receipt removal before it completes a Put Away batch. Before
-each container reservation, Server Support confirms that the connected-peer
-cohort has not changed since the lease grant. A cohort change causes validation
-to fail. The lease remains with the holder until the holder releases it.
+Version `0.1.4` changes the experimental confirmed-kill chain to six kills for
+BERSERKER, twelve kills for SLAUGHTERHOUSE, and a 30-second rolling deadline.
+It advances Kill Attribution to V3 so capability discovery fails visibly when
+the client and server use different chain rules. The legacy rules activate
+BERSERKER at three kills and SLAUGHTERHOUSE at six kills, with a 10-second
+deadline. Version `0.1.4` does not change the accepted Put Away protocol.
 Diagnostic failures cannot interrupt result delivery or settlement. When a
 requester disconnects, the server removes that requester's pending and
-completed route entries. These changes pass automated checks but are not
-deployed or gameplay-proven.
+completed route entries.
 
 The owning [Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md) defines
 Put Away's player-visible behavior and acceptance boundary. The [shared
@@ -45,11 +48,14 @@ protocol](../../shared/benheim-inventory-protocol/PROTOCOL.md) owns cleanup
 correlation, routing, the transaction runtime, and typed-event lifecycle.
 Automated source and build gates cover the server boundary.
 
-Version `0.1.2` implements Kill Attribution V2 and the server-authoritative
-confirmed-kill chain described below. Version `0.1.3` replaces the one-time
-response that version `0.1.2` sent when the client connected. The new flow
-validates each client request for Kill Attribution V2 capability and responds
-over the current connection. The client retries for up to five seconds.
+Version `0.1.2` introduced Kill Attribution V2 and the server-authoritative
+confirmed-kill chain described below. In version `0.1.2`, the server sent one
+capability response when the client connected. Version `0.1.3` replaced that
+behavior with client capability requests and server responses. Version `0.1.4`
+keeps that flow and advances the protocol to Kill Attribution V3. The server
+validates each Kill Attribution V3 capability request and sends the matching
+response over the same connection. The client retries its request for up to
+five seconds.
 Automated checks cover requests, responses, retries, and timeouts. A gameplay
 retest must confirm that the client no longer shows a false capability warning
 when the server is updated. See the root
@@ -64,7 +70,7 @@ victim identities. It assigns each accepted report one server time and an order
 for that killer. Only the confirmed killer's client receives the confirmation.
 Player Combat decides what the confirmed kill earns.
 
-Kill Attribution V2 covers only direct Player lethal-hit reports. It does not
+Kill Attribution V3 covers only direct Player lethal-hit reports. It does not
 infer credit for damage over time, kills by tames, turrets, traps,
 environmental deaths, assists, or kill steals. It treats Benheim's
 authenticated victim owner as Valheim's damage authority. The protocol does not
@@ -101,7 +107,7 @@ native status-bar icon. Client events prove that its native effect
 applied, appeared in the HUD, refreshed, and expired. The 6/12 thresholds,
 30-second rolling chain, and SLAUGHTERHOUSE remain gameplay-unproven.
 
-Kill Attribution V2 uses Valheim's reliable, ordered transport while the peer
+Kill Attribution V3 uses Valheim's reliable, ordered transport while the peer
 remains connected. Benheim sends reports, confirmations, resets, and
 transitions only over an active RPC connection. Disconnecting tears down the
 peer and clears that peer's server chain.

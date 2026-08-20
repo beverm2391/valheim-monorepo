@@ -90,6 +90,21 @@ Assert(
     && transition.ExpiresAtServerTimeSeconds == 230d,
     "the typed chain transition should round-trip exactly");
 
+ZPackage legacyV2Transition = new ZPackage();
+legacyV2Transition.Write(2);
+legacyV2Transition.Write(killerId);
+legacyV2Transition.Write((int)KillChainTransitionKind.Activated);
+legacyV2Transition.Write((int)KillChainTier.Berserker);
+legacyV2Transition.Write(3);
+legacyV2Transition.Write(8L);
+legacyV2Transition.Write(190d);
+legacyV2Transition.Write(200d);
+Assert(
+    !KillAttributionProtocol.TryReadChainTransition(
+        new ZPackage(legacyV2Transition.GetArray()),
+        out _),
+    "the 6/12/30 chain contract must reject a legacy V2 transition");
+
 KillChainTransitionMessage invalidTransition = new KillChainTransitionMessage(
     killerId,
     KillChainTransitionKind.Escalated,

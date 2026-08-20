@@ -11,6 +11,15 @@ delivery_attempt="$client/KillAttributionRpcAttempt.cs"
 qualification="$root/server-mods/benheim-server-support/src/VictimQualification.cs"
 plugin="$root/server-mods/benheim-server-support/src/Plugin.cs"
 project="$root/server-mods/benheim-server-support/src/BenheimServerSupport.csproj"
+protocol="$client/KillAttributionProtocol.cs"
+
+grep -Fq 'Version = 3' "$protocol"
+grep -Fq 'CapabilityRequestRpc = "Benheim_Kill_Capability_Request_V3"' "$protocol"
+grep -Fq 'ChainTransitionRpc = "Benheim_Kill_Chain_Transition_V3"' "$protocol"
+if rg -n '_V2' "$protocol"; then
+  printf 'the 6/12/30 chain contract must not reuse Kill Attribution V2 RPC names\n' >&2
+  exit 1
+fi
 
 grep -Fq '[HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]' "$client/KillAttributionPatches.cs"
 grep -Fq 'LethalHitObservation.Capture(__instance, hit)' "$client/KillAttributionPatches.cs"

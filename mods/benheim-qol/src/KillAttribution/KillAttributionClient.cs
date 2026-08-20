@@ -103,7 +103,7 @@ internal static class KillAttributionClient
         {
             CapabilityRetry.Finish();
             HealthReporting.ReportKillAttributionUnavailable(
-                "no matching Kill Attribution V2 capability was received");
+                $"no matching Kill Attribution V{KillAttributionProtocol.Version} capability was received");
             EmitCapability(
                 "response",
                 "rejected",
@@ -208,7 +208,7 @@ internal static class KillAttributionClient
         else
         {
             HealthReporting.ReportKillAttributionUnavailable(
-                "matching Kill Attribution V2 capability arrived over a disconnected server RPC");
+                $"matching Kill Attribution V{KillAttributionProtocol.Version} capability arrived over a disconnected server RPC");
             EmitCapability(
                 "response",
                 "rejected",

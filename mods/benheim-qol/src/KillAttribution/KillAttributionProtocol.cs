@@ -11,15 +11,15 @@ namespace BenheimQoL.KillAttribution;
 /// </summary>
 internal static class KillAttributionProtocol
 {
-    internal const int Version = 2;
-    internal const string CapabilityRequestRpc = "Benheim_Kill_Capability_Request_V2";
-    internal const string CapabilityRpc = "Benheim_Kill_Capability_V2";
-    internal const string ReportRpc = "Benheim_Kill_Report_V2";
-    internal const string ConfirmedRpc = "Benheim_Kill_Confirmed_V2";
-    internal const string ChainTransitionRpc = "Benheim_Kill_Chain_Transition_V2";
-    internal const string ChainResetRpc = "Benheim_Kill_Chain_Reset_V2";
+    internal const int Version = 3;
+    internal const string CapabilityRequestRpc = "Benheim_Kill_Capability_Request_V3";
+    internal const string CapabilityRpc = "Benheim_Kill_Capability_V3";
+    internal const string ReportRpc = "Benheim_Kill_Report_V3";
+    internal const string ConfirmedRpc = "Benheim_Kill_Confirmed_V3";
+    internal const string ChainTransitionRpc = "Benheim_Kill_Chain_Transition_V3";
+    internal const string ChainResetRpc = "Benheim_Kill_Chain_Reset_V3";
     internal const string ChainResetAcknowledgedRpc =
-        "Benheim_Kill_Chain_Reset_Acknowledged_V2";
+        "Benheim_Kill_Chain_Reset_Acknowledged_V3";
 
     private const int OperationIdLength = 32;
     private const int MaximumPrefabNameLength = 128;

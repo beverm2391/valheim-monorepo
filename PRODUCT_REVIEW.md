@@ -17,7 +17,7 @@ until Ben approves them for implementation or testing.
 - Installed private-test client: `0.1.65`
 - Deployed Server Support: `0.1.3`
 - Deployed Test Commands: `0.1.1`
-- Required group version for this pass: Benheim `0.1.65`
+- Required group version for this pass: Benheim `0.1.66`
 
 Use one result status:
 
@@ -50,7 +50,7 @@ Use disposable materials for inventory and production tests. Do not test a
 crash or disconnect during an in-flight Put Away reservation. That recovery
 case is explicitly unsupported.
 
-## `0.1.65` critical pass
+## `0.1.66` critical pass
 
 ### 1. Server capability and earned combat states
 
@@ -62,7 +62,13 @@ false Server Support warning because capability discovery raced connection
 readiness. UNTOUCHABLE could activate without proving persistent native
 status-bar presence.
 
-Status: **Failed**.
+Status: **Not run** for `0.1.66`.
+
+Candidate `0.1.66` fixes the two outcomes that failed in `0.1.65`. Automated
+checks cover both fixes. BERSERKER now activates at six kills, and
+SLAUGHTERHOUSE activates at twelve kills. Each qualifying kill resets the
+rolling deadline to 30 seconds. These changes require Server Support `0.1.4`
+and the gameplay retest below.
 
 Observed in `0.1.65`:
 
@@ -182,17 +188,17 @@ noncanonical and must not disappear from later Product Review passes.
 
 | Behavior | Classification | Current evidence | Next proof | Status |
 | --- | --- | --- | --- | --- |
-| Perfect Impact attack-start momentum and visible text | Failed candidate | One earlier Lox operation emitted `airborne_melee_armed` with `start_forward_speed=8.068`, followed by `airborne_melee_applied` at `vertical_speed=-1.505`; feedback was placed and shake triggered. Ben's recent attempts emitted no new Weapon Rhythm events and produced no visible result. | Start a fresh scoped diagnosis of why current melee starts do not enter the typed attack-start path before asking Ben to repeat the technique | Blocked |
+| Perfect Impact attack-start momentum and visible text | Failed candidate stabilization | One earlier Lox operation emitted `airborne_melee_armed` with `start_forward_speed=8.068`, followed by `airborne_melee_applied` at `vertical_speed=-1.505`; feedback was placed and shake triggered. Ben's later `0.1.65` attempts emitted no Weapon Rhythm event. Candidate `0.1.66` has automated proof that each supported local Perfect Impact attempt emits either an arm event or a terminal rejection. It also proves that an armed operation emits one terminal contact or stop result. | Attempt fresh airborne primary and secondary melee swings. Use typed arm and terminal events to distinguish native-start rejection, grounded start, momentum, descent, contact, application, and text-lane outcome. | Not run |
 | Headshot exact collider volume | Candidate refinement | Geometry automated; older global headshots accepted | Hit outer head-centered collider and nearby body collider on the same creature | Not run |
 | Headshot, Cleave, mining AOE, and Perfect Impact shake | Candidate tuning | Native call sites and strengths verified | Compare each outcome with its ordinary native impact and judge distinction | Not run |
 | Shared top-left receipt lane | Candidate presentation | Layout automated | Exercise Put Away, Mass Repair, pocketing, and an active native top-left message | Not run |
 | Dangerous-area edge flash | Failed candidate presentation | Arrival logic runtime-proven; visual cue unaccepted | Enter DANGEROUS and DEADLY once with FX on, then verify suppression with FX off | Not run |
-| Cooking bonus chance | New balance behavior | Ben observed cooking bonuses and said the result seems good; the bonus-roll path emits no typed event, so the configured chance and exact extra count cannot be accepted from logs | Add one typed roll/result event, then corroborate ordinary Cooking and one non-Cooking craft without grinding random samples | Blocked |
+| Cooking bonus chance | New balance behavior | Ben observed cooking bonuses and said the result seems good. Candidate `0.1.66` has automated proof for the typed `Cooking.native_bonus_roll` event without changing the native roll or bonus behavior. | Corroborate ordinary Cooking and one non-Cooking craft with typed roll events. Do not grind random samples. | Not run |
 | Comfort range at 20 meters | New balance behavior | Source-level proof | Move across the old 10-meter and new 20-meter boundaries, including another room or floor | Not run |
 | Remote station batch fill | Candidate multiplayer behavior | Axiom recorded one remote Windmill owner accepting `50/50` with `result=complete`; Ben saw the fill work | Capture requester settlement for an empty and nearly full Windmill, including accepted, refunded, inventory, and station counts | Not run |
 | Stone Oven timing and diagnostics | Candidate multiplayer behavior | Prior owner/timing logs only | Measure bake and burn windows for one recipe under the current owner | Not run |
 | Shield Generator batch fuel | New production path | Focused automated proof | Fill from empty and nearly full with exact inventory counts | Not run |
-| `/` native-console shortcut suppression | New shortcut | Ben accepted normal gameplay opening; the chat, menu, password, and text-input suppression guards emit no typed result | Add bounded shortcut-decision diagnostics, then confirm that `/` does nothing during chat and one menu | Not run |
+| `/` native-console shortcut suppression | New shortcut | Ben accepted normal gameplay opening. Candidate `0.1.66` has automated proof for one typed `Shortcuts.native_console_shortcut` event per relevant keypress without changing native shortcut behavior. | Confirm that `/` opens the native console in normal gameplay and emits `opened`. Confirm chat and one menu emit terminal `rejected` reasons without opening it. | Not run |
 | Mass Repair denial and zero-result cases | Coverage gap | Main repair flow accepted | Test undamaged aim, station denial, ward denial, and exhausted tool cases | Not run |
 | Three-times-as-frequent Leech opportunities across zone owners | Candidate multiplayer balance | Source-level proof | Observe compatible clients exchanging zone ownership during an eligible spawn period | Not run |
 

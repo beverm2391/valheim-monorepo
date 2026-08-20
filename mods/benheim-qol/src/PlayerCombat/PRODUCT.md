@@ -99,12 +99,12 @@ charm cue. Both tiers reuse the Crystal Heart status icon. Expiration and
 removal are quiet.
 
 After Valheim makes the current server connection available, Benheim starts
-capability discovery. Benheim requests a Kill Attribution V2 capability and
-retries that request for up to five seconds. Benheim accepts only a matching
-Kill Attribution V2 response from that connection. If no matching response
-arrives, the BERSERKER/SLAUGHTERHOUSE state remains inactive. Benheim shows one
-center-screen warning per session and keeps the warning in the Controls panel's
-Warnings block until the matching Kill Attribution V2 capability arrives.
+capability discovery. Benheim sends a Kill Attribution V3 capability request
+and retries it for up to five seconds. Benheim accepts only a matching Kill
+Attribution V3 capability response from that connection. If no matching
+response arrives, the BERSERKER/SLAUGHTERHOUSE state remains inactive. Benheim
+shows one center-screen warning per session and keeps the warning in the
+Controls panel's Warnings block until a matching response arrives.
 
 One confirmed defense can produce an adrenaline message and multiple
 earned-state titles. Benheim combines them into one local Bonus text in the

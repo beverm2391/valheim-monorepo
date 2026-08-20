@@ -51,8 +51,9 @@ ordinary attacks depend on perfect timing.
   installed intermediate language (IL) proves the direct and area damage
   attachment points. The evidence does not support an alternate clone-path
   failure.
-- The next candidate observes each supported local attempt at the shared native
-  start boundary. A native rejection reports `native_start_rejected` only when
+- Benheim `0.1.66` evaluates each supported local attempt when it reaches
+  Valheim's shared melee start path. A native rejection reports
+  `native_start_rejected` only when
   a new airborne input is rejected. Retries from that buffered input do not emit
   an event every frame. A supported swing that starts grounded stays silent
   unless it later becomes airborne. It then reports one terminal

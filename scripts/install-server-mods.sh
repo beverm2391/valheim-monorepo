@@ -19,7 +19,7 @@ server_support_source="$root/server-mods/benheim-server-support/dist/$server_sup
 bepinex_sha256=5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716
 eternal_fire_sha256=8f452cc68d839b7a843676c89b479e357c2b932db8f0f02106de5c5cfde451f4
 test_commands_sha256=2a15b0714a81ae518ac1d8ab8d0f8e16a87eecc39d4e32ca8b75316b0d051db2
-server_support_sha256=73c0bda2418cb5ea53eaa36e9dece4eadc2b8506149082c3725f6310421c1c74
+server_support_sha256=cbfcf5b7891c5e3a0a8ebddfb2cfdc19fc708dd54f3a834bcc441bf3ce3e6eca
 
 download() {
   local url=$1
@@ -214,5 +214,5 @@ fi
 
 trap - EXIT
 rm -rf "$work"
-echo "Installed BepInEx 5.4.2333, Benheim Eternal Fire 0.1.1, Benheim Test Commands 0.1.1, and Benheim Server Support 0.1.3."
+echo "Installed BepInEx 5.4.2333, Benheim Eternal Fire 0.1.1, Benheim Test Commands 0.1.1, and Benheim Server Support 0.1.4."
 REMOTE

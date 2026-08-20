@@ -183,10 +183,16 @@ limits.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.65` is the current private-test candidate. It corrects Put Away
-cleanup behavior that could retain a completed batch and its lease. It
-stabilizes Player Combat state at runtime and the Kill Attribution V2 request
-and response flow. It also adds the client-only runtime catalog commands.
+Benheim `0.1.66` is the current private-test candidate. It keeps the accepted
+Put Away cleanup from `0.1.65`. It advances Kill Attribution to V3 so a client
+and server with different chain rules fail capability discovery
+visibly instead of appearing compatible. The current rules activate BERSERKER
+at six kills and SLAUGHTERHOUSE at twelve kills, with a 30-second deadline. The
+legacy rules use three kills, six kills, and a 10-second deadline. It corrects
+duplicate perfect-defense outcomes. It also prevents passive maximum-health
+normalization during food expiry from resetting UNTOUCHABLE. The candidate
+emits a typed event for each supported Perfect Impact attempt, each Cooking
+bonus roll, and each relevant `/` shortcut keypress.
 
 The candidate includes earned combat states and an owner-authoritative Put Away
 protocol. The earned combat states and the owner-authoritative Put Away protocol
