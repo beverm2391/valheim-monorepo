@@ -14,8 +14,8 @@ until Ben approves them for implementation or testing.
 ## Review state
 
 - Accepted client baseline: `0.1.52`
-- Installed private-test client: `0.1.65`
-- Deployed Server Support: `0.1.3`
+- Installed private-test client: `0.1.66`
+- Deployed Server Support: `0.1.4`
 - Deployed Test Commands: `0.1.1`
 - Required group version for this pass: Benheim `0.1.66`
 
