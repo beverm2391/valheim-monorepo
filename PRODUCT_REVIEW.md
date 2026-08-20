@@ -1,23 +1,18 @@
 # Product Review
 
-This file is the active ledger for Benheim behavior that is deployed for
-testing but is not yet canonical. The owning `PRODUCT.md` defines the expected
-behavior. This file records version boundaries, regressions, current evidence,
-and the next proof.
+This is the active ledger for Benheim behavior that is deployed for testing but
+is not yet canonical. The owning `PRODUCT.md` defines the expected behavior.
+This file records only the current proof boundary, regressions, and next useful
+test. A behavior is canonical only when its owning `PRODUCT.md` lists it under
+**Current Behavior**.
 
-A behavior is canonical only when its owning `PRODUCT.md` lists it under
-**Current Behavior**. A noncanonical behavior shipped in a test candidate must
-appear here. An omitted candidate is a tracking defect, not implicit
-acceptance. Future ideas and unresolved product choices do not belong here
-until Ben approves them for implementation or testing.
+> **Tomorrow:** Talk through the operator-config papercuts from the `0.1.66`
+> integration. The secret check first used the wrong scope instead of Doppler
+> `valheim`/`prd`, and server status first selected the ignored `server.env`
+> that the password guard rejects. This is only a reminder. Do not start cleanup
+> before Ben and the project lead discuss it.
 
-> **Tomorrow:** Talk through the operator-config papercuts we hit during the
-> `0.1.66` integration. The secret check first used the wrong scope instead of
-> Doppler `valheim`/`prd`, and server status first selected the ignored
-> `server.env` that the password guard rejects. This is only a reminder. Do not
-> start cleanup before Ben and the project lead discuss it.
-
-## Review state
+## Current candidate
 
 - Accepted client baseline: `0.1.52`
 - Installed private-test client: `0.1.66`
@@ -25,208 +20,168 @@ until Ben approves them for implementation or testing.
 - Deployed Test Commands: `0.1.1`
 - Required group version for this pass: Benheim `0.1.66`
 
-Use one result status:
+## How proof works
 
-- **Not run**: no player evidence for this candidate.
-- **Passed**: the named scenario produced the expected observable result.
-- **Failed**: the named scenario contradicted the product contract.
-- **Blocked**: the scenario could not reach the behavior under review.
+Use the narrowest evidence that answers the actual product question:
 
-If a failed result breaks previously accepted behavior, also classify it as a
-regression.
+- **Mechanical outcomes:** emit a typed event at the authoritative outcome or
+  native modifier seam. Record the complete result, not every frame leading to
+  it.
+- **Stateful movement, AI, and physics:** use an explicitly armed, bounded test
+  session. Capture meaningful transitions while it runs and emit one summary
+  when it ends. Do not leave permanent per-frame logging enabled.
+- **Presentation and feel:** Ben's observation is primary. Logs can prove that
+  presentation was requested or placed, not that it looked or felt good.
+- **Source and automated checks:** establish that a candidate is safe to test.
+  They do not replace runtime or player evidence when the product claim is
+  experiential.
 
-Use typed runtime events as the primary proof of mechanical outcomes, network
-settlement, random outcomes, and state transitions. Ben's observations
-corroborate that evidence. His observations remain the primary acceptance
-evidence for visual presentation and feel. Source and automated proof can
-establish that a candidate is safe to test, but they do not replace the
-evidence required by the behavior under review. When Ben accepts a behavior,
-move it to **Current Behavior** in the owning product file and remove its active
-row here.
+Use these result labels:
 
-## Stop conditions
+- **Passed:** the named claim produced its expected evidence.
+- **Failed:** evidence contradicted the claim.
+- **Needs code:** the current candidate cannot honestly exercise or measure the
+  claim.
+- **Ready to test:** the current candidate already exposes the required
+  evidence.
+- **Needs bounded probe:** ordinary play and passive logs cannot efficiently
+  establish the claim.
 
-Stop Put Away testing immediately if an item disappears, duplicates, or is not
-visible to every connected player. Do not interact with the affected chest
-again until its evidence is captured. Record the approximate time, player,
-item, starting count, and intended chest. Local typed diagnostics stay enabled
-even when remote sharing is off.
+## Passed claims in `0.1.66`
 
-Use disposable materials for inventory and production tests. Do not test a
-crash or disconnect during an in-flight Put Away reservation. That recovery
-case is explicitly unsupported.
+- **Put Away durability passed in live multiplayer.** The owner-authoritative
+  path survived rapid repeated use, both requester/current-owner arrangements,
+  simultaneous contention followed by immediate reuse, and exact
+  accepted/refunded settlement. Players observed no loss, duplication,
+  permanent lease, or chest disagreement. Crash or reconnect during an
+  in-flight reservation remains intentionally unsupported.
+- **Remote typed-event delivery passed for the active group.** Axiom received
+  typed events from Benaldson, JayTrain, and GlIzZy. Queries by player, client,
+  session, event, and Put Away operation work.
+- **Kill Attribution V3 passed.** Matching capability responses and
+  confirmed-kill delivery reached active clients. The former false-warning race
+  did not recur.
+- **UNTOUCHABLE activation, reset, and status presentation passed.** The streak
+  reached five, eight, and twelve without health loss. Tier I appeared in the
+  native status bar; Tier II and Tier III replaced their predecessors. Ben saw
+  all three transitions and accepted the presentation. Native parry chip
+  damage correctly reset the streak.
+- **Boar spawning and collider-overlay presentation passed.** `bh spawn boar
+  0|1|2` created the requested native tiers. Ben accepted how the cyan collider
+  overlay looked on live starred Boars. Runtime events recorded the configured
+  visual scale, capsule, path-agent, perception, pursuit, speed, turning, and
+  push fields for live Boars on active clients.
+- **Cooking bonus rolls passed.** Runtime events captured
+  successful and failed native bonus rolls with the configured base chance,
+  native skill factor, effective chance, consumed roll, and actual native
+  result count. Ben observed and accepted the bonuses.
+- **Native `/` opening passed.** Normal-gameplay presses opened the available,
+  enabled native console and produced exactly one typed terminal outcome per
+  press.
 
-## `0.1.66` critical pass
+## Needs code before the next test
 
-### 1. Server capability and earned combat states
+| Feature | Current boundary | Next candidate |
+| --- | --- | --- |
+| Perfect Impact | **Failed for the tested primary attacks.** Their airborne starts were rejected, while accepted attacks were buffered until grounded. Repeating that technique has no decision value. | Qualify at the authored `Character` contact. Require the player to be airborne, descending at `0.5 m/s` or faster, and moving toward the target at least `7 m/s`. Keep one outcome per attack, `1.15x` damage, and `3x` stagger. |
+| Earned-buff payloads | **Needs code.** Status application and native status-bar presence do not prove the bonuses. | Add shared bounded payload telemetry. Record actual CLUTCH healing ticks, the first modified UNTOUCHABLE hit in each tier, and the first stamina-regeneration and resistance result in each BERSERKER or SLAUGHTERHOUSE activation. |
+| UNTOUCHABLE progression | **Needs code.** Version `0.1.66` counts only confirmed perfect defenses. | Add one point for each server-confirmed qualifying hostile kill. Keep the shared untimed streak, 5/8/12 thresholds, and reset on accepted health loss or intentional health cost. |
+| Put Away timing profile | **Needs code.** Batch start and finish events show nontrivial wall-clock time but do not locate the cost. | Record bounded timings for scanning, routing, owner mutation, and settlement. Optimize only a measured bottleneck without weakening durability. Add immediate loading feedback only if the measured delay remains visible. |
+| Cultivator grid | **Needs code.** Mass planting is fixed at 5x5. | Change the fixed grid to 9x9 while preserving native resources, stamina, durability, spacing, cultivated-ground checks, ownership, effects, skill gain, and preview behavior. |
 
-Owner: [Player Combat](mods/benheim-qol/src/PlayerCombat/PRODUCT.md) and
-[Server Support](server-mods/benheim-server-support/PRODUCT.md).
+## Ready to test without more code
 
-Classification: failed-candidate stabilization. Version `0.1.64` could show a
-false Server Support warning because capability discovery raced connection
-readiness. UNTOUCHABLE could activate without proving persistent native
-status-bar presence.
+### Player Combat
 
-Status: **Passed** for UNTOUCHABLE tier activation and native status-bar
-presentation in `0.1.66`; the remaining scenarios are **Not run**.
+- One qualifying perfect parry produces one confirmation, one adrenaline award,
+  and one UNTOUCHABLE increment. The duplicate fix has automated proof but still
+  needs this live regression check.
+- Passive health normalization from food expiry leaves UNTOUCHABLE unchanged.
+  Accepted damage and an intentional health cost each reset it.
+- Six qualifying kills activate BERSERKER. Twelve within the rolling 30-second
+  window replace it with SLAUGHTERHOUSE. Later kills refresh the current tier,
+  and a 30-second gap expires it quietly. This test covers only the trigger and
+  status lifecycle.
+- Below 30 health, a perfect parry or dodge activates CLUTCH, shows its title and
+  icon, and plays one native charm cue. This test covers only activation and
+  presentation.
+- Join after Kill Attribution V3 capability discovery and inspect the Controls
+  warning state. No stale capability warning remains after the matching
+  response arrives.
+- Craft one ordinary item at a station that does not use Cooking. It keeps
+  Valheim's native bonus behavior and emits the typed non-Cooking exclusion
+  outcome.
 
-Candidate `0.1.66` fixes the two outcomes that failed in `0.1.65`. Automated
-checks cover both fixes. BERSERKER now activates at six kills, and
-SLAUGHTERHOUSE activates at twelve kills. Each qualifying kill resets the
-rolling deadline to 30 seconds. These changes require Server Support `0.1.4`
-and the gameplay retest below.
+### Diagnostics and developer tools
 
-Observed in `0.1.65`:
+- Confirm Share Diagnostics starts enabled for each player and local readable
+  logs plus `BenheimEvents.ndjson` continue to update.
+- Turn Share Diagnostics off for one player. Remote forwarding stops while that
+  player's local diagnostics continue.
+- After world readiness, run `bh debug catalog effects heal`, `bh debug catalog
+  text`, and `bh debug catalog ui toggle`. Each command reports matching counts
+  and replaces the local runtime-catalog snapshot without sending catalog
+  entries to Axiom.
+- Run one catalog command before world readiness on a later launch. It must fail
+  visibly rather than writing a misleading empty snapshot.
 
-- **Passed — player-visible BERSERKER activation.** Ben saw `BERSERKER!` appear
-  during live combat and accepted its native status-bar icon. Separately, local
-  typed events recorded the native effect applying, appearing in Valheim's HUD
-  list, refreshing on later qualifying kills, and expiring after the chain
-  window. Tier I's configured 25% physical damage reduction and 50% stamina
-  regeneration have not been measured in gameplay. Expiry presentation and the
-  SLAUGHTERHOUSE tier also remain unproven.
-- **Failed — duplicate perfect-parry outcome.** One blocked Troll attack
-  produced two `perfect_defense_confirmed` events milliseconds apart. The two
-  outcomes produced two `Perfect parry` messages and two `+10` adrenaline
-  awards. A later Troll attack reproduced the same duplicate. The duplication
-  occurred before presentation; it was not one outcome rendered twice.
-- **Failed — UNTOUCHABLE damage reset.** Axiom recorded periodic food-expiry
-  health normalization as `player_damage_accepted`, followed by
-  `untouchable_reset`. Passive maximum-health normalization must not count as
-  actual harm. The observed one-second clamps included `26.4453 → 26.2798`,
-  `26.2798 → 26.0395`, and `26.0395 → 25`. Source tracing shows that food expiry
-  lowers maximum health through a passive health update rather than actual
-  damage. Ben also triggered UNTOUCHABLE and saw its icon appear, but it did not
-  remain in the native status bar. The replacement observer now counts actual
-  damage and intentional health costs and ignores this passive change. The
-  duplicate-outcome fix and food-normalization reset fix have automated proof
-  only; both still need the gameplay retest below.
+### Presentation and ordinary behavior
 
-Observed in `0.1.66`:
+- Run `bh debug colliders off`; every overlay disappears immediately. Kill the
+  spawned test Boars afterward so they do not remain in the shared world.
+- Hit the outer head-centered collider and nearby body collider on the same
+  creature to accept the refined headshot volume.
+- Compare headshot, Cleave, and mining AOE shake against their ordinary native
+  impacts. Ben judges whether each feels distinct. Test Perfect Impact shake
+  only after the replacement candidate can produce a qualified hit.
+- Exercise Put Away, Mass Repair, pocketing, and an active native top-left
+  message together to accept the shared receipt lane.
+- Enter DANGEROUS and DEADLY once with FX enabled, then verify suppression with
+  FX disabled.
+- Cross the old 10-meter and new 20-meter comfort boundaries, including another
+  room or floor.
+- Capture requester settlement for an empty and a nearly full remote Windmill.
+- Measure one Stone Oven recipe's bake and burn windows.
+- Fill a Shield Generator from empty and from nearly full.
+- Press `/` while chat and one menu are active. Each press must emit one terminal
+  rejection without opening the console.
+- Exercise Mass Repair with an undamaged aim, station denial, ward denial, and
+  an exhausted tool.
 
-- **Passed — UNTOUCHABLE tiers and native status-bar presence.** Axiom recorded
-  the streak reaching five, eight, and twelve without health loss. At five,
-  Valheim applied Tier I and showed it in the native status bar. At eight,
-  Tier II replaced Tier I. At twelve, Tier III replaced Tier II. Ben saw all
-  three transitions and accepted the status presentation. Axiom also recorded
-  native parry chip damage resetting the streak. Passive food normalization and
-  an intentional health cost still need direct gameplay tests.
+## Testability gaps that need bounded probes
 
-- [ ] Every player joins the updated server and waits five seconds. The
-  Controls menu shows no BERSERKER Server Support warning.
-- [ ] One blocked Troll attack that qualifies as a perfect parry produces one
-  `perfect_defense_confirmed` event, one `Perfect parry` message, one `+10`
-  adrenaline award, and one UNTOUCHABLE streak increment.
-- [ ] Below 30 health, complete one perfect parry or perfect dodge. `CLUTCH!`
-  appears in the defense feedback, the native charm cue plays once, the
-  Lingering Healing Mead icon appears, and health recovers 60 over six seconds.
-- [x] Complete five mixed perfect parries or perfect dodges without losing
-  health. `UNTOUCHABLE!` appears once and one indefinite Wolf Sight icon remains
-  in the native status bar.
-- [x] At eight defenses, `UNTOUCHABLE II!` appears. At twelve defenses,
-  `UNTOUCHABLE III!` appears. Each tier replaces the prior tier, and one
-  indefinite Wolf Sight icon remains throughout.
-- [ ] Measure outgoing damage at Tiers I, II, and III. Confirm the configured
-  10%, 20%, and 30% bonuses against the same target and attack.
-- [ ] Take actual damage and then an intentional health cost. Each clears the
-  icon and resets the streak. A blocked zero-damage contact and passive
-  maximum-health normalization caused by food expiry leave both unchanged.
-- [ ] Kill six qualifying hostile monsters, with each consecutive kill arriving
-  before the 30-second deadline. `BERSERKER!` appears with one Crystal Heart
-  icon. Kills seven through eleven refresh it. Continue the same chain to twelve kills;
-  `SLAUGHTERHOUSE!` replaces the first tier instead of stacking with it. Later
-  qualifying kills refresh SLAUGHTERHOUSE.
-- [ ] Wait until 30 seconds have passed after the latest qualifying kill. The
-  earned state disappears quietly, the chain resets, and a later chain can
-  activate again.
+### Starred Boar behavior
 
-The three earned states remain experimental even if their mechanics work.
-Ben separately judges whether their trigger difficulty, strength, icons, text,
-and charm cue feel good.
+Runtime events record the configured profile fields for live Boars. They do not
+establish the behavior or feel that those fields produce. Casual observation is
+too imprecise, and permanent AI logging would be noisy and expensive.
 
-### 2. Diagnostics and runtime discovery
+Add one command-armed Boar session with a short timeout and one test identifier.
+Observe only nearby spawned zero-, one-, and two-star controls. Capture these
+transitions and aggregates:
 
-Owner: [Benheim](mods/benheim-qol/PRODUCT.md) and
-[Shortcuts](mods/benheim-qol/src/Shortcuts/PRODUCT.md).
+- distance and time at first alert;
+- pursuit duration after the player breaks contact;
+- total movement and turning during one charge;
+- displacement after a tagged routine hit, heavy hit, and Boar shove;
+- completion or one explicit incomplete reason for gates, slopes, water, or
+  loss of path.
 
-Classification: unproven integration and new developer tooling.
+Add Perfect Impact displacement only after a usable Perfect Impact candidate
+exists. Stopping, timing out, leaving the world, or disabling the session must
+clear every observer. Emit one terminal summary per Boar and no per-frame
+events. Ben still judges coherence, feel, and whether skilled counters remain
+useful.
 
-Status: **Passed** for JayTrain remote forwarding; remaining scenarios are
-**Not run**.
+### Leech spawn opportunity
 
-After Ben re-enabled Share Diagnostics for JayTrain, Axiom received that
-player's Player Combat events. Automated checks cover the one-time legacy-config
-migration and persistence after a later opt-out. Other players, complete
-typed-field queries, opt-out behavior, and the runtime catalog commands remain
-unproven.
+Natural observation across zone-owner changes is too sparse to prove a
+three-times-as-frequent opportunity rate. This needs either a bounded spawn
+simulation against the exact installed rules or a command-armed observation
+window that records eligible checks, owner, roll, and outcome, then emits one
+summary. Do not add permanent spawn-loop logging.
 
-- [ ] Each player confirms **Share Diagnostics** starts enabled and produces at
-  least one Player Combat or Put Away event. Local readable logs and
-  `BenheimEvents.ndjson` continue to update.
-- [ ] Query Axiom by player, client, session, event, and Put Away operation ID.
-  Every typed field defined on each event must arrive without requiring friends
-  to export logs.
-- [ ] Turn **Share Diagnostics** off for one player. Remote forwarding stops
-  while that player's local diagnostics continue.
-- [ ] After the world is ready, run `bh debug catalog effects heal`,
-  `bh debug catalog text`, and `bh debug catalog ui toggle`. Each command
-  reports matching counts and stable donor identities. It replaces the local
-  `BenheimRuntimeCatalog.ndjson` snapshot without sending catalog entries to
-  Axiom.
-- [ ] Run one catalog command before world readiness on a later launch. It must
-  fail visibly with the missing runtime prerequisite instead of writing a
-  misleading empty snapshot.
+## Session notes
 
-### 3. Starred Boar experiment
-
-Owner: [Enemy Tiers](mods/benheim-qol/src/EnemyTiers/PRODUCT.md) and
-[Test Commands](server-mods/benheim-test-commands/PRODUCT.md).
-
-Classification: failed-candidate tuning and partially proven collider-overlay
-behavior.
-
-Status: **Passed** for the spawn commands and collider overlay presentation;
-all other scenarios are **Not run**.
-
-- [x] Run `bh help`, then `bh spawn boar 0`, `bh spawn boar 1`, and
-  `bh spawn boar 2`. Each command creates the requested native tier exactly
-  once near the administrator. Ben proved these spawn commands in gameplay.
-- [x] Run `bh debug colliders on`. For each Boar, compare its visible body and
-  head area with its cyan capsule while it stands, turns, charges, and attacks.
-  Ben reported that the cyan collider overlay looked decent on live starred
-  Boars.
-- [ ] Compare ordinary, one-star, and two-star detection, pursuit, turning,
-  shove, routine knockback resistance, bite reach, gates, slopes, and water.
-  Heavy attacks and Perfect Impact must remain useful counters.
-- [ ] Run `bh debug colliders off`. Every overlay disappears immediately.
-- [ ] Kill the spawned test Boars after the review so they do not remain in the
-  shared world.
-
-## Carryover review ledger
-
-These behaviors are not required to diagnose Put Away first. They remain
-noncanonical and must not disappear from later Product Review passes.
-
-| Behavior | Classification | Current evidence | Next proof | Status |
-| --- | --- | --- | --- | --- |
-| Perfect Impact attack-start momentum and visible text | Failed candidate stabilization | One earlier Lox operation emitted `airborne_melee_armed` with `start_forward_speed=8.068`, followed by `airborne_melee_applied` at `vertical_speed=-1.505`; feedback was placed and shake triggered. Ben's later `0.1.65` attempts emitted no Weapon Rhythm event. Candidate `0.1.66` has automated proof that each supported local Perfect Impact attempt emits either an arm event or a terminal rejection. It also proves that an armed operation emits one terminal contact or stop result. | Attempt fresh airborne primary and secondary melee swings. Use typed arm and terminal events to distinguish native-start rejection, grounded start, momentum, descent, contact, application, and text-lane outcome. | Not run |
-| Headshot exact collider volume | Candidate refinement | Geometry automated; older global headshots accepted | Hit outer head-centered collider and nearby body collider on the same creature | Not run |
-| Headshot, Cleave, mining AOE, and Perfect Impact shake | Candidate tuning | Native call sites and strengths verified | Compare each outcome with its ordinary native impact and judge distinction | Not run |
-| Shared top-left receipt lane | Candidate presentation | Layout automated | Exercise Put Away, Mass Repair, pocketing, and an active native top-left message | Not run |
-| Dangerous-area edge flash | Failed candidate presentation | Arrival logic runtime-proven; visual cue unaccepted | Enter DANGEROUS and DEADLY once with FX on, then verify suppression with FX off | Not run |
-| Cooking bonus chance | New balance behavior | Ben observed cooking bonuses and said the result seems good. Candidate `0.1.66` has automated proof for the typed `Cooking.native_bonus_roll` event without changing the native roll or bonus behavior. | Corroborate ordinary Cooking and one non-Cooking craft with typed roll events. Do not grind random samples. | Not run |
-| Comfort range at 20 meters | New balance behavior | Source-level proof | Move across the old 10-meter and new 20-meter boundaries, including another room or floor | Not run |
-| Remote station batch fill | Candidate multiplayer behavior | Axiom recorded one remote Windmill owner accepting `50/50` with `result=complete`; Ben saw the fill work | Capture requester settlement for an empty and nearly full Windmill, including accepted, refunded, inventory, and station counts | Not run |
-| Stone Oven timing and diagnostics | Candidate multiplayer behavior | Prior owner/timing logs only | Measure bake and burn windows for one recipe under the current owner | Not run |
-| Shield Generator batch fuel | New production path | Focused automated proof | Fill from empty and nearly full with exact inventory counts | Not run |
-| `/` native-console shortcut suppression | New shortcut | Ben accepted normal gameplay opening. Candidate `0.1.66` has automated proof for one typed `Shortcuts.native_console_shortcut` event per relevant keypress without changing native shortcut behavior. | Confirm that `/` opens the native console in normal gameplay and emits `opened`. Confirm chat and one menu emit terminal `rejected` reasons without opening it. | Not run |
-| Mass Repair denial and zero-result cases | Coverage gap | Main repair flow accepted | Test undamaged aim, station denial, ward denial, and exhausted tool cases | Not run |
-| Three-times-as-frequent Leech opportunities across zone owners | Candidate multiplayer balance | Source-level proof | Observe compatible clients exchanging zone ownership during an eligible spawn period | Not run |
-
-## Session results
-
-Add only decision-changing player observations here. Keep raw logs, event
-records, screenshots, hashes, and query output in their owning systems. Each
-entry states the version, scenario, observed result, and whether the row passed,
-failed, or remained blocked.
+Record only a result that changes a decision or status above. Raw events,
+screenshots, hashes, and query output stay in their owning systems.
