@@ -11,6 +11,12 @@ appear here. An omitted candidate is a tracking defect, not implicit
 acceptance. Future ideas and unresolved product choices do not belong here
 until Ben approves them for implementation or testing.
 
+> **Tomorrow:** Talk through the operator-config papercuts we hit during the
+> `0.1.66` integration. The secret check first used the wrong scope instead of
+> Doppler `valheim`/`prd`, and server status first selected the ignored
+> `server.env` that the password guard rejects. This is only a reminder. Do not
+> start cleanup before Ben and the project lead discuss it.
+
 ## Review state
 
 - Accepted client baseline: `0.1.52`
