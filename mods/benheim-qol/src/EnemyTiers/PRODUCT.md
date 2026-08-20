@@ -42,6 +42,13 @@ Ben saw the cyan collider overlay on live starred Boars in `0.1.66` and said it
 looked decent. Ben accepted the overlay's presentation. He did not accept the
 Boar profile's physical coherence or tuning.
 
+[Benheim Test Commands](../../../../server-mods/benheim-test-commands/PRODUCT.md)
+owns the accepted gameplay result for the three `bh spawn boar 0|1|2`
+requests. Runtime events recorded the configured visual scale, collision
+capsule, pathfinding agent, perception, pursuit, speed, turning, and push fields
+on live Boars. These events prove that the fields were applied, not the
+behavior or feel they produced.
+
 [`RESEARCH.md`](RESEARCH.md) owns the code evidence, multiplayer authority,
 extension seams, and Valheim `1.0` revalidation gate behind this baseline.
 
@@ -88,8 +95,8 @@ wireframe around the actual active collision capsule of each nearby non-player
 Character. The transient overlay follows the live collider as it moves or
 changes, allowing the visible body and head area of a starred Boar to be judged
 against its physics shape. It does not change physics, networking, or saved
-state. Characters without a supported active capsule are not drawn. The
-Ben accepted how the overlay looked on live starred Boars. It remains unproven
+state. Characters without a supported active capsule are not drawn. Ben
+accepted the overlay's presentation on live starred Boars. It remains unproven
 that every overlay disappears when the player turns the overlay off or during a
 world transition.
 
@@ -104,8 +111,7 @@ practical bite reach remain gameplay-unproven.
 
 For this experiment, a native administrator using Benheim `0.1.66` can request
 an ordinary Boar as a control or request a one-star or two-star native Boar.
-This requires Benheim Test Commands `0.1.1` on the dedicated server. The Boar
-spawn command remains gameplay-unproven.
+This requires Benheim Test Commands `0.1.1` on the dedicated server.
 [Benheim Test Commands](../../../../server-mods/benheim-test-commands/PRODUCT.md)
 owns the exact allowlist, admin validation, spawn authority, and result
 behavior.

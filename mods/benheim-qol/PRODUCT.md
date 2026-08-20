@@ -172,21 +172,26 @@ installer, or rare failure paths that the session did not exercise.
 Players have confirmed installation on Mac and Windows, the native menu,
 diagnostic export, Mass Repair, and doubled adrenaline with its native decay
 delay. Ben confirmed global Bow headshots on a Berserker and a Shaman in
-`0.1.49`. Ben confirmed the `0.1.49` solo Put Away behavior except for its
-receipt placement. Benheim Put Away remains in development until the new
-grouped-receipt placement passes retest and the focused two-player gameplay
-test passes. Each feature module records its confirmed behavior and remaining
-limits.
+`0.1.49`. Ben's multiplayer review accepted Put Away's owner-authoritative
+durability. The review covered repeated use, both assignments of requester and
+current chest owner, simultaneous contention followed by reuse, and exact
+accepted/refunded settlement. The Inventory module owns the remaining
+presentation and performance gates.
+
+Private typed-event delivery works for Benaldson, JayTrain, and GlIzZy.
+Axiom queries can select their events by player, client, session, event, and
+Put Away operation. When remote sharing is unavailable or disabled, local
+readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 
 ## In Development
 
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.66` is the current private-test candidate. It keeps the accepted
-Put Away cleanup from `0.1.65`. It advances Kill Attribution to V3 so a client
-and server with different chain rules fail capability discovery
-visibly instead of appearing compatible. The current rules activate BERSERKER
+Benheim `0.1.66` is the current private-test candidate. It advances Kill
+Attribution to V3. When the client and server use different chain rules,
+capability discovery fails visibly instead of making them appear compatible.
+The current rules activate BERSERKER
 at six kills and SLAUGHTERHOUSE at twelve kills, with a 30-second deadline. The
 legacy rules use three kills, six kills, and a 10-second deadline. It corrects
 duplicate perfect-defense outcomes. It also prevents passive maximum-health
@@ -194,11 +199,9 @@ normalization during food expiry from resetting UNTOUCHABLE. The candidate
 emits a typed event for each supported Perfect Impact attempt, each Cooking
 bonus roll, and each relevant `/` shortcut keypress.
 
-The candidate includes earned combat states and an owner-authoritative Put Away
-protocol. The earned combat states and the owner-authoritative Put Away protocol
-still need gameplay proof in the current candidate. The candidate also includes
-collider inspection, private typed diagnostics, and the other changes described
-below. Existing adrenaline behavior is unchanged.
+The candidate includes earned combat states, collider inspection, private
+typed diagnostics, and the other changes described below. Existing adrenaline
+behavior is unchanged.
 
 Put Away and BERSERKER/SLAUGHTERHOUSE require the matching Server Support
 candidate. The client-only runtime catalog commands do not require Server
@@ -209,10 +212,10 @@ versions and compatibility boundary.
 A live test still must prove runtime catalog command visibility and local
 snapshot cleanup.
 
-After Ben re-enabled Share Diagnostics for JayTrain, Axiom received that
-player's Player Combat events. Broader per-player queries and opt-out behavior
-remain unproven. Configured private-test builds start with sharing enabled, and
-the first run explains what the build shares. A one-time migration enables
+Configured private-test builds start with sharing enabled, and the first run
+explains what the build shares. A live test still must prove that turning
+sharing off stops remote forwarding while local diagnostics continue. A
+one-time migration enables
 sharing for legacy private-test configurations that still use the earlier
 disabled default. After the migration, the `Share Diagnostics` toggle in
 `Left Shift + B` persists the player's choice and stops remote forwarding

@@ -4,6 +4,20 @@ Player Combat owns how Benheim turns skilled and bold play into rewards that
 help the player continue the fight. Narrower modules still own their specific
 controls, attacks, meter behavior, and presentation.
 
+## Current Behavior
+
+In `0.1.66`, Ben reached UNTOUCHABLE Tier I after five confirmed perfect
+defenses without losing health. He reached Tier II after eight and Tier III
+after twelve. Tier II and Tier III each replaced the previous tier. Every
+active tier remained visible in Valheim's native status bar. Ben accepted all
+three transitions and the status presentation. Native parry chip damage reset
+the streak and removed the active tier.
+
+This acceptance covers the tier thresholds, tier replacement, reset from the
+tested native parry chip damage, and native status presentation. It does not
+prove the outgoing damage bonuses, the planned hostile-kill progression, or
+every other reset source.
+
 ## In Development
 
 Player Combat gives two types of reward:
@@ -128,14 +142,12 @@ loaded native icon in Valheim's current object database (`ObjectDB`), display in
 the native status bar, prevention of duplicate perfect-defense outcomes, reset
 after damage or intentional health costs, exclusion of passive maximum-health
 normalization from food expiry, rolling kill thresholds, and tier replacement.
-Automated checks alone do not establish gameplay acceptance. In `0.1.66`, Ben
-saw UNTOUCHABLE activate at streak counts of five, eight, and twelve and
-accepted its native status-bar presentation. One outcome per perfect defense,
-no reset from passive food normalization, reset from an intentional health
-cost, BERSERKER activation at six qualifying kills, and SLAUGHTERHOUSE
-activation at twelve qualifying kills still need gameplay proof. The approved
-server-confirmed qualifying hostile-kill input for UNTOUCHABLE is not
-implemented and has not been tested.
+Automated checks alone do not establish gameplay acceptance. One outcome per
+perfect defense, no reset from passive food normalization, reset from an
+intentional health cost, BERSERKER activation at six qualifying kills, and
+SLAUGHTERHOUSE activation at twelve qualifying kills still need gameplay
+proof. The approved server-confirmed qualifying hostile-kill input for
+UNTOUCHABLE is not implemented and has not been tested.
 
 [Adrenaline](../Adrenaline/PRODUCT.md) owns meter behavior and tuning.
 [Weapon Rhythm](../WeaponRhythm/PRODUCT.md),

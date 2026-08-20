@@ -13,24 +13,22 @@ The Production module fills routine station inputs without repeated clicks.
   `50` Barley. Another filled a Windmill from `48` to its `50`-item capacity
   by adding `2` Barley. The diagnostics used the shared Smelter component
   label, not a Windmill-specific label.
-
-## In Development
-
 - At crafting stations that use the Cooking skill, crafted food has a bonus
   chance equal to the player's Cooking factor multiplied by `0.50`. Retrieving
   completed food through a native `CookingStation` uses the same chance. A
-  successful bonus roll increments Valheim's native bonus count by exactly one.
-  Valheim owns how that count contributes to aggregate multicraft output. Other
-  crafting skills keep Valheim's native bonus chances. Each Cooking roll
-  produces one typed `Cooking.native_bonus_roll` event. The event records the
-  native game's roll, the Cooking factor, the configured chance, the resulting
-  effective chance, the outcome, and the exact bonus increment. For crafting,
-  it also reports the exact native result increment. For completed-food
-  retrieval, it reports the exact native result count. For the first
-  non-Cooking roll, the event reports
-  the native bonus gate that Benheim preserves. Benheim does not log every
-  unrelated craft. This behavior has source-level proof but still needs typed
-  gameplay proof.
+  successful roll adds one to Valheim's native bonus count. Runtime events
+  captured both successful and failed rolls, including the configured chance,
+  native skill factor, effective chance, consumed roll, and resulting native
+  count. Ben observed and accepted the bonus behavior.
+
+## In Development
+
+- Valheim owns how the Cooking bonus count contributes to aggregate multicraft
+  output. Other crafting skills must keep Valheim's native bonus chances. For
+  the first bonus roll from a skill other than Cooking, Benheim emits a typed
+  event that records that it left Valheim's native bonus decision unchanged.
+  Benheim does not log every unrelated craft. Gameplay still must prove this
+  event.
 - The Stone Oven takes half as long to bake each recipe. Its done-to-burn
   window is also halved.
 - Other cooking stations and fuel use remain unchanged.

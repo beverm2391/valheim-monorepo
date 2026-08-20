@@ -25,10 +25,16 @@ The lease does not inspect items, containers, distance, access, capacity, or
 ownership. The server routes immutable deposit requests to the chest's current
 owner and forwards owner results. The owner validates and changes the chest;
 the server does not inspect or mutate chest contents. The three-client
-`0.1.65` review proved owner mutation, result forwarding, exact requester
+`0.1.66` review proved owner mutation, result forwarding, exact requester
 settlement, cleanup after receipt presentation, and immediate lease reuse. It
 also proved that the server rejects simultaneous Put Away before the losing
 client scans or moves items.
+
+Kill Attribution V3 capability discovery and direct confirmed-kill delivery
+passed multiplayer gameplay review with the active group. Matching Kill
+Attribution V3 capability responses reached the active clients.
+Server-confirmed kills reached the credited player's client. The Controls
+warning presentation remains under review.
 
 ## In Development
 
@@ -56,9 +62,7 @@ keeps that flow and advances the protocol to Kill Attribution V3. The server
 validates each Kill Attribution V3 capability request and sends the matching
 response over the same connection. The client retries its request for up to
 five seconds.
-Automated checks cover requests, responses, retries, and timeouts. A gameplay
-retest must confirm that the client no longer shows a false capability warning
-when the server is updated. See the root
+Automated checks cover requests, responses, retries, and timeouts. See the root
 [Gameplay Breakdown](../../PRODUCT.md#gameplay-breakdown) for its required
 client version and compatibility boundary.
 
@@ -76,7 +80,8 @@ environmental deaths, assists, or kill steals. It treats Benheim's
 authenticated victim owner as Valheim's damage authority. The protocol does not
 prove behavior against a hostile client and is not an anti-cheat boundary.
 Automated checks cover authority, message format, duplicate handling, ordering,
-and the build. Multiplayer gameplay remains unproven.
+and the build. Gameplay has proved direct confirmation delivery, but not every
+qualification, rejection, ordering, or reset case.
 
 Server Support keeps one non-persistent experimental chain for each confirmed
 killer. Each qualifying kill increments the chain and resets the chain deadline

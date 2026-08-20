@@ -47,38 +47,6 @@ Use these result labels:
 - **Needs bounded probe:** ordinary play and passive logs cannot efficiently
   establish the claim.
 
-## Passed claims in `0.1.66`
-
-- **Put Away durability passed in live multiplayer.** The owner-authoritative
-  path survived rapid repeated use, both requester/current-owner arrangements,
-  simultaneous contention followed by immediate reuse, and exact
-  accepted/refunded settlement. Players observed no loss, duplication,
-  permanent lease, or chest disagreement. Crash or reconnect during an
-  in-flight reservation remains intentionally unsupported.
-- **Remote typed-event delivery passed for the active group.** Axiom received
-  typed events from Benaldson, JayTrain, and GlIzZy. Queries by player, client,
-  session, event, and Put Away operation work.
-- **Kill Attribution V3 passed.** Matching capability responses and
-  confirmed-kill delivery reached active clients. The former false-warning race
-  did not recur.
-- **UNTOUCHABLE activation, reset, and status presentation passed.** The streak
-  reached five, eight, and twelve without health loss. Tier I appeared in the
-  native status bar; Tier II and Tier III replaced their predecessors. Ben saw
-  all three transitions and accepted the presentation. Native parry chip
-  damage correctly reset the streak.
-- **Boar spawning and collider-overlay presentation passed.** `bh spawn boar
-  0|1|2` created the requested native tiers. Ben accepted how the cyan collider
-  overlay looked on live starred Boars. Runtime events recorded the configured
-  visual scale, capsule, path-agent, perception, pursuit, speed, turning, and
-  push fields for live Boars on active clients.
-- **Cooking bonus rolls passed.** Runtime events captured
-  successful and failed native bonus rolls with the configured base chance,
-  native skill factor, effective chance, consumed roll, and actual native
-  result count. Ben observed and accepted the bonuses.
-- **Native `/` opening passed.** Normal-gameplay presses opened the available,
-  enabled native console and produced exactly one typed terminal outcome per
-  press.
-
 ## Needs code before the next test
 
 | Feature | Current boundary | Next candidate |

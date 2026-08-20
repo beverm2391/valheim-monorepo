@@ -72,7 +72,7 @@ the same durability contract and pass the stale-payload regression proof.
 - Put Away emits complete typed transaction evidence. Diagnostic failures
   cannot block settlement, result delivery, batch completion, or lease
   release.
-- Ben's three-player `0.1.65` review accepted the owner-authoritative path. The
+- Ben's three-player `0.1.66` review accepted the owner-authoritative path. The
   review covered rapid repeated use, both assignments of requester and current
   chest owner, simultaneous contention followed by immediate reuse, and exact
   accepted/refunded settlement. Players saw no item loss, duplication, stuck
