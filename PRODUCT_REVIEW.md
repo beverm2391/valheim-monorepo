@@ -68,7 +68,8 @@ false Server Support warning because capability discovery raced connection
 readiness. UNTOUCHABLE could activate without proving persistent native
 status-bar presence.
 
-Status: **Not run** for `0.1.66`.
+Status: **Passed** for UNTOUCHABLE tier activation and native status-bar
+presentation in `0.1.66`; the remaining scenarios are **Not run**.
 
 Candidate `0.1.66` fixes the two outcomes that failed in `0.1.65`. Automated
 checks cover both fixes. BERSERKER now activates at six kills, and
@@ -102,6 +103,16 @@ Observed in `0.1.65`:
   duplicate-outcome fix and food-normalization reset fix have automated proof
   only; both still need the gameplay retest below.
 
+Observed in `0.1.66`:
+
+- **Passed — UNTOUCHABLE tiers and native status-bar presence.** Axiom recorded
+  the streak reaching five, eight, and twelve without health loss. At five,
+  Valheim applied Tier I and showed it in the native status bar. At eight,
+  Tier II replaced Tier I. At twelve, Tier III replaced Tier II. Ben saw all
+  three transitions and accepted the status presentation. Axiom also recorded
+  native parry chip damage resetting the streak. Passive food normalization and
+  an intentional health cost still need direct gameplay tests.
+
 - [ ] Every player joins the updated server and waits five seconds. The
   Controls menu shows no BERSERKER Server Support warning.
 - [ ] One blocked Troll attack that qualifies as a perfect parry produces one
@@ -110,12 +121,14 @@ Observed in `0.1.65`:
 - [ ] Below 30 health, complete one perfect parry or perfect dodge. `CLUTCH!`
   appears in the defense feedback, the native charm cue plays once, the
   Lingering Healing Mead icon appears, and health recovers 60 over six seconds.
-- [ ] Complete five mixed perfect parries or perfect dodges without losing
+- [x] Complete five mixed perfect parries or perfect dodges without losing
   health. `UNTOUCHABLE!` appears once and one indefinite Wolf Sight icon remains
   in the native status bar.
-- [ ] At eight defenses, `UNTOUCHABLE II!` appears and the outgoing damage
-  bonus becomes 20%. At twelve defenses, `UNTOUCHABLE III!` appears and the
-  bonus becomes 30%. One indefinite Wolf Sight icon remains throughout.
+- [x] At eight defenses, `UNTOUCHABLE II!` appears. At twelve defenses,
+  `UNTOUCHABLE III!` appears. Each tier replaces the prior tier, and one
+  indefinite Wolf Sight icon remains throughout.
+- [ ] Measure outgoing damage at Tiers I, II, and III. Confirm the configured
+  10%, 20%, and 30% bonuses against the same target and attack.
 - [ ] Take actual damage and then an intentional health cost. Each clears the
   icon and resets the streak. A blocked zero-damage contact and passive
   maximum-health normalization caused by food expiry leave both unchanged.
@@ -170,16 +183,19 @@ unproven.
 Owner: [Enemy Tiers](mods/benheim-qol/src/EnemyTiers/PRODUCT.md) and
 [Test Commands](server-mods/benheim-test-commands/PRODUCT.md).
 
-Classification: failed-candidate tuning and unproven debug presentation.
+Classification: failed-candidate tuning and partially proven collider-overlay
+behavior.
 
-Status: **Passed** for the spawn commands; collider and tuning scenarios are
-**Not run**.
+Status: **Passed** for the spawn commands and collider overlay presentation;
+all other scenarios are **Not run**.
 
 - [x] Run `bh help`, then `bh spawn boar 0`, `bh spawn boar 1`, and
   `bh spawn boar 2`. Each command creates the requested native tier exactly
   once near the administrator. Ben proved these spawn commands in gameplay.
-- [ ] Run `bh debug colliders on`. For each Boar, compare its visible body and
+- [x] Run `bh debug colliders on`. For each Boar, compare its visible body and
   head area with its cyan capsule while it stands, turns, charges, and attacks.
+  Ben reported that the cyan collider overlay looked decent on live starred
+  Boars.
 - [ ] Compare ordinary, one-star, and two-star detection, pursuit, turning,
   shove, routine knockback resistance, bite reach, gates, slopes, and water.
   Heavy attacks and Perfect Impact must remain useful counters.

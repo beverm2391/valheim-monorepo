@@ -72,6 +72,14 @@ Wolf Sight status icon. The native indefinite status shows no countdown.
 Benheim treats a tier as active only when Valheim applies the tier's native
 effect and includes that effect in the native status bar.
 
+Ben approved a future change: each server-confirmed qualifying hostile kill
+will add one point to the UNTOUCHABLE streak. Version `0.1.66` counts only
+confirmed perfect defenses. Kills will not add a timer; the streak will remain
+untimed. Accepted health loss and intentional health costs will continue to
+reset it. The first test with both defenses and kills will use thresholds of
+five, eight, and twelve. UNTOUCHABLE rewards staying unhurt, while BERSERKER
+separately rewards killing quickly.
+
 ### BERSERKER / SLAUGHTERHOUSE
 
 `BERSERKER` and `SLAUGHTERHOUSE` are two tiers of one earned state that rewards
@@ -120,10 +128,14 @@ loaded native icon in Valheim's current object database (`ObjectDB`), display in
 the native status bar, prevention of duplicate perfect-defense outcomes, reset
 after damage or intentional health costs, exclusion of passive maximum-health
 normalization from food expiry, rolling kill thresholds, and tier replacement.
-These checks do not establish gameplay acceptance. UNTOUCHABLE persistence, the
-one-outcome perfect-defense guarantee, exclusion of passive maximum-health
-normalization from food expiry, the 6/12 rolling chain, and SLAUGHTERHOUSE still
-need gameplay retesting.
+Automated checks alone do not establish gameplay acceptance. In `0.1.66`, Ben
+saw UNTOUCHABLE activate at streak counts of five, eight, and twelve and
+accepted its native status-bar presentation. One outcome per perfect defense,
+no reset from passive food normalization, reset from an intentional health
+cost, BERSERKER activation at six qualifying kills, and SLAUGHTERHOUSE
+activation at twelve qualifying kills still need gameplay proof. The approved
+server-confirmed qualifying hostile-kill input for UNTOUCHABLE is not
+implemented and has not been tested.
 
 [Adrenaline](../Adrenaline/PRODUCT.md) owns meter behavior and tuning.
 [Weapon Rhythm](../WeaponRhythm/PRODUCT.md),

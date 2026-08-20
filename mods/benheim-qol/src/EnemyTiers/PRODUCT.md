@@ -38,6 +38,10 @@ the visible size change. Physical coherence among the visible body, collision
 capsule, and player contact felt slightly off. It remains unproven and in
 development.
 
+Ben saw the cyan collider overlay on live starred Boars in `0.1.66` and said it
+looked decent. Ben accepted the overlay's presentation. He did not accept the
+Boar profile's physical coherence or tuning.
+
 [`RESEARCH.md`](RESEARCH.md) owns the code evidence, multiplayer authority,
 extension seams, and Valheim `1.0` revalidation gate behind this baseline.
 
@@ -85,7 +89,9 @@ Character. The transient overlay follows the live collider as it moves or
 changes, allowing the visible body and head area of a starred Boar to be judged
 against its physics shape. It does not change physics, networking, or saved
 state. Characters without a supported active capsule are not drawn. The
-overlay's presentation remains gameplay-unproven.
+Ben accepted how the overlay looked on live starred Boars. It remains unproven
+that every overlay disappears when the player turns the overlay off or during a
+world transition.
 
 This experiment changes Boar physical identity, force exchange, perception,
 pursuit, charge speed, and turning by native star level. The exact behavior and
