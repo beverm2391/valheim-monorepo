@@ -359,6 +359,39 @@ Use a copy of the post-migration world on the temporary server for server-mod
 validation. Use backed-up characters and a non-production session for risky
 client-mod validation.
 
+### Upstream references for mod recovery
+
+[Jere Kuusela's Valheim repositories](https://github.com/JereKuusela) are the
+first external source to inspect when Valheim 1.0 changes a native interface
+that Benheim uses. The repositories show current examples of the mechanisms
+Benheim uses for locations, prefabs, server commands, and world updates. They
+show how an implementation can work. Benheim's product contracts still define
+what each feature must do.
+
+- [valheim-dev](https://github.com/JereKuusela/valheim-dev) shows current
+  server-executed commands, native location lookup, permission checks, and
+  temporary minimap pins. Its `find` command is the reference for a Benheim
+  marker that shows only the location selected by the server.
+- [valheim-upgrade_world](https://github.com/JereKuusela/valheim-upgrade_world)
+  shows how Valheim stores, regenerates, filters, and repairs location
+  instances across world versions. Before using its world-edit operations,
+  prove them safe in a rehearsal on a copy of the production world. Until
+  then, use them only as references.
+- [valheim-expand_world_data](https://github.com/JereKuusela/valheim-expand_world_data)
+  shows current location registration, location generation, and data-driven
+  world configuration.
+- [valheim-expand_world_prefabs](https://github.com/JereKuusela/valheim-expand_world_prefabs)
+  shows current prefab discovery and loading through Valheim's asset system.
+- [valheim-world_edit_commands](https://github.com/JereKuusela/valheim-world_edit_commands)
+  and [valheim-infinity_hammer](https://github.com/JereKuusela/valheim-infinity_hammer)
+  show current administrator selection, visualization, and world-edit command
+  boundaries.
+
+At migration time, inspect the current upstream source and license before
+copying anything. Pin the exact upstream commit only when Benheim adopts code
+or a behavioral pattern. Do not import a broad upstream command or world-edit
+framework to recover one narrow Benheim feature.
+
 Restore in this order:
 
 1. Server BepInEx.

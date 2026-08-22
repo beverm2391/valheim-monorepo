@@ -35,5 +35,39 @@ spawned test Boar. Other connected players derive the same profile if they
 later own that creature. Ownership migration and physical-profile coherence
 remain unproven.
 
+### One-at-a-time Yagluth henge search
+
+`bh henge mark` is a proposed aid for native administrators who want to find
+Yagluth without revealing the boss altar or every possible search location.
+The server selects only `StoneHenge1`, `StoneHenge3`, `StoneHenge4`, and
+`StoneHenge5`. When Valheim places one of these locations, that location has
+Valheim's normal 40 percent chance of containing a Yagluth Vegvisir.
+
+The server ignores henges that Valheim already marks as placed. It sorts the
+remaining candidates by horizontal distance from world center and returns only
+the nearest candidate. The client removes its previous Benheim henge marker
+and adds one temporary native map pin named `Henge candidate`. Calling the
+`bh henge mark` command again before Valheim places that henge returns the same
+candidate. After the player approaches that henge and Valheim places it,
+calling `bh henge mark` returns the next eligible candidate.
+
+`bh henge clear` removes the temporary Benheim henge pin. Only the requesting
+administrator sees the pin, and it is not saved. After that administrator
+reconnects, `bh henge mark` recovers the nearest candidate that Valheim has
+not marked as placed from the current server state.
+
+The command does not reveal whether the candidate contains a Vegvisir. It does
+not reveal the selected henge variant or map terrain. It does not place a
+Yagluth boss marker, teleport a player, change location generation, or write
+custom progress to the world or character. A zone can become placed when a
+player travels near it without inspecting the henge. Valheim's native placement
+behavior can then cause that candidate to be skipped later. The first version
+accepts this tradeoff instead of storing discovery state for each player.
+
+The implementation should adapt the server-side location lookup and temporary
+pin pattern from the Unlicense-licensed
+[`valheim-dev` `find` command](https://github.com/JereKuusela/valheim-dev/blob/359e59c3d2fd2c40a6e2bb1e447723d6180c89b1/ServerDevcommands/Commands/Find.cs),
+without importing its general remote-command framework.
+
 [`../../mods/benheim-qol/src/EnemyTiers/PRODUCT.md`](../../mods/benheim-qol/src/EnemyTiers/PRODUCT.md)
 owns the Boar physical experiment and its gameplay acceptance boundary.
