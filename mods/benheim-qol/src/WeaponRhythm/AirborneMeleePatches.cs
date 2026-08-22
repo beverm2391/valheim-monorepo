@@ -87,55 +87,19 @@ internal static class AirborneMeleePatches
 [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.StartAttack))]
 internal static class AirborneMeleeStartPatch
 {
-    private static readonly FieldInfo PrimaryPressed = RequireInputField("m_attack");
-    private static readonly FieldInfo SecondaryPressed = RequireInputField("m_secondaryAttack");
-
-    [HarmonyPrefix]
-    private static void Prefix(
-        Humanoid __instance,
-        bool secondaryAttack,
-        out AirborneMeleeStartAttempt? __state)
-    {
-        FieldInfo inputField = secondaryAttack ? SecondaryPressed : PrimaryPressed;
-        bool freshInput = (bool)(inputField.GetValue(__instance) ?? false);
-        __state = AirborneMelee.BeginAttackAttempt(
-            __instance,
-            secondaryAttack,
-            freshInput);
-    }
-
     [HarmonyPostfix]
     private static void Postfix(
+        Humanoid __instance,
+        bool secondaryAttack,
         bool __result,
-        Attack? ___m_currentAttack,
-        AirborneMeleeStartAttempt? __state)
+        Attack? ___m_currentAttack)
     {
-        AirborneMelee.CompleteAttackAttempt(__state, ___m_currentAttack, __result);
-    }
-
-    private static FieldInfo RequireInputField(string name)
-    {
-        return AccessTools.Field(typeof(Character), name)
-            ?? throw new MissingFieldException(typeof(Character).FullName, name);
-    }
-}
-
-[HarmonyPatch(typeof(Attack), nameof(Attack.Update))]
-internal static class AirborneMeleeProgressPatch
-{
-    [HarmonyPostfix]
-    private static void Postfix(Attack __instance)
-    {
-        AirborneMelee.ObserveAttackProgress(__instance);
-    }
-}
-
-[HarmonyPatch(typeof(Attack), nameof(Attack.Stop))]
-internal static class AirborneMeleeStopPatch
-{
-    [HarmonyPostfix]
-    private static void Postfix(Attack __instance)
-    {
-        AirborneMelee.ObserveAttackStop(__instance);
+        if (__result && ___m_currentAttack != null)
+        {
+            AirborneMelee.ObserveAttackStarted(
+                __instance,
+                ___m_currentAttack,
+                secondaryAttack);
+        }
     }
 }

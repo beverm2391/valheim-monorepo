@@ -6,7 +6,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
     <Compile Include="../../src/WeaponRhythm/AirborneMeleeRules.cs" Link="AirborneMeleeRules.cs" />
     <Compile Include="../../src/WeaponRhythm/AirborneMeleeTuning.cs" Link="AirborneMeleeTuning.cs" />
+    <Compile Include="../../src/WeaponRhythm/PerfectImpactDiagnostics.cs" Link="PerfectImpactDiagnostics.cs" />
+    <Compile Include="../../src/WeaponRhythm/PerfectImpactOutcome.cs" Link="PerfectImpactOutcome.cs" />
+    <Compile Include="../../src/WeaponRhythm/PerfectImpactOutcomeDelivery.cs" Link="PerfectImpactOutcomeDelivery.cs" />
   </ItemGroup>
 </Project>
