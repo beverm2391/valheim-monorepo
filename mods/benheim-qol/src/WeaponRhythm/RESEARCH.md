@@ -314,11 +314,11 @@ state to qualify the mechanic.
 
 At the first authored `Character` contact, Benheim reads native ground state and
 physical velocity. The player must be airborne, descend at or below `-0.5 m/s`,
-and carry at least `7 m/s` toward the resolved `HitData.m_point`. A qualified
-contact applies the experimental `1.15x` damage and `3x` stagger multipliers.
-Later contacts cannot create or reverse the attack's first outcome. A later
-target receives the modifiers only if the first contact qualified and the later
-contact independently meets the same physical conditions.
+and meet the configured planar speed threshold toward `HitData.m_point`. A
+qualified contact applies the experimental `1.15x` damage and `3x` stagger
+multipliers. Later contacts cannot create or reverse the attack's first outcome.
+A later target receives the modifiers only if the first contact qualified and
+the later contact independently meets the same physical conditions.
 
 A qualified swing uses Benheim's existing attacker-local transient text lane
 for `PERFECT IMPACT` and requests the existing Combat Feedback shake controller.

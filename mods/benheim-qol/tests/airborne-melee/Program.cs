@@ -9,9 +9,18 @@ ExpectResolution(
         attackerIsGrounded: false,
         verticalSpeed: -0.5f,
         descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 7f,
+        towardTargetSpeed: 5.5f,
         approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
     "threshold contact qualifies");
+ExpectResolution(
+    PerfectImpactResolution.Applied,
+    AirborneMeleeRules.ResolveContact(
+        attackerIsGrounded: false,
+        verticalSpeed: -4.93f,
+        descentThreshold: AirborneMeleeTuning.DescentThreshold,
+        towardTargetSpeed: 6.744f,
+        approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
+    "closest clear live attempt qualifies after the threshold correction");
 ExpectResolution(
     PerfectImpactResolution.Grounded,
     AirborneMeleeRules.ResolveContact(
@@ -36,7 +45,7 @@ ExpectResolution(
         attackerIsGrounded: false,
         verticalSpeed: -5f,
         descentThreshold: AirborneMeleeTuning.DescentThreshold,
-        towardTargetSpeed: 6.99f,
+        towardTargetSpeed: 5.49f,
         approachSpeedThreshold: AirborneMeleeTuning.ApproachSpeedThreshold),
     "insufficient approach stays native");
 
@@ -70,7 +79,7 @@ ExpectFalse(
     "later target cannot qualify an already resolved attack");
 
 ExpectNear(-0.5f, AirborneMeleeTuning.DescentThreshold, "descent threshold rejects apex jitter");
-ExpectNear(7f, AirborneMeleeTuning.ApproachSpeedThreshold, "approach threshold uses sprint-band momentum");
+ExpectNear(5.5f, AirborneMeleeTuning.ApproachSpeedThreshold, "approach threshold uses the live-test correction");
 ExpectNear(1.15f, AirborneMeleeTuning.DamageMultiplier, "damage tuning stays modest");
 ExpectNear(3f, AirborneMeleeTuning.StaggerMultiplier, "stagger tuning creates an opening");
 
@@ -86,8 +95,8 @@ PerfectImpactOutcome typedOutcome = new PerfectImpactOutcome(
     attackerGrounded: false,
     verticalSpeed: -1.5f,
     descentThreshold: -0.5f,
-    towardTargetSpeed: 7.25f,
-    approachThreshold: 7f,
+    towardTargetSpeed: 5.75f,
+    approachThreshold: 5.5f,
     damageMultiplier: 1.15f,
     staggerMultiplier: 3f,
     feedback: "placed");
@@ -113,8 +122,8 @@ ExpectText("Lox(Clone)", root, "target", "typed outcome target");
 ExpectFalse(root.GetProperty("attacker_grounded").GetBoolean(), "typed outcome ground state");
 ExpectNear(-1.5f, root.GetProperty("vertical_speed").GetSingle(), "typed outcome descent");
 ExpectNear(-0.5f, root.GetProperty("descent_threshold").GetSingle(), "typed descent threshold");
-ExpectNear(7.25f, root.GetProperty("toward_target_speed").GetSingle(), "typed approach speed");
-ExpectNear(7f, root.GetProperty("approach_threshold").GetSingle(), "typed approach threshold");
+ExpectNear(5.75f, root.GetProperty("toward_target_speed").GetSingle(), "typed approach speed");
+ExpectNear(5.5f, root.GetProperty("approach_threshold").GetSingle(), "typed approach threshold");
 ExpectNear(1.15f, root.GetProperty("damage_multiplier").GetSingle(), "typed damage multiplier");
 ExpectNear(3f, root.GetProperty("stagger_multiplier").GetSingle(), "typed stagger multiplier");
 ExpectText("placed", root, "feedback", "typed feedback result");

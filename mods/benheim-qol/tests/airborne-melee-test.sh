@@ -109,7 +109,7 @@ rg -Fq 'RunOptional(emitDiagnostic, reportFailure)' "$delivery"
 rg -Fq 'nativeDamage();' "$delivery"
 
 rg -Fq 'internal const float DescentThreshold = -0.5f' "$tuning"
-rg -Fq 'internal const float ApproachSpeedThreshold = 7f' "$tuning"
+rg -Fq 'internal const float ApproachSpeedThreshold = 5.5f' "$tuning"
 rg -Fq 'internal const float DamageMultiplier = 1.15f' "$tuning"
 rg -Fq 'internal const float StaggerMultiplier = 3f' "$tuning"
 rg -Fq 'public override bool StartAttack(Character target, bool secondaryAttack)' "$native_humanoid"
