@@ -233,10 +233,12 @@ enabled.
 
 Remote schema 2 keeps identity and common selectors at the dataset root and
 duplicates the operation ID there as a root selector. It puts every
-producer-owned gameplay field under the configured Axiom `fields` map. A
-schema 2 build cannot send events until Axiom configures that map. Map
-configuration, live ingest, and mixed-history APL query proof remain open
-because the provider returns 403 for the available write scope.
+producer-owned gameplay field under the configured Axiom `fields` map. Live
+provider proof ingested one schema 2 event with 300 newly named producer-owned
+fields. After Axiom added the `fields` map, ingesting the event left the dataset
+schema at 257 entries: 256 prior fields plus the map. An APL query returned one
+nested key successfully. The developer query command normalized the map-backed
+event to the same flat result shape as old flat events.
 
 All Benheim feedback that belongs in the top-left area shares one Benheim-owned
 lane directly beneath the live hotbar. The lane carries grouped receipts for
