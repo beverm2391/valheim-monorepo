@@ -57,7 +57,7 @@ test_commands_checksum=2a15b0714a81ae518ac1d8ab8d0f8e16a87eecc39d4e32ca8b75316b0
 actual_test_commands_checksum="$(shasum -a 256 "$test_commands_plugin" | awk '{print $1}')"
 [[ "$actual_test_commands_checksum" == "$test_commands_checksum" ]] || fail "test-command plugin checksum changed"
 assert_contains "installer pins the test-command plugin checksum" "$test_commands_checksum" "$installer"
-server_support_checksum=cbfcf5b7891c5e3a0a8ebddfb2cfdc19fc708dd54f3a834bcc441bf3ce3e6eca
+server_support_checksum=816312e1dfd9c41a3e7bed800864c7597d6f1552f5f4966f1055a618f8cd666c
 actual_server_support_checksum="$(shasum -a 256 "$server_support_plugin" | awk '{print $1}')"
 [[ "$actual_server_support_checksum" == "$server_support_checksum" ]] || fail "server-support plugin checksum changed"
 assert_contains "installer pins the server-support plugin checksum" "$server_support_checksum" "$installer"
@@ -87,7 +87,7 @@ if strings "$plugin" | grep -Fiq "Jotunn"; then
 fi
 assert_contains "plugin source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$plugin_source"
 assert_contains "test-command source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$test_commands_source"
-assert_contains "server-support source pins version 0.1.4" 'PluginVersion = "0.1.4"' "$server_support_source"
+assert_contains "server-support source pins version 0.1.5" 'PluginVersion = "0.1.5"' "$server_support_source"
 assert_contains \
   "plugin logs the exact post-PatchAll message" \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
@@ -160,7 +160,7 @@ printf '%s\n' \
   'Game server connected' \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
   'Benheim Test Commands 0.1.1 loaded with direct peer RPC authorization.' \
-  'Benheim Server Support 0.1.4 loaded with Put Away and confirmed-kill coordination.' \
+  'Benheim Server Support 0.1.5 loaded with Put Away and confirmed-kill coordination.' \
   > "$tmp_dir/journal.log"
 printf '%s\n' 0 > "$tmp_dir/journal.count"
 MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
@@ -195,7 +195,7 @@ assert_contains \
   "$verifier"
 assert_contains \
   "verifier requires Server Support's exact load message" \
-  'Benheim Server Support 0.1.4 loaded with Put Away and confirmed-kill coordination.' \
+  'Benheim Server Support 0.1.5 loaded with Put Away and confirmed-kill coordination.' \
   "$verifier"
 assert_contains "verifier requires the configured world" 'Load world: $world ($world)' "$verifier"
 assert_contains "verifier requires normal readiness" 'Game server connected' "$verifier"

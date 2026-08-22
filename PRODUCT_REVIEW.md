@@ -18,7 +18,9 @@ test. A behavior is canonical only when its owning `PRODUCT.md` lists it under
 - Installed private-test client: `0.1.66`
 - Deployed Server Support: `0.1.4`
 - Deployed Test Commands: `0.1.1`
-- Required group version for this pass: Benheim `0.1.66`
+- Prepared private-test candidate: Benheim `0.1.67`
+- Required Server Support for this pass: `0.1.5`
+- Required group version for this pass: Benheim `0.1.67`
 
 ## How proof works
 
@@ -47,16 +49,6 @@ Use these result labels:
 - **Needs bounded probe:** ordinary play and passive logs cannot efficiently
   establish the claim.
 
-## Needs code before the next test
-
-| Feature | Current boundary | Next candidate |
-| --- | --- | --- |
-| Perfect Impact | **Failed for the tested primary attacks.** Their airborne starts were rejected, while accepted attacks were buffered until grounded. Repeating that technique has no decision value. | Qualify at the authored `Character` contact. Require the player to be airborne, descending at `0.5 m/s` or faster, and moving toward the target at least `7 m/s`. Keep one outcome per attack, `1.15x` damage, and `3x` stagger. |
-| Earned-buff payloads | **Needs code.** Status application and native status-bar presence do not prove the bonuses. | Add shared bounded payload telemetry. Record actual CLUTCH healing ticks, the first modified UNTOUCHABLE hit in each tier, and the first stamina-regeneration and resistance result in each BERSERKER or SLAUGHTERHOUSE activation. |
-| UNTOUCHABLE progression | **Needs code.** Version `0.1.66` counts only confirmed perfect defenses. | Add one point for each server-confirmed qualifying hostile kill. Keep the shared untimed streak, 5/8/12 thresholds, and reset on accepted health loss or intentional health cost. |
-| Put Away timing profile | **Needs code.** Batch start and finish events show nontrivial wall-clock time but do not locate the cost. | Record bounded timings for scanning, routing, owner mutation, and settlement. Optimize only a measured bottleneck without weakening durability. Add immediate loading feedback only if the measured delay remains visible. |
-| Cultivator grid | **Needs code.** Mass planting is fixed at 5x5. | Change the fixed grid to 9x9 while preserving native resources, stamina, durability, spacing, cultivated-ground checks, ownership, effects, skill gain, and preview behavior. |
-
 ## Ready to test without more code
 
 ### Player Combat
@@ -73,6 +65,15 @@ Use these result labels:
 - Below 30 health, a perfect parry or dodge activates CLUTCH, shows its title and
   icon, and plays one native charm cue. This test covers only activation and
   presentation.
+- Each server-confirmed qualifying hostile kill adds one point to the same
+  untimed UNTOUCHABLE streak as a confirmed perfect defense. Mixed kills and
+  defenses reach Tier I at five points, Tier II at eight, and Tier III at
+  twelve. Accepted health loss and intentional health costs reset the streak.
+- CLUTCH records each native one-second healing tick. Each UNTOUCHABLE tier
+  records its first modified outgoing hit. Each BERSERKER or SLAUGHTERHOUSE
+  activation records its first stamina-regeneration and physical-resistance
+  result. Every payload record includes the native input, configured modifier,
+  and resolved output. These events prove the measured payload, not its feel.
 - Join after Kill Attribution V3 capability discovery and inspect the Controls
   warning state. No stale capability warning remains after the matching
   response arrives.
@@ -99,11 +100,37 @@ Use these result labels:
   spawned test Boars afterward so they do not remain in the shared world.
 - Hit the outer head-centered collider and nearby body collider on the same
   creature to accept the refined headshot volume.
-- Compare headshot, Cleave, and mining AOE shake against their ordinary native
-  impacts. Ben judges whether each feels distinct. Test Perfect Impact shake
-  only after the replacement candidate can produce a qualified hit.
+- While the local player is airborne, connect a supported melee attack with a
+  Valheim `Character`. The player must descend at least `0.5 m/s` and move
+  horizontally toward the contact point at least `7 m/s`. Only the attack's
+  first authored contact with a `Character` produces an outcome. A qualified
+  contact applies `1.15x` native damage and `3x` native stagger once. It also
+  shows one `PERFECT IMPACT`, even when Benheim FX is off. Contacts remain
+  native when the player is grounded, rising, or below the approach threshold.
+  Contacts with terrain, destructibles, or gathering targets also remain
+  native.
+- Compare headshot, Cleave, mining AOE, and qualified Perfect Impact shake
+  against their ordinary native impacts. Ben judges whether each feels
+  distinct. Combat Shake and Benheim FX settings gate only Perfect Impact's
+  shake, not its damage, stagger, outcome, or text.
 - Exercise Put Away, Mass Repair, pocketing, and an active native top-left
   message together to accept the shared receipt lane.
+- Run Put Away across several eligible chests. Existing terminal events record
+  exactly five duration fields from a monotonic clock:
+
+  1. Whole batch
+  2. Aggregate scan and match
+  3. Routing and owner handoff
+  4. Owner mutation
+  5. Requester settlement
+
+  The timing fields must not affect routing, mutation, settlement, or
+  completion.
+- Hold `Left Shift` while planting with the Cultivator. The preview and
+  placement form the same centered, deterministic 9x9 grid. Resource use,
+  stamina, durability, spacing, cultivated-ground checks, creator ownership,
+  effects, statistics, skill gain, rotation, and per-position preview validity
+  remain native.
 - Enter DANGEROUS and DEADLY once with FX enabled, then verify suppression with
   FX disabled.
 - Cross the old 10-meter and new 20-meter comfort boundaries, including another

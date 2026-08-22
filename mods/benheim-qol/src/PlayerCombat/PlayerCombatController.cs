@@ -103,20 +103,6 @@ internal sealed class PlayerCombatController
             serverSequence: null);
     }
 
-    internal void Observe(ConfirmedKill confirmedKill)
-    {
-        if (confirmedKill.Killer.Player != player)
-        {
-            return;
-        }
-
-        AdvanceUntouchable(
-            confirmedKill.Killer,
-            UntouchableProgressSource.ConfirmedKill,
-            defense: null,
-            confirmedKill.ServerSequence);
-    }
-
     private void AdvanceUntouchable(
         PlayerCombatContext context,
         UntouchableProgressSource source,
@@ -191,6 +177,19 @@ internal sealed class PlayerCombatController
         if (transition.Context.Player != player)
         {
             return;
+        }
+
+        if (transition.Kind != BerserkerChainTransitionKind.Expired)
+        {
+            // Server Support emits one non-expiry transition for each kill
+            // that passes its hostile-creature qualification. Broad confirmed
+            // kill delivery also includes excluded creatures and is diagnostic
+            // only, so it cannot safely advance the shared streak.
+            AdvanceUntouchable(
+                transition.Context,
+                UntouchableProgressSource.ConfirmedKill,
+                defense: null,
+                transition.ServerSequence);
         }
 
         float remainingDuration = transition.RemainingDurationSeconds(

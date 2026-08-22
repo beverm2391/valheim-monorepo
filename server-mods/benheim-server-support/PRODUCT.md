@@ -38,6 +38,12 @@ warning presentation remains under review.
 
 ## In Development
 
+Version `0.1.5` keeps the accepted Put Away protocol, lease generation `v2`,
+transaction generation `v4`, and Kill Attribution V3 behavior from `0.1.4`.
+It adds only the server-side part of the bounded Put Away timing telemetry. The
+client and server compile this telemetry from shared source. The telemetry does
+not affect protocol decisions or transaction progress.
+
 Version `0.1.4` changes the experimental confirmed-kill chain to six kills for
 BERSERKER, twelve kills for SLAUGHTERHOUSE, and a 30-second rolling deadline.
 It advances Kill Attribution to V3 so capability discovery fails visibly when

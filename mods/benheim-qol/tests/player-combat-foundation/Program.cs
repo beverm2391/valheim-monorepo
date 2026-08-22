@@ -1,3 +1,4 @@
+// loc-check: limit 700 warn: 650
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -11,7 +12,7 @@ SupportTests.TestOrderedFailureIsolationAndReset();
 SupportTests.TestClutchDecisionRefreshAndDamageLifecycle();
 PerfectDefenseOutcomeIdentityTests.Run();
 TestUntouchableMixedDefenseTiersAndDamageReset();
-TestUntouchableSharesConfirmedKillsAndPerfectDefenses();
+TestUntouchableSharesQualifiedKillsAndPerfectDefenses();
 SupportTests.TestHealthLossWithoutUntouchableStateIsNotAReset();
 TestRejectedUntouchableEscalationKeepsPriorTier();
 TestBerserkerConsumesAuthoritativeChainTransitions();
@@ -73,7 +74,7 @@ static void TestUntouchableMixedDefenseTiersAndDamageReset()
         "zero-health-loss contact emits no reset fact");
 }
 
-static void TestUntouchableSharesConfirmedKillsAndPerfectDefenses()
+static void TestUntouchableSharesQualifiedKillsAndPerfectDefenses()
 {
     Player player = new Player(80f, 100f);
     FakeOutput output = new FakeOutput();
@@ -81,17 +82,32 @@ static void TestUntouchableSharesConfirmedKillsAndPerfectDefenses()
     PlayerCombatController controller = new PlayerCombatController(player, output, facts);
 
     controller.Observe(Defense(player, PerfectDefenseKind.Parry));
-    controller.Observe(Kill(player, serverSequence: 10));
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Progressed,
+        BerserkerChainTier.None,
+        killCount: 1,
+        serverSequence: 10));
     controller.Observe(Defense(player, PerfectDefenseKind.Dodge));
-    controller.Observe(Kill(player, serverSequence: 11));
-    controller.Observe(Kill(player, serverSequence: 12));
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Progressed,
+        BerserkerChainTier.None,
+        killCount: 2,
+        serverSequence: 11));
+    controller.Observe(BerserkerTransition(
+        player,
+        BerserkerChainTransitionKind.Progressed,
+        BerserkerChainTier.None,
+        killCount: 3,
+        serverSequence: 12));
 
     Expect(controller.UntouchableStreak == 5,
-        "confirmed kills and perfect defenses advance one shared UNTOUCHABLE streak");
+        "qualified kills and perfect defenses advance one shared UNTOUCHABLE streak");
     Expect(controller.EarnedTier(EarnedCombatState.Untouchable) == 1,
         "the mixed fifth qualifying action activates Tier I at the existing threshold");
     Expect(facts.Untouchable.Count == 5,
-        "each confirmed kill and perfect defense emits exactly one progress fact");
+        "each qualified kill and perfect defense emits exactly one progress fact");
     Expect(facts.Untouchable[1].Source == UntouchableProgressSource.ConfirmedKill
             && facts.Untouchable[1].ServerSequence == 10
             && !facts.Untouchable[1].Defense.HasValue,
@@ -105,7 +121,19 @@ static void TestUntouchableSharesConfirmedKillsAndPerfectDefenses()
 
     for (long sequence = 13; sequence <= 19; sequence++)
     {
-        controller.Observe(Kill(player, sequence));
+        int killCount = (int)(sequence - 9);
+        controller.Observe(BerserkerTransition(
+            player,
+            killCount == 6
+                ? BerserkerChainTransitionKind.Activated
+                : killCount > 6
+                    ? BerserkerChainTransitionKind.Refreshed
+                    : BerserkerChainTransitionKind.Progressed,
+            killCount >= 6
+                ? BerserkerChainTier.Berserker
+                : BerserkerChainTier.None,
+            killCount,
+            sequence));
     }
 
     Expect(controller.UntouchableStreak == 12
@@ -431,6 +459,8 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
         BerserkerChainTransitionKind.Progressed,
         BerserkerChainTier.None,
         killCount: 5));
+    Expect(controller.UntouchableStreak == 1,
+        "qualified progress advances UNTOUCHABLE exactly once");
     Expect(!controller.HasEarned(EarnedCombatState.Berserker),
         "server progress below Tier I has no native output");
 
@@ -439,6 +469,8 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
         BerserkerChainTransitionKind.Activated,
         BerserkerChainTier.Berserker,
         killCount: 6));
+    Expect(controller.UntouchableStreak == 2,
+        "qualified activation advances UNTOUCHABLE exactly once");
     Expect(controller.EarnedTier(EarnedCombatState.Berserker) == 1,
         "authoritative activation applies BERSERKER Tier I");
     Expect(Math.Abs(output.LastDurationSeconds!.Value - 26f) < 0.001f,
@@ -449,6 +481,8 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
         BerserkerChainTransitionKind.Refreshed,
         BerserkerChainTier.Berserker,
         killCount: 7));
+    Expect(controller.UntouchableStreak == 3,
+        "qualified refresh advances UNTOUCHABLE exactly once");
     Expect(facts.Transitions[^1].Kind == EarnedStateTransitionKind.Refreshed,
         "intermediate kill refresh stays presentation-silent");
 
@@ -457,6 +491,8 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
         BerserkerChainTransitionKind.Escalated,
         BerserkerChainTier.Slaughterhouse,
         killCount: 12));
+    Expect(controller.UntouchableStreak == 4,
+        "qualified escalation advances UNTOUCHABLE exactly once");
     Expect(controller.EarnedTier(EarnedCombatState.Berserker) == 2,
         "authoritative escalation replaces Tier I with SLAUGHTERHOUSE");
     Expect(output.ActiveTier(EarnedCombatState.Berserker) == 2,
@@ -467,6 +503,8 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
         BerserkerChainTransitionKind.Expired,
         BerserkerChainTier.None,
         killCount: 0));
+    Expect(controller.UntouchableStreak == 4,
+        "chain expiry does not invent UNTOUCHABLE progress");
     Expect(!controller.HasEarned(EarnedCombatState.Berserker),
         "authoritative expiry quietly removes the local output");
     ZNet.instance = null;

@@ -88,13 +88,13 @@ grep -Fq 'effect.m_modifyAttackSkill = Skills.SkillType.All;' "$untouchable"
 grep -Fq 'DamageIconItemPrefab = "TrinketSilverDamage"' "$untouchable"
 grep -Fq 'Deactivate(' "$controller"
 grep -Fq 'EarnedStateTransitionReason.AcceptedDamage' "$controller"
-grep -Fq 'Observe(ConfirmedKill confirmedKill)' "$controller"
 grep -Fq 'AdvanceUntouchable(' "$controller"
-grep -Fq 'Subscribe<ConfirmedKill>(ObserveConfirmedKill)' "$runtime"
-confirmed_kill_controller_line="$(grep -n 'Subscribe<ConfirmedKill>(ObserveConfirmedKill)' "$runtime" | cut -d: -f1)"
-confirmed_kill_diagnostic_line="$(grep -n 'Subscribe<ConfirmedKill>(PlayerCombatDiagnostics.Project)' "$runtime" | cut -d: -f1)"
-if (( confirmed_kill_controller_line >= confirmed_kill_diagnostic_line )); then
-  printf 'confirmed kills must advance UNTOUCHABLE before whole-event diagnostics\n' >&2
+grep -Fq 'transition.Kind != BerserkerChainTransitionKind.Expired' "$controller"
+grep -Fq 'transition.ServerSequence' "$controller"
+grep -Fq 'Subscribe<ConfirmedKill>(PlayerCombatDiagnostics.Project)' "$runtime"
+if grep -Fq 'Subscribe<ConfirmedKill>(ObserveConfirmedKill)' "$runtime" \
+    || grep -Fq 'Observe(ConfirmedKill confirmedKill)' "$controller"; then
+  printf 'broad confirmed-kill delivery must remain diagnostic-only\n' >&2
   exit 1
 fi
 

@@ -151,7 +151,7 @@ technical cost.
 | [Player Combat](src/PlayerCombat/PRODUCT.md) | Reward skilled and bold play with adrenaline and earned combat states. |
 | [Adrenaline](src/Adrenaline/PRODUCT.md) | Adrenaline gain, perfect-defense feedback, and decay timing. |
 | [Archery](src/Archery/PRODUCT.md) | Global arrow headshots and collision-time feedback. |
-| [Farming](src/Farming/PRODUCT.md) | Mass harvesting and 5x5 grid planting. |
+| [Farming](src/Farming/PRODUCT.md) | Mass harvesting and Cultivator grid planting. |
 | [Spawning](src/Spawning/PRODUCT.md) | Adjust spawn opportunities for selected native creatures. |
 | [Enemy Tiers](src/EnemyTiers/PRODUCT.md) | Extend native stars and creature behavior with coherent mechanical and AI variation. |
 | [Affinities](src/Affinities/PRODUCT.md) | Create weapon variation through existing combat properties and meaningful tradeoffs. |
@@ -188,24 +188,28 @@ readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.66` is the current private-test candidate. It advances Kill
-Attribution to V3. When the client and server use different chain rules,
-capability discovery fails visibly instead of making them appear compatible.
-The current rules activate BERSERKER
-at six kills and SLAUGHTERHOUSE at twelve kills, with a 30-second deadline. The
-legacy rules use three kills, six kills, and a 10-second deadline. It corrects
-duplicate perfect-defense outcomes. It also prevents passive maximum-health
-normalization during food expiry from resetting UNTOUCHABLE. The candidate
-emits a typed event for each supported Perfect Impact attempt, each Cooking
-bonus roll, and each relevant `/` shortcut keypress.
+Benheim `0.1.67` is the current private-test candidate. It keeps the Kill
+Attribution V3 capability boundary and the 6/12 kill-chain thresholds from
+`0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
+untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
+for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
+
+The candidate also changes the Cultivator's centered grid from 5x5 to 9x9.
+Perfect Impact now qualifies at the first `Character` contact authored for the
+attack. This replaces the attack-start check that failed in testing. Put Away
+emits bounded timing data for scanning, routing, owner mutation, requester
+settlement, and the whole batch. The timing data does not change its protocol
+or gameplay.
 
 The candidate includes earned combat states, collider inspection, private
 typed diagnostics, and the other changes described below. Existing adrenaline
 behavior is unchanged.
 
 Put Away and BERSERKER/SLAUGHTERHOUSE require the matching Server Support
-candidate. The client-only runtime catalog commands do not require Server
-Support. See the root [Gameplay
+candidate. Server Support `0.1.5` keeps lease generation `v2`, transaction
+generation `v4`, and Kill Attribution V3. Its binary changes because it shares
+the new Put Away timing telemetry. The client-only runtime catalog commands do
+not require Server Support. See the root [Gameplay
 Breakdown](../../PRODUCT.md#gameplay-breakdown) for the exact client and server
 versions and compatibility boundary.
 

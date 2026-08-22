@@ -67,7 +67,6 @@ internal static class PlayerCombatRuntime
         events.Subscribe<PlayerCombatSessionEnded>(ObserveSessionEnded);
         events.Subscribe<PlayerCombatSessionEnded>(PlayerCombatDiagnostics.Project);
 
-        events.Subscribe<ConfirmedKill>(ObserveConfirmedKill);
         events.Subscribe<ConfirmedKill>(PlayerCombatDiagnostics.Project);
     }
 
@@ -199,11 +198,6 @@ internal static class PlayerCombatRuntime
     private static void ObserveBerserkerTransition(BerserkerChainTransition transition)
     {
         GetOrCreate(transition.Context.Player).Observe(transition);
-    }
-
-    private static void ObserveConfirmedKill(ConfirmedKill confirmedKill)
-    {
-        GetOrCreate(confirmedKill.Killer.Player).Observe(confirmedKill);
     }
 
     private static void ObservePlayerEnded(PlayerCombatEnded ended)

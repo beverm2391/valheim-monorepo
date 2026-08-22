@@ -186,7 +186,8 @@ internal static class TestSupport
         Player player,
         BerserkerChainTransitionKind kind,
         BerserkerChainTier tier,
-        int killCount)
+        int killCount,
+        long serverSequence = 20)
     {
         bool terminal = kind == BerserkerChainTransitionKind.Expired;
         return new BerserkerChainTransition(
@@ -194,7 +195,7 @@ internal static class TestSupport
             kind,
             tier,
             killCount,
-            serverSequence: 20,
+            serverSequence,
             serverTimeSeconds: 100d,
             expiresAtServerTimeSeconds: terminal ? 0d : 130d);
     }
