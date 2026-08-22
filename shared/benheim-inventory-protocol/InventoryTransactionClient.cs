@@ -180,6 +180,8 @@ internal static partial class InventoryTransactions
             return;
         }
 
+        pending.RoutingOwnerHandoffDurationMs ??=
+            PutAwayStageTiming.ElapsedMilliseconds(pending.RoutingOwnerHandoffStartedAt);
         Player? localPlayer = Player.m_localPlayer;
         if (!InventoryTransactionLifecyclePolicy.CanSettle(localPlayer))
         {
@@ -203,6 +205,7 @@ internal static partial class InventoryTransactions
         }
 
         InventoryTransactionSettlement completedSettlement = settlement!;
+        long settlementStartedAt = PutAwayStageTiming.Start();
         List<DepositResultEntry> entries = new(pending.Items.Count);
         List<int> refunded = completedSettlement.Rejected.ToList();
         List<int> dropped = Enumerable.Repeat(0, pending.Items.Count).ToList();
@@ -226,6 +229,8 @@ internal static partial class InventoryTransactions
             entries.Add(new DepositResultEntry(reserved.Item, acceptedAmount));
             accepted[index] = acceptedAmount;
         }
+        double requesterSettlementDurationMs =
+            PutAwayStageTiming.ElapsedMilliseconds(settlementStartedAt);
         DepositResult result = new DepositResult(status, entries);
         ClientPending.Remove(transactionId);
         try
@@ -235,7 +240,14 @@ internal static partial class InventoryTransactions
         finally
         {
             TrySendReceiptAcknowledgement(pending);
-            EmitSettledResult(pending, result, completedSettlement.Accepted, refunded, dropped);
+            EmitSettledResult(
+                pending,
+                result,
+                completedSettlement.Accepted,
+                refunded,
+                dropped,
+                pending.RoutingOwnerHandoffDurationMs.Value,
+                requesterSettlementDurationMs);
         }
     }
 
@@ -244,7 +256,9 @@ internal static partial class InventoryTransactions
         DepositResult result,
         IReadOnlyList<int> accepted,
         IReadOnlyList<int> refunded,
-        IReadOnlyList<int> dropped)
+        IReadOnlyList<int> dropped,
+        double routingOwnerHandoffDurationMs,
+        double requesterSettlementDurationMs)
     {
         Emit(
             InventoryTransactionDiagnosticEvent.Create("client_result", "requester")
@@ -260,6 +274,8 @@ internal static partial class InventoryTransactions
                 .Integer("accepted_count", accepted.Sum())
                 .Integer("refunded_count", refunded.Sum())
                 .Integer("dropped_count", dropped.Sum())
+                .Number("routing_owner_handoff_duration_ms", routingOwnerHandoffDurationMs)
+                .Number("requester_settlement_duration_ms", requesterSettlementDurationMs)
                 .Text("requested_items", DescribeReserved(pending.Items))
                 .Text("accepted_items", DescribeAccepted(pending.Items, accepted))
                 .Text("refunded_items", DescribeRefunded(pending.Items, refunded))

@@ -61,18 +61,30 @@ internal static partial class QuickStack
             inventoryWasOpen);
     }
 
-    private static void BeginAfterLeaseGranted(string operationId, QuickStackStartRequest start)
+    private static void BeginAfterLeaseGranted(
+        string operationId,
+        long batchStartedAt,
+        QuickStackStartRequest start)
     {
         Player player = start.Player;
+        long scanMatchStartedAt = PutAwayStageTiming.Start();
         List<Container> containers = NearbyContainerIndex.FindAccessibleContainers(player, Radius, start.CurrentContainer);
+        double scanMatchDurationMs = PutAwayStageTiming.ElapsedMilliseconds(scanMatchStartedAt);
         Diagnostics.Event("Inventory", "quick_stack_scan", $"containers={containers.Count}");
         if (containers.Count == 0)
         {
-            FinishWithNoContainers(operationId, player, start.InventoryWasOpen);
+            FinishWithNoContainers(
+                operationId,
+                batchStartedAt,
+                scanMatchDurationMs,
+                player,
+                start.InventoryWasOpen);
             return;
         }
 
+        scanMatchStartedAt = PutAwayStageTiming.Start();
         QuickStackEligibility eligibility = QuickStackTransfer.FindEligibleContainers(player, containers);
+        scanMatchDurationMs += PutAwayStageTiming.ElapsedMilliseconds(scanMatchStartedAt);
         Diagnostics.Event(
             "Inventory",
             "quick_stack_eligibility",
@@ -82,6 +94,8 @@ internal static partial class QuickStack
         {
             FinishWithNoEligibleContainers(
                 operationId,
+                batchStartedAt,
+                scanMatchDurationMs,
                 player,
                 start.InventoryWasOpen,
                 containers.Count,
@@ -91,10 +105,12 @@ internal static partial class QuickStack
 
         activeOperation = new QuickStackOperation(
             operationId,
+            batchStartedAt,
             player,
             start.InventoryGui,
             eligibility.Containers,
-            start.InventoryWasOpen);
+            start.InventoryWasOpen,
+            scanMatchDurationMs);
         RequestNextContainer();
     }
 
@@ -114,7 +130,9 @@ internal static partial class QuickStack
                 continue;
             }
 
+            long scanMatchStartedAt = PutAwayStageTiming.Start();
             List<DepositCandidate> candidates = QuickStackTransfer.FindCandidates(operation.Player, container);
+            operation.ScanMatchDurationMs += PutAwayStageTiming.ElapsedMilliseconds(scanMatchStartedAt);
             if (candidates.Count == 0)
             {
                 continue;
@@ -227,7 +245,9 @@ internal static partial class QuickStack
                     operation.OperationId,
                     "cancelled",
                     "container_completion_failed",
-                    operation.MovedItems);
+                    operation.MovedItems,
+                    PutAwayStageTiming.ElapsedMilliseconds(operation.BatchStartedAt),
+                    operation.ScanMatchDurationMs);
             }
 
             Diagnostics.Event(
@@ -294,7 +314,9 @@ internal static partial class QuickStack
                 activeOperation.OperationId,
                 "cancelled",
                 "client_reset",
-                activeOperation.MovedItems);
+                activeOperation.MovedItems,
+                PutAwayStageTiming.ElapsedMilliseconds(activeOperation.BatchStartedAt),
+                activeOperation.ScanMatchDurationMs);
         }
         pendingStart = null;
         activeOperation = null;
@@ -343,8 +365,9 @@ internal static partial class QuickStack
             DiagnosticEvent.Create("Inventory", "quick_stack_lease_entered")
                 .String("operation_id", result.OperationId)
                 .String("operation_phase", "mutation_allowed"));
+        long batchStartedAt = PutAwayStageTiming.Start();
         InventoryTransactions.BatchStarted(result.OperationId);
-        BeginAfterLeaseGranted(result.OperationId, start);
+        BeginAfterLeaseGranted(result.OperationId, batchStartedAt, start);
     }
 
     private static void RestoreBulkScope(QuickStackBulkScope? scope)
@@ -360,91 +383,6 @@ internal static partial class QuickStack
         // Put Away no longer invokes requester-local StackAll. Ordinary native
         // Stack All messages therefore remain untouched.
         return false;
-    }
-
-    private static void Finish(QuickStackOperation operation)
-    {
-        activeOperation = null;
-        PutAwayLeaseClient.Release("batch_finished");
-        InventoryTransactions.BatchFinished(
-            operation.OperationId,
-            "completed",
-            "batch_finished",
-            operation.MovedItems);
-        Diagnostics.Event(
-            "Inventory",
-            "quick_stack_finished",
-            $"moved={operation.MovedItems} busy_containers={operation.BusyContainers}");
-        if (operation.MovedItems > 0)
-        {
-            operation.InventoryGui.m_moveItemEffects.Create(
-                operation.InventoryGui.transform.position,
-                Quaternion.identity);
-            QuickStackFeedback.ShowDetailedResult(
-                operation.Player,
-                operation.InventoryWasOpen,
-                operation.Summary.Format());
-            QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
-                operation.Player,
-                operation.InventoryWasOpen,
-                operation.MovedItems);
-            return;
-        }
-
-        QuickStackFeedback.ShowDetailedResult(
-            operation.Player,
-            operation.InventoryWasOpen,
-            QuickStackMessages.NothingMoved(operation.Containers.Count, 0, 0, operation.BusyContainers));
-        QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
-            operation.Player,
-            operation.InventoryWasOpen,
-            movedItems: 0);
-    }
-
-    private static void FinishWithNoContainers(
-        string operationId,
-        Player player,
-        bool inventoryWasOpen)
-    {
-        PutAwayLeaseClient.Release("no_nearby_containers");
-        InventoryTransactions.BatchFinished(
-            operationId,
-            "completed",
-            "no_nearby_containers",
-            acceptedCount: 0);
-        Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_nearby_containers");
-        QuickStackFeedback.ShowDetailedResult(player, inventoryWasOpen, "No nearby containers");
-        QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(player, inventoryWasOpen, movedItems: 0);
-    }
-
-    private static void FinishWithNoEligibleContainers(
-        string operationId,
-        Player player,
-        bool inventoryWasOpen,
-        int containerCount,
-        QuickStackEligibility eligibility)
-    {
-        PutAwayLeaseClient.Release("no_eligible_containers");
-        InventoryTransactions.BatchFinished(
-            operationId,
-            "completed",
-            "no_eligible_containers",
-            acceptedCount: 0);
-        Diagnostics.Event("Inventory", "quick_stack_finished", "moved=0 reason=no_eligible_containers");
-        QuickStackFeedback.ShowDetailedResult(
-            player,
-            inventoryWasOpen,
-            QuickStackMessages.NothingMoved(
-                containerCount,
-                eligibility.SkippedNoMatchingContainer,
-                eligibility.SkippedFull,
-                skippedBusy: 0));
-        QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(player, inventoryWasOpen, movedItems: 0);
-    }
-
-    private static string Localize(string name)
-    {
-        return Localization.instance != null ? Localization.instance.Localize(name) : name.TrimStart('$');
     }
 
 }

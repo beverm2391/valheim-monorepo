@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BenheimInventoryProtocol;
 
-internal static class InventoryTransactionOwner
+internal static partial class InventoryTransactionOwner
 {
     private const float MaxDistance = 35f;
     private static readonly FieldInfo NetworkViewField = AccessTools.Field(typeof(Container), "m_nview");
@@ -138,6 +138,7 @@ internal static class InventoryTransactionOwner
 
         long revisionBefore = zdo!.DataRevision;
         string contentsBefore = InventoryTransactions.DescribeInventory(container!.GetInventory());
+        long ownerMutationStartedAt = PutAwayStageTiming.Start();
         DepositStatus validation = Validate(
             container!,
             requester,
@@ -156,6 +157,7 @@ internal static class InventoryTransactionOwner
         }
 
         InventoryTransactionReceipts.Record(zdo!, transactionId, payloadHash, validation, accepted);
+        long ownerMutationCompletedAt = PutAwayStageTiming.Start();
         SendResult(requester, InventoryTransactionWire.BuildResponse(
             transactionId, payloadHash, validation, accepted));
         InventoryTransactionDiagnosticEvent resultEvent =
@@ -171,6 +173,11 @@ internal static class InventoryTransactionOwner
                 .Integer("revision_after", zdo.DataRevision)
                 .Integer("requested_count", InventoryTransactions.CountRequested(requestedItems))
                 .Integer("accepted_count", InventoryTransactions.CountAccepted(accepted))
+                .Number(
+                    "owner_mutation_duration_ms",
+                    PutAwayStageTiming.ElapsedMilliseconds(
+                        ownerMutationStartedAt,
+                        ownerMutationCompletedAt))
                 .Number("chest_position_x", container.transform.position.x)
                 .Number("chest_position_y", container.transform.position.y)
                 .Number("chest_position_z", container.transform.position.z)
@@ -370,79 +377,6 @@ internal static class InventoryTransactionOwner
             InventoryTransactions.GetServerPeerId(),
             InventoryTransactionProtocol.OwnerResultRpc,
             envelope);
-    }
-
-    internal static void HandleReceiptAck(long sender, ZPackage acknowledgement)
-    {
-        if (!InventoryTransactions.IsExpectedServer(sender))
-        {
-            InventoryTransactions.Emit(
-                InventoryTransactionDiagnosticEvent.Create(
-                        "owner_receipt_ack_rejected",
-                        "chest_owner",
-                        InventoryTransactionDiagnosticLevel.Warning)
-                    .Code("operation_phase", "receipt_ack")
-                    .Code("status", "rejected")
-                    .Code("reason", "sender_not_server"));
-            return;
-        }
-
-        if (!InventoryTransactionReceiptAcknowledgementCodec.TryRead(
-                acknowledgement,
-                out string transactionId,
-                out string payloadHash,
-                out ZDOID containerId))
-        {
-            InventoryTransactions.Emit(
-                InventoryTransactionDiagnosticEvent.Create(
-                        "owner_receipt_ack_rejected",
-                        "chest_owner",
-                        InventoryTransactionDiagnosticLevel.Warning)
-                    .Code("operation_phase", "receipt_ack")
-                    .Code("status", "rejected")
-                    .Code("reason", "malformed_ack"));
-            return;
-        }
-
-        if (!TryResolveOwnedContainer(
-                containerId,
-                out Container? container,
-                out ZDO? zdo))
-            {
-                InventoryTransactions.Emit(
-                    InventoryTransactionDiagnosticEvent.Create(
-                            "owner_receipt_ack_rejected",
-                            "chest_owner",
-                            InventoryTransactionDiagnosticLevel.Warning)
-                        .Code("correlation", transactionId)
-                        .Code("chest_id", InventoryTransactions.StableChestId(containerId))
-                        .Code("operation_phase", "receipt_ack")
-                        .Code("status", "rejected")
-                        .Code("reason", "not_current_owner"));
-                return;
-            }
-
-            if (!InventoryTransactionReceipts.Remove(zdo!, transactionId, payloadHash))
-            {
-                InventoryTransactions.Emit(
-                    InventoryTransactionDiagnosticEvent.Create("owner_receipt_ack_rejected", "chest_owner",
-                            InventoryTransactionDiagnosticLevel.Warning)
-                        .Code("correlation", transactionId).Code("chest_id", InventoryTransactions.StableChestId(containerId))
-                        .Code("operation_phase", "receipt_ack")
-                        .Code("status", "ignored")
-                        .Code("reason", "receipt_not_found"));
-                return;
-            }
-
-            InventoryTransactions.Emit(
-                InventoryTransactionDiagnosticEvent.Create("owner_receipt_acknowledged", "chest_owner")
-                    .Code("correlation", transactionId)
-                    .Code("chest_id", InventoryTransactions.StableChestId(containerId))
-                    .Code("operation_phase", "receipt_ack")
-                    .Code("status", "acknowledged")
-                    .Integer("owner_peer", zdo!.GetOwner())
-                    .Integer("revision_after", zdo.DataRevision)
-                    .Text("contents_after", InventoryTransactions.DescribeInventory(container!.GetInventory())));
     }
 
     private static string StatusCode(DepositStatus status) =>

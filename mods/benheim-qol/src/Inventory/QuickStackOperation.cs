@@ -35,19 +35,24 @@ internal sealed class QuickStackOperation
 {
     internal QuickStackOperation(
         string operationId,
+        long batchStartedAt,
         Player player,
         InventoryGui inventoryGui,
         List<Container> containers,
-        bool inventoryWasOpen)
+        bool inventoryWasOpen,
+        double scanMatchDurationMs)
     {
         OperationId = operationId;
+        BatchStartedAt = batchStartedAt;
         Player = player;
         InventoryGui = inventoryGui;
         Containers = containers;
         InventoryWasOpen = inventoryWasOpen;
+        ScanMatchDurationMs = scanMatchDurationMs;
     }
 
     internal string OperationId { get; }
+    internal long BatchStartedAt { get; }
     internal Player Player { get; }
     internal InventoryGui InventoryGui { get; }
     internal List<Container> Containers { get; }
@@ -58,6 +63,7 @@ internal sealed class QuickStackOperation
     internal Container? CurrentContainer { get; set; }
     internal int MovedItems { get; set; }
     internal int BusyContainers { get; set; }
+    internal double ScanMatchDurationMs { get; set; }
     internal QuickStackSummary Summary { get; } = new QuickStackSummary();
 }
 

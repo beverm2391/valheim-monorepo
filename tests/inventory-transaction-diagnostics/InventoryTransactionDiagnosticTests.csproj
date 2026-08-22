@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../shared/benheim-inventory-protocol/InventoryTransactionDiagnostics.cs" Link="InventoryTransactionDiagnostics.cs" />
+    <Compile Include="../../shared/benheim-inventory-protocol/PutAwayStageTiming.cs" Link="PutAwayStageTiming.cs" />
     <Compile Include="../../mods/benheim-qol/src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
     <Compile Include="../../mods/benheim-qol/src/Inventory/InventoryTransactionDiagnosticSink.cs" Link="ClientInventoryTransactionDiagnosticSink.cs" />
     <Compile Include="../../server-mods/benheim-server-support/src/InventoryTransactionDiagnosticSink.cs" Link="ServerInventoryTransactionDiagnosticSink.cs" />

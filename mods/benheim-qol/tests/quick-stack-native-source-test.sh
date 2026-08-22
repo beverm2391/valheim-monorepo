@@ -7,14 +7,17 @@ quick_stack="$root/src/Inventory/QuickStack.cs"
 lease_validation="$root/src/Inventory/QuickStackLeaseValidation.cs"
 patches="$root/src/Inventory/QuickStackPatches.cs"
 client="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionClient.cs"
+models="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionModels.cs"
 server="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionServer.cs"
 owner="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionOwner.cs"
+owner_receipt_cleanup="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionOwnerReceiptCleanup.cs"
 wire="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionWire.cs"
 composition="$repo_root/shared/benheim-inventory-protocol/InventoryTransactions.cs"
 protocol="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionProtocol.cs"
 routing="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionRoutingCore.cs"
 settlement="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionSettlement.cs"
 diagnostics="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionDiagnostics.cs"
+stage_timing="$repo_root/shared/benheim-inventory-protocol/PutAwayStageTiming.cs"
 runtime="$root/src/Inventory/InventoryTransactionRuntime.cs"
 diagnostic_sink="$root/src/Inventory/InventoryTransactionDiagnosticSink.cs"
 
@@ -110,7 +113,7 @@ grep -Fq 'client_receipt_ack_sent' "$client"
 grep -Fq 'InventoryTransactionReceiptAcknowledgementCodec.TryAuthorize(' "$server"
 grep -Fq 'pair.Value.CompletedAt < olderThan' "$routing"
 if rg -n 'ReceiptAckResultRpc|OwnerReceiptAckResultRpc|MarkReceiptAcknowledged|AcknowledgedAt|pending\.Settled' \
-    "$client" "$server" "$owner" "$composition" "$routing"; then
+    "$client" "$server" "$owner" "$owner_receipt_cleanup" "$composition" "$routing"; then
   printf 'receipt cleanup must stay one-way and outside transaction state\n' >&2
   exit 1
 fi
@@ -135,6 +138,34 @@ grep -Fq 'InventoryTransactions.Shutdown();' "$runtime"
 grep -Fq 'internal const string Domain = "InventoryTransaction"' "$diagnostics"
 grep -Fq 'InventoryTransactionDiagnosticEvent.Create("put_away_batch_started"' "$composition"
 grep -Fq 'InventoryTransactionDiagnosticEvent.Create("put_away_batch_finished"' "$composition"
+grep -Fq '.Number("batch_duration_ms", batchDurationMs)' "$composition"
+grep -Fq '.Number("scan_match_duration_ms", scanMatchDurationMs)' "$composition"
+grep -Fq 'routing_owner_handoff_duration_ms' "$client"
+grep -Fq 'RoutingOwnerHandoffStartedAt = PutAwayStageTiming.Start();' "$models"
+grep -Fq 'requester_settlement_duration_ms' "$client"
+grep -Fq 'owner_mutation_duration_ms' "$owner"
+grep -Fq 'Stopwatch.GetTimestamp()' "$stage_timing"
+routing_stop_line="$(grep -nF 'pending.RoutingOwnerHandoffDurationMs ??=' "$client" | cut -d: -f1)"
+settlement_availability_line="$(grep -nF 'InventoryTransactionLifecyclePolicy.CanSettle(localPlayer)' "$client" | cut -d: -f1)"
+if [[ -z "$routing_stop_line" || -z "$settlement_availability_line" \
+    || "$routing_stop_line" -ge "$settlement_availability_line" ]]; then
+  printf 'routing/owner handoff timing must stop before requester settlement can defer\n' >&2
+  exit 1
+fi
+contents_snapshot_line="$(grep -nF 'string contentsBefore = InventoryTransactions.DescribeInventory' "$owner" | cut -d: -f1)"
+owner_timing_start_line="$(grep -nF 'long ownerMutationStartedAt = PutAwayStageTiming.Start();' "$owner" | cut -d: -f1)"
+receipt_record_line="$(grep -nF 'InventoryTransactionReceipts.Record' "$owner" | tail -1 | cut -d: -f1)"
+owner_timing_stop_line="$(grep -nF 'long ownerMutationCompletedAt = PutAwayStageTiming.Start();' "$owner" | cut -d: -f1)"
+owner_result_send_line="$(grep -nF 'SendResult(requester, InventoryTransactionWire.BuildResponse(' "$owner" | tail -1 | cut -d: -f1)"
+if [[ -z "$contents_snapshot_line" || -z "$owner_timing_start_line" || -z "$receipt_record_line" \
+    || -z "$owner_timing_stop_line" || -z "$owner_result_send_line" \
+    || "$contents_snapshot_line" -ge "$owner_timing_start_line" \
+    || "$owner_timing_start_line" -ge "$receipt_record_line" \
+    || "$receipt_record_line" -ge "$owner_timing_stop_line" \
+    || "$owner_timing_stop_line" -ge "$owner_result_send_line" ]]; then
+  printf 'owner mutation timing must exclude diagnostic snapshots and outbound result delivery\n' >&2
+  exit 1
+fi
 grep -Fq '.Code("operation_phase", "start")' "$composition"
 grep -Fq '.Code("operation_phase", "terminal")' "$composition"
 

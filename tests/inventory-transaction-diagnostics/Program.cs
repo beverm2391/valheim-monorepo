@@ -20,7 +20,9 @@ InventoryTransactionDiagnosticEvent batchTerminal =
         .Code("operation_phase", "terminal")
         .Code("status", "completed")
         .Code("reason", "batch_finished")
-        .Integer("accepted_count", 35);
+        .Integer("accepted_count", 35)
+        .Number("batch_duration_ms", 812.5)
+        .Number("scan_match_duration_ms", 41.25);
 Expect(
     "start",
     batchStart.Fields.Single(field => field.Name == "operation_phase").Text,
@@ -33,6 +35,23 @@ Expect(
     OperationId,
     batchTerminal.Fields.Single(field => field.Name == "operation_id").Text,
     "batch terminal preserves its start operation ID");
+Expect(
+    812.5,
+    batchTerminal.Fields.Single(field => field.Name == "batch_duration_ms").Number,
+    "batch terminal keeps the whole-batch duration typed");
+Expect(
+    41.25,
+    batchTerminal.Fields.Single(field => field.Name == "scan_match_duration_ms").Number,
+    "batch terminal keeps the aggregate scan and match duration typed");
+
+double measuredMilliseconds = PutAwayStageTiming.ElapsedMilliseconds(
+    startedAt: 100L,
+    completedAt: 100L + System.Diagnostics.Stopwatch.Frequency);
+Expect(1000d, measuredMilliseconds, "monotonic stage timing converts ticks to milliseconds");
+Expect(
+    0d,
+    PutAwayStageTiming.ElapsedMilliseconds(startedAt: 100L, completedAt: 99L),
+    "monotonic stage timing clamps invalid clock order");
 
 ClientSink.Instance.Emit(
     InventoryTransactionDiagnosticEvent.Create("client_reservation_sent", "requester")
@@ -77,11 +96,35 @@ InventoryTransactionDiagnosticEvent ownerEvent =
         .Code("status", "success")
         .Code("reason", "accepted")
         .Integer("requested_count", 35)
-        .Integer("accepted_count", 30);
+        .Integer("accepted_count", 30)
+        .Number("owner_mutation_duration_ms", 3.75);
 Expect(
     true,
     ownerEvent.Fields.Single(field => field.Name == "correlation").Text == Correlation,
     "requester and owner events share one transaction correlation");
+Expect(
+    3.75,
+    ownerEvent.Fields.Single(field => field.Name == "owner_mutation_duration_ms").Number,
+    "owner mutation duration remains typed on the correlated owner result");
+
+InventoryTransactionDiagnosticEvent requesterSettlement =
+    InventoryTransactionDiagnosticEvent.Create("client_result", "requester")
+        .Code("operation_id", OperationId)
+        .Code("correlation", Correlation)
+        .Code("operation_phase", "settled")
+        .Code("status", "settled")
+        .Number("routing_owner_handoff_duration_ms", 754.5)
+        .Number("requester_settlement_duration_ms", 2.125);
+Expect(
+    754.5,
+    requesterSettlement.Fields.Single(
+        field => field.Name == "routing_owner_handoff_duration_ms").Number,
+    "routing and owner handoff duration remains typed on requester settlement");
+Expect(
+    2.125,
+    requesterSettlement.Fields.Single(
+        field => field.Name == "requester_settlement_duration_ms").Number,
+    "requester settlement duration remains typed");
 
 InventoryTransactionDiagnosticEvent receiptCapacity =
     InventoryTransactionDiagnosticEvent.Create(

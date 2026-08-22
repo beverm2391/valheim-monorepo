@@ -200,6 +200,19 @@ the requester. Neither event is a commit or completion boundary. Put Away does
 not force, retry, or gate on a character save and makes no disk-persistence
 claim.
 
+Put Away records exactly five bounded duration fields on existing terminal
+events. The batch terminal event includes `batch_duration_ms` for the whole
+batch and `scan_match_duration_ms` for the requester's aggregate scan-and-match
+time. Each settled transaction's terminal event includes
+`routing_owner_handoff_duration_ms` for routing and owner handoff and
+`requester_settlement_duration_ms` for settlement, including any refund. The
+correlated current-owner result event includes `owner_mutation_duration_ms` for
+owner mutation.
+
+These durations use a monotonic clock and show where elapsed time accumulated.
+They do not affect protocol decisions, add recovery paths, or gate transaction
+progress.
+
 ## Supported Failures and Non-Goals
 
 The protocol fails closed when the server, owner, requester, access check,

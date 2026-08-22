@@ -72,7 +72,9 @@ internal static partial class QuickStack
             operation.OperationId,
             "cancelled",
             reason,
-            operation.MovedItems);
+            operation.MovedItems,
+            PutAwayStageTiming.ElapsedMilliseconds(operation.BatchStartedAt),
+            operation.ScanMatchDurationMs);
         Diagnostics.Event(
             "Inventory",
             "quick_stack_cancelled",

@@ -175,7 +175,9 @@ internal static partial class InventoryTransactions
         string operationId,
         string status,
         string reason,
-        int acceptedCount)
+        int acceptedCount,
+        double batchDurationMs,
+        double scanMatchDurationMs)
     {
         Emit(
             InventoryTransactionDiagnosticEvent.Create("put_away_batch_finished", "requester")
@@ -183,7 +185,9 @@ internal static partial class InventoryTransactions
                 .Code("operation_phase", "terminal")
                 .Code("status", status)
                 .Code("reason", reason)
-                .Integer("accepted_count", acceptedCount));
+                .Integer("accepted_count", acceptedCount)
+                .Number("batch_duration_ms", batchDurationMs)
+                .Number("scan_match_duration_ms", scanMatchDurationMs));
     }
 
     private static void EnsureRegistered()

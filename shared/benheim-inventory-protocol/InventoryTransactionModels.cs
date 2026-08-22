@@ -47,6 +47,7 @@ internal sealed class PendingDeposit
     {
         OperationId = operationId; TransactionId = transactionId; PayloadHash = payloadHash; ContainerId = containerId; RequestBytes = requestBytes;
         SourceInventory = sourceInventory; Items = items; Callback = callback; CreatedAt = now; LastSentAt = now;
+        RoutingOwnerHandoffStartedAt = PutAwayStageTiming.Start();
     }
     internal string OperationId { get; }
     internal string TransactionId { get; }
@@ -59,4 +60,6 @@ internal sealed class PendingDeposit
     internal float CreatedAt { get; }
     internal float LastSentAt { get; set; }
     internal int Attempts { get; set; } = 1;
+    internal long RoutingOwnerHandoffStartedAt { get; }
+    internal double? RoutingOwnerHandoffDurationMs { get; set; }
 }
