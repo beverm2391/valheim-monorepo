@@ -40,6 +40,10 @@
       <HintPath>$(ValheimManagedDir)/gui_framework.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="Splatform">
+      <HintPath>$(ValheimManagedDir)/Splatform.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>$(ValheimManagedDir)/UnityEngine.dll</HintPath>
       <Private>false</Private>

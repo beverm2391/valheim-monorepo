@@ -9,8 +9,12 @@ internal static class BenheimTestCommandClient
     private const float ResultTimeoutSeconds = 5f;
     private static readonly Dictionary<string, float> PendingOperations = new();
     private static readonly List<string> ExpiredOperations = new();
+    private static readonly List<Minimap.PinData> HengeOverlayPins = new();
     private static bool commandRegistered;
     private static ZRpc? registeredServerRpc;
+    private static Minimap? hengeOverlayMinimap;
+    private static string? pendingHengeOperationId;
+    private static float pendingHengeRequestedAt;
 
     internal static void InitializeConsole()
     {
@@ -33,14 +37,18 @@ internal static class BenheimTestCommandClient
         CharacterColliderOverlay.Update();
         EnsureResultRpcRegistered();
         ExpireUnansweredRequests(Time.realtimeSinceStartup);
+        ExpireHengeRequest(Time.realtimeSinceStartup);
     }
 
     internal static void Reset()
     {
         CharacterColliderOverlay.Reset();
+        ClearHengeOverlay();
         registeredServerRpc = null;
         PendingOperations.Clear();
         ExpiredOperations.Clear();
+        pendingHengeOperationId = null;
+        pendingHengeRequestedAt = 0f;
     }
 
     private static object Execute(Terminal.ConsoleEventArgs args)
@@ -59,6 +67,11 @@ internal static class BenheimTestCommandClient
         if (RuntimePrimitiveCatalogCommand.TryExecute(args.Args, args.Context))
         {
             return true;
+        }
+
+        if (HengeOverlayProtocol.TryParse(args.Args, out bool hengeEnabled))
+        {
+            return ExecuteHengeOverlay(hengeEnabled, args.Context);
         }
 
         if (!BoarTestCommandProtocol.TryParseSpawnBoar(args.Args, out int stars) ||
@@ -103,6 +116,8 @@ internal static class BenheimTestCommandClient
         context.AddString("Benheim test commands:");
         context.AddString($"  {BoarTestCommandProtocol.Usage}");
         context.AddString("  0 = unstarred, 1 = one star, 2 = two stars");
+        context.AddString($"  {HengeOverlayProtocol.Usage}");
+        context.AddString("  locally show or remove every native Yagluth-henge candidate");
         context.AddString("  bh debug colliders on|off");
         context.AddString("  locally show live capsules for nearby non-player Characters");
         RuntimePrimitiveCatalogCommand.PrintUsage(context);
@@ -125,7 +140,52 @@ internal static class BenheimTestCommandClient
         serverRpc.Register<string, string, string, int>(
             BoarTestCommandProtocol.ResultRpc,
             OnResult);
+        serverRpc.Register<string, string, string, ZPackage>(
+            HengeOverlayProtocol.ResultRpc,
+            OnHengeResult);
         registeredServerRpc = serverRpc;
+        return true;
+    }
+
+    private static object ExecuteHengeOverlay(bool enabled, Terminal context)
+    {
+        if (!enabled)
+        {
+            pendingHengeOperationId = null;
+            pendingHengeRequestedAt = 0f;
+            int removed = ClearHengeOverlay();
+            context.AddString($"Benheim removed {removed} local henge overlay pins.");
+            return true;
+        }
+
+        ZRpc? serverRpc = ZNet.instance?.GetServerRPC();
+        if (serverRpc == null || !EnsureResultRpcRegistered())
+        {
+            context.AddString("Benheim henge overlay unavailable: not connected to a compatible server.");
+            return true;
+        }
+
+        string operationId = Diagnostics.NewOperationId();
+        pendingHengeOperationId = operationId;
+        pendingHengeRequestedAt = Time.realtimeSinceStartup;
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("TestCommands", "henge_overlay_requested")
+                .String("operation_id", operationId)
+                .String("operation_phase", "start"));
+        try
+        {
+            serverRpc.Invoke(HengeOverlayProtocol.RequestRpc, operationId);
+        }
+        catch
+        {
+            pendingHengeOperationId = null;
+            pendingHengeRequestedAt = 0f;
+            EmitHengeFailedResult(operationId, "request_send_failed");
+            context.AddString("Benheim could not send the henge overlay request to the server.");
+            return true;
+        }
+
+        context.AddString("Benheim requested the native henge plan from the server.");
         return true;
     }
 
@@ -165,6 +225,156 @@ internal static class BenheimTestCommandClient
         Console.instance?.Print(message);
     }
 
+    private static void OnHengeResult(
+        ZRpc rpc,
+        string operationId,
+        string outcome,
+        string reason,
+        ZPackage payload)
+    {
+        if (!ReferenceEquals(rpc, ZNet.instance?.GetServerRPC()))
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("TestCommands", "henge_overlay_result_rejected")
+                    .String("operation_id", operationId)
+                    .String("operation_phase", "terminal")
+                    .String("reason", "non_server_sender"));
+            return;
+        }
+
+        if (!string.Equals(pendingHengeOperationId, operationId, System.StringComparison.Ordinal))
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("TestCommands", "henge_overlay_result_rejected")
+                    .String("operation_id", operationId)
+                    .String("operation_phase", "terminal")
+                    .String("reason", "unknown_operation"));
+            return;
+        }
+
+        pendingHengeOperationId = null;
+        pendingHengeRequestedAt = 0f;
+        if (outcome != "accepted")
+        {
+            EmitHengeFailedResult(operationId, reason);
+            return;
+        }
+
+        if (!TryReadCoordinates(payload, out List<Vector3> coordinates))
+        {
+            EmitHengeFailedResult(operationId, "malformed_coordinate_payload");
+            return;
+        }
+
+        if (!TryReplaceHengeOverlay(coordinates, out string overlayFailure))
+        {
+            EmitHengeFailedResult(operationId, overlayFailure);
+            return;
+        }
+
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("TestCommands", "henge_overlay_result")
+                .String("operation_id", operationId)
+                .String("operation_phase", "terminal")
+                .String("outcome", "accepted")
+                .String("reason", reason)
+                .Integer("coordinate_count", coordinates.Count));
+        Console.instance?.Print($"Benheim marked {coordinates.Count} native henge locations.");
+    }
+
+    private static bool TryReadCoordinates(ZPackage payload, out List<Vector3> coordinates)
+    {
+        coordinates = new List<Vector3>();
+        try
+        {
+            if (payload.Size() < sizeof(int))
+            {
+                return false;
+            }
+
+            int count = payload.ReadInt();
+            int maxCoordinateCount = (payload.Size() - sizeof(int)) / (sizeof(float) * 3);
+            if (count < 0 || count > maxCoordinateCount)
+            {
+                return false;
+            }
+
+            coordinates.Capacity = count;
+            for (int index = 0; index < count; index++)
+            {
+                Vector3 coordinate = payload.ReadVector3();
+                if (!IsFinite(coordinate))
+                {
+                    return false;
+                }
+                coordinates.Add(coordinate);
+            }
+
+            return payload.GetPos() == payload.Size();
+        }
+        catch
+        {
+            coordinates.Clear();
+            return false;
+        }
+    }
+
+    private static bool TryReplaceHengeOverlay(
+        List<Vector3> coordinates,
+        out string failure)
+    {
+        Minimap? minimap = Minimap.instance;
+        Player? player = Player.m_localPlayer;
+        if (minimap == null || player == null)
+        {
+            failure = "native_minimap_unavailable";
+            return false;
+        }
+
+        ClearHengeOverlay();
+        hengeOverlayMinimap = minimap;
+        try
+        {
+            foreach (Vector3 coordinate in coordinates)
+            {
+                Minimap.PinData pin = minimap.AddPin(
+                    coordinate,
+                    Minimap.PinType.Icon3,
+                    "",
+                    save: false,
+                    isChecked: false,
+                    ownerID: 0L);
+                HengeOverlayPins.Add(pin);
+            }
+        }
+        catch
+        {
+            ClearHengeOverlay();
+            failure = "native_pin_creation_failed";
+            return false;
+        }
+
+        failure = "";
+        return true;
+    }
+
+    private static int ClearHengeOverlay()
+    {
+        int removed = HengeOverlayPins.Count;
+        if (hengeOverlayMinimap != null &&
+            ReferenceEquals(hengeOverlayMinimap, Minimap.instance))
+        {
+            foreach (Minimap.PinData pin in HengeOverlayPins)
+            {
+                hengeOverlayMinimap.RemovePin(pin);
+            }
+        }
+
+        HengeOverlayPins.Clear();
+        hengeOverlayMinimap = null;
+        return removed;
+    }
+
     private static void ExpireUnansweredRequests(float now)
     {
         if (PendingOperations.Count == 0)
@@ -189,6 +399,20 @@ internal static class BenheimTestCommandClient
         ExpiredOperations.Clear();
     }
 
+    private static void ExpireHengeRequest(float now)
+    {
+        if (pendingHengeOperationId == null ||
+            now - pendingHengeRequestedAt < ResultTimeoutSeconds)
+        {
+            return;
+        }
+
+        string operationId = pendingHengeOperationId;
+        pendingHengeOperationId = null;
+        pendingHengeRequestedAt = 0f;
+        EmitHengeFailedResult(operationId, "server_no_response");
+    }
+
     private static void EmitFailedResult(string operationId, string reason)
     {
         Diagnostics.Emit(
@@ -199,5 +423,24 @@ internal static class BenheimTestCommandClient
                 .String("reason", reason)
                 .Integer("level", 0));
         Console.instance?.Print($"Benheim server rejected the Boar request: {reason}.");
+    }
+
+    private static void EmitHengeFailedResult(string operationId, string reason)
+    {
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("TestCommands", "henge_overlay_result")
+                .String("operation_id", operationId)
+                .String("operation_phase", "terminal")
+                .String("outcome", "rejected")
+                .String("reason", reason)
+                .Integer("coordinate_count", 0));
+        Console.instance?.Print($"Benheim server rejected the henge overlay request: {reason}.");
+    }
+
+    private static bool IsFinite(Vector3 value)
+    {
+        return !float.IsNaN(value.x) && !float.IsInfinity(value.x) &&
+            !float.IsNaN(value.y) && !float.IsInfinity(value.y) &&
+            !float.IsNaN(value.z) && !float.IsInfinity(value.z);
     }
 }

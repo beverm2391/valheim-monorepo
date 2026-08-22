@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/BoarTestCommandProtocol.cs" Link="BoarTestCommandProtocol.cs" />
+    <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/HengeOverlayProtocol.cs" Link="HengeOverlayProtocol.cs" />
     <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/BoarTierCombat.cs" Link="BoarTierCombat.cs" />
     <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/BoarTierIdentity.cs" Link="BoarTierIdentity.cs" />
     <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/BoarTierPhysicalProfile.cs" Link="BoarTierPhysicalProfile.cs" />
