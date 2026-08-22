@@ -100,10 +100,14 @@ technical cost.
   the configured diagnostics dataset. Each uploaded record identifies the
   current character name and connection-scoped peer. It also includes a random,
   persisted client ID, a session ID, the mod version, the exact DLL build, and
-  the existing operation ID. Private sharing sends every field constructed on
-  the typed event. This includes chest contents, identifiers, positions,
-  revisions, item and count fields, operation and transaction IDs, typed errors,
-  and paths. The serializer does not filter those fields.
+  the existing operation ID. The remote record keeps identity and common
+  selectors at its root. It duplicates the operation ID there as a root
+  selector. It places every producer-owned field constructed on the typed event
+  under the configured Axiom `fields` map. This includes chest contents,
+  identifiers, positions, revisions, item and count fields, operation and
+  transaction IDs, typed errors, and paths. The serializer does not filter
+  those fields. The developer query command normalizes old flat events and new
+  events that use the `fields` map into the same flat result shape.
 
   Benheim must not construct typed events from credentials, secrets, tokens,
   passwords, raw BepInEx or Unity logs, chat, arbitrary files, or other untyped
@@ -226,6 +230,13 @@ disabled default. After the migration, the `Share Diagnostics` toggle in
 immediately when turned off. Public and unconfigured builds receive no remote
 credentials. Local diagnostics, including `BenheimEvents.ndjson`, remain
 enabled.
+
+Remote schema 2 keeps identity and common selectors at the dataset root and
+duplicates the operation ID there as a root selector. It puts every
+producer-owned gameplay field under the configured Axiom `fields` map. A
+schema 2 build cannot send events until Axiom configures that map. Map
+configuration, live ingest, and mixed-history APL query proof remain open
+because the provider returns 403 for the available write scope.
 
 All Benheim feedback that belongs in the top-left area shares one Benheim-owned
 lane directly beneath the live hotbar. The lane carries grouped receipts for

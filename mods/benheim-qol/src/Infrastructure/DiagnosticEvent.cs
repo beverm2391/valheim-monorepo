@@ -11,8 +11,24 @@ namespace BenheimQoL.Infrastructure;
 internal sealed class DiagnosticEvent
 {
     internal const int CurrentSchema = 1;
+    internal const int RemoteSchema = 2;
+    private static readonly HashSet<string> ReservedFieldNames = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "_time",
+        "session_id",
+        "client_id",
+        "player_name",
+        "peer_id",
+        "mod_version",
+        "build_id",
+        "domain",
+        "event",
+        "schema",
+        "fields"
+    };
 
     private readonly List<DiagnosticField> fields = new List<DiagnosticField>();
+    private readonly HashSet<string> fieldNames = new HashSet<string>(StringComparer.Ordinal);
     private DateTime timestampUtc;
     private string session = string.Empty;
     private string benheimVersion = string.Empty;
@@ -34,43 +50,46 @@ internal sealed class DiagnosticEvent
 
     internal DiagnosticEvent String(string name, string? value)
     {
-        EnsureDefinitionOpen();
-        fields.Add(DiagnosticField.String(name, value));
-        return this;
+        return AddField(DiagnosticField.String(name, value));
     }
 
     internal DiagnosticEvent Integer(string name, int value)
     {
-        EnsureDefinitionOpen();
-        fields.Add(DiagnosticField.Integer(name, value));
-        return this;
+        return AddField(DiagnosticField.Integer(name, value));
     }
 
     internal DiagnosticEvent Integer(string name, long value)
     {
-        EnsureDefinitionOpen();
-        fields.Add(DiagnosticField.Integer(name, value));
-        return this;
+        return AddField(DiagnosticField.Integer(name, value));
     }
 
     internal DiagnosticEvent Number(string name, float value)
     {
-        EnsureDefinitionOpen();
-        fields.Add(DiagnosticField.Number(name, value));
-        return this;
+        return AddField(DiagnosticField.Number(name, value));
     }
 
     internal DiagnosticEvent Number(string name, double value)
     {
-        EnsureDefinitionOpen();
-        fields.Add(DiagnosticField.Number(name, value));
-        return this;
+        return AddField(DiagnosticField.Number(name, value));
     }
 
     internal DiagnosticEvent Boolean(string name, bool value)
     {
+        return AddField(DiagnosticField.Boolean(name, value));
+    }
+
+    private DiagnosticEvent AddField(DiagnosticField field)
+    {
         EnsureDefinitionOpen();
-        fields.Add(DiagnosticField.Boolean(name, value));
+        if (ReservedFieldNames.Contains(field.Name))
+        {
+            throw new InvalidOperationException($"Diagnostic field name '{field.Name}' is reserved for the event envelope.");
+        }
+        if (!fieldNames.Add(field.Name))
+        {
+            throw new InvalidOperationException($"Diagnostic field names must be unique; '{field.Name}' is duplicated.");
+        }
+        fields.Add(field);
         return this;
     }
 
@@ -136,8 +155,9 @@ internal sealed class DiagnosticEvent
     }
 
     // Private test builds forward the typed gameplay evidence that owns the
-    // local line. This representation adds the test identity envelope without
-    // silently removing fields chosen by the typed event producer.
+    // local line. Keep common selectors in a stable Axiom envelope and place
+    // every producer-owned field in the configured map. This prevents new
+    // gameplay attributes from expanding the dataset schema.
     internal string ToRemoteJsonLine(
         string clientId,
         string playerName,
@@ -153,8 +173,6 @@ internal sealed class DiagnosticEvent
         StringBuilder builder = new StringBuilder(256);
         builder.Append('{');
         AppendJsonStringProperty(builder, "_time", timestamp);
-        builder.Append(',');
-        AppendJsonStringProperty(builder, "timestamp", timestamp);
         builder.Append(',');
         AppendJsonStringProperty(builder, "session_id", session);
         builder.Append(',');
@@ -174,14 +192,33 @@ internal sealed class DiagnosticEvent
         AppendJsonStringProperty(builder, "domain", Domain);
         builder.Append(',');
         AppendJsonStringProperty(builder, "event", Name);
-        builder.Append(",\"schema\":").Append(CurrentSchema.ToString(CultureInfo.InvariantCulture));
+        builder.Append(",\"schema\":").Append(RemoteSchema.ToString(CultureInfo.InvariantCulture));
         foreach (DiagnosticField field in fields)
         {
+            if (field.Name != "operation_id")
+            {
+                continue;
+            }
+
             builder.Append(',');
             AppendJsonString(builder, field.Name);
             builder.Append(':').Append(field.JsonValue());
+            break;
         }
-        builder.Append('}');
+
+        builder.Append(",\"fields\":{");
+        int appendedFields = 0;
+        foreach (DiagnosticField field in fields)
+        {
+            if (appendedFields > 0)
+            {
+                builder.Append(',');
+            }
+            AppendJsonString(builder, field.Name);
+            builder.Append(':').Append(field.JsonValue());
+            appendedFields++;
+        }
+        builder.Append("}}");
         return builder.ToString();
     }
 

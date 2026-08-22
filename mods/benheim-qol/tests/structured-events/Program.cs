@@ -58,6 +58,8 @@ using JsonDocument remoteJson = JsonDocument.Parse(
     remoteTyped.ToRemoteJsonLine("client-random", "Johnny", "peer-session", "sha256:build"));
 JsonElement remoteRoot = remoteJson.RootElement;
 Expect("2026-08-13T04:05:07.0000000Z", remoteRoot.GetProperty("_time").GetString(), "Axiom time");
+Expect(2, remoteRoot.GetProperty("schema").GetInt32(), "remote schema");
+Expect(12, CountProperties(remoteRoot), "remote envelope has only stable selectors and payload");
 Expect("client-random", remoteRoot.GetProperty("client_id").GetString(), "canonical client ID");
 Expect("Johnny", remoteRoot.GetProperty("player_name").GetString(), "disclosed player name");
 Expect("peer-session", remoteRoot.GetProperty("peer_id").GetString(), "connection peer ID");
@@ -65,20 +67,23 @@ Expect("session-remote", remoteRoot.GetProperty("session_id").GetString(), "remo
 Expect("0.1.63", remoteRoot.GetProperty("mod_version").GetString(), "remote mod version");
 Expect("sha256:build", remoteRoot.GetProperty("build_id").GetString(), "remote build ID");
 Expect("op-remote", remoteRoot.GetProperty("operation_id").GetString(), "operation ID preserved");
-Expect("LoxMeat", remoteRoot.GetProperty("item").GetString(), "typed gameplay field preserved");
-Expect(1, remoteRoot.GetProperty("hit_point_local_x").GetDouble(), "local geometry preserved");
-Expect("duplicate-peer", remoteRoot.GetProperty("peer").GetString(), "typed peer preserved");
-Expect("stable-character", remoteRoot.GetProperty("player_id").GetString(), "player ID preserved");
-Expect("creature", remoteRoot.GetProperty("creature_id").GetString(), "creature ID preserved");
-Expect("network-object", remoteRoot.GetProperty("zdo_id").GetString(), "network object ID preserved");
-Expect("piece_oven#12345", remoteRoot.GetProperty("station").GetString(), "station ID preserved");
-Expect("100,20,300", remoteRoot.GetProperty("position").GetString(), "position preserved");
-Expect(100, remoteRoot.GetProperty("head_position_x").GetDouble(), "head position preserved");
-Expect(20, remoteRoot.GetProperty("target_bounds_center_y").GetDouble(), "bounds center preserved");
-Expect(101, remoteRoot.GetProperty("hit_point_x").GetDouble(), "world hit point preserved");
-Expect("/Users/private/path", remoteRoot.GetProperty("error").GetString(), "typed error preserved");
-Expect("/Users/private/diagnostic-source", remoteRoot.GetProperty("path").GetString(), "typed path preserved");
-Expect(13, remoteRoot.GetProperty("moved").GetInt32(), "typed count preserved");
+Expect(false, remoteRoot.TryGetProperty("item", out _), "typed fields stay out of the remote envelope");
+JsonElement remoteFields = remoteRoot.GetProperty("fields");
+Expect("op-remote", remoteFields.GetProperty("operation_id").GetString(), "operation ID remains complete payload evidence");
+Expect("LoxMeat", remoteFields.GetProperty("item").GetString(), "typed gameplay field preserved");
+Expect(1, remoteFields.GetProperty("hit_point_local_x").GetDouble(), "local geometry preserved");
+Expect("duplicate-peer", remoteFields.GetProperty("peer").GetString(), "typed peer preserved");
+Expect("stable-character", remoteFields.GetProperty("player_id").GetString(), "player ID preserved");
+Expect("creature", remoteFields.GetProperty("creature_id").GetString(), "creature ID preserved");
+Expect("network-object", remoteFields.GetProperty("zdo_id").GetString(), "network object ID preserved");
+Expect("piece_oven#12345", remoteFields.GetProperty("station").GetString(), "station ID preserved");
+Expect("100,20,300", remoteFields.GetProperty("position").GetString(), "position preserved");
+Expect(100, remoteFields.GetProperty("head_position_x").GetDouble(), "head position preserved");
+Expect(20, remoteFields.GetProperty("target_bounds_center_y").GetDouble(), "bounds center preserved");
+Expect(101, remoteFields.GetProperty("hit_point_x").GetDouble(), "world hit point preserved");
+Expect("/Users/private/path", remoteFields.GetProperty("error").GetString(), "typed error preserved");
+Expect("/Users/private/diagnostic-source", remoteFields.GetProperty("path").GetString(), "typed path preserved");
+Expect(13, remoteFields.GetProperty("moved").GetInt32(), "typed count preserved");
 
 DiagnosticEvent remoteInventory = DiagnosticEvent.Create("Inventory", "container_open_snapshot")
     .Integer("peer", 42)
@@ -107,20 +112,65 @@ Expect(
 using JsonDocument remoteInventoryJson = JsonDocument.Parse(
     remoteInventory.ToRemoteJsonLine("client-random", "Johnny", "peer-session", "sha256:build"));
 JsonElement remoteInventoryRoot = remoteInventoryJson.RootElement;
-Expect(42, remoteInventoryRoot.GetProperty("peer").GetInt64(), "snapshot peer preserved");
-Expect(84, remoteInventoryRoot.GetProperty("player_id").GetInt64(), "snapshot player ID preserved");
-Expect("durable-world-object", remoteInventoryRoot.GetProperty("zdo_id").GetString(), "snapshot object ID preserved");
-Expect("piece_chest_wood#123", remoteInventoryRoot.GetProperty("station").GetString(), "snapshot station ID preserved");
-Expect("chest-123", remoteInventoryRoot.GetProperty("chest_id").GetString(), "snapshot chest ID preserved");
+JsonElement remoteInventoryFields = remoteInventoryRoot.GetProperty("fields");
+Expect(42, remoteInventoryFields.GetProperty("peer").GetInt64(), "snapshot peer preserved");
+Expect(84, remoteInventoryFields.GetProperty("player_id").GetInt64(), "snapshot player ID preserved");
+Expect("durable-world-object", remoteInventoryFields.GetProperty("zdo_id").GetString(), "snapshot object ID preserved");
+Expect("piece_chest_wood#123", remoteInventoryFields.GetProperty("station").GetString(), "snapshot station ID preserved");
+Expect("chest-123", remoteInventoryFields.GetProperty("chest_id").GetString(), "snapshot chest ID preserved");
 Expect("op-inventory", remoteInventoryRoot.GetProperty("operation_id").GetString(), "snapshot operation ID preserved");
-Expect("tx-inventory", remoteInventoryRoot.GetProperty("transaction_id").GetString(), "snapshot transaction ID preserved");
-Expect("observer_first_open_candidate", remoteInventoryRoot.GetProperty("operation_phase").GetString(), "snapshot phase preserved");
-Expect("LoxMeat", remoteInventoryRoot.GetProperty("item").GetString(), "snapshot item preserved");
-Expect(13, remoteInventoryRoot.GetProperty("count").GetInt32(), "snapshot count preserved");
-Expect(true, remoteInventoryRoot.GetProperty("owner").GetBoolean(), "Inventory owner decision preserved");
-Expect(7, remoteInventoryRoot.GetProperty("revision").GetInt32(), "Inventory revision preserved");
-Expect("LoxMeat=13", remoteInventoryRoot.GetProperty("contents").GetString(), "snapshot contents preserved");
-Expect("shared-evidence", remoteInventoryRoot.GetProperty("future_diagnostic_field").GetString(), "future typed fields preserved");
+Expect("op-inventory", remoteInventoryFields.GetProperty("operation_id").GetString(), "snapshot operation ID remains in payload");
+Expect("tx-inventory", remoteInventoryFields.GetProperty("transaction_id").GetString(), "snapshot transaction ID preserved");
+Expect("observer_first_open_candidate", remoteInventoryFields.GetProperty("operation_phase").GetString(), "snapshot phase preserved");
+Expect("LoxMeat", remoteInventoryFields.GetProperty("item").GetString(), "snapshot item preserved");
+Expect(13, remoteInventoryFields.GetProperty("count").GetInt32(), "snapshot count preserved");
+Expect(true, remoteInventoryFields.GetProperty("owner").GetBoolean(), "Inventory owner decision preserved");
+Expect(7, remoteInventoryFields.GetProperty("revision").GetInt32(), "Inventory revision preserved");
+Expect("LoxMeat=13", remoteInventoryFields.GetProperty("contents").GetString(), "snapshot contents preserved");
+Expect("shared-evidence", remoteInventoryFields.GetProperty("future_diagnostic_field").GetString(), "future typed fields preserved");
+
+DiagnosticEvent highDimension = DiagnosticEvent.Create("Proof", "field_limit_boundary");
+for (int index = 0; index < 300; index++)
+{
+    highDimension.Integer("proof_field_" + index.ToString(), index);
+}
+highDimension.Prepare(
+    new DateTime(2026, 8, 13, 4, 5, 9, DateTimeKind.Utc),
+    "session-boundary",
+    "0.1.63");
+using JsonDocument highDimensionJson = JsonDocument.Parse(
+    highDimension.ToRemoteJsonLine("client-random", "Johnny", string.Empty, "sha256:build"));
+Expect(10, CountProperties(highDimensionJson.RootElement), "remote envelope stays fixed beyond the field limit");
+Expect(300, CountProperties(highDimensionJson.RootElement.GetProperty("fields")), "all high-dimensional fields remain in the map payload");
+
+try
+{
+    DiagnosticEvent.Create("Proof", "duplicate_field")
+        .String("same_name", "first")
+        .Integer("same_name", 2);
+    throw new InvalidOperationException("duplicate typed field name was accepted");
+}
+catch (InvalidOperationException exception)
+{
+    Expect(
+        "Diagnostic field names must be unique; 'same_name' is duplicated.",
+        exception.Message,
+        "duplicate typed field names fail before serialization");
+}
+
+try
+{
+    DiagnosticEvent.Create("Proof", "reserved_field")
+        .String("domain", "producer-domain");
+    throw new InvalidOperationException("reserved typed field name was accepted");
+}
+catch (InvalidOperationException exception)
+{
+    Expect(
+        "Diagnostic field name 'domain' is reserved for the event envelope.",
+        exception.Message,
+        "envelope names cannot hide producer evidence during query normalization");
+}
 
 List<DiagnosticEvent> inventoryDestination = new List<DiagnosticEvent>();
 List<DiagnosticEvent> terminalDestination = new List<DiagnosticEvent>();
@@ -221,4 +271,14 @@ static void Expect<T>(T expected, T actual, string scenario)
     {
         throw new InvalidOperationException($"{scenario}: expected {expected}, got {actual}");
     }
+}
+
+static int CountProperties(JsonElement element)
+{
+    int count = 0;
+    foreach (JsonProperty _ in element.EnumerateObject())
+    {
+        count++;
+    }
+    return count;
 }

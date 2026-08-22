@@ -20,9 +20,12 @@ grep -Fq 'AppendJsonStringProperty(builder, "peer_id", peerId);' "$event"
 grep -Fq 'AppendJsonStringProperty(builder, "session_id", session);' "$event"
 grep -Fq 'AppendJsonStringProperty(builder, "mod_version", benheimVersion);' "$event"
 grep -Fq 'AppendJsonStringProperty(builder, "build_id", buildId);' "$event"
+grep -Fq 'internal const int RemoteSchema = 2;' "$event"
+grep -Fq 'builder.Append(",\"fields\":{");' "$event"
+grep -Fq 'if (field.Name != "operation_id")' "$event"
 ! grep -Fq 'RemoteFieldAllowed' "$event"
 ! grep -Fq 'RemoteInventoryFieldAllowed' "$event"
-test "$(grep -Fc 'AppendJsonString(builder, field.Name);' "$event")" -eq 2
+test "$(grep -Fc 'AppendJsonString(builder, field.Name);' "$event")" -eq 3
 
 grep -Fq 'MaximumQueuedEvents = 512' "$remote"
 grep -Fq 'MaximumBatchEvents = 100' "$remote"

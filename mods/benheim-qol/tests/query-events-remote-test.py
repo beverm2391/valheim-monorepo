@@ -58,7 +58,14 @@ args = Namespace(
 )
 captured: dict[str, object] = {}
 response = tabular_response(
-    [{"_time": "2026-08-16T00:00:00Z", "client_id": "client-1", "moved": 13}]
+    [
+        {"_time": "2026-08-16T00:00:01Z", "client_id": "client-1", "moved": 13},
+        {
+            "_time": "2026-08-16T00:00:00Z",
+            "client_id": "client-1",
+            "fields": {"moved": 14, "station": 'piece_oven#12"quoted'},
+        },
+    ]
 )
 
 
@@ -85,14 +92,23 @@ assert apl.startswith("['benheim-diagnostics']")
 assert "['session_id']" in apl and '"session-1"' in apl
 assert "['player_name']" in apl and '"Johnny"' in apl
 assert "['client_id']" in apl and '"client-1"' in apl
-assert "['station']" in apl and 'piece_oven#12\\"quoted' in apl
+assert "ensure_field('station', typeof(string))" in apl
+assert "ensure_field('fields', typeof(dynamic))['station']" in apl
+assert 'piece_oven#12\\"quoted' in apl
 assert "['operation_id']" in apl and 'op-\\"quoted' in apl
 assert apl.endswith("| order by _time desc | take 25")
 assert rows[0][0] == {
-    "_time": "2026-08-16T00:00:00Z",
+    "_time": "2026-08-16T00:00:01Z",
     "client_id": "client-1",
     "moved": 13,
 }
+assert rows[1][0] == {
+    "_time": "2026-08-16T00:00:00Z",
+    "client_id": "client-1",
+    "moved": 14,
+    "station": 'piece_oven#12"quoted',
+}
+assert "fields" not in rows[1][0]
 assert "query-secret" not in rows[0][1]
 
 incomplete_args = Namespace(
@@ -149,7 +165,14 @@ lifecycle_rows = [
     ("01", "Inventory", "quick_stack_lease_result", "op-open", "lease_result", "granted"),
     ("00", transaction, "put_away_batch_started", "op-open", "start", "running"),
 ]
-response = tabular_response([lifecycle_record(*values) for values in lifecycle_rows])
+lifecycle_records = [lifecycle_record(*values) for values in lifecycle_rows]
+for index in (0, 2, 4, 7, 9):
+    record = lifecycle_records[index]
+    record["fields"] = {
+        "operation_phase": record.pop("operation_phase"),
+        "status": record.pop("status"),
+    }
+response = tabular_response(lifecycle_records)
 captured.clear()
 printed = io.StringIO()
 with patch.dict(os.environ, {"BENHEIM_AXIOM_QUERY_TOKEN": "query-secret"}, clear=True):

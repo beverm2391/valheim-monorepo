@@ -15,6 +15,8 @@ from typing import Iterable, Iterator
 
 
 QUERY_URL = "https://api.axiom.co/v1/datasets/_apl?format=tabular"
+REMOTE_MAP_FIELD = "fields"
+MAP_FILTER_FIELDS = frozenset(("item", "station"))
 DATASET_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,200}$")
 DURATION_PATTERN = re.compile(r"^[1-9][0-9]*[mhd]$")
 
@@ -110,7 +112,16 @@ def remote_apl(dataset: str, args: argparse.Namespace) -> str:
         if args.incomplete and field in ("event", "item", "station"):
             continue
         remote_field = "session_id" if field == "session" else field
-        query += f' | where tostring([\'{remote_field}\']) == "{escape_apl(expected)}"'
+        expected_apl = escape_apl(expected)
+        if remote_field in MAP_FILTER_FIELDS:
+            query += (
+                " | where coalesce("
+                f"tostring(ensure_field('{remote_field}', typeof(string))), "
+                f"tostring(ensure_field('{REMOTE_MAP_FIELD}', typeof(dynamic))['{remote_field}'])"
+                f') == "{expected_apl}"'
+            )
+        else:
+            query += f' | where tostring([\'{remote_field}\']) == "{expected_apl}"'
     return f"{query} | order by _time desc | take {args.limit}"
 
 
@@ -170,6 +181,26 @@ def tabular_rows(data: object) -> list[dict[str, object]]:
     ]
 
 
+def normalize_remote_record(record: dict[str, object]) -> dict[str, object]:
+    """Return old flat and new map-backed Axiom events in one flat shape."""
+    payload = record.get(REMOTE_MAP_FIELD)
+    if not isinstance(payload, dict):
+        normalized = dict(record)
+        if payload is None:
+            normalized.pop(REMOTE_MAP_FIELD, None)
+        return normalized
+
+    normalized = dict(payload)
+    for name, value in record.items():
+        if name == REMOTE_MAP_FIELD:
+            continue
+        # Axiom's tabular format includes null placeholders for old flat
+        # columns. They must not hide a real value from the new map payload.
+        if value is not None or name not in normalized:
+            normalized[name] = value
+    return normalized
+
+
 def remote_records(args: argparse.Namespace) -> Iterator[tuple[dict[str, object], str]]:
     dataset = args.dataset or os.environ.get("BENHEIM_AXIOM_DATASET", "")
     token = os.environ.get("BENHEIM_AXIOM_QUERY_TOKEN") or os.environ.get("AXIOM_TOKEN", "")
@@ -208,7 +239,8 @@ def remote_records(args: argparse.Namespace) -> Iterator[tuple[dict[str, object]
         # order so terminal records close starts instead of reopening them.
         rows.reverse()
     for record in rows:
-        yield record, json.dumps(record, separators=(",", ":"), sort_keys=True)
+        normalized = normalize_remote_record(record)
+        yield normalized, json.dumps(normalized, separators=(",", ":"), sort_keys=True)
 
 
 def records(args: argparse.Namespace) -> Iterator[tuple[dict[str, object], str]]:
