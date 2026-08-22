@@ -118,11 +118,16 @@ internal static class PutAwayLeaseClient
         bool wasValidation = pendingValidation;
         pendingOperationId = null;
         pendingValidation = false;
-        if (heldOperationId == operationId)
+        bool retainHeldLeaseForBatchDrain =
+            wasValidation && heldOperationId == operationId;
+        if (!retainHeldLeaseForBatchDrain)
         {
-            heldOperationId = null;
+            if (heldOperationId == operationId)
+            {
+                heldOperationId = null;
+            }
+            TrySendRelease(operationId, "result_timeout");
         }
-        TrySendRelease(operationId, "result_timeout");
         completedResult = new PutAwayLeaseResult(
             operationId,
             false,

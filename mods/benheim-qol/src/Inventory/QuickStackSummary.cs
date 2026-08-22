@@ -12,6 +12,7 @@ internal sealed class QuickStackSummary
 
     internal void Add(
         int containerInstanceId,
+        int containerOrder,
         string containerDisplayName,
         string containerLocation,
         string itemDisplayName,
@@ -24,7 +25,7 @@ internal sealed class QuickStackSummary
 
         if (!containersByInstanceId.TryGetValue(containerInstanceId, out ContainerSummary? summary))
         {
-            summary = new ContainerSummary(containerDisplayName, containerLocation);
+            summary = new ContainerSummary(containerOrder, containerDisplayName, containerLocation);
             containersByInstanceId.Add(containerInstanceId, summary);
             containers.Add(summary);
         }
@@ -35,10 +36,13 @@ internal sealed class QuickStackSummary
 
     internal string Format()
     {
-        var lines = new List<string>(containers.Count);
-        for (int index = 0; index < containers.Count; index++)
+        List<ContainerSummary> orderedContainers = containers
+            .OrderBy(container => container.Order)
+            .ToList();
+        var lines = new List<string>(orderedContainers.Count);
+        for (int index = 0; index < orderedContainers.Count; index++)
         {
-            ContainerSummary container = containers[index];
+            ContainerSummary container = orderedContainers[index];
             lines.Add(
                 $"{container.DisplayName} {index + 1} ({container.Location}): {FormatItems(container)}");
         }
@@ -58,12 +62,14 @@ internal sealed class QuickStackSummary
 
     private sealed class ContainerSummary
     {
-        internal ContainerSummary(string displayName, string location)
+        internal ContainerSummary(int order, string displayName, string location)
         {
+            Order = order;
             DisplayName = displayName;
             Location = location;
         }
 
+        internal int Order { get; }
         internal string DisplayName { get; }
         internal string Location { get; }
         internal Dictionary<string, int> MovedByItemName { get; } =

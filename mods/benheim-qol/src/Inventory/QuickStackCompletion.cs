@@ -6,34 +6,49 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static partial class QuickStack
 {
-    private static void Finish(QuickStackOperation operation)
+    private static void Finish(
+        QuickStackOperation operation,
+        QuickStackBatchTerminal terminal)
     {
+        if (activeOperation != operation)
+        {
+            return;
+        }
+
         activeOperation = null;
-        PutAwayLeaseClient.Release("batch_finished");
+        PutAwayLeaseClient.Release(terminal.Reason);
         InventoryTransactions.BatchFinished(
             operation.OperationId,
-            "completed",
-            "batch_finished",
+            terminal.Status,
+            terminal.Reason,
             operation.MovedItems,
             PutAwayStageTiming.ElapsedMilliseconds(operation.BatchStartedAt),
             operation.ScanMatchDurationMs);
+        if (!terminal.Completed)
+        {
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_cancelled",
+                $"reason={terminal.Reason} moved={operation.MovedItems}");
+            if (operation.MovedItems > 0)
+            {
+                ShowMovedResult(operation);
+            }
+            return;
+        }
+
+        FinishCompleted(operation);
+    }
+
+    private static void FinishCompleted(QuickStackOperation operation)
+    {
         Diagnostics.Event(
             "Inventory",
             "quick_stack_finished",
             $"moved={operation.MovedItems} busy_containers={operation.BusyContainers}");
         if (operation.MovedItems > 0)
         {
-            operation.InventoryGui.m_moveItemEffects.Create(
-                operation.InventoryGui.transform.position,
-                Quaternion.identity);
-            QuickStackFeedback.ShowDetailedResult(
-                operation.Player,
-                operation.InventoryWasOpen,
-                operation.Summary.Format());
-            QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
-                operation.Player,
-                operation.InventoryWasOpen,
-                operation.MovedItems);
+            ShowMovedResult(operation);
             return;
         }
 
@@ -49,6 +64,21 @@ internal static partial class QuickStack
             operation.Player,
             operation.InventoryWasOpen,
             movedItems: 0);
+    }
+
+    private static void ShowMovedResult(QuickStackOperation operation)
+    {
+        operation.InventoryGui.m_moveItemEffects.Create(
+            operation.InventoryGui.transform.position,
+            Quaternion.identity);
+        QuickStackFeedback.ShowDetailedResult(
+            operation.Player,
+            operation.InventoryWasOpen,
+            operation.Summary.Format());
+        QuickStackFeedback.ShowAbovePlayerSummaryIfInventoryWasClosed(
+            operation.Player,
+            operation.InventoryWasOpen,
+            operation.MovedItems);
     }
 
     private static void FinishWithNoContainers(

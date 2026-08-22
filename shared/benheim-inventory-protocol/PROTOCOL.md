@@ -30,8 +30,10 @@ fresh.
 - Connected peers converge on the owner's committed chest contents.
 - An ambiguous response remains pending and correlated while the session stays
   connected. It never becomes an uncorrelated local retry.
-- Exact requester settlement completes the deposit. Receipt cleanup cannot
-  retain the Put Away batch or global lease.
+- Exact requester settlement completes each deposit. The batch becomes terminal
+  and Put Away releases the global lease only after scheduling stops and every
+  reserved deposit settles. Receipt cleanup cannot keep the batch active or
+  delay release of the global lease.
 - Before Put Away scans chests or reserves items, every connected peer must
   announce the current Put Away generation: lease `v2` and transaction `v4`.
 - The server records the connected-peer cohort at lease grant and validates the
@@ -52,20 +54,26 @@ fresh.
 3. After validation, the requester selects a chest, creates an immutable
    transaction ID, chest ID, request payload, and payload hash, then reserves
    the selected source stacks in memory before sending the request.
-4. The server deduplicates the transaction, resolves the chest's current owner,
+4. The requester can validate the cohort and reserve a later eligible chest
+   while earlier transactions remain in flight. The transaction API removes
+   source items synchronously during each reservation, so later reservations
+   cannot include the same items.
+5. The server deduplicates the transaction, resolves the chest's current owner,
    and routes the request to that peer.
-5. The owner confirms ownership and validates the requester, access, distance,
+6. The owner confirms ownership and validates the requester, access, distance,
    item match, chest use, and live capacity.
-6. The owner applies accepted items to its inventory, records a receipt on the
+7. The owner applies accepted items to its inventory, records a receipt on the
    chest ZDO, and returns accepted counts through the server.
-7. The server accepts a result only from the latest owner it resolved. The
+8. The server accepts a result only from the latest owner it resolved. The
    requester then requires a matching transaction ID and payload hash. It
    settles every accepted, refunded, or emergency-dropped item exactly once.
-   Settlement completes the deposit so the batch can continue and eventually
-   release the lease.
-8. After completion, the requester sends exactly one best-effort, one-way
-   receipt cleanup request. It keeps no cleanup state and does not retry. The
-   server requires the completed correlation and original routed sender, then
+   Results can settle in any order. A failed cohort validation stops new
+   reservations but does not cancel deposits already in flight. The batch
+   becomes terminal and Put Away releases the global lease only after
+   scheduling stops and every reserved deposit settles.
+9. After each deposit completes, the requester sends exactly one best-effort,
+   one-way receipt cleanup request. It keeps no cleanup state and does not
+   retry. The server requires the completed correlation and original routed sender, then
    forwards the request to the chest's current owner. The owner sends no
    cleanup confirmation through the server. A lost or rejected cleanup does
    not repeat settlement, reopen completion, delay callbacks, or retain the
@@ -82,6 +90,7 @@ fresh.
 | Owner receipt and server completion cache | A retry applies at most once across routing and ownership changes | Lost responses duplicate accepted items | receipt codec test plus the connected-retry integration case |
 | Accepted counts and requester remainder restoration | Player, chest, and explicit refund-drop item counts are conserved | Partial capacity loses rejected items or duplicates accepted items | stale-payload, partial-capacity, and filled-inventory refund cases |
 | Exact settlement before completion | Completion reflects every accepted, refunded, or emergency-dropped item | Early completion hides an unsettled remainder and can lose or duplicate items | source ordering guard, filled-inventory refund case, and receipt-acknowledgement wire/liveness case |
+| Pipelined batch drain | Put Away can schedule independent owner-authoritative chest transactions before earlier transactions settle. The batch becomes terminal and Put Away releases the global lease only after scheduling stops and every reserved deposit settles. | An out-of-order result, failed validation, or throwing callback releases the lease while another reservation is still in flight | `Put Away pipelined batch scheduler checks passed` |
 | One-way current-owner receipt cleanup | Completed receipt entries are normally reclaimed without becoming a transaction liveness gate | Removing cleanup can eventually exhaust receipt capacity; confirmed cleanup adds state and failure modes without protecting item integrity | receipt-acknowledgement wire/liveness case |
 | Best-effort typed transaction events | Requester, router, and owner decisions can be correlated, and diagnostic failures cannot interrupt mutation, result delivery, settlement, completion, or receipt cleanup | A throwing sink interrupts delivery or completion, or repeats an emergency refund drop | throwing-sink and post-drop controls plus `inventory transaction typed diagnostic schema checks passed` |
 
@@ -145,6 +154,17 @@ reservation. A join, disconnect, or readiness change stops the batch before its
 next reservation. The lease remains with the holder until the holder releases
 it. The protocol catches diagnostic failures before they can interrupt the
 transaction.
+
+After each existing cohort validation, the requester can start another
+independent owner-authoritative chest transaction before earlier transactions
+settle. This changes only requester-side batch scheduling. The lease generation
+remains `v2`, the transaction generation remains `v4`, and no wire payload
+shape changes. The batch becomes terminal and Put Away releases the global
+lease only after scheduling stops and all in-flight deposits settle. Automated
+checks pass for out-of-order results, partial refunds, validation failures,
+thrown callbacks, duplicate settlement, and draining before lease release. The
+scheduler still needs live multiplayer latency and durability proof.
+
 When the requester disconnects, the server removes that requester's pending and
 completed route entries. Automated stale-payload,
 lease, mixed-version, receipt, throwing-sink, disconnect-cleanup, and real
@@ -192,8 +212,10 @@ writes the related diagnostic event. A diagnostic sink failure cannot change
 transaction progress.
 
 `client_result` means the requester completed exact settlement from a result
-forwarded by the latest owner the server resolved. Final Put Away callbacks and
-terminal batch events follow settlement without waiting for receipt cleanup.
+forwarded by the latest owner the server resolved. The requester runs each Put
+Away callback after its correlated transaction settles. It emits the batch
+terminal only after scheduling stops and every in-flight transaction settles.
+Neither action waits for receipt cleanup.
 `client_receipt_ack_sent` records that single cleanup send;
 `owner_receipt_acknowledged` is an owner-local removal event, not a response to
 the requester. Neither event is a commit or completion boundary. Put Away does
@@ -219,7 +241,8 @@ The protocol fails closed when the server, owner, requester, access check,
 transaction identity, receipt capacity, or compatible protocol is unavailable.
 Put Away stops before scanning or reservation if any connected peer has not
 announced the current Put Away generation. A connected-peer cohort change after
-lease grant stops the batch before its next container reservation.
+lease grant stops the batch before its next container reservation. Deposits
+already in flight still settle before the batch terminal and lease release.
 An ambiguous reserved request remains correlated and retryable while the
 session stays connected instead of being locally restored as if the owner had
 not committed.

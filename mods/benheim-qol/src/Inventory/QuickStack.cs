@@ -103,15 +103,18 @@ internal static partial class QuickStack
             return;
         }
 
-        activeOperation = new QuickStackOperation(
+        QuickStackOperation? operation = null;
+        operation = new QuickStackOperation(
             operationId,
             batchStartedAt,
             player,
             start.InventoryGui,
             eligibility.Containers,
             start.InventoryWasOpen,
-            scanMatchDurationMs);
-        RequestNextContainer();
+            scanMatchDurationMs,
+            terminal => Finish(operation!, terminal));
+        activeOperation = operation;
+        ContinueScheduling(operation);
     }
 
     private static void RequestNextContainer()
@@ -124,7 +127,8 @@ internal static partial class QuickStack
 
         while (operation.NextContainerIndex < operation.Containers.Count)
         {
-            Container container = operation.Containers[operation.NextContainerIndex++];
+            int containerOrder = operation.NextContainerIndex++;
+            Container container = operation.Containers[containerOrder];
             if (!container)
             {
                 continue;
@@ -140,15 +144,18 @@ internal static partial class QuickStack
 
             operation.PendingContainer = container;
             operation.PendingCandidates = candidates;
+            operation.PendingContainerOrder = containerOrder;
             Diagnostics.Event(
                 "Inventory",
                 "quick_stack_validate_container",
                 $"container=\"{container.gameObject.name}\" index={operation.NextContainerIndex}/{operation.Containers.Count} " +
                 $"items={candidates.Count}");
-            if (PutAwayLeaseClient.TryValidate(
-                    operation.OperationId,
-                    Time.unscaledTime,
-                    out string validationReason))
+            string validationReason = string.Empty;
+            if (operation.Pipeline.TryRequestValidation(() =>
+                    PutAwayLeaseClient.TryValidate(
+                        operation.OperationId,
+                        Time.unscaledTime,
+                        out validationReason)))
             {
                 return;
             }
@@ -157,77 +164,54 @@ internal static partial class QuickStack
             return;
         }
 
-        Finish(operation);
+        operation.Pipeline.StopScheduling("completed", "batch_finished");
     }
 
-    private static void CompleteContainer(
+    private static void ApplyContainerResult(
         QuickStackOperation operation,
+        int containerOrder,
         Container container,
         DepositResult result)
     {
-        if (activeOperation != operation || operation.CurrentContainer != container)
+        string containerDisplayName = Localize(container.GetHoverName());
+        string containerLocation = QuickStackLocation.Format(operation.Player, container);
+        int movedItems = 0;
+        foreach (DepositResultEntry entry in result.Entries)
         {
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_stale_result",
-                $"container=\"{container.gameObject.name}\" status={result.Status}");
-            return;
-        }
-
-        try
-        {
-            string containerDisplayName = Localize(container.GetHoverName());
-            string containerLocation = QuickStackLocation.Format(operation.Player, container);
-            int movedItems = 0;
-            foreach (DepositResultEntry entry in result.Entries)
+            if (entry.Accepted <= 0)
             {
-                if (entry.Accepted <= 0)
-                {
-                    continue;
-                }
-
-                movedItems += entry.Accepted;
-                operation.Summary.Add(
-                    container.GetInstanceID(),
-                    containerDisplayName,
-                    containerLocation,
-                    Localize(entry.Item.m_shared.m_name),
-                    entry.Accepted);
-                QuickStackDiagnostics.ItemMoved(
-                    operation.OperationId,
-                    entry.Item,
-                    entry.Accepted,
-                    container,
-                    containerLocation);
+                continue;
             }
 
-            operation.MovedItems += movedItems;
-            if (!result.Succeeded)
-            {
-                operation.BusyContainers++;
-            }
-
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_container_result",
-                $"container=\"{container.gameObject.name}\" status={result.Status} moved={movedItems}");
+            movedItems += entry.Accepted;
+            operation.Summary.Add(
+                container.GetInstanceID(),
+                containerOrder,
+                containerDisplayName,
+                containerLocation,
+                Localize(entry.Item.m_shared.m_name),
+                entry.Accepted);
+            QuickStackDiagnostics.ItemMoved(
+                operation.OperationId,
+                entry.Item,
+                entry.Accepted,
+                container,
+                containerLocation);
         }
-        catch (Exception exception)
+
+        operation.MovedItems += movedItems;
+        if (!result.Succeeded)
         {
             operation.BusyContainers++;
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_container_completion_failed",
-                $"status={result.Status} exception={exception.GetType().Name}");
         }
-        finally
-        {
-            operation.CurrentContainer = null;
-            ContinueAfterSettledContainer(operation);
-        }
+
+        Diagnostics.Event(
+            "Inventory",
+            "quick_stack_container_result",
+            $"container=\"{container.gameObject.name}\" status={result.Status} moved={movedItems}");
     }
 
-    private static void ContinueAfterSettledContainer(QuickStackOperation operation)
+    private static void ContinueScheduling(QuickStackOperation operation)
     {
         try
         {
@@ -235,25 +219,14 @@ internal static partial class QuickStack
         }
         catch (Exception exception)
         {
-            // Exact requester settlement is already complete. A stale Unity
-            // object or presentation failure must not retain the global lease.
-            if (activeOperation == operation)
-            {
-                activeOperation = null;
-                PutAwayLeaseClient.Release("container_completion_failed");
-                InventoryTransactions.BatchFinished(
-                    operation.OperationId,
-                    "cancelled",
-                    "container_completion_failed",
-                    operation.MovedItems,
-                    PutAwayStageTiming.ElapsedMilliseconds(operation.BatchStartedAt),
-                    operation.ScanMatchDurationMs);
-            }
-
+            // Reservations already handed to the transaction protocol remain
+            // authoritative. Stop issuing new work, then keep the lease until
+            // every existing ticket settles.
+            operation.Pipeline.StopScheduling("cancelled", "container_scheduling_failed");
             Diagnostics.Event(
                 "Inventory",
-                "quick_stack_completion_failed",
-                $"exception={exception.GetType().Name}");
+                "quick_stack_scheduling_failed",
+                $"exception={exception.GetType().Name} in_flight={operation.Pipeline.InFlightCount}");
         }
     }
 
@@ -307,8 +280,16 @@ internal static partial class QuickStack
     internal static void ResetState()
     {
         bool hasUnsettledDeposit = InventoryTransactions.HasUnsettledClientDeposit;
-        if (activeOperation != null
-            && InventoryTransactionLifecyclePolicy.CanResetBatch(hasUnsettledDeposit))
+        if (!InventoryTransactionLifecyclePolicy.CanResetBatch(hasUnsettledDeposit))
+        {
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_reset_deferred",
+                "reason=transaction_settlement_in_progress");
+            return;
+        }
+
+        if (activeOperation != null)
         {
             InventoryTransactions.BatchFinished(
                 activeOperation.OperationId,

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BenheimInventoryProtocol;
 
@@ -40,7 +41,8 @@ internal sealed class QuickStackOperation
         InventoryGui inventoryGui,
         List<Container> containers,
         bool inventoryWasOpen,
-        double scanMatchDurationMs)
+        double scanMatchDurationMs,
+        Action<QuickStackBatchTerminal> terminalReady)
     {
         OperationId = operationId;
         BatchStartedAt = batchStartedAt;
@@ -49,6 +51,7 @@ internal sealed class QuickStackOperation
         Containers = containers;
         InventoryWasOpen = inventoryWasOpen;
         ScanMatchDurationMs = scanMatchDurationMs;
+        Pipeline = new QuickStackBatchPipeline<DepositResult>(terminalReady);
     }
 
     internal string OperationId { get; }
@@ -60,10 +63,11 @@ internal sealed class QuickStackOperation
     internal int NextContainerIndex { get; set; }
     internal Container? PendingContainer { get; set; }
     internal List<DepositCandidate>? PendingCandidates { get; set; }
-    internal Container? CurrentContainer { get; set; }
+    internal int PendingContainerOrder { get; set; } = -1;
     internal int MovedItems { get; set; }
     internal int BusyContainers { get; set; }
     internal double ScanMatchDurationMs { get; set; }
+    internal QuickStackBatchPipeline<DepositResult> Pipeline { get; }
     internal QuickStackSummary Summary { get; } = new QuickStackSummary();
 }
 

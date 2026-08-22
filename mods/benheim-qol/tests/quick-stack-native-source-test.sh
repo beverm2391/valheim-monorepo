@@ -5,6 +5,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 repo_root="$(cd "$root/../.." && pwd)"
 quick_stack="$root/src/Inventory/QuickStack.cs"
 lease_validation="$root/src/Inventory/QuickStackLeaseValidation.cs"
+lease_client="$root/src/Inventory/PutAwayLeaseClient.cs"
 patches="$root/src/Inventory/QuickStackPatches.cs"
 client="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionClient.cs"
 models="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionModels.cs"
@@ -20,11 +21,13 @@ diagnostics="$repo_root/shared/benheim-inventory-protocol/InventoryTransactionDi
 stage_timing="$repo_root/shared/benheim-inventory-protocol/PutAwayStageTiming.cs"
 runtime="$root/src/Inventory/InventoryTransactionRuntime.cs"
 diagnostic_sink="$root/src/Inventory/InventoryTransactionDiagnosticSink.cs"
+scheduler="$root/src/Inventory/QuickStackBatchScheduler.cs"
+pipeline="$root/src/Inventory/QuickStackBatchPipeline.cs"
 
 # The requester reserves first and never writes its cached destination chest.
 grep -Fq 'InventoryTransactions.TryBeginDeposit' "$lease_validation"
 grep -Fq 'PutAwayLeaseClient.TryValidate(' "$quick_stack"
-request_next_block="$(sed -n '/private static void RequestNextContainer/,/private static void CompleteContainer/p' "$quick_stack")"
+request_next_block="$(sed -n '/private static void RequestNextContainer/,/private static void ApplyContainerResult/p' "$quick_stack")"
 if printf '%s\n' "$request_next_block" | grep -Fq 'InventoryTransactions.TryBeginDeposit'; then
   printf 'Put Away must validate the active lease before each source reservation\n' >&2
   exit 1
@@ -35,7 +38,7 @@ if printf '%s\n' "$stale_validation_block" | grep -Eq 'container == null|candida
   printf 'destroyed or missing validation context must cancel the active batch, not return as stale\n' >&2
   exit 1
 fi
-context_loss_line="$(printf '%s\n' "$validation_block" | grep -n -m1 'if (!container || candidates == null || !operation.Player)' | cut -d: -f1)"
+context_loss_line="$(printf '%s\n' "$validation_block" | grep -n -m1 'if (!container' | cut -d: -f1)"
 context_cancel_line="$(printf '%s\n' "$validation_block" | grep -n -m1 'CancelBeforeReservation(operation, "validation_context_unavailable")' | cut -d: -f1)"
 validation_reject_line="$(printf '%s\n' "$validation_block" | grep -n -m1 '!leaseResult.Granted' | cut -d: -f1)"
 reservation_line="$(printf '%s\n' "$validation_block" | grep -n -m1 'InventoryTransactions.TryBeginDeposit' | cut -d: -f1)"
@@ -46,9 +49,11 @@ if [[ -z "$context_loss_line" || -z "$context_cancel_line" || -z "$validation_re
   exit 1
 fi
 cancel_block="$(sed -n '/private static void CancelBeforeReservation/,$p' "$lease_validation")"
-grep -Fq 'activeOperation = null;' <<<"$cancel_block"
-grep -Fq 'PutAwayLeaseClient.Release(reason);' <<<"$cancel_block"
-grep -Fq 'InventoryTransactions.BatchFinished(' <<<"$cancel_block"
+grep -Fq 'operation.Pipeline.StopScheduling("cancelled", reason);' <<<"$cancel_block"
+if grep -Fq 'PutAwayLeaseClient.Release(reason);' <<<"$cancel_block"; then
+  printf 'failed validation must drain in-flight deposits before releasing the lease\n' >&2
+  exit 1
+fi
 grep -Fq 'source.RemoveItem(sourceItem, sourceItem.m_stack)' "$client"
 grep -Fq 'SendDepositRequest(pending);' "$client"
 remove_line="$(grep -nF 'source.RemoveItem(sourceItem, sourceItem.m_stack)' "$client" | cut -d: -f1)"
@@ -107,8 +112,15 @@ if (( remove_pending_line >= callback_line || callback_line >= cleanup_line )); 
   exit 1
 fi
 grep -Fq 'finally' "$client"
-grep -Fq 'ContinueAfterSettledContainer(operation);' "$quick_stack"
-grep -Fq 'PutAwayLeaseClient.Release("container_completion_failed");' "$quick_stack"
+grep -Fq 'operation.Pipeline.TryBeginValidatedDeposit(' "$lease_validation"
+grep -Fq 'operation.Pipeline.StopScheduling("cancelled", "container_scheduling_failed");' "$quick_stack"
+grep -Fq 'inFlight.Remove(ticket)' "$scheduler"
+grep -Fq '!schedulingStopped || inFlight.Count != 0 || terminalTaken' "$scheduler"
+grep -Fq 'scheduler.TryTakeTerminal(out QuickStackBatchTerminal? terminal)' "$pipeline"
+grep -Fq 'terminalReady(terminal!);' "$pipeline"
+grep -Fq 'PutAwayLeaseClient.Release(terminal.Reason);' "$root/src/Inventory/QuickStackCompletion.cs"
+grep -Fq 'bool retainHeldLeaseForBatchDrain =' "$lease_client"
+grep -Fq 'wasValidation && heldOperationId == operationId;' "$lease_client"
 grep -Fq 'client_receipt_ack_sent' "$client"
 grep -Fq 'InventoryTransactionReceiptAcknowledgementCodec.TryAuthorize(' "$server"
 grep -Fq 'pair.Value.CompletedAt < olderThan' "$routing"
@@ -184,5 +196,6 @@ dotnet run --project "$repo_root/tests/inventory-transaction-receipts/InventoryT
 dotnet run --project "$repo_root/tests/put-away-receipt-ack/PutAwayReceiptAckTests.csproj"
 dotnet run --project "$repo_root/tests/put-away-protocol-compatibility/PutAwayProtocolCompatibilityTests.csproj"
 dotnet run --project "$repo_root/tests/inventory-transaction-diagnostics/InventoryTransactionDiagnosticTests.csproj"
+dotnet run --project "$repo_root/tests/put-away-batch-scheduler/PutAwayBatchSchedulerTests.csproj"
 
 printf 'owner-authoritative Put Away source and conservation checks passed\n'
