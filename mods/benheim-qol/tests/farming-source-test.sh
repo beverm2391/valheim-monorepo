@@ -13,10 +13,13 @@ assert_source() {
 }
 
 assert_source 'HarvestRadius = 10f' 'src/Farming/FarmingSettings.cs'
-assert_source 'GridWidth = 5' 'src/Farming/FarmingSettings.cs'
-assert_source 'GridLength = 5' 'src/Farming/FarmingSettings.cs'
+assert_source 'GridWidth = 9' 'src/Farming/FarmingSettings.cs'
+assert_source 'GridLength = 9' 'src/Farming/FarmingSettings.cs'
+assert_source 'new List<FarmingGridPoint>\(FarmingSettings.GridWidth \* FarmingSettings.GridLength\)' 'src/Farming/FarmingGrid.cs'
 assert_source 'row == FarmingSettings.GridLength / 2' 'src/Farming/FarmingGrid.cs'
 assert_source 'column == FarmingSettings.GridWidth / 2' 'src/Farming/FarmingGrid.cs'
+assert_source 'position \+= left' 'src/Farming/FarmingGrid.cs'
+assert_source 'rowOrigin \+= forward' 'src/Farming/FarmingGrid.cs'
 assert_source 'GetGlobalKey\(anchorPiece.FreeBuildKey\(\)\)' 'src/Farming/MassPlanting.cs'
 assert_source 'ApplyBuildSkill\(player, pieceTable\)' 'src/Farming/MassPlanting.cs'
 assert_source 'InputState\.IsTextEntryActive\(\)' 'src/Farming/FarmingInput.cs'
