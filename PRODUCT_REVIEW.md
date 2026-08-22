@@ -15,10 +15,9 @@ test. A behavior is canonical only when its owning `PRODUCT.md` lists it under
 ## Current candidate
 
 - Accepted client baseline: `0.1.52`
-- Installed private-test client: `0.1.66`
-- Deployed Server Support: `0.1.4`
+- Installed private-test client: `0.1.67`
+- Deployed Server Support: `0.1.5`
 - Deployed Test Commands: `0.1.1`
-- Prepared private-test candidate: Benheim `0.1.67`
 - Required Server Support for this pass: `0.1.5`
 - Required group version for this pass: Benheim `0.1.67`
 

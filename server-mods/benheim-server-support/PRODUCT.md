@@ -6,7 +6,7 @@ multiplayer kill chains. It does not own test or administrator commands.
 
 ## Current Behavior
 
-The supported installer deployed Benheim Server Support `0.1.4`. The deployment
+The supported installer deployed Benheim Server Support `0.1.5`. The deployment
 check confirmed its exact plugin load, hash, world, and readiness. The deployed
 plugin grants one global Put Away lease. A compatible client must receive the
 lease before it scans chests. The server grants one connected peer and rejects
