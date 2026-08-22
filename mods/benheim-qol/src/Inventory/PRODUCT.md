@@ -90,11 +90,14 @@ the same durability contract and pass the stale-payload regression proof.
   single-item loadout.
 - Live `0.1.67` timing showed that owner routing and handoff dominated
   multi-chest Put Away latency. After each existing cohort validation, Put Away
-  can start another independent owner-authoritative chest deposit before earlier
-  deposits settle. Results can settle in any order. A validation failure stops
-  new reservations. The batch becomes terminal and Put Away releases the global
-  lease only after scheduling stops and every reserved deposit settles. This
-  scheduler still needs live multiplayer latency and durability proof.
+  can start another owner-authoritative chest deposit before earlier deposits
+  settle when their item names do not overlap. If a later eligible chest
+  contains the same item name, Put Away waits for exact settlement and scans
+  that chest after any refund returns. Results for independent deposits can
+  settle in any order. A validation failure stops new reservations. The batch
+  becomes terminal and Put Away releases the global lease only after scheduling
+  stops and every reserved deposit settles. This scheduler still needs live
+  multiplayer latency and durability proof.
 - Put Away's grouped receipt keeps every destination line and every item line.
   Its placement follows the shared top-left feedback lane defined in the root
   product document and still needs gameplay proof.

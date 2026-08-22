@@ -20,6 +20,7 @@ internal sealed class QuickStackBatchScheduler
 
     internal int InFlightCount => inFlight.Count;
     internal bool SchedulingStopped => schedulingStopped;
+    internal bool IsInFlight(int ticket) => inFlight.Contains(ticket);
 
     internal bool TryBeginDeposit(out int ticket)
     {
@@ -72,6 +73,25 @@ internal sealed class QuickStackBatchScheduler
         terminalTaken = true;
         terminal = new QuickStackBatchTerminal(terminalStatus, terminalReason);
         return true;
+    }
+}
+
+internal static class QuickStackBatchDependencies
+{
+    internal static bool HasItemNameOverlap(
+        IReadOnlyCollection<string> candidateItemNames,
+        IReadOnlyCollection<string> laterContainerItemNames)
+    {
+        HashSet<string> candidates = new HashSet<string>(candidateItemNames);
+        foreach (string laterItemName in laterContainerItemNames)
+        {
+            if (candidates.Contains(laterItemName))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 

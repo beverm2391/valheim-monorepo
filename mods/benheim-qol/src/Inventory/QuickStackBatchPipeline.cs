@@ -42,7 +42,8 @@ internal sealed class QuickStackBatchPipeline<TResult>
         Action<TResult> settleDeposit,
         Action depositRejected,
         Action duplicateSettlement,
-        Action<Exception> settlementFailed)
+        Action<Exception> settlementFailed,
+        Action depositSettled)
     {
         if (!validationPending || scheduler.SchedulingStopped)
         {
@@ -60,13 +61,25 @@ internal sealed class QuickStackBatchPipeline<TResult>
                 result,
                 settleDeposit,
                 duplicateSettlement,
-                settlementFailed)))
+                settlementFailed,
+                depositSettled)))
         {
             return true;
         }
 
-        scheduler.TrySettleDeposit(ticket, depositRejected);
-        FinishIfReady();
+        try
+        {
+            scheduler.TrySettleDeposit(ticket, depositRejected);
+        }
+        catch (Exception exception)
+        {
+            settlementFailed(exception);
+        }
+        finally
+        {
+            depositSettled();
+            FinishIfReady();
+        }
         return true;
     }
 
@@ -82,8 +95,10 @@ internal sealed class QuickStackBatchPipeline<TResult>
         TResult result,
         Action<TResult> settleDeposit,
         Action duplicateSettlement,
-        Action<Exception> settlementFailed)
+        Action<Exception> settlementFailed,
+        Action depositSettled)
     {
+        bool firstSettlement = scheduler.IsInFlight(ticket);
         try
         {
             if (!scheduler.TrySettleDeposit(ticket, () => settleDeposit(result)))
@@ -97,6 +112,10 @@ internal sealed class QuickStackBatchPipeline<TResult>
         }
         finally
         {
+            if (firstSettlement)
+            {
+                depositSettled();
+            }
             FinishIfReady();
         }
     }
@@ -107,5 +126,74 @@ internal sealed class QuickStackBatchPipeline<TResult>
         {
             terminalReady(terminal!);
         }
+    }
+}
+
+/// <summary>
+/// Owns the one continuation decision after a validated deposit begins. A
+/// dependency barrier waits for settlement or refund; an independent deposit
+/// advances immediately. Synchronous rejection and duplicate delivery cannot
+/// skip or repeat the continuation.
+/// </summary>
+internal sealed class QuickStackDepositContinuation
+{
+    private readonly bool waitForSettlement;
+    private readonly Action continueScheduling;
+    private bool beginCompleted;
+    private bool settledDuringBegin;
+    private bool continued;
+
+    internal QuickStackDepositContinuation(
+        bool waitForSettlement,
+        Action continueScheduling)
+    {
+        this.waitForSettlement = waitForSettlement;
+        this.continueScheduling = continueScheduling;
+    }
+
+    internal void DepositSettled()
+    {
+        if (!waitForSettlement || continued)
+        {
+            return;
+        }
+
+        if (!beginCompleted)
+        {
+            settledDuringBegin = true;
+            return;
+        }
+
+        ContinueOnce();
+    }
+
+    internal void CompleteBegin(bool began)
+    {
+        if (beginCompleted)
+        {
+            throw new InvalidOperationException("Deposit continuation begin completed twice.");
+        }
+
+        beginCompleted = true;
+        if (!began)
+        {
+            return;
+        }
+
+        if (!waitForSettlement || settledDuringBegin)
+        {
+            ContinueOnce();
+        }
+    }
+
+    private void ContinueOnce()
+    {
+        if (continued)
+        {
+            return;
+        }
+
+        continued = true;
+        continueScheduling();
     }
 }

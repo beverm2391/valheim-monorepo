@@ -9,7 +9,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.testcommands";
     public const string PluginName = "Benheim Test Commands";
-    public const string PluginVersion = "0.1.1";
+    public const string PluginVersion = "0.1.2";
 
     internal static ManualLogSource Log { get; private set; } = null!;
     private Harmony? harmony;

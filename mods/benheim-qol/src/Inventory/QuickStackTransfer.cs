@@ -7,6 +7,48 @@ namespace BenheimQoL.InventoryFeature;
 // native StackAll mutation. QuickStack remains the request/response lifecycle.
 internal static class QuickStackTransfer
 {
+    internal static bool HasLaterCandidateDependency(
+        IReadOnlyCollection<DepositCandidate> candidates,
+        IReadOnlyList<Container> containers,
+        int nextContainerIndex)
+    {
+        HashSet<string> candidateItemNames = new HashSet<string>();
+        foreach (DepositCandidate candidate in candidates)
+        {
+            if (candidate.SourceItem != null)
+            {
+                candidateItemNames.Add(candidate.SourceItem.m_shared.m_name);
+            }
+        }
+
+        for (int index = nextContainerIndex; index < containers.Count; index++)
+        {
+            Container container = containers[index];
+            if (!container)
+            {
+                continue;
+            }
+
+            HashSet<string> targetItemNames = new HashSet<string>();
+            foreach (ItemDrop.ItemData item in container.GetInventory().GetAllItems())
+            {
+                if (item != null && item.m_stack > 0)
+                {
+                    targetItemNames.Add(item.m_shared.m_name);
+                }
+            }
+
+            if (QuickStackBatchDependencies.HasItemNameOverlap(
+                    candidateItemNames,
+                    targetItemNames))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static QuickStackEligibility FindEligibleContainers(Player player, List<Container> containers)
     {
         QuickStackEligibility eligibility = new QuickStackEligibility();

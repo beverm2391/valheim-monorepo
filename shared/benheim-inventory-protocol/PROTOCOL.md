@@ -55,9 +55,9 @@ fresh.
    transaction ID, chest ID, request payload, and payload hash, then reserves
    the selected source stacks in memory before sending the request.
 4. The requester can validate the cohort and reserve a later eligible chest
-   while earlier transactions remain in flight. The transaction API removes
-   source items synchronously during each reservation, so later reservations
-   cannot include the same items.
+   while earlier transactions remain in flight only when their item names do
+   not overlap. If a later chest contains the same item name, the requester
+   waits for exact settlement and scans that chest after any refund returns.
 5. The server deduplicates the transaction, resolves the chest's current owner,
    and routes the request to that peer.
 6. The owner confirms ownership and validates the requester, access, distance,
@@ -90,7 +90,7 @@ fresh.
 | Owner receipt and server completion cache | A retry applies at most once across routing and ownership changes | Lost responses duplicate accepted items | receipt codec test plus the connected-retry integration case |
 | Accepted counts and requester remainder restoration | Player, chest, and explicit refund-drop item counts are conserved | Partial capacity loses rejected items or duplicates accepted items | stale-payload, partial-capacity, and filled-inventory refund cases |
 | Exact settlement before completion | Completion reflects every accepted, refunded, or emergency-dropped item | Early completion hides an unsettled remainder and can lose or duplicate items | source ordering guard, filled-inventory refund case, and receipt-acknowledgement wire/liveness case |
-| Pipelined batch drain | Put Away can schedule independent owner-authoritative chest transactions before earlier transactions settle. The batch becomes terminal and Put Away releases the global lease only after scheduling stops and every reserved deposit settles. | An out-of-order result, failed validation, or throwing callback releases the lease while another reservation is still in flight | `Put Away pipelined batch scheduler checks passed` |
+| Dependency-aware pipelined batch drain | Put Away can schedule owner-authoritative chest transactions with disjoint item names before earlier transactions settle. It waits for settlement before scanning a later chest that contains the same item name. The batch becomes terminal and releases the global lease only after scheduling stops and every reservation settles. | An eager scan skips a refunded remainder, or an out-of-order result, failed validation, or throwing callback releases the lease while another reservation is still in flight. | `Put Away pipelined batch scheduler checks passed` |
 | One-way current-owner receipt cleanup | Completed receipt entries are normally reclaimed without becoming a transaction liveness gate | Removing cleanup can eventually exhaust receipt capacity; confirmed cleanup adds state and failure modes without protecting item integrity | receipt-acknowledgement wire/liveness case |
 | Best-effort typed transaction events | Requester, router, and owner decisions can be correlated, and diagnostic failures cannot interrupt mutation, result delivery, settlement, completion, or receipt cleanup | A throwing sink interrupts delivery or completion, or repeats an emergency refund drop | throwing-sink and post-drop controls plus `inventory transaction typed diagnostic schema checks passed` |
 
@@ -156,14 +156,18 @@ it. The protocol catches diagnostic failures before they can interrupt the
 transaction.
 
 After each existing cohort validation, the requester can start another
-independent owner-authoritative chest transaction before earlier transactions
-settle. This changes only requester-side batch scheduling. The lease generation
-remains `v2`, the transaction generation remains `v4`, and no wire payload
-shape changes. The batch becomes terminal and Put Away releases the global
-lease only after scheduling stops and all in-flight deposits settle. Automated
-checks pass for out-of-order results, partial refunds, validation failures,
-thrown callbacks, duplicate settlement, and draining before lease release. The
-scheduler still needs live multiplayer latency and durability proof.
+owner-authoritative chest transaction before earlier transactions settle when
+their item names do not overlap. A deposit becomes a scheduling barrier when a
+later eligible chest contains the same item name. Put Away waits for that
+deposit's exact settlement, then scans the later chest after any refund returns.
+This changes only requester-side batch scheduling. The lease generation remains
+`v2`, the transaction generation remains `v4`, and no wire payload shape
+changes. The batch becomes terminal and Put Away releases the global lease only
+after scheduling stops and all in-flight deposits settle. Automated checks
+pass for the same-item partial-refund control, disjoint pipelining, out-of-order
+results, validation failures, thrown callbacks, duplicate settlement, and
+draining before lease release. The scheduler still needs live multiplayer
+latency and durability proof.
 
 When the requester disconnects, the server removes that requester's pending and
 completed route entries. Automated stale-payload,

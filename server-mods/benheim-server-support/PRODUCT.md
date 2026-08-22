@@ -6,7 +6,7 @@ multiplayer kill chains. It does not own test or administrator commands.
 
 ## Current Behavior
 
-The supported installer deployed Benheim Server Support `0.1.5`. The deployment
+The supported installer deployed Benheim Server Support `0.1.6`. The deployment
 check confirmed its exact plugin load, hash, world, and readiness. The deployed
 plugin grants one global Put Away lease. A compatible client must receive the
 lease before it scans chests. The server grants one connected peer and rejects
@@ -38,11 +38,11 @@ warning presentation remains under review.
 
 ## In Development
 
-Version `0.1.5` keeps the accepted Put Away protocol, lease generation `v2`,
+Version `0.1.6` keeps the accepted Put Away protocol, lease generation `v2`,
 transaction generation `v4`, and Kill Attribution V3 behavior from `0.1.4`.
-It adds only the server-side part of the bounded Put Away timing telemetry. The
-client and server compile this telemetry from shared source. The telemetry does
-not affect protocol decisions or transaction progress.
+It includes the server-side part of the bounded Put Away timing telemetry and
+the schema-2 typed-diagnostics correction compiled from client-shared source.
+Neither change affects protocol decisions or transaction progress.
 
 Version `0.1.4` changes the experimental confirmed-kill chain to six kills for
 BERSERKER, twelve kills for SLAUGHTERHOUSE, and a 30-second rolling deadline.

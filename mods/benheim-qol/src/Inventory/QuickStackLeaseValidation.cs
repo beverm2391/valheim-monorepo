@@ -44,7 +44,14 @@ internal static partial class QuickStack
             "Inventory",
             "quick_stack_request_container",
             $"container=\"{container.gameObject.name}\" items={candidates.Count}");
-        if (operation.Pipeline.TryBeginValidatedDeposit(
+        bool waitForSettlement = QuickStackTransfer.HasLaterCandidateDependency(
+            candidates,
+            operation.Containers,
+            operation.NextContainerIndex);
+        QuickStackDepositContinuation continuation = new QuickStackDepositContinuation(
+            waitForSettlement,
+            () => ContinueScheduling(operation));
+        bool began = operation.Pipeline.TryBeginValidatedDeposit(
                 callback => InventoryTransactions.TryBeginDeposit(
                     operation.OperationId,
                     operation.Player,
@@ -64,9 +71,11 @@ internal static partial class QuickStack
                         "Inventory",
                         "quick_stack_container_completion_failed",
                         $"exception={exception.GetType().Name}");
-                }))
+                },
+                continuation.DepositSettled);
+        continuation.CompleteBegin(began);
+        if (began)
         {
-            ContinueScheduling(operation);
             return;
         }
 

@@ -23,6 +23,7 @@ runtime="$root/src/Inventory/InventoryTransactionRuntime.cs"
 diagnostic_sink="$root/src/Inventory/InventoryTransactionDiagnosticSink.cs"
 scheduler="$root/src/Inventory/QuickStackBatchScheduler.cs"
 pipeline="$root/src/Inventory/QuickStackBatchPipeline.cs"
+transfer="$root/src/Inventory/QuickStackTransfer.cs"
 
 # The requester reserves first and never writes its cached destination chest.
 grep -Fq 'InventoryTransactions.TryBeginDeposit' "$lease_validation"
@@ -113,6 +114,11 @@ if (( remove_pending_line >= callback_line || callback_line >= cleanup_line )); 
 fi
 grep -Fq 'finally' "$client"
 grep -Fq 'operation.Pipeline.TryBeginValidatedDeposit(' "$lease_validation"
+grep -Fq 'QuickStackTransfer.HasLaterCandidateDependency(' "$lease_validation"
+grep -Fq 'QuickStackDepositContinuation continuation =' "$lease_validation"
+grep -Fq 'continuation.CompleteBegin(began);' "$lease_validation"
+grep -Fq 'QuickStackBatchDependencies.HasItemNameOverlap(' "$transfer"
+grep -Fq 'depositSettled();' "$pipeline"
 grep -Fq 'operation.Pipeline.StopScheduling("cancelled", "container_scheduling_failed");' "$quick_stack"
 grep -Fq 'inFlight.Remove(ticket)' "$scheduler"
 grep -Fq '!schedulingStopped || inFlight.Count != 0 || terminalTaken' "$scheduler"

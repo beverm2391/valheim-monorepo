@@ -11,7 +11,7 @@ project="$root/server-mods/benheim-test-commands/src/BenheimTestCommands.csproj"
 build_script="$root/server-mods/benheim-test-commands/scripts/build.sh"
 source_tree="$($root/mods/benheim-qol/scripts/ensure-valheim-source.sh)"
 
-grep -Fq 'PluginVersion = "0.1.1"' "$plugin"
+grep -Fq 'PluginVersion = "0.1.2"' "$plugin"
 grep -Fq 'ZNet.instance.IsServer()' "$boar_server"
 grep -Fq '[HarmonyPatch(typeof(ZNet), "OnNewConnection")]' "$boar_server"
 grep -Fq 'peer.m_rpc.Register<string, int>(' "$boar_server"

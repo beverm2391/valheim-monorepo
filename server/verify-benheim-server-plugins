@@ -12,8 +12,8 @@ expected_logs=(
   "Load world: $world ($world)"
   "Game server connected"
   "Benheim Eternal Fire 0.1.1 loaded after PatchAll."
-  "Benheim Test Commands 0.1.1 loaded with direct peer RPC authorization."
-  "Benheim Server Support 0.1.5 loaded with Put Away and confirmed-kill coordination."
+  "Benheim Test Commands 0.1.2 loaded with direct peer RPC authorization."
+  "Benheim Server Support 0.1.6 loaded with Put Away and confirmed-kill coordination."
 )
 
 for attempt in $(seq 1 45); do

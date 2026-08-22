@@ -192,27 +192,31 @@ readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.67` is the current private-test candidate. It keeps the Kill
+Benheim `0.1.69` is the current private-test candidate. It keeps the Kill
 Attribution V3 capability boundary and the 6/12 kill-chain thresholds from
 `0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
 untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
 for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
 
 The candidate also changes the Cultivator's centered grid from 5x5 to 9x9.
-Perfect Impact now qualifies at the first `Character` contact authored for the
-attack. This replaces the attack-start check that failed in testing. Put Away
-emits bounded timing data for scanning, routing, owner mutation, requester
-settlement, and the whole batch. The timing data does not change its protocol
-or gameplay.
+Perfect Impact now qualifies only at the first `Character` contact authored for
+the attack. That contact requires horizontal approach speed of at least `5.5
+m/s`. This replaces the attack-start check that failed in testing. Put Away
+emits bounded timing data. It pipelines chest transactions after the existing
+cohort validations only when their item names do not overlap. A deposit waits
+for exact settlement when a later eligible chest contains the same item name,
+so that chest can receive any refunded remainder. The scheduler leaves the
+lease and transaction protocol unchanged.
 
 The candidate includes earned combat states, collider inspection, private
 typed diagnostics, and the other changes described below. Existing adrenaline
 behavior is unchanged.
 
 Put Away and BERSERKER/SLAUGHTERHOUSE require the matching Server Support
-candidate. Server Support `0.1.5` keeps lease generation `v2`, transaction
-generation `v4`, and Kill Attribution V3. Its binary changes because it shares
-the new Put Away timing telemetry. The client-only runtime catalog commands do
+candidate. Server Support `0.1.6` keeps lease generation `v2`,
+transaction generation `v4`, and Kill Attribution V3. Its binary includes the
+new Put Away timing telemetry and the schema-2 typed-diagnostics correction
+shared with the client. The client-only runtime catalog commands do
 not require Server Support. See the root [Gameplay
 Breakdown](../../PRODUCT.md#gameplay-breakdown) for the exact client and server
 versions and compatibility boundary.
@@ -235,10 +239,10 @@ Remote schema 2 keeps identity and common selectors at the dataset root and
 duplicates the operation ID there as a root selector. It puts every
 producer-owned gameplay field under the configured Axiom `fields` map. Live
 provider proof ingested one schema 2 event with 300 newly named producer-owned
-fields. After Axiom added the `fields` map, ingesting the event left the dataset
-schema at 257 entries: 256 prior fields plus the map. An APL query returned one
-nested key successfully. The developer query command normalized the map-backed
-event to the same flat result shape as old flat events.
+fields. Because Axiom had already added the `fields` map, that ingestion left
+the dataset schema at 257 entries: 256 prior fields plus the map. An APL query
+returned one nested key successfully. The developer query command normalized
+the map-backed event to the same flat result shape as old flat events.
 
 All Benheim feedback that belongs in the top-left area shares one Benheim-owned
 lane directly beneath the live hotbar. The lane carries grouped receipts for

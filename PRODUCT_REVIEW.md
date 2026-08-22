@@ -15,11 +15,11 @@ test. A behavior is canonical only when its owning `PRODUCT.md` lists it under
 ## Current candidate
 
 - Accepted client baseline: `0.1.52`
-- Installed private-test client: `0.1.67`
-- Deployed Server Support: `0.1.5`
-- Deployed Test Commands: `0.1.1`
-- Required Server Support for this pass: `0.1.5`
-- Required group version for this pass: Benheim `0.1.67`
+- Installed private-test client: `0.1.69`
+- Deployed Server Support: `0.1.6`
+- Deployed Test Commands: `0.1.2`
+- Required Server Support for this pass: `0.1.6`
+- Required group version for this pass: Benheim `0.1.69`
 
 ## How proof works
 
@@ -86,12 +86,21 @@ Use these result labels:
   logs plus `BenheimEvents.ndjson` continue to update.
 - Turn Share Diagnostics off for one player. Remote forwarding stops while that
   player's local diagnostics continue.
+- Emit one schema-2 event with producer-owned fields after sharing is enabled.
+  Confirm the Axiom schema does not expand for those keys, query one nested
+  field, and confirm the developer query returns the normalized flat event
+  shape.
 - After world readiness, run `bh debug catalog effects heal`, `bh debug catalog
   text`, and `bh debug catalog ui toggle`. Each command reports matching counts
   and replaces the local runtime-catalog snapshot without sending catalog
   entries to Axiom.
 - Run one catalog command before world readiness on a later launch. It must fail
   visibly rather than writing a misleading empty snapshot.
+- As a native Valheim administrator, run `bh henge on`. Confirm that the local
+  map shows unlabeled native pins for every planned `StoneHenge1`,
+  `StoneHenge3`, `StoneHenge4`, and `StoneHenge5` without revealing fog or
+  terrain, and that `bh henge off` removes only those pins. Reconnect and
+  confirm that the overlay was not saved.
 
 ### Presentation and ordinary behavior
 
@@ -101,7 +110,7 @@ Use these result labels:
   creature to accept the refined headshot volume.
 - While the local player is airborne, connect a supported melee attack with a
   Valheim `Character`. The player must descend at least `0.5 m/s` and move
-  horizontally toward the contact point at least `7 m/s`. Only the attack's
+  horizontally toward the contact point at least `5.5 m/s`. Only the attack's
   first authored contact with a `Character` produces an outcome. A qualified
   contact applies `1.15x` native damage and `3x` native stagger once. It also
   shows one `PERFECT IMPACT`, even when Benheim FX is off. Contacts remain
@@ -125,6 +134,13 @@ Use these result labels:
 
   The timing fields must not affect routing, mutation, settlement, or
   completion.
+- With two current clients connected, put one item stack into two eligible
+  chests where the nearest chest has room for only one item and the farther
+  chest can accept the remainder. Put Away must settle the first deposit before
+  routing the refunded remainder, move the complete stack across the two
+  chests, and neither lose nor strand items in the player inventory. In a
+  separate pass, use disjoint item names across eligible chests and confirm
+  both deposits complete even when their owner results arrive out of order.
 - Hold `Left Shift` while planting with the Cultivator. The preview and
   placement form the same centered, deterministic 9x9 grid. Resource use,
   stamina, durability, spacing, cultivated-ground checks, creator ownership,
