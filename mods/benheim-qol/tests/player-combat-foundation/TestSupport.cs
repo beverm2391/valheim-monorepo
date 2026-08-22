@@ -154,6 +154,20 @@ internal static class TestSupport
     internal static PerfectDefenseConfirmed Defense(Player player, PerfectDefenseKind kind) =>
         new PerfectDefenseConfirmed(PlayerCombatContext.Capture(player), kind);
 
+    internal static ConfirmedKill Kill(Player player, long serverSequence) =>
+        new ConfirmedKill(
+            PlayerCombatContext.Capture(player),
+            new ZDOID(1),
+            new ZDOID(serverSequence + 100),
+            "Troll",
+            123,
+            1,
+            victimWasBoss: false,
+            victimWasTamed: false,
+            new Vector3(1f, 2f, 3f),
+            serverSequence,
+            serverTimeSeconds: 10d + serverSequence);
+
     internal static EarnedStateTransition Transition(
         PlayerCombatContext context,
         EarnedCombatState state,

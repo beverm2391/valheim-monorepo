@@ -78,7 +78,7 @@ internal sealed class PlayerCombatController
         this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
     }
 
-    internal int ConsecutivePerfectDefenses { get; private set; }
+    internal int UntouchableStreak { get; private set; }
 
     internal void Observe(PerfectDefenseConfirmed perfectDefense)
     {
@@ -86,10 +86,6 @@ internal sealed class PlayerCombatController
         {
             return;
         }
-
-        int previousStreak = ConsecutivePerfectDefenses;
-        int previousUntouchableTier = EarnedTier(EarnedCombatState.Untouchable);
-        ConsecutivePerfectDefenses++;
 
         ClutchDecision decision = ClutchMechanic.Decide(
             perfectDefense,
@@ -100,13 +96,44 @@ internal sealed class PlayerCombatController
             Earn(perfectDefense.Context, EarnedCombatState.Clutch, ClutchMechanic.Tier);
         }
 
+        AdvanceUntouchable(
+            perfectDefense.Context,
+            UntouchableProgressSource.PerfectDefense,
+            perfectDefense.Kind,
+            serverSequence: null);
+    }
+
+    internal void Observe(ConfirmedKill confirmedKill)
+    {
+        if (confirmedKill.Killer.Player != player)
+        {
+            return;
+        }
+
+        AdvanceUntouchable(
+            confirmedKill.Killer,
+            UntouchableProgressSource.ConfirmedKill,
+            defense: null,
+            confirmedKill.ServerSequence);
+    }
+
+    private void AdvanceUntouchable(
+        PlayerCombatContext context,
+        UntouchableProgressSource source,
+        PerfectDefenseKind? defense,
+        long? serverSequence)
+    {
+        int previousStreak = UntouchableStreak;
+        int previousUntouchableTier = EarnedTier(EarnedCombatState.Untouchable);
+        UntouchableStreak++;
+
         int earnedUntouchableTier = UntouchableMechanic.TierForStreak(
-            ConsecutivePerfectDefenses);
+            UntouchableStreak);
         UntouchableProgressOutcome progressOutcome = UntouchableProgressOutcome.StreakIncremented;
         if (earnedUntouchableTier > previousUntouchableTier)
         {
             Earn(
-                perfectDefense.Context,
+                context,
                 EarnedCombatState.Untouchable,
                 earnedUntouchableTier);
         }
@@ -121,10 +148,12 @@ internal sealed class PlayerCombatController
 
         facts.Publish(
             new UntouchableProgress(
-                perfectDefense.Context,
-                perfectDefense.Kind,
+                context,
+                source,
+                defense,
+                serverSequence,
                 previousStreak,
-                ConsecutivePerfectDefenses,
+                UntouchableStreak,
                 previousUntouchableTier,
                 currentUntouchableTier,
                 progressOutcome));
@@ -137,14 +166,14 @@ internal sealed class PlayerCombatController
             return;
         }
 
-        int previousStreak = ConsecutivePerfectDefenses;
+        int previousStreak = UntouchableStreak;
         int previousTier = EarnedTier(EarnedCombatState.Untouchable);
         if (previousStreak == 0 && previousTier == 0)
         {
             return;
         }
 
-        ConsecutivePerfectDefenses = 0;
+        UntouchableStreak = 0;
         facts.Publish(
             new UntouchableReset(
                 damage,
@@ -305,7 +334,7 @@ internal sealed class PlayerCombatController
 
     internal void Reset()
     {
-        ConsecutivePerfectDefenses = 0;
+        UntouchableStreak = 0;
         // Keep cleanup order stable so native stop effects and diagnostics do
         // not depend on dictionary enumeration.
         PlayerCombatContext context = PlayerCombatContext.Capture(player);

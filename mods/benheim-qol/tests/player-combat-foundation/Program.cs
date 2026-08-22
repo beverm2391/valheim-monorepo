@@ -11,11 +11,13 @@ SupportTests.TestOrderedFailureIsolationAndReset();
 SupportTests.TestClutchDecisionRefreshAndDamageLifecycle();
 PerfectDefenseOutcomeIdentityTests.Run();
 TestUntouchableMixedDefenseTiersAndDamageReset();
+TestUntouchableSharesConfirmedKillsAndPerfectDefenses();
 SupportTests.TestHealthLossWithoutUntouchableStateIsNotAReset();
 TestRejectedUntouchableEscalationKeepsPriorTier();
 TestBerserkerConsumesAuthoritativeChainTransitions();
 TestExpiredBerserkerTransitionClearsPriorOutput();
 TestNativeEffectsRegistrationHealingAndReplacement();
+TestEarnedStatePayloadTelemetryIsBoundedAndResolved();
 TestMissingNativeIconRejectsRegistration();
 TestEntryPresentationAndPerDefenseCharmCoalescing();
 TestNativeCharmActivationSuppressesDuplicateEarnedStateCue();
@@ -37,7 +39,7 @@ static void TestUntouchableMixedDefenseTiersAndDamageReset()
                 defense % 2 == 0 ? PerfectDefenseKind.Dodge : PerfectDefenseKind.Parry));
 
         int expectedTier = defense >= 12 ? 3 : defense >= 8 ? 2 : defense >= 5 ? 1 : 0;
-        Expect(controller.ConsecutivePerfectDefenses == defense,
+        Expect(controller.UntouchableStreak == defense,
             $"defense {defense} increments the shared streak");
         Expect(controller.EarnedTier(EarnedCombatState.Untouchable) == expectedTier,
             $"defense {defense} selects only the approved tier");
@@ -55,7 +57,7 @@ static void TestUntouchableMixedDefenseTiersAndDamageReset()
     PlayerCombatContext before = PlayerCombatContext.Capture(player);
     player.Health = 79f;
     controller.Observe(new AcceptedPlayerDamage(before, PlayerCombatContext.Capture(player)));
-    Expect(controller.ConsecutivePerfectDefenses == 0, "accepted health loss resets the streak");
+    Expect(controller.UntouchableStreak == 0, "accepted health loss resets the streak");
     Expect(!controller.HasEarned(EarnedCombatState.Untouchable),
         "accepted health loss quietly removes the active tier");
     Expect(facts.Resets[^1].Damage.HealthLost == 1f,
@@ -65,10 +67,52 @@ static void TestUntouchableMixedDefenseTiersAndDamageReset()
     PlayerCombatContext unchanged = PlayerCombatContext.Capture(player);
     int resetsBefore = facts.Resets.Count;
     controller.Observe(new AcceptedPlayerDamage(unchanged, PlayerCombatContext.Capture(player)));
-    Expect(controller.ConsecutivePerfectDefenses == 1,
+    Expect(controller.UntouchableStreak == 1,
         "zero-health-loss contact does not reset the streak");
     Expect(facts.Resets.Count == resetsBefore,
         "zero-health-loss contact emits no reset fact");
+}
+
+static void TestUntouchableSharesConfirmedKillsAndPerfectDefenses()
+{
+    Player player = new Player(80f, 100f);
+    FakeOutput output = new FakeOutput();
+    FactRecorder facts = new FactRecorder();
+    PlayerCombatController controller = new PlayerCombatController(player, output, facts);
+
+    controller.Observe(Defense(player, PerfectDefenseKind.Parry));
+    controller.Observe(Kill(player, serverSequence: 10));
+    controller.Observe(Defense(player, PerfectDefenseKind.Dodge));
+    controller.Observe(Kill(player, serverSequence: 11));
+    controller.Observe(Kill(player, serverSequence: 12));
+
+    Expect(controller.UntouchableStreak == 5,
+        "confirmed kills and perfect defenses advance one shared UNTOUCHABLE streak");
+    Expect(controller.EarnedTier(EarnedCombatState.Untouchable) == 1,
+        "the mixed fifth qualifying action activates Tier I at the existing threshold");
+    Expect(facts.Untouchable.Count == 5,
+        "each confirmed kill and perfect defense emits exactly one progress fact");
+    Expect(facts.Untouchable[1].Source == UntouchableProgressSource.ConfirmedKill
+            && facts.Untouchable[1].ServerSequence == 10
+            && !facts.Untouchable[1].Defense.HasValue,
+        "kill progress retains its typed origin and authoritative server sequence");
+    Expect(facts.Untouchable[2].Source == UntouchableProgressSource.PerfectDefense
+            && facts.Untouchable[2].Defense == PerfectDefenseKind.Dodge
+            && !facts.Untouchable[2].ServerSequence.HasValue,
+        "defense progress retains its typed origin without pretending to be a kill");
+    Expect(facts.Clutch.Count == 2,
+        "confirmed kills do not enter perfect-defense CLUTCH decisions");
+
+    for (long sequence = 13; sequence <= 19; sequence++)
+    {
+        controller.Observe(Kill(player, sequence));
+    }
+
+    Expect(controller.UntouchableStreak == 12
+            && controller.EarnedTier(EarnedCombatState.Untouchable) == 3,
+        "confirmed kills preserve the existing eight- and twelve-point tier progression");
+    Expect(output.ActiveTier(EarnedCombatState.Untouchable) == 3,
+        "mixed progression still leaves one replacing UNTOUCHABLE tier");
 }
 
 static void TestRejectedUntouchableEscalationKeepsPriorTier()
@@ -210,6 +254,154 @@ static void TestNativeEffectsRegistrationHealingAndReplacement()
     Expect(currentDatabase.m_StatusEffects.Count == 0,
         "plugin teardown unregisters owned templates");
 }
+
+static void TestEarnedStatePayloadTelemetryIsBoundedAndResolved()
+{
+    ObjectDB database = CreateNativeIconDatabase();
+    EarnedStateEffectDefinition clutch = ClutchMechanic.CreateEffectDefinition();
+    EarnedStateEffectDefinition untouchable1 = UntouchableMechanic.CreateEffectDefinition(1);
+    EarnedStateEffectDefinition untouchable2 = UntouchableMechanic.CreateEffectDefinition(2);
+    EarnedStateEffectDefinition untouchable3 = UntouchableMechanic.CreateEffectDefinition(3);
+    EarnedStateEffectDefinition berserker1 = BerserkerMechanic.CreateEffectDefinition(1);
+    EarnedStateEffectDefinition berserker2 = BerserkerMechanic.CreateEffectDefinition(2);
+    EarnedStateEffectCatalog catalog = new EarnedStateEffectCatalog();
+    catalog.Configure(
+        clutch,
+        untouchable1,
+        untouchable2,
+        untouchable3,
+        berserker1,
+        berserker2);
+    catalog.Register(database);
+    NativeEarnedStateOutput output = new NativeEarnedStateOutput(catalog);
+    Player player = new Player(20f, 200f);
+
+    Diagnostics.Reset();
+    output.Activate(player, EarnedCombatState.Clutch, 1);
+    player.GetSEMan().Tick(0.5f);
+    Expect(Events("earned_state_healing_tick").Count == 0,
+        "CLUTCH emits no payload event between native healing ticks");
+    player.GetSEMan().Tick(0.51f);
+    DiagnosticEvent healing = SingleEvent("earned_state_healing_tick");
+    Expect(Number(healing, "native_health_before") == 20f
+            && Number(healing, "configured_health_per_tick") == 10f
+            && Number(healing, "resolved_health_after") == 30f
+            && Number(healing, "resolved_health_applied") == 10f,
+        "CLUTCH healing telemetry retains native input, configuration, and resolved output");
+    player.GetSEMan().Tick(1.01f);
+    Expect(Events("earned_state_healing_tick").Count == 2,
+        "CLUTCH emits one payload event at each bounded native tick");
+    output.Deactivate(player, EarnedCombatState.Clutch, 1);
+
+    Diagnostics.Reset();
+    output.Activate(player, EarnedCombatState.Untouchable, 1);
+    EarnedStateStatusEffect activeUntouchable = ActiveEffect(
+        player,
+        untouchable1);
+    HitData emptyHit = new HitData();
+    activeUntouchable.ModifyAttack(Skills.SkillType.All, ref emptyHit);
+    Expect(Events("earned_state_outgoing_damage_applied").Count == 0,
+        "UNTOUCHABLE waits for an outgoing payload it actually changes");
+    HitData hit = new HitData
+    {
+        m_damage = new HitData.DamageTypes
+        {
+            m_blunt = 20f,
+            m_fire = 5f,
+            m_chop = 2f
+        }
+    };
+    activeUntouchable.ModifyAttack(Skills.SkillType.All, ref hit);
+    DiagnosticEvent damage = SingleEvent("earned_state_outgoing_damage_applied");
+    Expect(Number(damage, "native_damage_total") == 27f
+            && Number(damage, "configured_damage_multiplier") == 1.1f
+            && Math.Abs(Number(damage, "resolved_damage_total") - 29.7f) < 0.001f
+            && Number(damage, "native_damage_blunt") == 20f
+            && Number(damage, "resolved_damage_blunt") == 22f,
+        "UNTOUCHABLE telemetry retains the complete typed damage input and output");
+    activeUntouchable.ModifyAttack(Skills.SkillType.All, ref hit);
+    Expect(Events("earned_state_outgoing_damage_applied").Count == 1,
+        "one UNTOUCHABLE activation records only its first modified outgoing payload");
+
+    output.Deactivate(player, EarnedCombatState.Untouchable, 1);
+    output.Activate(player, EarnedCombatState.Untouchable, 2);
+    EarnedStateStatusEffect activeUntouchable2 = ActiveEffect(player, untouchable2);
+    activeUntouchable2.ModifyAttack(Skills.SkillType.All, ref hit);
+    Expect(Events("earned_state_outgoing_damage_applied").Count == 2,
+        "UNTOUCHABLE tier replacement receives a fresh one-shot payload record");
+    output.Deactivate(player, EarnedCombatState.Untouchable, 2);
+    output.Activate(player, EarnedCombatState.Untouchable, 3);
+    EarnedStateStatusEffect activeUntouchable3 = ActiveEffect(player, untouchable3);
+    activeUntouchable3.ModifyAttack(Skills.SkillType.All, ref hit);
+    Expect(Events("earned_state_outgoing_damage_applied").Count == 3,
+        "each of the three UNTOUCHABLE tiers records its first modified payload");
+    output.Deactivate(player, EarnedCombatState.Untouchable, 3);
+
+    Diagnostics.Reset();
+    output.Activate(player, EarnedCombatState.Berserker, 1, durationSeconds: 10f);
+    EarnedStateStatusEffect activeBerserker = ActiveEffect(player, berserker1);
+    float staminaRegen = 1f;
+    activeBerserker.ModifyStaminaRegen(ref staminaRegen);
+    activeBerserker.ModifyStaminaRegen(ref staminaRegen);
+    DiagnosticEvent stamina = SingleEvent("earned_state_stamina_regen_applied");
+    Expect(Number(stamina, "native_regen_multiplier") == 1f
+            && Number(stamina, "configured_regen_multiplier") == 1.5f
+            && Number(stamina, "resolved_regen_multiplier") == 1.5f,
+        "BERSERKER stamina telemetry retains native input, configuration, and output");
+
+    HitData.DamageModifiers resistance = new HitData.DamageModifiers();
+    activeBerserker.ModifyDamageMods(ref resistance);
+    activeBerserker.ModifyDamageMods(ref resistance);
+    DiagnosticEvent physical = SingleEvent("earned_state_physical_resistance_applied");
+    Expect(Text(physical, "native_blunt_modifier") == "Normal"
+            && Text(physical, "configured_blunt_modifier") == "SlightlyResistant"
+            && Text(physical, "resolved_blunt_modifier") == "SlightlyResistant",
+        "BERSERKER resistance telemetry retains native input, configuration, and output");
+    Expect(Events("earned_state_stamina_regen_applied").Count == 1
+            && Events("earned_state_physical_resistance_applied").Count == 1,
+        "BERSERKER emits each high-frequency payload record once per activation");
+
+    output.Deactivate(player, EarnedCombatState.Berserker, 1);
+    output.Activate(player, EarnedCombatState.Berserker, 2, durationSeconds: 10f);
+    EarnedStateStatusEffect activeSlaughterhouse = ActiveEffect(player, berserker2);
+    staminaRegen = 1f;
+    resistance = new HitData.DamageModifiers();
+    activeSlaughterhouse.ModifyStaminaRegen(ref staminaRegen);
+    activeSlaughterhouse.ModifyDamageMods(ref resistance);
+    Expect(Events("earned_state_stamina_regen_applied").Count == 2
+            && Events("earned_state_physical_resistance_applied").Count == 2,
+        "SLAUGHTERHOUSE replacement receives fresh bounded stamina and resistance records");
+    Expect(staminaRegen == 2f
+            && resistance.m_blunt == HitData.DamageModifier.Resistant,
+        "payload telemetry does not alter SLAUGHTERHOUSE tuning or native resolution");
+
+    catalog.Reset();
+}
+
+static EarnedStateStatusEffect ActiveEffect(
+    Player player,
+    EarnedStateEffectDefinition definition)
+{
+    return player.GetSEMan().GetStatusEffect(definition.Effect.NameHash())
+        as EarnedStateStatusEffect
+        ?? throw new InvalidOperationException("expected active earned-state effect");
+}
+
+static List<DiagnosticEvent> Events(string name) =>
+    Diagnostics.Emitted.FindAll(diagnosticEvent => diagnosticEvent.Name == name);
+
+static DiagnosticEvent SingleEvent(string name)
+{
+    List<DiagnosticEvent> events = Events(name);
+    Expect(events.Count == 1, $"expected one {name} event, found {events.Count}");
+    return events[0];
+}
+
+static float Number(DiagnosticEvent diagnosticEvent, string field) =>
+    (float)diagnosticEvent.Fields[field]!;
+
+static string Text(DiagnosticEvent diagnosticEvent, string field) =>
+    (string)diagnosticEvent.Fields[field]!;
 
 static void TestMissingNativeIconRejectsRegistration()
 {

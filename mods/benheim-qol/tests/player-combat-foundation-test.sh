@@ -88,6 +88,15 @@ grep -Fq 'effect.m_modifyAttackSkill = Skills.SkillType.All;' "$untouchable"
 grep -Fq 'DamageIconItemPrefab = "TrinketSilverDamage"' "$untouchable"
 grep -Fq 'Deactivate(' "$controller"
 grep -Fq 'EarnedStateTransitionReason.AcceptedDamage' "$controller"
+grep -Fq 'Observe(ConfirmedKill confirmedKill)' "$controller"
+grep -Fq 'AdvanceUntouchable(' "$controller"
+grep -Fq 'Subscribe<ConfirmedKill>(ObserveConfirmedKill)' "$runtime"
+confirmed_kill_controller_line="$(grep -n 'Subscribe<ConfirmedKill>(ObserveConfirmedKill)' "$runtime" | cut -d: -f1)"
+confirmed_kill_diagnostic_line="$(grep -n 'Subscribe<ConfirmedKill>(PlayerCombatDiagnostics.Project)' "$runtime" | cut -d: -f1)"
+if (( confirmed_kill_controller_line >= confirmed_kill_diagnostic_line )); then
+  printf 'confirmed kills must advance UNTOUCHABLE before whole-event diagnostics\n' >&2
+  exit 1
+fi
 
 # BERSERKER consumes the server-authoritative typed transition without owning
 # kill counts or chain timing. Its two native tiers are mutually exclusive.
@@ -135,6 +144,21 @@ grep -Fq '"earned_state_refreshed"' "$diagnostics"
 grep -Fq '"earned_state_expired"' "$diagnostics"
 grep -Fq '"earned_state_activation_rejected"' "$diagnostics"
 grep -Fq 'DiagnosticEvent.Create("PlayerCombat", "berserker_chain_transition")' "$diagnostics"
+
+# Earned-state payload proof runs at native effect callbacks. CLUTCH records
+# only native ticks. High-frequency attack, regen, and resistance callbacks
+# record only the first applied payload for each cloned activation.
+grep -Fq 'public override void UpdateStatusEffect(float dt)' "$effects"
+grep -Fq '"earned_state_healing_tick"' "$effects"
+grep -Fq 'public override void ModifyAttack(Skills.SkillType skill, ref HitData hitData)' "$effects"
+grep -Fq '"earned_state_outgoing_damage_applied"' "$effects"
+grep -Fq 'outgoingDamageTelemetryRecorded' "$effects"
+grep -Fq 'public override void ModifyStaminaRegen(ref float staminaRegen)' "$effects"
+grep -Fq '"earned_state_stamina_regen_applied"' "$effects"
+grep -Fq 'staminaRegenTelemetryRecorded' "$effects"
+grep -Fq 'public override void ModifyDamageMods(ref HitData.DamageModifiers modifiers)' "$effects"
+grep -Fq '"earned_state_physical_resistance_applied"' "$effects"
+grep -Fq 'physicalResistanceTelemetryRecorded' "$effects"
 
 # Stable lifecycle and native seams are explicit; no frame update publishes
 # combat traffic.
@@ -187,6 +211,8 @@ grep -Fq 'num *= 0.75f;' "$native_tree/HitData.cs"
 grep -Fq 'case DamageModifier.Resistant:' "$native_tree/HitData.cs"
 grep -Fq 'num *= 0.5f;' "$native_tree/HitData.cs"
 grep -Fq 'staminaRegen += m_staminaRegenMultiplier - 1f;' "$native_tree/SE_Stats.cs"
+grep -Fq 'public override void ModifyDamageMods(ref HitData.DamageModifiers modifiers)' "$native_tree/SE_Stats.cs"
+grep -Fq 'modifiers.Apply(m_mods);' "$native_tree/SE_Stats.cs"
 
 # The exact local charm one-shot is a presentation-only EffectList call.
 grep -Fq 'm_adrenalinePopEffects.Create(base.transform.position, Quaternion.identity);' "$native_tree/Player.cs"

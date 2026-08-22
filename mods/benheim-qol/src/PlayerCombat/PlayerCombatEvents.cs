@@ -69,6 +69,12 @@ internal enum UntouchableProgressOutcome
     TierEscalated
 }
 
+internal enum UntouchableProgressSource
+{
+    PerfectDefense,
+    ConfirmedKill
+}
+
 internal enum UntouchableResetReason
 {
     AcceptedDamage
@@ -201,22 +207,40 @@ internal sealed class EarnedStateTransition
 }
 
 /// <summary>
-/// One mixed parry-and-dodge streak update and any tier decision it makes.
-/// The event is emitted once per confirmed defense without per-frame traffic.
+/// One mixed perfect-defense and confirmed-kill streak update and any tier
+/// decision it makes. The event is emitted once per qualifying action without
+/// per-frame traffic.
 /// </summary>
 internal sealed class UntouchableProgress
 {
     internal UntouchableProgress(
         PlayerCombatContext context,
-        PerfectDefenseKind defense,
+        UntouchableProgressSource source,
+        PerfectDefenseKind? defense,
+        long? serverSequence,
         int previousStreak,
         int currentStreak,
         int previousTier,
         int currentTier,
         UntouchableProgressOutcome outcome)
     {
+        bool validSource = source switch
+        {
+            UntouchableProgressSource.PerfectDefense =>
+                defense.HasValue && !serverSequence.HasValue,
+            UntouchableProgressSource.ConfirmedKill =>
+                !defense.HasValue && serverSequence.HasValue,
+            _ => false
+        };
+        if (!validSource)
+        {
+            throw new ArgumentException("UNTOUCHABLE progress source fields are inconsistent.");
+        }
+
         Context = context ?? throw new ArgumentNullException(nameof(context));
+        Source = source;
         Defense = defense;
+        ServerSequence = serverSequence;
         PreviousStreak = previousStreak;
         CurrentStreak = currentStreak;
         PreviousTier = previousTier;
@@ -225,7 +249,9 @@ internal sealed class UntouchableProgress
     }
 
     internal PlayerCombatContext Context { get; }
-    internal PerfectDefenseKind Defense { get; }
+    internal UntouchableProgressSource Source { get; }
+    internal PerfectDefenseKind? Defense { get; }
+    internal long? ServerSequence { get; }
     internal int PreviousStreak { get; }
     internal int CurrentStreak { get; }
     internal int PreviousTier { get; }

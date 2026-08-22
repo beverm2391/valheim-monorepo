@@ -55,14 +55,30 @@ internal static class PlayerCombatDiagnostics
 
     internal static void Project(UntouchableProgress progress)
     {
-        Diagnostics.Emit(
+        DiagnosticEvent diagnosticEvent =
             DiagnosticEvent.Create("PlayerCombat", "untouchable_streak_changed")
-                .String("defense", DefenseName(progress.Defense))
+                .String(
+                    "source",
+                    progress.Source == UntouchableProgressSource.PerfectDefense
+                        ? "perfect_defense"
+                        : "confirmed_kill")
                 .String("outcome", progress.Outcome.ToString())
                 .Integer("streak_before", progress.PreviousStreak)
                 .Integer("streak_after", progress.CurrentStreak)
                 .Integer("tier_before", progress.PreviousTier)
-                .Integer("tier_after", progress.CurrentTier));
+                .Integer("tier_after", progress.CurrentTier);
+
+        if (progress.Defense.HasValue)
+        {
+            diagnosticEvent.String("defense", DefenseName(progress.Defense.Value));
+        }
+
+        if (progress.ServerSequence.HasValue)
+        {
+            diagnosticEvent.Integer("server_sequence", progress.ServerSequence.Value);
+        }
+
+        Diagnostics.Emit(diagnosticEvent);
     }
 
     internal static void Project(UntouchableReset reset)

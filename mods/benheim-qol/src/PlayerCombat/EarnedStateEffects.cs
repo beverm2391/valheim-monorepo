@@ -60,8 +60,139 @@ internal sealed class EarnedStateEffectDefinition
 /// </summary>
 internal sealed class EarnedStateStatusEffect : SE_Stats
 {
+    // SE_Stats keeps its tick timer private. This mirror follows the same
+    // update rule only so telemetry can observe the native healing callback's
+    // input and resolved result. Native ResetTime does not reset its tick
+    // timer, so this timer also continues across a CLUTCH refresh.
+    private float healthTickTelemetryTimer;
+
+    // Setup runs for each cloned native effect activation. A same-tier refresh
+    // calls ResetTime on that clone instead, so high-frequency payload hooks
+    // remain bounded to their first application for the active tier.
+    private bool outgoingDamageTelemetryRecorded;
+    private bool staminaRegenTelemetryRecorded;
+    private bool physicalResistanceTelemetryRecorded;
+
     internal EarnedCombatState State { get; set; }
     internal int Tier { get; set; }
+
+    public override void Setup(Character character)
+    {
+        healthTickTelemetryTimer = 0f;
+        outgoingDamageTelemetryRecorded = false;
+        staminaRegenTelemetryRecorded = false;
+        physicalResistanceTelemetryRecorded = false;
+        base.Setup(character);
+    }
+
+    public override void UpdateStatusEffect(float dt)
+    {
+        bool healingTickDue = false;
+        float healthBefore = 0f;
+        float maximumHealth = 0f;
+        if (State == EarnedCombatState.Clutch
+            && m_tickInterval > 0f
+            && m_character is Player player)
+        {
+            healthTickTelemetryTimer += dt;
+            if (healthTickTelemetryTimer >= m_tickInterval)
+            {
+                healthTickTelemetryTimer = 0f;
+                healthBefore = player.GetHealth();
+                maximumHealth = player.GetMaxHealth();
+                healingTickDue = m_healthPerTick > 0f
+                    && player.GetHealthPercentage() >= m_healthPerTickMinHealthPercentage;
+            }
+        }
+
+        base.UpdateStatusEffect(dt);
+        if (healingTickDue && m_character is Player healedPlayer)
+        {
+            TryEmitPayload(
+                DiagnosticEvent.Create("PlayerCombat", "earned_state_healing_tick")
+                    .String("state", State.ToString())
+                    .Integer("tier", Tier)
+                    .Number("native_health_before", healthBefore)
+                    .Number("native_maximum_health", maximumHealth)
+                    .Number("configured_health_per_tick", m_healthPerTick)
+                    .Number("configured_tick_interval_seconds", m_tickInterval)
+                    .Number("resolved_health_after", healedPlayer.GetHealth())
+                    .Number("resolved_health_applied", healedPlayer.GetHealth() - healthBefore));
+        }
+    }
+
+    public override void ModifyAttack(Skills.SkillType skill, ref HitData hitData)
+    {
+        HitData.DamageTypes nativeInput = hitData.m_damage;
+        base.ModifyAttack(skill, ref hitData);
+        if (State != EarnedCombatState.Untouchable
+            || outgoingDamageTelemetryRecorded
+            || !DamageChanged(nativeInput, hitData.m_damage))
+        {
+            return;
+        }
+
+        outgoingDamageTelemetryRecorded = true;
+        DiagnosticEvent diagnosticEvent =
+            DiagnosticEvent.Create("PlayerCombat", "earned_state_outgoing_damage_applied")
+                .String("state", State.ToString())
+                .Integer("tier", Tier)
+                .String("skill", skill.ToString())
+                .Number("configured_damage_multiplier", m_damageModifier);
+        AddDamageFields(diagnosticEvent, "native", nativeInput);
+        AddDamageFields(diagnosticEvent, "resolved", hitData.m_damage);
+        TryEmitPayload(diagnosticEvent);
+    }
+
+    public override void ModifyStaminaRegen(ref float staminaRegen)
+    {
+        float nativeInput = staminaRegen;
+        base.ModifyStaminaRegen(ref staminaRegen);
+        if (State != EarnedCombatState.Berserker || staminaRegenTelemetryRecorded)
+        {
+            return;
+        }
+
+        staminaRegenTelemetryRecorded = true;
+        TryEmitPayload(
+            DiagnosticEvent.Create("PlayerCombat", "earned_state_stamina_regen_applied")
+                .String("state", State.ToString())
+                .Integer("tier", Tier)
+                .Number("native_regen_multiplier", nativeInput)
+                .Number("configured_regen_multiplier", m_staminaRegenMultiplier)
+                .Number("resolved_regen_multiplier", staminaRegen));
+    }
+
+    public override void ModifyDamageMods(ref HitData.DamageModifiers modifiers)
+    {
+        HitData.DamageModifiers nativeInput = modifiers;
+        base.ModifyDamageMods(ref modifiers);
+        if (State != EarnedCombatState.Berserker || physicalResistanceTelemetryRecorded)
+        {
+            return;
+        }
+
+        physicalResistanceTelemetryRecorded = true;
+        TryEmitPayload(
+            DiagnosticEvent.Create("PlayerCombat", "earned_state_physical_resistance_applied")
+                .String("state", State.ToString())
+                .Integer("tier", Tier)
+                .String("native_blunt_modifier", nativeInput.m_blunt.ToString())
+                .String("native_slash_modifier", nativeInput.m_slash.ToString())
+                .String("native_pierce_modifier", nativeInput.m_pierce.ToString())
+                .String(
+                    "configured_blunt_modifier",
+                    ConfiguredModifier(HitData.DamageType.Blunt).ToString())
+                .String(
+                    "configured_slash_modifier",
+                    ConfiguredModifier(HitData.DamageType.Slash).ToString())
+                .String(
+                    "configured_pierce_modifier",
+                    ConfiguredModifier(HitData.DamageType.Pierce).ToString())
+                .String("resolved_blunt_modifier", modifiers.m_blunt.ToString())
+                .String("resolved_slash_modifier", modifiers.m_slash.ToString())
+                .String("resolved_pierce_modifier", modifiers.m_pierce.ToString()));
+    }
 
     public override void Stop()
     {
@@ -70,6 +201,69 @@ internal sealed class EarnedStateStatusEffect : SE_Stats
         if (m_character is Player player)
         {
             PlayerCombatRuntime.ObserveEffectStopped(player, State, Tier, expired);
+        }
+    }
+
+    private HitData.DamageModifier ConfiguredModifier(HitData.DamageType damageType)
+    {
+        for (int index = 0; index < m_mods.Count; index++)
+        {
+            if (m_mods[index].m_type == damageType)
+            {
+                return m_mods[index].m_modifier;
+            }
+        }
+
+        return HitData.DamageModifier.Normal;
+    }
+
+    private static bool DamageChanged(
+        HitData.DamageTypes nativeInput,
+        HitData.DamageTypes resolvedOutput)
+    {
+        return nativeInput.m_damage != resolvedOutput.m_damage
+            || nativeInput.m_blunt != resolvedOutput.m_blunt
+            || nativeInput.m_slash != resolvedOutput.m_slash
+            || nativeInput.m_pierce != resolvedOutput.m_pierce
+            || nativeInput.m_chop != resolvedOutput.m_chop
+            || nativeInput.m_pickaxe != resolvedOutput.m_pickaxe
+            || nativeInput.m_fire != resolvedOutput.m_fire
+            || nativeInput.m_frost != resolvedOutput.m_frost
+            || nativeInput.m_lightning != resolvedOutput.m_lightning
+            || nativeInput.m_poison != resolvedOutput.m_poison
+            || nativeInput.m_spirit != resolvedOutput.m_spirit;
+    }
+
+    private static void AddDamageFields(
+        DiagnosticEvent diagnosticEvent,
+        string prefix,
+        HitData.DamageTypes damage)
+    {
+        diagnosticEvent
+            .Number($"{prefix}_damage_total", damage.GetTotalDamage())
+            .Number($"{prefix}_damage_generic", damage.m_damage)
+            .Number($"{prefix}_damage_blunt", damage.m_blunt)
+            .Number($"{prefix}_damage_slash", damage.m_slash)
+            .Number($"{prefix}_damage_pierce", damage.m_pierce)
+            .Number($"{prefix}_damage_chop", damage.m_chop)
+            .Number($"{prefix}_damage_pickaxe", damage.m_pickaxe)
+            .Number($"{prefix}_damage_fire", damage.m_fire)
+            .Number($"{prefix}_damage_frost", damage.m_frost)
+            .Number($"{prefix}_damage_lightning", damage.m_lightning)
+            .Number($"{prefix}_damage_poison", damage.m_poison)
+            .Number($"{prefix}_damage_spirit", damage.m_spirit);
+    }
+
+    private static void TryEmitPayload(DiagnosticEvent diagnosticEvent)
+    {
+        try
+        {
+            Diagnostics.Emit(diagnosticEvent);
+        }
+        catch
+        {
+            // Payload telemetry cannot interrupt native healing, attack,
+            // stamina regeneration, or resistance resolution.
         }
     }
 }

@@ -96,7 +96,7 @@ public static class Skills
     }
 }
 
-public static class HitData
+public sealed class HitData
 {
     public enum DamageType
     {
@@ -122,6 +122,80 @@ public static class HitData
         public DamageType m_type;
         public DamageModifier m_modifier;
     }
+
+    public struct DamageTypes
+    {
+        public float m_damage;
+        public float m_blunt;
+        public float m_slash;
+        public float m_pierce;
+        public float m_chop;
+        public float m_pickaxe;
+        public float m_fire;
+        public float m_frost;
+        public float m_lightning;
+        public float m_poison;
+        public float m_spirit;
+
+        public void Modify(float multiplier)
+        {
+            m_damage *= multiplier;
+            m_blunt *= multiplier;
+            m_slash *= multiplier;
+            m_pierce *= multiplier;
+            m_chop *= multiplier;
+            m_pickaxe *= multiplier;
+            m_fire *= multiplier;
+            m_frost *= multiplier;
+            m_lightning *= multiplier;
+            m_poison *= multiplier;
+            m_spirit *= multiplier;
+        }
+
+        public float GetTotalDamage() =>
+            m_damage + m_blunt + m_slash + m_pierce + m_chop + m_pickaxe
+            + m_fire + m_frost + m_lightning + m_poison + m_spirit;
+    }
+
+    public struct DamageModifiers
+    {
+        public DamageModifier m_blunt;
+        public DamageModifier m_slash;
+        public DamageModifier m_pierce;
+
+        public void Apply(List<DamageModPair> modifiers)
+        {
+            foreach (DamageModPair modifier in modifiers)
+            {
+                switch (modifier.m_type)
+                {
+                    case DamageType.Blunt:
+                        ApplyIfBetter(ref m_blunt, modifier.m_modifier);
+                        break;
+                    case DamageType.Slash:
+                        ApplyIfBetter(ref m_slash, modifier.m_modifier);
+                        break;
+                    case DamageType.Pierce:
+                        ApplyIfBetter(ref m_pierce, modifier.m_modifier);
+                        break;
+                }
+            }
+        }
+
+        private static void ApplyIfBetter(
+            ref DamageModifier current,
+            DamageModifier configured)
+        {
+            if (current == DamageModifier.Normal
+                || (current == DamageModifier.SlightlyResistant
+                    && configured == DamageModifier.Resistant))
+            {
+                current = configured;
+            }
+        }
+    }
+
+    public DamageTypes m_damage;
 }
 
 public class Character
@@ -162,6 +236,10 @@ public class StatusEffect : UnityEngine.ScriptableObject
     {
         m_time = 0f;
     }
+
+    public virtual void ModifyAttack(Skills.SkillType skill, ref HitData hitData) { }
+    public virtual void ModifyStaminaRegen(ref float staminaRegen) { }
+    public virtual void ModifyDamageMods(ref HitData.DamageModifiers modifiers) { }
 }
 
 public class SE_Stats : StatusEffect
@@ -195,6 +273,31 @@ public class SE_Stats : StatusEffect
                 player.Heal(m_healthPerTick);
             }
         }
+    }
+
+    public override void ModifyAttack(Skills.SkillType skill, ref HitData hitData)
+    {
+        if (skill == m_modifyAttackSkill || m_modifyAttackSkill == Skills.SkillType.All)
+        {
+            hitData.m_damage.Modify(m_damageModifier);
+        }
+    }
+
+    public override void ModifyStaminaRegen(ref float staminaRegen)
+    {
+        if (m_staminaRegenMultiplier > 1f)
+        {
+            staminaRegen += m_staminaRegenMultiplier - 1f;
+        }
+        else
+        {
+            staminaRegen *= m_staminaRegenMultiplier;
+        }
+    }
+
+    public override void ModifyDamageMods(ref HitData.DamageModifiers modifiers)
+    {
+        modifiers.Apply(m_mods);
     }
 }
 
@@ -366,6 +469,7 @@ public sealed class Player : Character
 
     public float GetHealth() => Health;
     public float GetMaxHealth() => MaximumHealth;
+    public float GetHealthPercentage() => MaximumHealth > 0f ? Health / MaximumHealth : 0f;
     public float GetAdrenaline() => Adrenaline;
     public float GetMaxAdrenaline() => MaximumAdrenaline;
     public SEMan GetSEMan() => statusEffects;
@@ -376,15 +480,53 @@ namespace BenheimQoL.Infrastructure
 {
     internal sealed class DiagnosticEvent
     {
-        internal static DiagnosticEvent Create(string domain, string name) => new DiagnosticEvent();
-        internal DiagnosticEvent String(string key, string value) => this;
-        internal DiagnosticEvent Integer(string key, long value) => this;
+        private DiagnosticEvent(string domain, string name)
+        {
+            Domain = domain;
+            Name = name;
+        }
+
+        internal string Domain { get; }
+        internal string Name { get; }
+        internal Dictionary<string, object?> Fields { get; } =
+            new Dictionary<string, object?>();
+
+        internal static DiagnosticEvent Create(string domain, string name) =>
+            new DiagnosticEvent(domain, name);
+
+        internal DiagnosticEvent String(string key, string? value)
+        {
+            Fields[key] = value;
+            return this;
+        }
+
+        internal DiagnosticEvent Integer(string key, long value)
+        {
+            Fields[key] = value;
+            return this;
+        }
+
+        internal DiagnosticEvent Number(string key, float value)
+        {
+            Fields[key] = value;
+            return this;
+        }
+
+        internal DiagnosticEvent Boolean(string key, bool value)
+        {
+            Fields[key] = value;
+            return this;
+        }
     }
 
     internal static class Diagnostics
     {
+        internal static List<DiagnosticEvent> Emitted { get; } =
+            new List<DiagnosticEvent>();
+
         internal static void Event(string feature, string action, string details = "") { }
-        internal static void Emit(DiagnosticEvent diagnosticEvent) { }
+        internal static void Emit(DiagnosticEvent diagnosticEvent) => Emitted.Add(diagnosticEvent);
+        internal static void Reset() => Emitted.Clear();
     }
 
     internal static class WorldFeedback

@@ -15,7 +15,7 @@ the streak and removed the active tier.
 
 This acceptance covers the tier thresholds, tier replacement, reset from the
 tested native parry chip damage, and native status presentation. It does not
-prove the outgoing damage bonuses, the planned hostile-kill progression, or
+prove the outgoing damage bonuses, the hostile-kill progression, or
 every other reset source.
 
 ## In Development
@@ -62,14 +62,15 @@ characters or worlds, and ending the current Benheim session clear the state.
 
 Each native attack or dodge can produce at most one confirmed perfect defense,
 even if Valheim reports the same result more than once. Each confirmed perfect
-parry or perfect dodge increments one shared streak. The two defense types can
-mix, and a defense that activates CLUTCH also counts. The streak has no timer or
-encounter reset. It remains through portals, sailing, sleep, downtime, and
-separate encounters while the same player is loaded in the same world.
+parry or perfect dodge adds one point to a shared streak. Each server-confirmed
+qualifying hostile kill also adds one point. Defenses and kills can mix, and a
+defense that activates CLUTCH also counts. The streak has no timer or encounter
+reset. It remains through portals, sailing, sleep, downtime, and separate
+encounters while the same player is loaded in the same world.
 
-- Tier I starts at five defenses and adds 10% to all outgoing player damage.
-- Tier II starts at eight defenses and replaces Tier I with a 20% bonus.
-- Tier III starts at twelve defenses and replaces Tier II with a 30% bonus.
+- Tier I starts at five streak points and adds 10% to all outgoing player damage.
+- Tier II starts at eight streak points and replaces Tier I with a 20% bonus.
+- Tier III starts at twelve streak points and replaces Tier II with a 30% bonus.
 
 Accepted health loss from direct attacks, damage over time, fire, falls, and
 environmental effects resets the streak and quietly removes the active tier. An
@@ -79,20 +80,16 @@ does not reset it. The state has no decay or cooldown. Death, switching
 characters or worlds, and ending the current Benheim session reset the streak
 and remove the active tier.
 
-Each new tier adds `UNTOUCHABLE!`, `UNTOUCHABLE II!`, or `UNTOUCHABLE III!` to
-the originating defense's local blue Bonus text. It also plays the native
+Each new tier shows `UNTOUCHABLE!`, `UNTOUCHABLE II!`, or `UNTOUCHABLE III!` in
+local blue Bonus text. When a defense triggers a tier, the tier title appears
+in the originating defense's Bonus text. Each new tier also plays the native
 adrenaline-charm activation cue. Tier replacement keeps one modifier and one
 Wolf Sight status icon. The native indefinite status shows no countdown.
 Benheim treats a tier as active only when Valheim applies the tier's native
 effect and includes that effect in the native status bar.
 
-Ben approved a future change: each server-confirmed qualifying hostile kill
-will add one point to the UNTOUCHABLE streak. Version `0.1.66` counts only
-confirmed perfect defenses. Kills will not add a timer; the streak will remain
-untimed. Accepted health loss and intentional health costs will continue to
-reset it. The first test with both defenses and kills will use thresholds of
-five, eight, and twelve. UNTOUCHABLE rewards staying unhurt, while BERSERKER
-separately rewards killing quickly.
+UNTOUCHABLE rewards staying unhurt. BERSERKER separately rewards killing
+quickly.
 
 ### BERSERKER / SLAUGHTERHOUSE
 
@@ -137,17 +134,38 @@ None of the three states adds extra adrenaline. Existing perfect-defense
 adrenaline behavior remains unchanged. Exact avoided-damage evidence may refine
 CLUTCH later.
 
-Automated checks cover capability retries, registration of the effect and its
-loaded native icon in Valheim's current object database (`ObjectDB`), display in
-the native status bar, prevention of duplicate perfect-defense outcomes, reset
-after damage or intentional health costs, exclusion of passive maximum-health
-normalization from food expiry, rolling kill thresholds, and tier replacement.
-Automated checks alone do not establish gameplay acceptance. One outcome per
-perfect defense, no reset from passive food normalization, reset from an
-intentional health cost, BERSERKER activation at six qualifying kills, and
-SLAUGHTERHOUSE activation at twelve qualifying kills still need gameplay
-proof. The approved server-confirmed qualifying hostile-kill input for
-UNTOUCHABLE is not implemented and has not been tested.
+Bounded typed telemetry records CLUTCH healing at each native one-second tick.
+For each UNTOUCHABLE tier activation, it records the first outgoing damage
+payload modified by that tier. For each BERSERKER or SLAUGHTERHOUSE activation,
+it records the first stamina-regeneration application and the first
+physical-resistance application. Each record includes the native input,
+configured modifier, and resolved output. The telemetry does not add per-frame
+logging.
+
+Automated checks cover:
+
+- capability retries;
+- registration of the effect and its loaded native icon in Valheim's current
+  object database (`ObjectDB`);
+- display in the native status bar;
+- prevention of duplicate perfect-defense outcomes;
+- reset after damage or intentional health costs;
+- exclusion of passive maximum-health normalization from food expiry;
+- UNTOUCHABLE thresholds for the streak shared by defenses and kills;
+- rolling kill thresholds;
+- tier replacement; and
+- bounded typed telemetry for earned-state payloads.
+
+Automated checks alone do not establish gameplay acceptance. The following
+behavior still needs gameplay proof:
+
+- one outcome per perfect defense;
+- no reset from passive food normalization;
+- reset from an intentional health cost;
+- UNTOUCHABLE progression that mixes defenses and kills;
+- BERSERKER activation at six qualifying kills;
+- SLAUGHTERHOUSE activation at twelve qualifying kills; and
+- the measured effect payloads.
 
 [Adrenaline](../Adrenaline/PRODUCT.md) owns meter behavior and tuning.
 [Weapon Rhythm](../WeaponRhythm/PRODUCT.md),
