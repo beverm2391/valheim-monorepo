@@ -30,8 +30,7 @@ internal sealed class PerfectImpactOutcome
         float towardTargetSpeed,
         float approachThreshold,
         float damageMultiplier,
-        float staggerMultiplier,
-        string feedback)
+        float staggerMultiplier)
     {
         OperationId = operationId;
         Resolution = resolution;
@@ -48,7 +47,6 @@ internal sealed class PerfectImpactOutcome
         ApproachThreshold = approachThreshold;
         DamageMultiplier = damageMultiplier;
         StaggerMultiplier = staggerMultiplier;
-        Feedback = feedback;
     }
 
     internal string OperationId { get; }
@@ -66,8 +64,9 @@ internal sealed class PerfectImpactOutcome
     internal float ApproachThreshold { get; }
     internal float DamageMultiplier { get; }
     internal float StaggerMultiplier { get; }
-    internal string Feedback { get; }
     internal bool Qualified => Resolution == PerfectImpactResolution.Applied;
+    internal bool FeedbackRequested => Qualified;
+    internal string FeedbackSeam => Qualified ? "native_world_text" : "not_requested";
 }
 
 internal sealed class AirborneMeleeSwingState

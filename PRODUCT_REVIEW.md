@@ -19,7 +19,7 @@ test. A behavior is canonical only when its owning `PRODUCT.md` lists it under
 - Deployed Server Support: `0.1.6`
 - Deployed Test Commands: `0.1.2`
 - Required Server Support for this pass: `0.1.6`
-- Required group version for this pass: Benheim `0.1.69`
+- Required group version for this pass: Benheim `0.1.70`
 
 ## How proof works
 
@@ -32,7 +32,8 @@ Use the narrowest evidence that answers the actual product question:
   session. Capture meaningful transitions while it runs and emit one summary
   when it ends. Do not leave permanent per-frame logging enabled.
 - **Presentation and feel:** Ben's observation is primary. Logs can prove that
-  presentation was requested or placed, not that it looked or felt good.
+  presentation was requested, not that it was human-visible or looked or felt
+  good.
 - **Source and automated checks:** establish that a candidate is safe to test.
   They do not replace runtime or player evidence when the product claim is
   experiential.
@@ -104,19 +105,33 @@ Use these result labels:
 
 ### Presentation and ordinary behavior
 
+- In an undrained native tar pit, manually interact with a submerged small Tar
+  collectible and with a submerged loose Tar item. Each attempt must record
+  `exemption_applied=true` and Valheim's normal interaction result. Confirm a
+  submerged non-Tar item remains stuck and that nearby Tar does not move toward
+  the player or enter the inventory without manual interaction.
+- At the helm, hold Run at each forward setting: paddle, half sail, and full
+  sail. Each setting must use the `3x` native-thrust tuning. Release Run, leave
+  the helm, and use reverse. Each action must immediately return to native
+  behavior. With two clients running the current candidate, repeat while the
+  controller is not the physics owner, then transfer physics ownership and
+  confirm only the current owner applies the boost.
+
 - Run `bh debug colliders off`; every overlay disappears immediately. Kill the
   spawned test Boars afterward so they do not remain in the shared world.
 - Hit the outer head-centered collider and nearby body collider on the same
   creature to accept the refined headshot volume.
-- While the local player is airborne, connect a supported melee attack with a
-  Valheim `Character`. The player must descend at least `0.5 m/s` and move
-  horizontally toward the contact point at least `5.5 m/s`. Only the attack's
-  first authored contact with a `Character` produces an outcome. A qualified
-  contact applies `1.15x` native damage and `3x` native stagger once. It also
-  shows one `PERFECT IMPACT`, even when Benheim FX is off. Contacts remain
-  native when the player is grounded, rising, or below the approach threshold.
-  Contacts with terrain, destructibles, or gathering targets also remain
-  native.
+- A live Lox contact at `-6.955 m/s` vertical speed and `7.967 m/s` approach
+  speed proved the `1.15x` native damage and `3x` native stagger result. Its
+  top-left diagnostic claimed `feedback=placed`, but Ben saw no text; that
+  presentation path failed. With the current candidate, repeat a qualified
+  airborne contact and confirm one `PERFECT IMPACT` is visible through
+  Valheim's native world text at the struck `Character` and contact point,
+  including when Benheim FX is off. The event must record
+  `feedback_requested=true` and `feedback_seam=native_world_text` without
+  claiming visible placement. Confirm grounded, rising, and
+  insufficient-approach contacts remain native, as do contacts with terrain,
+  destructibles, and gathering targets.
 - Compare headshot, Cleave, mining AOE, and qualified Perfect Impact shake
   against their ordinary native impacts. Ben judges whether each feels
   distinct. Combat Shake and Benheim FX settings gate only Perfect Impact's
@@ -134,13 +149,11 @@ Use these result labels:
 
   The timing fields must not affect routing, mutation, settlement, or
   completion.
-- With two current clients connected, put one item stack into two eligible
-  chests where the nearest chest has room for only one item and the farther
-  chest can accept the remainder. Put Away must settle the first deposit before
-  routing the refunded remainder, move the complete stack across the two
-  chests, and neither lose nor strand items in the player inventory. In a
-  separate pass, use disjoint item names across eligible chests and confirm
-  both deposits complete even when their owner results arrive out of order.
+- With two current clients connected, repeat the partial-capacity split through
+  a chest owned by the other client and confirm both players converge on the
+  same chest and inventory contents. In a separate pass, use disjoint item
+  names across eligible chests and confirm both deposits complete even when
+  their owner results arrive out of order.
 - Hold `Left Shift` while planting with the Cultivator. The preview and
   placement form the same centered, deterministic 9x9 grid. Resource use,
   stamina, durability, spacing, cultivated-ground checks, creator ownership,

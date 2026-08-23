@@ -98,8 +98,7 @@ PerfectImpactOutcome typedOutcome = new PerfectImpactOutcome(
     towardTargetSpeed: 5.75f,
     approachThreshold: 5.5f,
     damageMultiplier: 1.15f,
-    staggerMultiplier: 3f,
-    feedback: "placed");
+    staggerMultiplier: 3f);
 DiagnosticEvent typedEvent = PerfectImpactDiagnostics.CreateEvent(typedOutcome);
 typedEvent.Prepare(
     new DateTime(2026, 8, 21, 4, 5, 6, DateTimeKind.Utc),
@@ -126,7 +125,9 @@ ExpectNear(5.75f, root.GetProperty("toward_target_speed").GetSingle(), "typed ap
 ExpectNear(5.5f, root.GetProperty("approach_threshold").GetSingle(), "typed approach threshold");
 ExpectNear(1.15f, root.GetProperty("damage_multiplier").GetSingle(), "typed damage multiplier");
 ExpectNear(3f, root.GetProperty("stagger_multiplier").GetSingle(), "typed stagger multiplier");
-ExpectText("placed", root, "feedback", "typed feedback result");
+ExpectTrue(root.GetProperty("feedback_requested").GetBoolean(), "typed feedback request");
+ExpectText("native_world_text", root, "feedback_seam", "typed feedback seam");
+ExpectFalse(root.TryGetProperty("feedback", out _), "typed outcome does not claim visible placement");
 
 int presentationCalls = 0;
 int diagnosticCalls = 0;

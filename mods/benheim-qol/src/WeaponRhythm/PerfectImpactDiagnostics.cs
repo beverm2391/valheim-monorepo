@@ -29,7 +29,8 @@ internal static class PerfectImpactDiagnostics
             .Number("approach_threshold", outcome.ApproachThreshold)
             .Number("damage_multiplier", outcome.DamageMultiplier)
             .Number("stagger_multiplier", outcome.StaggerMultiplier)
-            .String("feedback", outcome.Feedback);
+            .Boolean("feedback_requested", outcome.FeedbackRequested)
+            .String("feedback_seam", outcome.FeedbackSeam);
     }
 
     private static string ReasonName(PerfectImpactResolution resolution)

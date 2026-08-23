@@ -21,10 +21,10 @@ ordinary attacks depend on perfect timing.
   airborne, descent, and approach conditions.
 - A qualified contact multiplies all native damage by `1.15` and its native
   stagger multiplier by `3`. Both values remain playtest tuning.
-- A qualified attack shows one local `PERFECT IMPACT` confirmation. Benheim FX
-  does not gate this semantic feedback. The attack also requests one Combat
-  Feedback shake, which remains separately gated by Combat Shake and Benheim
-  FX settings.
+- A qualified attack requests one local `PERFECT IMPACT` through Valheim's
+  native world text at the struck `Character` and contact point. Benheim FX does
+  not gate this semantic feedback. The attack also requests one Combat Feedback
+  shake, which remains separately gated by Combat Shake and Benheim FX settings.
 - Grounded, rising, near-apex, and insufficient-approach contacts remain native.
   Contacts with destructibles, terrain, and gathering targets also remain
   native.
@@ -41,12 +41,15 @@ ordinary attacks depend on perfect timing.
   attempt, vertical velocity was `-4.93 m/s`, and approach speed was
   `6.744 m/s`. Only the previous `7 m/s` approach threshold rejected this
   attempt. The Perfect Impact candidate lowers the approach threshold from
-  `7 m/s` to `5.5 m/s`. Gameplay acceptance remains open.
+  `7 m/s` to `5.5 m/s`.
+- A later live Lox contact qualified at `-6.955 m/s` vertical speed and
+  `7.967 m/s` approach speed. It applied `1.15x` native damage and `3x` native
+  stagger. The top-left confirmation was not visible even though its diagnostic
+  claimed `feedback=placed`; that presentation path is rejected. The current
+  candidate requests the confirmation through native world text instead.
 - Gameplay still must prove all of the following:
 
-  - A first `Character` contact while airborne, descending at least `0.5 m/s`,
-    and moving at least `5.5 m/s` toward the contact point applies `1.15x` native
-    damage and `3x` native stagger once.
   - Grounded, rising, and insufficient-approach contacts remain native.
-  - `PERFECT IMPACT` is visible once, including when Benheim FX is off.
+  - Native world text makes `PERFECT IMPACT` visible once at the struck
+    character, including when Benheim FX is off.
   - Combat Shake and Benheim FX settings gate only the shake.

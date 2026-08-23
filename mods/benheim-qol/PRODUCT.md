@@ -193,7 +193,7 @@ readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.69` is the current private-test candidate. It keeps the Kill
+Benheim `0.1.70` is the current private-test candidate. It keeps the Kill
 Attribution V3 capability boundary and the 6/12 kill-chain thresholds from
 `0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
 untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
@@ -205,15 +205,25 @@ full sail. Reverse and every other native ship rule remain unchanged. The
 [Ship Sprint module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live
 proof gates.
 
+The candidate also lets a player manually collect native Tar while the Tar is
+submerged in a tar pit. Only manual interaction with native Tar changes. Tar
+auto-pickup and every other submerged item remain native.
+The [Interaction module](src/Interaction/PRODUCT.md) owns the exact behavior
+and live proof gate.
+
 The candidate also changes the Cultivator's centered grid from 5x5 to 9x9.
 Perfect Impact now qualifies only at the first `Character` contact authored for
 the attack. That contact requires horizontal approach speed of at least `5.5
-m/s`. This replaces the attack-start check that failed in testing. Put Away
-emits bounded timing data. It pipelines chest transactions after the existing
-cohort validations only when their item names do not overlap. A deposit waits
-for exact settlement when a later eligible chest contains the same item name,
-so that chest can receive any refunded remainder. The scheduler leaves the
-lease and transaction protocol unchanged.
+m/s`. A live Lox contact proved the `1.15x` native damage and `3x` native
+stagger. Its top-left confirmation was not visible. The candidate now requests
+one `PERFECT IMPACT` through Valheim's native world text at the struck
+`Character` and contact point. This replaces the earlier attack-start check and
+the failed top-left presentation path. Put Away emits bounded timing data. It
+pipelines chest transactions after the existing cohort validations only when
+their item names do not overlap. A deposit waits for exact settlement when a
+later eligible chest contains the same item name, so that chest can receive any
+refunded remainder. The scheduler leaves the lease and transaction protocol
+unchanged.
 
 The candidate includes earned combat states, collider inspection, private
 typed diagnostics, and the other changes described below. Existing adrenaline

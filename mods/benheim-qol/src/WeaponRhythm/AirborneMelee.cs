@@ -80,9 +80,8 @@ internal static class AirborneMelee
 
             if (firstResolution)
             {
-                string feedbackResult = state.Qualified ? "error" : "not_requested";
                 Action? present = state.Qualified
-                    ? () => feedbackResult = ShowPerfectImpactFeedback()
+                    ? () => ShowPerfectImpactFeedback(targetCharacter, hit.m_point)
                     : null;
                 PerfectImpactOutcomeDelivery.Deliver(
                     present,
@@ -102,8 +101,7 @@ internal static class AirborneMelee
                             towardTargetSpeed,
                             AirborneMeleeTuning.ApproachSpeedThreshold,
                             AirborneMeleeTuning.DamageMultiplier,
-                            AirborneMeleeTuning.StaggerMultiplier,
-                            feedbackResult)),
+                            AirborneMeleeTuning.StaggerMultiplier)),
                     () => target.Damage(hit),
                     ReportOptionalOutcomeFailure);
                 return;
@@ -119,16 +117,13 @@ internal static class AirborneMelee
         SwingStates.Add(attack, state);
     }
 
-    private static string ShowPerfectImpactFeedback()
+    private static void ShowPerfectImpactFeedback(Character target, Vector3 contactPoint)
     {
-        TopLeftFeedbackResult feedbackResult = TopLeftFeedbackHud.ShowTransient(SuccessMessage);
+        WorldFeedback.ShowAbove(
+            target.transform,
+            contactPoint - target.transform.position,
+            SuccessMessage);
         CombatFeedbackController.RequestShake(CombatFeedbackTrigger.PerfectImpact);
-        return feedbackResult switch
-        {
-            TopLeftFeedbackResult.Placed => "placed",
-            TopLeftFeedbackResult.CreatedNotPlaced => "created_not_placed",
-            _ => "unavailable"
-        };
     }
 
     private static bool IsMeleeAttack(Attack.AttackType attackType)

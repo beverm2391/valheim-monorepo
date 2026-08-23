@@ -12,6 +12,22 @@ without enabling remote use across a base.
 
 ## In Development
 
+Players can manually collect native Tar while the collectible is submerged in
+a native tar pit. This exception applies only to native Tar and only during
+manual interaction. Native interaction range, ownership, pickup requests,
+inventory capacity, carry weight, effects, and ordinary failure behavior still
+apply.
+
+Submerged Tar does not auto-pick up; its native behavior remains unchanged.
+Other submerged items remain stuck. Benheim does not:
+
+- move Tar or change its status hazards;
+- drain or mutate the pit;
+- change terrain or locations; or
+- write new world or character state.
+
+This behavior needs gameplay proof.
+
 Benheim changes only Valheim's comfort-furniture detection range, from exactly
 10 meters to 20 meters. Comfort furniture in nearby rooms, on nearby floors,
 and in nearby buildings can provide comfort.

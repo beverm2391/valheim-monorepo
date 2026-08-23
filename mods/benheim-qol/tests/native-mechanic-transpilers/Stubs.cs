@@ -51,8 +51,92 @@ public class Player
     }
 }
 
+public class Humanoid
+{
+}
+
+public class Pickable
+{
+    public UnityEngine.GameObject gameObject = new UnityEngine.GameObject("Pickable");
+    public UnityEngine.GameObject? m_itemPrefab;
+    public bool m_tarPreventsPicking;
+
+    public bool Interact(Humanoid user, bool hold, bool alt) => false;
+
+    public T? GetComponent<T>() where T : class
+    {
+        return gameObject.GetComponent<T>();
+    }
+}
+
+public class Floating
+{
+    public bool InTar { get; set; }
+    public bool IsInTar() => InTar;
+}
+
+public class ItemDrop
+{
+    public UnityEngine.GameObject gameObject = new UnityEngine.GameObject("Item");
+    public ItemData m_itemData = new ItemData();
+    public bool TarState { get; set; }
+
+    public bool Interact(Humanoid user, bool hold, bool alt) => false;
+    public bool InTar() => TarState;
+
+    public sealed class ItemData
+    {
+        public UnityEngine.GameObject? m_dropPrefab;
+        public SharedData m_shared = new SharedData();
+
+        public enum ItemType
+        {
+            None,
+            Material
+        }
+
+        public sealed class SharedData
+        {
+            public string m_name = string.Empty;
+            public ItemType m_itemType;
+        }
+    }
+}
+
+public static class Utils
+{
+    public static string GetPrefabName(UnityEngine.GameObject gameObject)
+    {
+        return gameObject.name;
+    }
+}
+
 namespace UnityEngine
 {
+    public sealed class GameObject
+    {
+        private readonly Dictionary<Type, object> components = new Dictionary<Type, object>();
+
+        public GameObject(string name)
+        {
+            this.name = name;
+        }
+
+        public string name;
+
+        public void AddComponent<T>(T component) where T : class
+        {
+            components[typeof(T)] = component;
+        }
+
+        public T? GetComponent<T>() where T : class
+        {
+            return components.TryGetValue(typeof(T), out object? component)
+                ? (T)component
+                : null;
+        }
+    }
+
     public static class Random
     {
         public static float value => 0f;
@@ -96,6 +180,10 @@ namespace HarmonyLib
     internal sealed class HarmonyPatch : Attribute
     {
         internal HarmonyPatch(Type type, string methodName)
+        {
+        }
+
+        internal HarmonyPatch(Type type, string methodName, Type[] argumentTypes)
         {
         }
     }

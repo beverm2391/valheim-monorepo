@@ -7,7 +7,7 @@ surface.
 ## Current Behavior
 
 The plugin exposes exactly three spawn requests to a connected native
-administrator using Benheim `0.1.69`. `bh spawn boar 0` creates one native
+administrator using Benheim `0.1.70`. `bh spawn boar 0` creates one native
 unstarred Boar as a control. `bh spawn boar 1` creates one native one-star
 Boar. `bh spawn boar 2` creates one native two-star Boar. `bh help` lists
 `bh spawn boar 0|1|2` and explains that `0` is the unstarred control, `1` is one
@@ -22,7 +22,7 @@ world-key, kill, or general command execution. It does not enable remote
 developer commands or create another permission system. The spawned Boar keeps
 its native prefab identity and native saved level.
 
-Using the commands requires Benheim `0.1.69` on the requesting player and
+Using the commands requires Benheim `0.1.70` on the requesting player and
 Benheim Test Commands `0.1.2` on the dedicated server. Ben confirmed that
 each of the three spawn requests created the requested native Boar tier exactly
 once.

@@ -320,13 +320,13 @@ multipliers. Later contacts cannot create or reverse the attack's first outcome.
 A later target receives the modifiers only if the first contact qualified and
 the later contact independently meets the same physical conditions.
 
-A qualified swing uses Benheim's existing attacker-local transient text lane
-for `PERFECT IMPACT` and requests the existing Combat Feedback shake controller.
-For an area or multi-target swing, the native per-target hit path and
-target-owner authority remain in place. Benheim emits one confirmation, one
-shake request, and one typed outcome for the attack. The text is semantic
-gameplay feedback. Only the shake follows the Benheim FX and Combat Shake
-settings.
+A qualified swing requests `PERFECT IMPACT` through the existing native world
+text helper, anchored at the struck `Character` and contact point, and requests
+the existing Combat Feedback shake controller. For an area or multi-target
+swing, the native per-target hit path and target-owner authority remain in
+place. Benheim emits one confirmation request, one shake request, and one typed
+outcome for the attack. The text is semantic gameplay feedback. Only the shake
+follows the Benheim FX and Combat Shake settings.
 
 The successful `Humanoid.StartAttack()` postfix captures only the native clone's
 identity, weapon, and primary-or-secondary selection. It does not inspect
@@ -337,18 +337,15 @@ records:
 2. qualification reason and ground state
 3. velocity measurements and thresholds
 4. damage and stagger multipliers
-5. text-lane result
+5. whether feedback was requested and the native feedback seam used
 
-Valheim hides the native top-left message template with
-`m_messageText.CrossFadeAlpha(0)`. `Graphic.CrossFadeAlpha()` writes the
-`CanvasRenderer` color alpha, while `TMP_Text.alpha` writes only the text color
-alpha. The first Perfect Impact candidate cloned the hidden template and set
-only `TMP_Text.alpha`, so the clone retained an invisible renderer even though
-the caller logged `feedback=shown`. The shared lane now resets the cloned
-renderer alpha and reports `unavailable`, `created_not_placed`, or `placed` to
-the caller. This corrects the source-proven renderer-alpha defect for every
-Benheim caller. Gameplay still must prove that the text is visible. The change
-does not add a second feedback surface.
+A live qualified Lox contact proved the damage and stagger result but no text
+was visible even though the top-left caller reported `feedback=placed`.
+Perfect Impact therefore no longer uses or reports placement from that lane.
+Its diagnostic records only the feedback request and `native_world_text` seam;
+neither field claims human-visible presentation. Grouped utility receipts keep
+using the top-left lane. Gameplay still must prove the native world text is
+visible.
 
 The shortcut overlay patches `Player.TakeInput()` and `Menu.IsVisible()` to
 block gameplay while the menu is open. Rhythm input should remain behind the

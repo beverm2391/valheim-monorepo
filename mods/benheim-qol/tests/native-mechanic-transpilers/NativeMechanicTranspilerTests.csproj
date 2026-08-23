@@ -8,5 +8,7 @@
   <ItemGroup>
     <Compile Include="../../src/Production/CookingBonusPatches.cs" Link="CookingBonusPatches.cs" />
     <Compile Include="../../src/Interaction/ComfortFurnitureRangePatch.cs" Link="ComfortFurnitureRangePatch.cs" />
+    <Compile Include="../../src/Interaction/TarCollectibleInteraction.cs" Link="TarCollectibleInteraction.cs" />
+    <Compile Include="../../src/Interaction/TarCollectiblePatches.cs" Link="TarCollectiblePatches.cs" />
   </ItemGroup>
 </Project>
