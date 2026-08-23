@@ -283,18 +283,18 @@ rotate its token if an archive leaves Ben, Johnny, and Ozi or before public rele
   That feature design must cover their effects on the world, recovery,
   migration, and removal. Add custom item data only when the product design
   requires it and removal cannot corrupt a character.
-- Build the Valheim-styled Benheim menu with Unity UI and Valheim's loaded UI
-  templates. Keep its controls aligned with the owning feature `PRODUCT.md`.
+- Build the Valheim-styled Benheim menu with Unity UI and loaded native
+  templates. Before every client version bump or package build, compare its
+  catalog with owning `PRODUCT.md` files; update and organize every new or
+  changed player-facing control or feature.
 - Bump the visible plugin version when installing a user-testable behavior
   change so testers can verify the loaded DLL after relaunch.
-- Valheim does not hot-reload the plugin DLL. After installation, fully quit and
-  relaunch the BepInEx-enabled game.
+- Valheim does not hot-reload the plugin DLL. After installation, fully quit and relaunch the BepInEx-enabled game.
 
 ## Documentation map
 
 - `README.md` is the public entrypoint.
 - `PRODUCT.md` owns the overall server and mod product promise.
-- `MIGRATION-1.0.md` temporarily owns the 1.0 cutover and mod-recovery
-  process.
+- `MIGRATION-1.0.md` temporarily owns the 1.0 cutover and mod-recovery process.
 - `AGENT_SETUP.md` is for an AI agent helping a human set up a server.
 - `AGENTS.md` owns agent behavior and points here for local workflow.
