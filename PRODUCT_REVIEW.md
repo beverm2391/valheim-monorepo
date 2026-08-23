@@ -1,10 +1,8 @@
 # Product Review
 
-This is the active ledger for Benheim behavior that is deployed for testing but
-is not yet canonical. The owning `PRODUCT.md` defines the expected behavior.
-This file records only the current proof boundary, regressions, and next useful
-test. A behavior is canonical only when its owning `PRODUCT.md` lists it under
-**Current Behavior**.
+This is the live acceptance queue for Benheim behavior under test. The owning
+`PRODUCT.md` defines canonical behavior. A behavior is canonical only when that
+document lists it under **Current Behavior**.
 
 > **Tomorrow:** Talk through the operator-config papercuts from the `0.1.66`
 > integration. The secret check first used the wrong scope instead of Doppler
@@ -15,196 +13,82 @@ test. A behavior is canonical only when its owning `PRODUCT.md` lists it under
 ## Current candidate
 
 - Accepted client baseline: `0.1.52`
-- Installed private-test client: `0.1.69`
+- Installed private-test client: `0.1.70`
 - Deployed Server Support: `0.1.6`
 - Deployed Test Commands: `0.1.2`
 - Required Server Support for this pass: `0.1.6`
 - Required group version for this pass: Benheim `0.1.70`
 
-## How proof works
+## Test now on installed `0.1.70`
 
-Use the narrowest evidence that answers the actual product question:
+- **Perfect defense:** one qualifying parry gives one confirmation, adrenaline
+  award, and UNTOUCHABLE point; food normalization preserves the streak while
+  accepted damage and intentional health costs reset it.
+- **Earned combat states:** below 30 health, a perfect parry or dodge activates
+  CLUTCH with its title, icon, and charm cue. Six qualifying kills activate
+  BERSERKER; twelve within 30 seconds replace it with SLAUGHTERHOUSE. Later
+  kills refresh the state, and a 30-second gap expires it. Mix confirmed kills
+  and perfect defenses through each UNTOUCHABLE tier; transitions and measured
+  payloads must match the owning combat products.
+- **Capability warning:** join through Kill Attribution V3 discovery; the
+  warning must clear after the matching response.
+- **Non-Cooking craft:** craft one ordinary station item; native bonus behavior
+  remains and the exclusion outcome is recorded.
+- **Diagnostics sharing:** confirm sharing starts on, then turn it off. Remote
+  forwarding stops while local logs continue, and a shared event remains
+  queryable through the existing provider path.
+- **Developer tools:** exercise the ready/not-ready runtime catalogs and
+  collider-off cleanup; failures must be visible and catalog data must remain
+  local.
+- **Henge persistence:** after the accepted on/off commands, reconnect; no henge
+  pins may persist.
+- **Headshots and shake:** hit the refined head/body boundary and compare the
+  headshot, Cleave, and mining AOE shake with ordinary impacts. Accept if the
+  boundary is coherent and each shake feels distinct.
+- **Grouped receipts:** overlap Put Away, Mass Repair, pocketing, and a native
+  top-left message; every result must remain readable and distinct.
+- **Remote-owner Put Away:** with two clients, split a partial-capacity deposit
+  through a remote-owned chest, then deposit disjoint items whose owner results
+  arrive out of order; both clients must converge on the same chest and
+  inventory contents.
+- **Native boundaries:** exercise DANGEROUS/DEADLY FX gating, the 20 m comfort
+  boundary across rooms and floors, empty/nearly-full remote Windmills and
+  Shield Generators, and Stone Oven timing. Accept if native gating, range,
+  timing, and capacity remain unchanged.
+- **Input and repair denials:** press `/` during chat/menu input and exercise
+  Mass Repair denial and exhaustion cases. Accept if each invalid action is
+  rejected visibly without opening the console or changing native behavior.
 
-- **Mechanical outcomes:** emit a typed event at the authoritative outcome or
-  native modifier seam. Record the complete result, not every frame leading to
-  it.
-- **Stateful movement, AI, and physics:** use an explicitly armed, bounded test
-  session. Capture meaningful transitions while it runs and emit one summary
-  when it ends. Do not leave permanent per-frame logging enabled.
-- **Presentation and feel:** Ben's observation is primary. Logs can prove that
-  presentation was requested, not that it was human-visible or looked or felt
-  good.
-- **Source and automated checks:** establish that a candidate is safe to test.
-  They do not replace runtime or player evidence when the product claim is
-  experiential.
+- **Menu:** open `Left Shift + B`; confirm the organized, detailed catalog adds
+  manual submerged-Tar collection, Ship Sprint, and Perfect Impact, says
+  qualifying kills advance UNTOUCHABLE, and names Perfect Impact under Combat
+  Shake.
+- **Tar:** manually collect submerged small native Tar and loose Tar. Native
+  manual interaction remains unchanged; non-Tar stays stuck, and Tar never
+  auto-picks up.
+- **Ship Sprint:** hold Run at paddle, half sail, and full sail for `3x` native
+  thrust; release, helm exit, and reverse return immediately to native behavior.
+  With two clients, verify non-owner control and owner handoff apply one boost
+  only from the current physics owner.
+- **Put Away timing:** deposit one inventory across several chests. It should
+  feel meaningfully faster than `0.1.69` with no loss, duplication, or stuck
+  batch; inspect existing timing diagnostics only if it still feels slow.
+- **Perfect Impact:** repeat a qualifying Lox contact with FX on and off. One
+  `PERFECT IMPACT` appears through native world text at the struck character and
+  contact point; non-qualifying contacts stay native, and only the optional
+  shake follows Combat Shake/FX settings.
+- **Mass planting:** preview and place the centered 9x9 grid. Placement remains
+  native, and each successful plant costs half the native stamina.
 
-Use these result labels:
+## Needs bounded probe or code later
 
-- **Passed:** the named claim produced its expected evidence.
-- **Failed:** evidence contradicted the claim.
-- **Needs code:** the current candidate cannot honestly exercise or measure the
-  claim.
-- **Ready to test:** the current candidate already exposes the required
-  evidence.
-- **Needs bounded probe:** ordinary play and passive logs cannot efficiently
-  establish the claim.
-
-## Ready to test without more code
-
-### Player Combat
-
-- One qualifying perfect parry produces one confirmation, one adrenaline award,
-  and one UNTOUCHABLE increment. The duplicate fix has automated proof but still
-  needs this live regression check.
-- Passive health normalization from food expiry leaves UNTOUCHABLE unchanged.
-  Accepted damage and an intentional health cost each reset it.
-- Six qualifying kills activate BERSERKER. Twelve within the rolling 30-second
-  window replace it with SLAUGHTERHOUSE. Later kills refresh the current tier,
-  and a 30-second gap expires it quietly. This test covers only the trigger and
-  status lifecycle.
-- Below 30 health, a perfect parry or dodge activates CLUTCH, shows its title and
-  icon, and plays one native charm cue. This test covers only activation and
-  presentation.
-- Each server-confirmed qualifying hostile kill adds one point to the same
-  untimed UNTOUCHABLE streak as a confirmed perfect defense. Mixed kills and
-  defenses reach Tier I at five points, Tier II at eight, and Tier III at
-  twelve. Accepted health loss and intentional health costs reset the streak.
-- CLUTCH records each native one-second healing tick. Each UNTOUCHABLE tier
-  records its first modified outgoing hit. Each BERSERKER or SLAUGHTERHOUSE
-  activation records its first stamina-regeneration and physical-resistance
-  result. Every payload record includes the native input, configured modifier,
-  and resolved output. These events prove the measured payload, not its feel.
-- Join after Kill Attribution V3 capability discovery and inspect the Controls
-  warning state. No stale capability warning remains after the matching
-  response arrives.
-- Craft one ordinary item at a station that does not use Cooking. It keeps
-  Valheim's native bonus behavior and emits the typed non-Cooking exclusion
-  outcome.
-
-### Diagnostics and developer tools
-
-- Confirm Share Diagnostics starts enabled for each player and local readable
-  logs plus `BenheimEvents.ndjson` continue to update.
-- Turn Share Diagnostics off for one player. Remote forwarding stops while that
-  player's local diagnostics continue.
-- Emit one schema-2 event with producer-owned fields after sharing is enabled.
-  Confirm the Axiom schema does not expand for those keys, query one nested
-  field, and confirm the developer query returns the normalized flat event
-  shape.
-- After world readiness, run `bh debug catalog effects heal`, `bh debug catalog
-  text`, and `bh debug catalog ui toggle`. Each command reports matching counts
-  and replaces the local runtime-catalog snapshot without sending catalog
-  entries to Axiom.
-- Run one catalog command before world readiness on a later launch. It must fail
-  visibly rather than writing a misleading empty snapshot.
-- As a native Valheim administrator, run `bh henge on`. Confirm that the local
-  map shows unlabeled native pins for every planned `StoneHenge1`,
-  `StoneHenge3`, `StoneHenge4`, and `StoneHenge5` without revealing fog or
-  terrain, and that `bh henge off` removes only those pins. Reconnect and
-  confirm that the overlay was not saved.
-
-### Presentation and ordinary behavior
-
-- In an undrained native tar pit, manually interact with a submerged small Tar
-  collectible and with a submerged loose Tar item. Each attempt must record
-  `exemption_applied=true` and Valheim's normal interaction result. Confirm a
-  submerged non-Tar item remains stuck and that nearby Tar does not move toward
-  the player or enter the inventory without manual interaction.
-- At the helm, hold Run at each forward setting: paddle, half sail, and full
-  sail. Each setting must use the `3x` native-thrust tuning. Release Run, leave
-  the helm, and use reverse. Each action must immediately return to native
-  behavior. With two clients running the current candidate, repeat while the
-  controller is not the physics owner, then transfer physics ownership and
-  confirm only the current owner applies the boost.
-
-- Run `bh debug colliders off`; every overlay disappears immediately. Kill the
-  spawned test Boars afterward so they do not remain in the shared world.
-- Hit the outer head-centered collider and nearby body collider on the same
-  creature to accept the refined headshot volume.
-- A live Lox contact at `-6.955 m/s` vertical speed and `7.967 m/s` approach
-  speed proved the `1.15x` native damage and `3x` native stagger result. Its
-  top-left diagnostic claimed `feedback=placed`, but Ben saw no text; that
-  presentation path failed. With the current candidate, repeat a qualified
-  airborne contact and confirm one `PERFECT IMPACT` is visible through
-  Valheim's native world text at the struck `Character` and contact point,
-  including when Benheim FX is off. The event must record
-  `feedback_requested=true` and `feedback_seam=native_world_text` without
-  claiming visible placement. Confirm grounded, rising, and
-  insufficient-approach contacts remain native, as do contacts with terrain,
-  destructibles, and gathering targets.
-- Compare headshot, Cleave, mining AOE, and qualified Perfect Impact shake
-  against their ordinary native impacts. Ben judges whether each feels
-  distinct. Combat Shake and Benheim FX settings gate only Perfect Impact's
-  shake, not its damage, stagger, outcome, or text.
-- Exercise Put Away, Mass Repair, pocketing, and an active native top-left
-  message together to accept the shared receipt lane.
-- Run Put Away across several eligible chests. Existing terminal events record
-  exactly five duration fields from a monotonic clock:
-
-  1. Whole batch
-  2. Aggregate scan and match
-  3. Routing and owner handoff
-  4. Owner mutation
-  5. Requester settlement
-
-  The timing fields must not affect routing, mutation, settlement, or
-  completion.
-- With two current clients connected, repeat the partial-capacity split through
-  a chest owned by the other client and confirm both players converge on the
-  same chest and inventory contents. In a separate pass, use disjoint item
-  names across eligible chests and confirm both deposits complete even when
-  their owner results arrive out of order.
-- Hold `Left Shift` while planting with the Cultivator. The preview and
-  placement form the same centered, deterministic 9x9 grid. Resource use,
-  stamina, durability, spacing, cultivated-ground checks, creator ownership,
-  effects, statistics, skill gain, rotation, and per-position preview validity
-  remain native.
-- Enter DANGEROUS and DEADLY once with FX enabled, then verify suppression with
-  FX disabled.
-- Cross the old 10-meter and new 20-meter comfort boundaries, including another
-  room or floor.
-- Capture requester settlement for an empty and a nearly full remote Windmill.
-- Measure one Stone Oven recipe's bake and burn windows.
-- Fill a Shield Generator from empty and from nearly full.
-- Press `/` while chat and one menu are active. Each press must emit one terminal
-  rejection without opening the console.
-- Exercise Mass Repair with an undamaged aim, station denial, ward denial, and
-  an exhausted tool.
-
-## Testability gaps that need bounded probes
-
-### Starred Boar behavior
-
-Runtime events record the configured profile fields for live Boars. They do not
-establish the behavior or feel that those fields produce. Casual observation is
-too imprecise, and permanent AI logging would be noisy and expensive.
-
-Add one command-armed Boar session with a short timeout and one test identifier.
-Observe only nearby spawned zero-, one-, and two-star controls. Capture these
-transitions and aggregates:
-
-- distance and time at first alert;
-- pursuit duration after the player breaks contact;
-- total movement and turning during one charge;
-- displacement after a tagged routine hit, heavy hit, and Boar shove;
-- completion or one explicit incomplete reason for gates, slopes, water, or
-  loss of path.
-
-Add Perfect Impact displacement only after a usable Perfect Impact candidate
-exists. Stopping, timing out, leaving the world, or disabling the session must
-clear every observer. Emit one terminal summary per Boar and no per-frame
-events. Ben still judges coherence, feel, and whether skilled counters remain
-useful.
-
-### Leech spawn opportunity
-
-Natural observation across zone-owner changes is too sparse to prove a
-three-times-as-frequent opportunity rate. This needs either a bounded spawn
-simulation against the exact installed rules or a command-armed observation
-window that records eligible checks, owner, roll, and outcome, then emits one
-summary. Do not add permanent spawn-loop logging.
-
-## Session notes
-
-Record only a result that changes a decision or status above. Raw events,
-screenshots, hashes, and query output stay in their owning systems.
+- **Starred Boars:** add one command-armed, time-bounded session for nearby
+  zero-, one-, and two-star Boars. Compare first-alert distance/time, pursuit,
+  charge movement/turning, and routine-hit, heavy-hit, Boar-shove, and Perfect
+  Impact displacement. Record completion or an explicit incomplete reason for
+  gates, slopes, water, or lost paths. Emit one terminal summary per Boar with
+  no per-frame events, clear observers on exit, and have Ben judge gameplay feel
+  and whether skilled counters remain useful.
+- **Leech opportunity:** use a bounded simulation or command-armed window to
+  prove the three-times-as-frequent opportunity rate from eligible checks,
+  owners, rolls, and outcomes; emit one summary instead of permanent logging.

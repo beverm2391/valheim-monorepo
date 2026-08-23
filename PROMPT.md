@@ -145,8 +145,18 @@ controls, player feedback, acceptance meaning, and proof status belong in the
 owning product document. Keep implementation details in code or a deeper
 technical document.
 
-Build and test a client-only change with the canonical verification entrypoint:
+Ben and the Project Lead own `PRODUCT_REVIEW.md` as the live acceptance queue;
+Dev Leads may provide evidence or investigate ambiguity, but do not own it.
+Each item states the shortest player action and decision-changing outcome.
+Keep telemetry schemas, implementation invariants, and exhaustive edges in
+code, tests, or deeper technical docs; behavior and acceptance meaning stay in
+the owning `PRODUCT.md`. Player-observable feel can accept clear, low-risk
+tuning or presentation. Reserve programmatic or log proof for hidden,
+ambiguous, or destructive boundaries such as conservation, ownership,
+networking, persistence, and credentials. After acceptance, remove the item
+and update the owning product document.
 
+Build and test a client-only change with the canonical verification entrypoint:
 ```bash
 mods/benheim-qol/scripts/verify.sh
 ```
@@ -233,37 +243,27 @@ assets. Release assets are distribution artifacts, not an update channel.
 
 For a gameplay change:
 
-1. Add concise diagnostic events for the changed action and the decisions that
-   control it.
-2. Bump the visible plugin version and install the new DLL while Valheim is
-   fully quit.
-3. Ask the player to relaunch, reproduce the behavior, and report what they
-   tried.
-4. Read `<Valheim>/BepInEx/LogOutput.log` and filter for `[diag]` events.
-5. Read the server journal only when changed code runs on the server or the
-   behavior depends on a server response.
-6. Fix the observed failure, reinstall, and repeat until gameplay and logs
-   agree.
+1. Add diagnostics only when acceptance depends on a result the player cannot
+   reliably see or a hidden, ambiguous, or destructive invariant. Reuse evidence
+   that already answers the product question.
+2. Bump the visible version and install while Valheim is fully quit.
+3. Relaunch, reproduce, and record what the player tried.
+4. Query `[diag]` events; read the server journal only for server-owned behavior.
+5. Fix observed failures and repeat until gameplay and evidence agree.
 
-Diagnostic events use `[diag][Feature] action key=value`. Log player actions,
-important decisions, and results. Do not log every frame. Keep normal BepInEx
-warning and error logging enabled.
-
-Benheim writes each structured diagnostic event to
-`BepInEx/BenheimEvents.ndjson` as a newline-delimited JSON record. Each event
-also renders its readable `[diag]` line. Use
+Diagnostic events use `[diag][Feature] action key=value`. Log actions, important
+decisions, and results, not every frame. Keep normal BepInEx warnings and errors.
+Benheim also writes each event to `BepInEx/BenheimEvents.ndjson`. Use
 `mods/benheim-qol/scripts/query-events.py --help` to stream current or archived
-event files, filter fields, or find operations that started without a terminal
-event. The command uses only the Python standard library.
+events, filter fields, or find starts without a terminal event.
 
-After a world loads, manually run `bh debug catalog effects|text|ui [filter]`.
-Choose one category and add an optional filter. The command previews matching native effects, text sources, or usable UI components.
-It atomically overwrites `BepInEx/BenheimRuntimeCatalog.ndjson` with count summaries and stable donor identities.
-A readiness error identifies ObjectDB, TMP, or UI systems that are still loading.
-The snapshot stays local, bypasses remote diagnostics, and reports only effect and component sprite identities instead of raw sprite enumeration.
+After a world loads, `bh debug catalog effects|text|ui [filter]` previews native
+runtime sources and atomically replaces `BepInEx/BenheimRuntimeCatalog.ndjson`.
+Readiness failures are visible; the bounded snapshot stays local.
 
-Normal packages stay credential-free. Use scoped secrets for `package-private-test.sh`;
-rotate its token if an archive leaves Ben, Johnny, and Ozi or before public release.
+Normal packages stay credential-free. Use scoped secrets for
+`package-private-test.sh`; rotate its token if an archive leaves Ben, Johnny,
+and Ozi or before public release.
 
 ## Client mod rules
 
