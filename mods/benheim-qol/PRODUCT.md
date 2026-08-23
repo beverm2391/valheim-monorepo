@@ -162,6 +162,7 @@ technical cost.
 | [Weapon Rhythm](src/WeaponRhythm/PRODUCT.md) | Reward weapon mastery through timing, charge, cadence, spacing, and existing animations. |
 | [Combat Feedback](src/CombatFeedback/PRODUCT.md) | Add local bow focus and restrained camera response to existing Benheim outcomes. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
+| [Ship Sprint](src/ShipSprint/PRODUCT.md) | Boost native forward ship thrust while the controlling player holds Valheim's Run control. |
 
 `Infrastructure` contains shared implementation support and has no independent
 player-facing promise.
@@ -197,6 +198,12 @@ Attribution V3 capability boundary and the 6/12 kill-chain thresholds from
 `0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
 untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
 for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
+
+The candidate includes Ship Sprint's first `3x` native-thrust tuning. Holding
+Valheim's logical Run control at the helm boosts forward paddle, half sail, and
+full sail. Reverse and every other native ship rule remain unchanged. The
+[Ship Sprint module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live
+proof gates.
 
 The candidate also changes the Cultivator's centered grid from 5x5 to 9x9.
 Perfect Impact now qualifies only at the first `Character` contact authored for

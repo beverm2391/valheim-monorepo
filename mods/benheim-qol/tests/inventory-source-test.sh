@@ -27,7 +27,7 @@ grep -Fq 'Minimap.InTextInput()' "$input_state"
 grep -Fq 'textInput.m_panel.activeInHierarchy' "$input_state"
 grep -Fq 'EventSystem.current?.currentSelectedGameObject' "$input_state"
 grep -Fq 'GetComponentInParent<TMP_InputField>()' "$input_state"
-test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 3
+test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 4
 grep -Fq 'InputState.IsShiftHeld()' "$root/src/Inventory/QuickStackHotkey.cs"
 grep -Fq 'InputState.IsKeyDown(KeyCode.P)' "$root/src/Inventory/QuickStackHotkey.cs"
 grep -Fq 'InputState.IsTextEntryActive()' "$root/src/Inventory/InventoryPatches.cs"

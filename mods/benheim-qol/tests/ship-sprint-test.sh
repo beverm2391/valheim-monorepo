@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+runtime="$root/src/ShipSprint/ShipSprintRuntime.cs"
+patches="$root/src/ShipSprint/ShipSprintPatches.cs"
+diagnostics="$root/src/ShipSprint/ShipSprintDiagnostics.cs"
+input_state="$root/src/Infrastructure/InputState.cs"
+request_cadence="$root/src/ShipSprint/ShipSprintRequestCadence.cs"
+request_state="$root/src/ShipSprint/ShipSprintRequestState.cs"
+native_tree="$($root/scripts/ensure-valheim-source.sh)"
+native_ship="$native_tree/Ship.cs"
+native_controls="$native_tree/ShipControlls.cs"
+native_player_controller="$native_tree/PlayerController.cs"
+native_routed_rpc="$native_tree/ZRoutedRpc.cs"
+
+rg -Fq 'InputState.IsNativeRunHeld()' "$patches"
+rg -Fq 'ZInput.GetButton("Run") || ZInput.GetButton("JoyRun")' "$input_state"
+rg -Fq 'HarmonyPatch(typeof(ShipControlls), nameof(ShipControlls.ApplyControlls))' "$patches"
+! rg -Fq 'PlayerController' "$patches"
+! rg -Fq 'KeyCode.LeftShift' "$patches"
+
+rg -Fq 'ZRoutedRpc.instance.InvokeRoutedRPC(' "$runtime"
+rg -Fq 'ZRoutedRpc.Everybody' "$runtime"
+rg -Fq 'ZRoutedRpc.instance.Register<ZDOID, long, bool>(RequestRpc, ReceiveRequest)' "$runtime"
+rg -Fq 'ZNetScene.instance?.FindInstance(shipId)' "$runtime"
+rg -Fq 'view?.IsValid() != true' "$runtime"
+rg -Fq 'ShipSprintRules.IsAuthorizedSender(' "$runtime"
+rg -Fq 'RequestHeartbeatSeconds' "$request_cadence"
+rg -Fq 'RequestState.Decide' "$runtime"
+rg -Fq 'internal sealed class ShipSprintRequestState' "$request_state"
+! rg -Fq 'GetZDO().Set' "$runtime"
+! rg -Fq 'RequestedHash' "$runtime"
+
+rg -Fq 'ship.m_backwardForce = nativePaddleForce * ShipSprintRules.ThrustMultiplier(decision.Active)' "$runtime"
+rg -Fq 'force *= ShipSprintRules.ThrustMultiplier(shouldBoost: true)' "$runtime"
+rg -Fq 'ship.GetSpeedSetting() == Ship.Speed.Slow' "$runtime"
+rg -Fq 'ShipSprintRules.IsSailThrottle(ship.GetSpeedSetting())' "$runtime"
+rg -Fq 'ship.m_backwardForce = scope.NativePaddleForce' "$runtime"
+rg -Fq 'ShipSprintRuntime.Teardown(__instance, "ship_disabled")' "$patches"
+rg -Fq 'States.TryGetValue(ship.GetInstanceID()' "$runtime"
+
+rg -Fq 'ship_sprint_finished' "$diagnostics"
+rg -Fq '.String("ship_type", outcome.ShipType)' "$diagnostics"
+rg -Fq '.Number("duration", outcome.Duration)' "$diagnostics"
+rg -Fq '.Number("starting_speed", outcome.StartingSpeed)' "$diagnostics"
+rg -Fq '.Number("peak_speed", outcome.PeakSpeed)' "$diagnostics"
+
+rg -Fq 'bool flag8 = ZInput.GetButton("Run") || ZInput.GetButton("JoyRun");' "$native_player_controller"
+rg -Fq 'magnitude < 0.05f && m_lastMagnitude < 0.05f' "$native_player_controller"
+rg -Fq 'public void ApplyControlls(Vector3 moveDir, Vector3 lookDir, bool run' "$native_controls"
+rg -Fq 'm_ship.ApplyControlls(moveDir);' "$native_controls"
+rg -Fq 'if ((bool)m_nview && !m_nview.IsOwner())' "$native_ship"
+rg -Fq 'Vector3 sailForce = GetSailForce(sailSize, fixedDeltaTime);' "$native_ship"
+rg -Fq 'zero += forward2 * (m_backwardForce * (1f - Utils.Abs(m_rudderValue)));' "$native_ship"
+rg -Fq 'zero += -forward2 * (m_backwardForce * (1f - Utils.Abs(m_rudderValue)));' "$native_ship"
+rg -Fq 'return m_sailForce;' "$native_ship"
+rg -Fq 'if (data.m_targetZDO.IsNone())' "$native_routed_rpc"
+rg -Fq 'if (m_functions.TryGetValue(data.m_methodHash, out var value))' "$native_routed_rpc"
+
+dotnet run --project "$root/tests/ship-sprint/ShipSprintTests.csproj"
+
+printf 'Ship Sprint source and behavior checks passed\n'

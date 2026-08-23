@@ -79,8 +79,5 @@ must prevent compatible clients from entering that flow concurrently.
   existing world on vanilla 1.0, then restore or defer each mod deliberately.
 - Complete Benheim Eternal Fire's remaining
   [gameplay and restart proof](server-mods/benheim-eternal-fire/PRODUCT.md).
-- Decide whether faster sailing justifies client installs on both Mac and
-  Windows. Every candidate examined so far requires a client install, so no
-  server-only ship mod was deployed.
 - Choose Benheim's next gameplay system by balancing the ideal player experience,
   continuity with Valheim, and the cleanest proven implementation path.
