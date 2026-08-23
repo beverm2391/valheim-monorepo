@@ -10,6 +10,7 @@ tabs_file="$root/src/Shortcuts/ShortcutOverlayTabs.cs"
 catalog_file="$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 warnings_file="$root/src/Shortcuts/ShortcutOverlayWarnings.cs"
 plugin="$root/src/Plugin.cs"
+prompt="$root/../../PROMPT.md"
 overlay_files=("$source_file" "$content_file" "$patches_file" "$templates_file" "$tabs_file" "$catalog_file" "$warnings_file")
 
 if rg -n 'OnGUI|GUIStyle|GUILayout|GUI\.Label|Texture2D|PreloadTextOnce' "${overlay_files[@]}" "$plugin"; then
@@ -58,6 +59,15 @@ grep -Fq 'new Entry("R", "Swap hotbar loadout (replaces Hide weapons)")' "$catal
 grep -Fq 'new Entry("Rockbreaker"' "$catalog_file"
 grep -Fq 'new Entry("Cleave"' "$catalog_file"
 grep -Fq '"Headshots"' "$catalog_file"
+grep -Fq '"Perfect Impact"' "$catalog_file"
+grep -Fq 'AirborneMeleeTuning.ApproachSpeedThreshold' "$catalog_file"
+grep -Fq 'AirborneMeleeTuning.DamageMultiplier' "$catalog_file"
+grep -Fq 'AirborneMeleeTuning.StaggerMultiplier' "$catalog_file"
+grep -Fq 'approach the contact horizontally' "$catalog_file"
+grep -Fq '"Tar pickup"' "$catalog_file"
+grep -Fq 'auto-pickup and other submerged items remain stuck' "$catalog_file"
+grep -Fq '"Ship Sprint"' "$catalog_file"
+grep -Fq 'ShipSprintTuning.ThrustMultiplier' "$catalog_file"
 grep -Fq '"Combat"' "$catalog_file"
 grep -Fq 'HeadshotRules.NearMultiplier' "$catalog_file"
 grep -Fq 'Native WeakSpot hits stay native.' "$catalog_file"
@@ -66,12 +76,13 @@ grep -Fq 'Positive gains are doubled; perfect defenses show the actual gain' "$c
 grep -Fq 'new Entry(' "$catalog_file"
 grep -Fq '"CLUTCH"' "$catalog_file"
 grep -Fq '"UNTOUCHABLE"' "$catalog_file"
+grep -Fq 'perfect defenses or qualifying kills' "$catalog_file"
 grep -Fq '"BERSERKER"' "$catalog_file"
 grep -Fq '"SLAUGHTERHOUSE"' "$catalog_file"
 grep -Fq 'KillChainRules.BerserkerKillThreshold' "$catalog_file"
 grep -Fq 'KillChainRules.SlaughterhouseKillThreshold' "$catalog_file"
 grep -Fq 'KillChainRules.WindowSeconds' "$catalog_file"
-grep -Fq 'require Benheim Server Support' "$catalog_file"
+grep -Fq 'BERSERKER, SLAUGHTERHOUSE, and kill-based UNTOUCHABLE progression require Benheim Server Support' "$catalog_file"
 grep -Fq 'Baking and done-to-burn timing are halved; fuel stays normal' "$catalog_file"
 grep -Fq 'keySize.preferredWidth = 230f' "$tabs_file"
 grep -Fq 'blocker.color = new Color(0f, 0f, 0f, 0.56f)' "$content_file"
@@ -98,6 +109,14 @@ grep -Fq 'Stackables protect every stack of that item type; non-stackable gear p
 grep -Fq 'Left Shift + B / Escape' "$content_file"
 grep -Fq 'ShortcutOverlay.Destroy();' "$plugin"
 grep -Fq 'RestoreCursor();' "$source_file"
+
+# Every client package gate compares the menu with owning product truth.
+grep -Fq 'Before every client version bump or package build, compare its' "$prompt"
+grep -Fq 'update and organize every new or' "$prompt"
+grep -Fq 'changed player-facing control or feature' "$prompt"
+
+# The config panel describes every effect controlled by Combat Shake.
+grep -Fq 'Cleave, mining AOE, and Perfect Impact' "$root/src/Shortcuts/ShortcutOverlayConfig.cs"
 
 for file in "${overlay_files[@]}"; do
   if [[ "$(wc -l < "$file")" -ge 450 ]]; then

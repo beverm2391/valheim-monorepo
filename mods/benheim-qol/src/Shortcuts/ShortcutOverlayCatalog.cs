@@ -4,6 +4,8 @@ using BenheimQoL.InventoryFeature;
 using BenheimQoL.KillAttribution;
 using BenheimQoL.PlayerCombat;
 using BenheimQoL.Repair;
+using BenheimQoL.ShipSprint;
+using BenheimQoL.WeaponRhythm;
 using UnityEngine;
 
 namespace BenheimQoL.Shortcuts;
@@ -48,7 +50,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
                 new Entry("Left Shift + plant", $"Plant a centered {FarmingSettings.GridWidth}x{FarmingSettings.GridLength} grid"),
             },
-            "Normal resource, stamina, spacing, and cultivated-ground rules still apply."),
+            "Successful planting costs 50% of Valheim's native stamina; resource, spacing, and cultivated-ground rules stay native."),
     };
 
     private static readonly Section[] FeatureSections =
@@ -59,9 +61,13 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("Extended reach", "Use interactable objects from up to 8 m; open containers stay available to 10 m"),
+                new Entry("Tar pickup", "Manually collect native Tar while submerged; auto-pickup and other submerged items remain stuck"),
                 new Entry("Portal travel", "Finish the transition sooner after the destination is ready"),
+                new Entry(
+                    "Ship Sprint",
+                    $"Hold Run at the helm for ×{ShipSprintTuning.ThrustMultiplier:0.#} native thrust at paddle, half sail, and full sail; release, helm exit, and reverse stay native"),
             },
-            "These features reduce waiting and positioning friction without automating play."),
+            "These features reduce waiting and positioning friction without automating play. Every possible ship physics owner needs compatible Benheim."),
         new(
             "Production",
             new Color(1f, 0.58f, 0.36f, 1f),
@@ -87,13 +93,16 @@ internal static partial class ShortcutOverlay
                 new Entry(
                     "Headshots",
                     $"Bow arrows deal ×{HeadshotRules.NearMultiplier:0.##} through {HeadshotRules.NearDistanceMeters:0.#} m, scaling to ×{HeadshotRules.CapMultiplier:0.##} at {HeadshotRules.CapDistanceMeters:0.#} m"),
+                new Entry(
+                    "Perfect Impact",
+                    $"While airborne, descend at least {-AirborneMeleeTuning.DescentThreshold:0.#} m/s and approach the contact horizontally at {AirborneMeleeTuning.ApproachSpeedThreshold:0.#} m/s: ×{AirborneMeleeTuning.DamageMultiplier:0.##} damage and ×{AirborneMeleeTuning.StaggerMultiplier:0.#} stagger"),
                 new Entry("Adrenaline", "Positive gains are doubled; perfect defenses show the actual gain"),
                 new Entry(
                     "CLUTCH",
                     $"Perfect parry or dodge below {ClutchMechanic.HealthThreshold:0} health: recover 60 health over {ClutchMechanic.DurationSeconds:0} seconds"),
                 new Entry(
                     "UNTOUCHABLE",
-                    "At 5, 8, and 12 consecutive perfect defenses: +10%, +20%, or +30% outgoing damage until actual health loss"),
+                    "At 5, 8, and 12 streak points from perfect defenses or qualifying kills: +10%, +20%, or +30% outgoing damage until actual health loss"),
                 new Entry(
                     "BERSERKER",
                     $"At {KillChainRules.BerserkerKillThreshold} qualifying kills: 25% physical resistance and +50% stamina regeneration"),
@@ -102,7 +111,8 @@ internal static partial class ShortcutOverlay
                     $"At {KillChainRules.SlaughterhouseKillThreshold} qualifying kills: 50% physical resistance and +100% stamina regeneration"),
             },
             $"Each qualifying kill resets the {KillChainRules.WindowSeconds:0}-second BERSERKER timer. " +
-                "BERSERKER and SLAUGHTERHOUSE require Benheim Server Support. " +
+                "BERSERKER, SLAUGHTERHOUSE, and kill-based UNTOUCHABLE progression require Benheim Server Support. " +
+                "PERFECT IMPACT appears at the target even when FX is off; FX settings gate only its shake. " +
                 "Headshot text confirms local collision-time qualification. Native WeakSpot hits stay native."),
         new(
             "Diagnostics",

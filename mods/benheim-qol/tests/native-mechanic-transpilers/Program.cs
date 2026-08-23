@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using BenheimQoL.Interaction;
 using BenheimQoL.Production;
+using BenheimQoL.Farming;
 using HarmonyLib;
 
 FieldInfo chanceField = typeof(InventoryGui).GetField(nameof(InventoryGui.m_craftBonusChance))!;
@@ -31,6 +32,7 @@ VerifyCookingRollObservation();
 VerifyComfortPatch();
 VerifyTarPolicy();
 VerifyTarTranspilers();
+VerifyPlantingStamina();
 
 System.Console.WriteLine("native mechanic transpiler behavior checks passed");
 return;
@@ -39,6 +41,65 @@ static MethodInfo Resolver(string name)
 {
     return typeof(CookingBonus).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static)
         ?? throw new InvalidOperationException($"Missing Cooking bonus resolver {name}.");
+}
+
+static void VerifyPlantingStamina()
+{
+    Expect(PlantingStamina.Cost(0f) == 0f);
+    Expect(PlantingStamina.Cost(10f) == 5f);
+    Expect(PlantingStamina.Cost(7.5f) == 3.75f);
+
+    Piece plantPiece = new Piece();
+    plantPiece.gameObject.AddComponent(new Plant());
+    Piece ordinaryPiece = new Piece();
+    PieceTable plantTable = new PieceTable(plantPiece);
+    PieceTable ordinaryTable = new PieceTable(ordinaryPiece);
+    float resolvedCost = 10f;
+    PlantingStamina.ApplyResolvedCost(plantTable, ref resolvedCost);
+    Expect(resolvedCost == 5f);
+    PlantingStamina.ApplyResolvedCost(ordinaryTable, ref resolvedCost);
+    Expect(resolvedCost == 5f);
+
+    Player player = new Player(station: null) { Stamina = 5f, ResolvedBuildStamina = 5f };
+    Expect(PlantingStamina.HasPlacementStamina(player, 10f, plantPiece));
+    Expect(player.LastStaminaCheck == 5f);
+    Expect(!PlantingStamina.HasPlacementStamina(player, 10f, ordinaryPiece));
+    Expect(player.LastStaminaCheck == 10f);
+
+    MethodInfo getSelectedPiece = typeof(PieceTable).GetMethod(nameof(PieceTable.GetSelectedPiece))!;
+    MethodInfo haveStamina = typeof(Player).GetMethod(nameof(Player.HaveStamina))!;
+    MethodInfo tryPlacePiece = typeof(Player).GetMethod(nameof(Player.TryPlacePiece))!;
+    MethodInfo replacement = typeof(PlantingStamina).GetMethod(
+        nameof(PlantingStamina.HasPlacementStamina),
+        BindingFlags.NonPublic | BindingFlags.Static)!;
+    List<CodeInstruction> input = Frame(
+        new CodeInstruction(OpCodes.Callvirt, getSelectedPiece),
+        new CodeInstruction(OpCodes.Stloc_2),
+        new CodeInstruction(OpCodes.Ldarg_0),
+        new CodeInstruction(OpCodes.Ldc_R4, 10f),
+        new CodeInstruction(OpCodes.Callvirt, haveStamina),
+        new CodeInstruction(OpCodes.Brfalse_S, default(Label)),
+        new CodeInstruction(OpCodes.Ldarg_0),
+        new CodeInstruction(OpCodes.Ldloc_2),
+        new CodeInstruction(OpCodes.Callvirt, tryPlacePiece));
+    List<CodeInstruction> output = Invoke(typeof(PlantingStaminaPatches), input);
+    int replacementIndex = output.FindIndex(instruction => Equals(instruction.operand, replacement));
+    Expect(replacementIndex > 0);
+    Expect(output[replacementIndex].opcode == OpCodes.Call);
+    Expect(output[replacementIndex - 1].opcode == OpCodes.Ldloc_2);
+    Expect(output[replacementIndex - 1].labels.Count == 1);
+    Expect(output[replacementIndex - 1].blocks.Count == 1);
+    Expect(output[replacementIndex].labels.Count == 0);
+    Expect(output[replacementIndex].blocks.Count == 0);
+    Expect(output.Count == input.Count + 1);
+
+    ExpectThrows(() => Invoke(
+        typeof(PlantingStaminaPatches),
+        Frame(
+            new CodeInstruction(OpCodes.Callvirt, getSelectedPiece),
+            new CodeInstruction(OpCodes.Stloc_2),
+            new CodeInstruction(OpCodes.Ldarg_0),
+            new CodeInstruction(OpCodes.Callvirt, tryPlacePiece))));
 }
 
 static void VerifyCookingPatch(

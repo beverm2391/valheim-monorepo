@@ -32,6 +32,14 @@ use it to find controls and passive features.
 
 ## In Development
 
+- The `0.1.70` candidate adds organized feature entries for Ship Sprint,
+  manual collection of submerged native Tar, Perfect Impact, and reduced
+  planting stamina. It says each successful plant placement, including every
+  successful mass-grid placement, costs 50% of Valheim's resolved native
+  planting stamina cost. It preserves the menu's named combat states and useful
+  tuning detail. UNTOUCHABLE now says that qualifying kills as well as perfect
+  defenses add streak points. Combat Shake also names Perfect Impact. The
+  updated presentation still needs gameplay proof.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep
   their native behavior. The shortcut does nothing while the player is typing
   or while a menu, password field, or other text input is active. This

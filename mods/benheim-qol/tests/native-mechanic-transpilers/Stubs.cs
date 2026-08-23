@@ -44,11 +44,50 @@ public class Player
     }
 
     public static Player? m_localPlayer;
+    public float Stamina { get; set; }
+    public float ResolvedBuildStamina { get; set; }
+    public float LastStaminaCheck { get; private set; }
 
     public CraftingStation? GetCurrentCraftingStation()
     {
         return station;
     }
+
+    public bool HaveStamina(float amount)
+    {
+        LastStaminaCheck = amount;
+        return Stamina >= amount;
+    }
+
+    public bool TryPlacePiece(Piece piece) => true;
+
+    private float GetBuildStamina() => ResolvedBuildStamina;
+}
+
+public class PieceTable
+{
+    private readonly Piece selectedPiece;
+
+    public PieceTable(Piece selectedPiece)
+    {
+        this.selectedPiece = selectedPiece;
+    }
+
+    public Piece GetSelectedPiece() => selectedPiece;
+}
+
+public class Piece
+{
+    public UnityEngine.GameObject gameObject = new UnityEngine.GameObject("Piece");
+
+    public T? GetComponent<T>() where T : class => gameObject.GetComponent<T>();
+
+    public static implicit operator bool(Piece? piece) => piece is not null;
+}
+
+public class Plant
+{
+    public static implicit operator bool(Plant? plant) => plant is not null;
 }
 
 public class Humanoid
@@ -174,11 +213,23 @@ namespace BenheimQoL.Infrastructure
     }
 }
 
+namespace BenheimQoL.Farming
+{
+    internal static class FarmingReflection
+    {
+        internal static float GetBuildStamina(Player player) => player.ResolvedBuildStamina;
+    }
+}
+
 namespace HarmonyLib
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
     internal sealed class HarmonyPatch : Attribute
     {
+        internal HarmonyPatch()
+        {
+        }
+
         internal HarmonyPatch(Type type, string methodName)
         {
         }
@@ -190,6 +241,11 @@ namespace HarmonyLib
 
     [AttributeUsage(AttributeTargets.Method)]
     internal sealed class HarmonyTranspiler : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class HarmonyPostfix : Attribute
     {
     }
 
@@ -207,6 +263,18 @@ namespace HarmonyLib
         internal object? operand;
         internal List<Label> labels = new List<Label>();
         internal List<ExceptionBlock> blocks = new List<ExceptionBlock>();
+
+        internal void MoveLabelsTo(CodeInstruction target)
+        {
+            target.labels.AddRange(labels);
+            labels.Clear();
+        }
+
+        internal void MoveBlocksTo(CodeInstruction target)
+        {
+            target.blocks.AddRange(blocks);
+            blocks.Clear();
+        }
     }
 
     internal static class AccessTools
