@@ -1,0 +1,445 @@
+using System;
+using BenheimQoL.EnemyTiers;
+
+const float WorldSize = 10_000f;
+var exampleBiome = new BiomeChanceCurve(minimumChance: 8f, maximumChance: 16f);
+
+ExpectClose(0f, WildernessStarChance.NormalizeDistance(0f, WorldSize), "center normalized distance");
+ExpectClose(0.5f, WildernessStarChance.NormalizeDistance(5_000f, WorldSize), "midpoint normalized distance");
+ExpectClose(1f, WildernessStarChance.NormalizeDistance(WorldSize, WorldSize), "world-edge normalized distance");
+ExpectClose(0f, WildernessStarChance.NormalizeDistance(-100f, WorldSize), "negative distance clamps to center");
+ExpectClose(1f, WildernessStarChance.NormalizeDistance(12_000f, WorldSize), "distance beyond world edge clamps");
+
+ExpectClose(0f, WildernessStarChance.GlobalDistanceAddition(0f), "center global addition");
+ExpectClose(5f, WildernessStarChance.GlobalDistanceAddition(0.5f), "midpoint global addition");
+ExpectClose(10f, WildernessStarChance.GlobalDistanceAddition(1f), "world-edge global addition");
+ExpectClose(0f, WildernessStarChance.GlobalDistanceAddition(-1f), "negative global-addition input clamps");
+ExpectClose(10f, WildernessStarChance.GlobalDistanceAddition(2f), "global-addition input beyond edge clamps");
+
+ExpectClose(8f, exampleBiome.ChanceAt(-1f), "biome curve clamps below center");
+ExpectClose(8f, exampleBiome.ChanceAt(0f), "biome curve center");
+ExpectClose(12f, exampleBiome.ChanceAt(0.5f), "biome curve midpoint");
+ExpectClose(16f, exampleBiome.ChanceAt(1f), "biome curve world edge");
+ExpectClose(16f, exampleBiome.ChanceAt(2f), "biome curve clamps beyond world edge");
+
+ExpectClose(
+    8f,
+    WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, 0f, WorldSize),
+    "biome minimum applies at center");
+ExpectClose(
+    17f,
+    WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, 5_000f, WorldSize),
+    "biome midpoint adds global distance");
+ExpectClose(
+    26f,
+    WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, WorldSize, WorldSize),
+    "biome maximum adds world-edge term");
+
+ExpectClose(
+    4.92f,
+    WildernessStarChance.GlobalDistanceAddition(WildernessStarChance.NormalizeDistance(4_920f, WorldSize)),
+    "Bonemass-distance global calibration");
+ExpectClose(
+    7.882f,
+    WildernessStarChance.GlobalDistanceAddition(WildernessStarChance.NormalizeDistance(7_882f, WorldSize)),
+    "known-frontier global calibration");
+
+ExpectClose(
+    0f,
+    WildernessStarChance.AdjustEffectiveChance(0f, 1f, exampleBiome, WorldSize, WorldSize),
+    "native zero chance remains zero");
+ExpectClose(
+    26f,
+    WildernessStarChance.AdjustEffectiveChance(35f, 1f, exampleBiome, WorldSize, WorldSize),
+    "native chance above the previous cap does not bypass the resolved formula");
+ExpectClose(
+    26f,
+    WildernessStarChance.AdjustEffectiveChance(10f, 2f, exampleBiome, WorldSize, WorldSize),
+    "biome composition defines the final chance");
+
+var maximumBiome = new BiomeChanceCurve(30f, 30f);
+ExpectClose(40f, WildernessStarChance.AdjustEffectiveChance(10f, 1f, maximumBiome, WorldSize, WorldSize), "constructed maximum has no hard cap");
+
+ExpectTrue(!BoarTierPhysicalProfile.TryForLevel(1, out _), "ordinary Boar keeps native physical behavior");
+ExpectTrue(BoarTierPhysicalProfile.TryForLevel(2, out BoarTierPhysicalProfile oneStarBoar), "one-star Boar profile exists");
+ExpectClose(1.4f, oneStarBoar.VisualScale, "one-star Boar visual scale");
+ExpectClose(0.98f, oneStarBoar.ColliderCenterY, "one-star Boar capsule center");
+ExpectClose(0.7f, oneStarBoar.ColliderRadius, "one-star Boar capsule radius");
+ExpectClose(1.96f, oneStarBoar.ColliderHeight, "one-star Boar capsule height");
+ExpectClose(0f, oneStarBoar.ColliderCenterY - (oneStarBoar.ColliderHeight / 2f), "one-star capsule stays grounded");
+ExpectClose(0.75f, oneStarBoar.IncomingPushMultiplier, "one-star Boar retains meaningful displacement");
+ExpectClose(1.25f, oneStarBoar.OutgoingPushMultiplier, "one-star Boar shove multiplier");
+ExpectClose(1.2f, oneStarBoar.DetectionMultiplier, "one-star Boar detection multiplier");
+ExpectClose(1.5f, oneStarBoar.AlertRangeMultiplier, "one-star Boar territorial alert range");
+ExpectClose(1.08f, oneStarBoar.RunSpeedMultiplier, "one-star Boar restrained charge speed");
+ExpectClose(0.85f, oneStarBoar.RunTurnSpeedMultiplier, "one-star Boar charge turns less cleanly");
+ExpectClose(1.25f, oneStarBoar.PursuitDurationMultiplier, "one-star Boar pursuit duration");
+ExpectClose(0.2f, oneStarBoar.PursuitTimerCompensation(1f), "one-star pursuit timer compensation");
+ExpectClose(9.8f, oneStarBoar.CompensatePursuitTimer(10f, 1f), "one-star active pursuit timer advances more slowly");
+ExpectClose(0f, oneStarBoar.CompensatePursuitTimer(0f, 1f), "idle pursuit timer cannot accumulate negative credit");
+ExpectTrue(BoarTierPhysicalProfile.TryForLevel(3, out BoarTierPhysicalProfile twoStarBoar), "two-star Boar profile exists");
+ExpectClose(1.7f, twoStarBoar.VisualScale, "two-star Boar visual scale");
+ExpectClose(1.19f, twoStarBoar.ColliderCenterY, "two-star Boar capsule center");
+ExpectClose(0.85f, twoStarBoar.ColliderRadius, "two-star Boar capsule radius");
+ExpectClose(2.38f, twoStarBoar.ColliderHeight, "two-star Boar capsule height");
+ExpectClose(0f, twoStarBoar.ColliderCenterY - (twoStarBoar.ColliderHeight / 2f), "two-star capsule stays grounded");
+ExpectClose(0.55f, twoStarBoar.IncomingPushMultiplier, "two-star Boar remains movable");
+ExpectClose(1.5f, twoStarBoar.OutgoingPushMultiplier, "two-star Boar shove multiplier");
+ExpectClose(1.4f, twoStarBoar.DetectionMultiplier, "two-star Boar detection multiplier");
+ExpectClose(2f, twoStarBoar.AlertRangeMultiplier, "two-star Boar relentless alert range");
+ExpectClose(1.15f, twoStarBoar.RunSpeedMultiplier, "two-star Boar restrained charge speed");
+ExpectClose(0.7f, twoStarBoar.RunTurnSpeedMultiplier, "two-star Boar charge commits forward");
+ExpectClose(1.5f, twoStarBoar.PursuitDurationMultiplier, "two-star Boar pursuit duration");
+ExpectClose(1f / 3f, twoStarBoar.PursuitTimerCompensation(1f), "two-star pursuit timer compensation");
+ExpectClose(0f, twoStarBoar.CompensatePursuitTimer(0.1f, 1f), "two-star pursuit compensation clamps at zero");
+ExpectTrue(!BoarTierPhysicalProfile.TryForLevel(4, out _), "non-native future level keeps native behavior");
+var boarApplication = new BoarTierApplicationState();
+ExpectTrue(!boarApplication.ProfileApplied, "fresh ordinary Boar has no Benheim profile to restore");
+boarApplication.MarkApplied();
+ExpectTrue(boarApplication.ProfileApplied, "starred Boar records its ephemeral applied profile");
+boarApplication.MarkRestored();
+ExpectTrue(!boarApplication.ProfileApplied, "level downgrade consumes the applied profile marker");
+var boarObservations = new BoarTierObservationState();
+ExpectTrue(boarObservations.TryMarkGeometry(2), "one-star geometry is observed once");
+ExpectTrue(boarObservations.HasGeometry(2), "one-star geometry marker is queryable before expensive capture");
+ExpectTrue(!boarObservations.TryMarkGeometry(2), "repeated one-star application does not duplicate geometry");
+ExpectTrue(boarObservations.TryMarkGeometry(3), "two-star geometry has its own observation");
+ExpectTrue(boarObservations.TryMarkPlayerHit(2), "first one-star player hit is observed");
+ExpectTrue(boarObservations.HasPlayerHit(2), "one-star player-hit marker is queryable before expensive capture");
+ExpectTrue(!boarObservations.TryMarkPlayerHit(2), "later one-star player hits are suppressed");
+ExpectTrue(boarObservations.TryMarkPlayerHit(3), "first two-star player hit has its own observation");
+ExpectTrue(!boarObservations.TryMarkGeometry(-1), "invalid negative tier is not recorded");
+ExpectTrue(!boarObservations.TryMarkPlayerHit(31), "tier outside the bitmask is not recorded");
+ExpectTrue(BoarTierHitObservationRules.ShouldObserve(true, true, true, false, true), "applied local-player melee contact with a collider is observable");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(true, false, false, false, true), "missing local player cannot become a player hit");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(true, true, false, false, true), "attackerless or remote hit is excluded");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(true, true, true, true, true), "ranged hit is excluded");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(true, true, true, false, false), "contact without an authored collider is excluded");
+ExpectTrue(!BoarTierHitObservationRules.ShouldObserve(false, true, true, false, true), "unapplied profile is excluded");
+ExpectTrue(
+    BoarTestCommandProtocol.IsHelpRequest(new[] { "bh", "help" }),
+    "Benheim help command is accepted");
+ExpectTrue(
+    BoarTestCommandProtocol.IsHelpRequest(new[] { "bh" }),
+    "bare Benheim command opens help");
+ExpectTrue(
+    !BoarTestCommandProtocol.IsHelpRequest(new[] { "bh", "spawn" }),
+    "partial spawn command is not treated as help");
+ExpectTrue(
+    BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "0" }, out int zeroStarRequest) && zeroStarRequest == 0,
+    "zero-star Boar control command is accepted");
+ExpectTrue(
+    BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "1" }, out int oneStarRequest) && oneStarRequest == 1,
+    "one-star Boar command is accepted");
+ExpectTrue(
+    BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "BH", "SPAWN", "BOAR", "2" }, out int twoStarRequest) && twoStarRequest == 2,
+    "two-star Boar command is case-insensitive");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "-1" }, out _), "negative-star command is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "3" }, out _), "three-star command is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "greydwarf", "2" }, out _), "unlisted creature is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "benheim", "spawn-boar", "2" }, out _), "retired command shape is rejected");
+ExpectTrue(!BoarTestCommandProtocol.TryParseSpawnBoar(new[] { "bh", "spawn", "boar", "2", "extra" }, out _), "extra command arguments are rejected");
+ExpectTrue(BoarTestCommandProtocol.TryResolveLevel(0, out int zeroStarLevel) && zeroStarLevel == 1, "zero stars maps to native level one");
+ExpectTrue(BoarTestCommandProtocol.TryResolveLevel(1, out int oneStarLevel) && oneStarLevel == 2, "one star maps to native level two");
+ExpectTrue(BoarTestCommandProtocol.TryResolveLevel(2, out int twoStarLevel) && twoStarLevel == 3, "two stars map to native level three");
+
+ExpectTrue(WildernessDangerScale.Classify(0f) == WildernessDanger.Safe, "zero pressure is safe");
+ExpectTrue(WildernessDangerScale.Classify(17.499f) == WildernessDanger.Safe, "safe upper edge");
+ExpectTrue(WildernessDangerScale.Classify(17.5f) == WildernessDanger.Sketchy, "sketchy lower edge");
+ExpectTrue(WildernessDangerScale.Classify(24.999f) == WildernessDanger.Sketchy, "sketchy upper edge");
+ExpectTrue(WildernessDangerScale.Classify(25f) == WildernessDanger.Dangerous, "dangerous lower edge");
+ExpectTrue(WildernessDangerScale.Classify(32.499f) == WildernessDanger.Dangerous, "dangerous upper edge");
+ExpectTrue(WildernessDangerScale.Classify(32.5f) == WildernessDanger.Deadly, "deadly lower edge");
+ExpectTrue(
+    WildernessDangerScale.StyledArrivalLabel(WildernessDanger.Safe) == "<color=#6F9F6A>SAFE</color>",
+    "safe arrival label uses calm color");
+ExpectTrue(
+    WildernessDangerScale.StyledArrivalLabel(WildernessDanger.Sketchy) == "<color=#B59A45>SKETCHY</color>",
+    "sketchy arrival label uses warning color");
+ExpectTrue(
+    WildernessDangerScale.StyledArrivalLabel(WildernessDanger.Dangerous) == "<color=#C8753B><b>DANGEROUS</b></color>",
+    "dangerous arrival label uses bold orange treatment");
+ExpectTrue(
+    WildernessDangerScale.StyledArrivalLabel(WildernessDanger.Deadly) == "<color=#C94F55><b>DEADLY</b></color>",
+    "deadly arrival label uses bold red treatment");
+ExpectTrue(
+    WildernessDangerScale.MapLabel(WildernessDanger.Safe) == "SAFE",
+    "safe map label inherits native text styling");
+ExpectTrue(
+    WildernessDangerScale.MapLabel(WildernessDanger.Sketchy) == "SKETCHY",
+    "sketchy map label inherits native text styling");
+ExpectTrue(
+    WildernessDangerScale.MapLabel(WildernessDanger.Dangerous) == "DANGEROUS",
+    "dangerous map label inherits native text styling");
+ExpectTrue(
+    WildernessDangerScale.MapLabel(WildernessDanger.Deadly) == "DEADLY",
+    "deadly map label inherits native text styling");
+ExpectTrue(
+    WildernessDangerScale.MinimapLabel(WildernessDanger.Safe) == "Safe",
+    "safe minimap label uses title case");
+ExpectTrue(
+    WildernessDangerScale.MinimapLabel(WildernessDanger.Sketchy) == "Sketchy",
+    "sketchy minimap label uses title case");
+ExpectTrue(
+    WildernessDangerScale.MinimapLabel(WildernessDanger.Dangerous) == "Dangerous",
+    "dangerous minimap label uses title case");
+ExpectTrue(
+    WildernessDangerScale.MinimapLabel(WildernessDanger.Deadly) == "Deadly",
+    "deadly minimap label uses title case");
+
+WildernessPlayerArea farPlains = WildernessPlayerArea.Tuned(
+    Heightmap.Biome.Plains,
+    distance: 4_381f,
+    worldSize: WorldSize,
+    adjustedChance: 25.2f);
+ExpectTrue(farPlains.Biome == Heightmap.Biome.Plains, "resolved area keeps its sampled biome");
+ExpectTrue(farPlains.Danger == WildernessDanger.Dangerous, "far Plains resolves from the same sample");
+ExpectClose(0.4381f, farPlains.DistanceRatio, "resolved area keeps its sampled distance ratio");
+ExpectClose(25.2f, farPlains.AdjustedChance, "resolved area keeps its sampled chance");
+
+WildernessPlayerArea nearbyMeadows = WildernessPlayerArea.Tuned(
+    Heightmap.Biome.Meadows,
+    distance: 621f,
+    worldSize: WorldSize,
+    adjustedChance: 10.745f);
+ExpectTrue(nearbyMeadows.Biome == Heightmap.Biome.Meadows, "next sample replaces the complete biome value");
+ExpectTrue(nearbyMeadows.Danger == WildernessDanger.Safe, "next sample replaces the complete danger value");
+
+ExpectTrue(!WildernessDangerScale.IsVisible(false, false, false), "unexplored point stays hidden");
+ExpectTrue(WildernessDangerScale.IsVisible(true, false, false), "locally explored point is visible");
+ExpectTrue(!WildernessDangerScale.IsVisible(false, true, false), "hidden shared exploration stays hidden");
+ExpectTrue(WildernessDangerScale.IsVisible(false, true, true), "enabled shared exploration is visible");
+ExpectTrue(WildernessMapLabelLayout.IsResolvedNativeBiomeText("Meadows"), "localized biome name is resolved");
+ExpectTrue(!WildernessMapLabelLayout.IsResolvedNativeBiomeText(""), "empty biome label is unresolved");
+ExpectTrue(!WildernessMapLabelLayout.IsResolvedNativeBiomeText("   "), "blank biome label is unresolved");
+ExpectTrue(!WildernessMapLabelLayout.IsResolvedNativeBiomeText("[biome_none]"), "raw localization token is unresolved");
+
+var transitions = new WildernessDangerTransitionTracker();
+WildernessDangerTransition baseline = transitions.Observe(16f, now: 0f, presentationAvailable: true);
+ExpectTrue(baseline.BaselineEstablished, "login establishes a silent danger baseline");
+ExpectTrue(baseline.ArrivalDanger == null, "login baseline does not present an arrival");
+ExpectTrue(transitions.StableDanger == WildernessDanger.Safe, "safe login baseline becomes current");
+
+WildernessDangerTransition dangerCandidate = transitions.Observe(26f, now: 1f, presentationAvailable: true);
+ExpectTrue(dangerCandidate.CandidateStarted, "danger escalation starts debounce");
+ExpectTrue(transitions.HasCandidate, "pending danger remains available to arrival logic");
+ExpectTrue(transitions.StableDanger == WildernessDanger.Safe, "arrival stability remains on the prior category during debounce");
+ExpectTrue(dangerCandidate.CurrentDanger == WildernessDanger.Dangerous, "pending arrival category is available during debounce");
+ExpectTrue(!transitions.Observe(26f, now: 2.99f, presentationAvailable: true).StableChanged, "danger does not stabilize before debounce");
+WildernessDangerTransition dangerousArrival = transitions.Observe(26f, now: 3f, presentationAvailable: true);
+ExpectTrue(dangerousArrival.StableChanged, "danger stabilizes after debounce");
+ExpectTrue(dangerousArrival.ArrivalDanger == WildernessDanger.Dangerous, "stable dangerous escalation presents once");
+ExpectTrue(transitions.Observe(26f, now: 4f, presentationAvailable: true).ArrivalDanger == null, "remaining dangerous does not repeat arrival");
+
+ExpectTrue(
+    !transitions.Observe(24.5f, now: 5f, presentationAvailable: true).CandidateStarted,
+    "hysteresis ignores a small dangerous-boundary retreat");
+
+var portalHysteresis = new WildernessDangerTransitionTracker();
+portalHysteresis.Observe(16f, now: 0f, presentationAvailable: true);
+WildernessDangerTransition portalRawDanger = portalHysteresis.Observe(
+    farPlains.AdjustedChance,
+    now: 1f,
+    presentationAvailable: true);
+ExpectTrue(farPlains.Danger == WildernessDanger.Dangerous, "factual portal sample remains raw Dangerous");
+ExpectTrue(portalRawDanger.CurrentDanger == WildernessDanger.Safe, "arrival hysteresis can independently retain Safe");
+ExpectTrue(!portalHysteresis.HasCandidate, "arrival hysteresis deadband remains established without a candidate");
+
+WildernessDangerTransition retreatCandidate = transitions.Observe(24f, now: 6f, presentationAvailable: true);
+ExpectTrue(retreatCandidate.CandidateStarted, "crossing beyond hysteresis starts retreat debounce");
+WildernessDangerTransition cancelledRetreat = transitions.Observe(26f, now: 7f, presentationAvailable: true);
+ExpectTrue(cancelledRetreat.CandidateCancelled, "returning before debounce cancels boundary retreat");
+
+transitions.Observe(24f, now: 8f, presentationAvailable: true);
+WildernessDangerTransition stableRetreat = transitions.Observe(24f, now: 10f, presentationAvailable: true);
+ExpectTrue(stableRetreat.StableChanged, "retreat stabilizes after debounce");
+transitions.Observe(26f, now: 11f, presentationAvailable: true);
+WildernessDangerTransition cooldownReentry = transitions.Observe(26f, now: 13f, presentationAvailable: true);
+ExpectTrue(cooldownReentry.ArrivalBlock == WildernessDangerArrivalBlock.Cooldown, "arrival cooldown rejects quick reentry");
+ExpectTrue(cooldownReentry.ArrivalDanger == null, "cooldown rejection does not present");
+
+var pausedTransition = new WildernessDangerTransitionTracker();
+pausedTransition.Observe(16f, now: 0f, presentationAvailable: true);
+pausedTransition.Observe(26f, now: 1f, presentationAvailable: true);
+pausedTransition.PauseObservation();
+WildernessDangerTransition resumedCandidate = pausedTransition.Observe(26f, now: 20f, presentationAvailable: true);
+ExpectTrue(resumedCandidate.CandidateStarted, "resume restarts a pending transition debounce");
+ExpectTrue(
+    !pausedTransition.Observe(26f, now: 21.99f, presentationAvailable: true).StableChanged,
+    "paused time does not satisfy transition debounce");
+ExpectTrue(
+    pausedTransition.Observe(26f, now: 22f, presentationAvailable: true).ArrivalDanger == WildernessDanger.Dangerous,
+    "resumed danger must remain stable for a full debounce before arrival");
+
+var unavailablePresentation = new WildernessDangerTransitionTracker();
+unavailablePresentation.Observe(16f, now: 0f, presentationAvailable: true);
+unavailablePresentation.Observe(34f, now: 1f, presentationAvailable: false);
+WildernessDangerTransition unavailableArrival = unavailablePresentation.Observe(34f, now: 3f, presentationAvailable: false);
+ExpectTrue(
+    unavailableArrival.ArrivalBlock == WildernessDangerArrivalBlock.PresentationUnavailable,
+    "hidden or missing HUD rejects presentation");
+
+var respawnSuppression = new WildernessDangerTransitionTracker();
+respawnSuppression.Observe(16f, now: 0f, presentationAvailable: true);
+respawnSuppression.Observe(34f, now: 1f, presentationAvailable: true);
+respawnSuppression.Observe(34f, now: 3f, presentationAvailable: true);
+respawnSuppression.ResetForLifecycle();
+WildernessDangerTransition respawnBaseline = respawnSuppression.Observe(34f, now: 10f, presentationAvailable: true);
+ExpectTrue(respawnBaseline.BaselineEstablished, "respawn establishes a new baseline");
+ExpectTrue(respawnBaseline.ArrivalDanger == null, "respawning in deadly does not present arrival noise");
+
+var untunedEntry = new WildernessDangerTransitionTracker();
+untunedEntry.Observe(16f, now: 0f, presentationAvailable: true);
+untunedEntry.LeaveTunedWilderness();
+WildernessDangerTransition tunedEntryCandidate = untunedEntry.Observe(34f, now: 5f, presentationAvailable: true);
+ExpectTrue(tunedEntryCandidate.CandidateStarted, "return from untuned biome requires stable entry");
+WildernessDangerTransition tunedEntryArrival = untunedEntry.Observe(34f, now: 7f, presentationAvailable: true);
+ExpectTrue(tunedEntryArrival.ArrivalDanger == WildernessDanger.Deadly, "stable untuned-to-deadly entry presents");
+
+ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0f, addedHeight: 30f);
+ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 30f);
+ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 1f, addedHeight: 30f);
+ExpectExpandedLabelBounds(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 0f);
+ExpectNoAccumulatedLabelGrowth(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0f, addedHeight: 30f);
+ExpectNoAccumulatedLabelGrowth(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 0.5f, addedHeight: 30f);
+ExpectNoAccumulatedLabelGrowth(nativeAnchoredY: -20f, nativeHeight: 40f, pivotY: 1f, addedHeight: 30f);
+ExpectThrows<ArgumentOutOfRangeException>(
+    () => WildernessMapLabelLayout.ExpandDownward(0f, 40f, 0.5f, -1f),
+    "negative map-label growth is rejected");
+
+ExpectTrue(WildernessStarChance.ShouldAdjust(eventSpawner: false, inInterior: false, hasBiomeTuning: true), "ordinary tuned wilderness adjusts");
+ExpectTrue(!WildernessStarChance.ShouldAdjust(eventSpawner: true, inInterior: false, hasBiomeTuning: true), "random-event spawn is excluded");
+ExpectTrue(!WildernessStarChance.ShouldAdjust(eventSpawner: false, inInterior: true, hasBiomeTuning: true), "dungeon-height spawn is excluded");
+ExpectTrue(!WildernessStarChance.ShouldAdjust(eventSpawner: false, inInterior: false, hasBiomeTuning: false), "untuned biome preserves native chance");
+
+ExpectTrue(BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.Meadows, out BiomeChanceCurve meadows), "Meadows tuning exists");
+ExpectCurve(meadows, 10f, 12f, "Meadows starter tuning");
+ExpectTrue(BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.BlackForest, out BiomeChanceCurve blackForest), "Black Forest tuning exists");
+ExpectCurve(blackForest, 10f, 18f, "Black Forest starter tuning");
+ExpectTrue(BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.Swamp, out BiomeChanceCurve swamp), "Swamp tuning exists");
+ExpectCurve(swamp, 12f, 22f, "Swamp starter tuning");
+ExpectTrue(BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.Mountain, out BiomeChanceCurve mountain), "Mountain tuning exists");
+ExpectCurve(mountain, 14f, 24f, "Mountain starter tuning");
+ExpectTrue(BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.Plains, out BiomeChanceCurve plains), "Plains tuning exists");
+ExpectCurve(plains, 16f, 27f, "Plains starter tuning");
+ExpectTrue(BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.Mistlands, out BiomeChanceCurve mistlands), "Mistlands tuning exists");
+ExpectCurve(mistlands, 18f, 30f, "Mistlands starter tuning");
+ExpectTrue(!BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.Ocean, out _), "Ocean stays native");
+ExpectTrue(!BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.AshLands, out _), "Ashlands stays native");
+ExpectTrue(!BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.DeepNorth, out _), "Deep North stays native");
+ExpectTrue(!BiomeStarChanceTuning.TryGetCurve(Heightmap.Biome.None, out _), "non-biome input stays native");
+
+ExpectClose(10f, WildernessStarChance.ComposeChance(meadows, 0f, WorldSize), "Meadows center chance");
+ExpectClose(16f, WildernessStarChance.ComposeChance(meadows, 5_000f, WorldSize), "Meadows midpoint chance");
+ExpectClose(22f, WildernessStarChance.ComposeChance(meadows, WorldSize, WorldSize), "Meadows world-edge chance");
+ExpectClose(14.5f, WildernessStarChance.ComposeChance(blackForest, 2_500f, WorldSize), "Black Forest quarter-world chance");
+ExpectClose(24f, WildernessStarChance.ComposeChance(swamp, 6_000f, WorldSize), "Swamp current-world distance chance");
+ExpectClose(24f, WildernessStarChance.ComposeChance(mountain, 5_000f, WorldSize), "Mountain midpoint chance");
+ExpectClose(32.8f, WildernessStarChance.ComposeChance(plains, 8_000f, WorldSize), "Plains remote chance");
+ExpectClose(31.2f, WildernessStarChance.ComposeChance(mistlands, 6_000f, WorldSize), "Mistlands current-world distance chance");
+ExpectClose(40f, WildernessStarChance.ComposeChance(mistlands, WorldSize, WorldSize), "Mistlands constructed maximum");
+
+ExpectThrows<ArgumentOutOfRangeException>(
+    () => WildernessStarChance.NormalizeDistance(0f, 0f),
+    "invalid world size is rejected");
+ExpectThrows<ArgumentOutOfRangeException>(
+    () => new BiomeChanceCurve(10f, 9f),
+    "descending biome chance curve is rejected");
+
+Console.WriteLine("enemy tier distance and scope checks passed");
+return;
+
+static void ExpectClose(float expected, float actual, string scenario)
+{
+    if (MathF.Abs(expected - actual) > 0.0001f)
+    {
+        throw new InvalidOperationException($"{scenario}: expected {expected}, got {actual}");
+    }
+}
+
+static void ExpectTrue(bool value, string scenario)
+{
+    if (!value)
+    {
+        throw new InvalidOperationException($"{scenario}: expected true");
+    }
+}
+
+static void ExpectCurve(BiomeChanceCurve curve, float minimumChance, float maximumChance, string scenario)
+{
+    ExpectClose(minimumChance, curve.MinimumChance, $"{scenario} minimum chance");
+    ExpectClose(maximumChance, curve.MaximumChance, $"{scenario} maximum chance");
+}
+
+static void ExpectExpandedLabelBounds(
+    float nativeAnchoredY,
+    float nativeHeight,
+    float pivotY,
+    float addedHeight)
+{
+    WildernessMapLabelBounds expanded = WildernessMapLabelLayout.ExpandDownward(
+        nativeAnchoredY,
+        nativeHeight,
+        pivotY,
+        addedHeight);
+    float nativeTop = nativeAnchoredY + ((1f - pivotY) * nativeHeight);
+    float expandedTop = expanded.AnchoredY + ((1f - pivotY) * expanded.SizeDeltaY);
+    ExpectClose(nativeTop, expandedTop, $"map label pivot {pivotY}: top edge remains fixed");
+    ExpectClose(
+        nativeHeight + addedHeight,
+        expanded.SizeDeltaY,
+        $"map label pivot {pivotY}: bounds grow downward");
+}
+
+static void ExpectNoAccumulatedLabelGrowth(
+    float nativeAnchoredY,
+    float nativeHeight,
+    float pivotY,
+    float addedHeight)
+{
+    WildernessMapLabelBounds first = WildernessMapLabelLayout.ExpandDownward(
+        nativeAnchoredY,
+        nativeHeight,
+        pivotY,
+        addedHeight);
+    WildernessMapLabelBounds afterRestore = WildernessMapLabelLayout.ExpandDownward(
+        nativeAnchoredY,
+        nativeHeight,
+        pivotY,
+        addedHeight);
+    ExpectClose(first.AnchoredY, afterRestore.AnchoredY, $"map label pivot {pivotY}: repeated composition keeps anchored position");
+    ExpectClose(first.SizeDeltaY, afterRestore.SizeDeltaY, $"map label pivot {pivotY}: repeated composition keeps height");
+}
+
+static void ExpectThrows<TException>(Action action, string scenario) where TException : Exception
+{
+    try
+    {
+        action();
+    }
+    catch (TException)
+    {
+        return;
+    }
+
+    throw new InvalidOperationException($"{scenario}: expected {typeof(TException).Name}");
+}
+
+internal static class Heightmap
+{
+    [Flags]
+    internal enum Biome
+    {
+        None = 0,
+        Meadows = 1,
+        Swamp = 2,
+        Mountain = 4,
+        BlackForest = 8,
+        Plains = 0x10,
+        AshLands = 0x20,
+        DeepNorth = 0x40,
+        Ocean = 0x100,
+        Mistlands = 0x200,
+        All = 0x37F,
+    }
+}

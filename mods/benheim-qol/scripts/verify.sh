@@ -11,5 +11,7 @@ for test_script in "$root"/tests/*-test.sh; do
 done
 
 dotnet run --project "$root/tests/quick-stack-summary/QuickStackSummaryTests.csproj"
-dotnet run --project "$root/tests/quick-stack-recovery/QuickStackRecoveryTests.csproj"
+dotnet run --project "$root/../../tests/put-away-owner-routing/PutAwayOwnerRoutingTests.csproj"
+dotnet run --project "$root/../../tests/inventory-transaction-receipts/InventoryTransactionReceiptTests.csproj"
+dotnet run --project "$root/../../tests/inventory-transaction-diagnostics/InventoryTransactionDiagnosticTests.csproj"
 "$root/scripts/build.sh"

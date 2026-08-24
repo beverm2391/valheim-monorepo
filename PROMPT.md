@@ -10,15 +10,13 @@ the product promise or a compatibility boundary.
 This repo has three related jobs:
 
 - Provision and operate a Valheim dedicated server on a cloud VM.
-- Support selected server-side mods that remain compatible with vanilla
-  clients.
-- Build optional quality-of-life mods under `mods/`. Keep server-assisted
-  features explicit.
+- Support selected server-side mods with explicit player requirements.
+- Build client mods under `mods/`, including quality-of-life and gameplay
+  features. Keep server-assisted features explicit.
 
-Most server work must not assume client mods are installed. A server-assisted
-client feature must disable itself when a required client component is missing.
-The default promise is that vanilla PC or console clients can join and play
-normally.
+The root `PRODUCT.md` owns which clients and server components a shared feature
+requires. A server-assisted feature must fail visibly when a required component
+is missing or incompatible.
 
 The root `PRODUCT.md` owns the overall server and mod promise. The client mod
 at `mods/benheim-qol/` owns its promise in `PRODUCT.md`, each user-facing
@@ -47,6 +45,35 @@ Follow the safety rules in `AGENTS.md`.
 Keep provider lifecycle, server installation, world upload and download, and
 backup logic separate.
 
+## Offline character map inspection
+
+Inspect a character map without opening Valheim or changing the save:
+
+```bash
+scripts/inspect-character-map.py /path/to/character.fch \
+  --world-meta /path/to/world.fwl
+```
+
+The optional world metadata file confirms which world entry owns the character
+map. Without it, the command labels entries by index. Use `--help` for JSON and
+calibration options.
+
+The character map does not store its pixel scale or the game's world radius.
+The command prints the calibration it used. After a Valheim update, verify the
+values installed with the game. Do this before you trust the distances or
+override the defaults. The command rejects unsupported save and map formats
+instead of guessing.
+
+Keep character files and generated reports local. The summary omits IDs,
+authors, coordinates, inventory, and raw map bytes, but player-created pin names
+can still be private.
+
+Run the synthetic proof with:
+
+```bash
+python3 tests/character-map-inspector-test.py
+```
+
 ## Server development and operation
 
 The server path provisions a cloud VM, installs SteamCMD and the official
@@ -71,11 +98,13 @@ scripts/set-server-mods.sh disable
 
 `server/valheim-start` owns vanilla and modded launch paths. Set
 `VALHEIM_MODDED=0` for recovery: it bypasses BepInEx without deleting installed
-mod files or configuration. `scripts/install-server-mods.sh` owns pinned
-package versions and checksums, stages downloads before downtime, takes a
-stopped-server backup, and falls back to the vanilla path if installation
-fails. New server mods must be removable without changing the world save.
-Benheim Eternal Fire must not prevent a vanilla client from joining.
+mod files or configuration. `PRODUCT.md` owns the exact approved first-party
+plugin set. `scripts/install-server-mods.sh` owns its pinned package versions
+and checksums and enforces that allowlist. It stages the whole stack before
+downtime, takes one stopped-server backup, and restores the previous stack or
+the vanilla path if installation fails. Do not auto-discover plugins from
+`server-mods/`. New server mods must be removable without changing the world
+save.
 
 `scripts/apply-server-config.sh` owns routine deployment of the launcher and
 the generated `/etc/valheim/server.env`. It combines non-secret local settings
@@ -116,8 +145,18 @@ controls, player feedback, acceptance meaning, and proof status belong in the
 owning product document. Keep implementation details in code or a deeper
 technical document.
 
-Build and test a client-only change with the canonical verification entrypoint:
+Ben and the Project Lead own `PRODUCT_REVIEW.md` as the live acceptance queue;
+Dev Leads may provide evidence or investigate ambiguity, but do not own it.
+Each item states the shortest player action and decision-changing outcome.
+Keep telemetry schemas, implementation invariants, and exhaustive edges in
+code, tests, or deeper technical docs; behavior and acceptance meaning stay in
+the owning `PRODUCT.md`. Player-observable feel can accept clear, low-risk
+tuning or presentation. Reserve programmatic or log proof for hidden,
+ambiguous, or destructive boundaries such as conservation, ownership,
+networking, persistence, and credentials. After acceptance, remove the item
+and update the owning product document.
 
+Build and test a client-only change with the canonical verification entrypoint:
 ```bash
 mods/benheim-qol/scripts/verify.sh
 ```
@@ -204,56 +243,58 @@ assets. Release assets are distribution artifacts, not an update channel.
 
 For a gameplay change:
 
-1. Add concise diagnostic events for the changed action and the decisions that
-   control it.
-2. Bump the visible plugin version and install the new DLL while Valheim is
-   fully quit.
-3. Ask the player to relaunch, reproduce the behavior, and report what they
-   tried.
-4. Read `<Valheim>/BepInEx/LogOutput.log` and filter for `[diag]` events.
-5. Read the server journal only when changed code runs on the server or the
-   behavior depends on a server response.
-6. Fix the observed failure, reinstall, and repeat until gameplay and logs
-   agree.
+1. Add diagnostics only when acceptance depends on a result the player cannot
+   reliably see or a hidden, ambiguous, or destructive invariant. Reuse evidence
+   that already answers the product question.
+2. Bump the visible version and install while Valheim is fully quit.
+3. Relaunch, reproduce, and record what the player tried.
+4. Query `[diag]` events; read the server journal only for server-owned behavior.
+5. Fix observed failures and repeat until gameplay and evidence agree.
 
-Diagnostic events use `[diag][Feature] action key=value`. Log player actions,
-important decisions, and results. Do not log every frame. Keep normal BepInEx
-warning and error logging enabled.
+Diagnostic events use `[diag][Feature] action key=value`. Log actions, important
+decisions, and results, not every frame. Keep normal BepInEx warnings and errors.
+Benheim also writes each event to `BepInEx/BenheimEvents.ndjson`. Use
+`mods/benheim-qol/scripts/query-events.py --help` to stream current or archived
+events, filter fields, or find starts without a terminal event.
+
+After a world loads, `bh debug catalog effects|text|ui [filter]` previews native
+runtime sources and atomically replaces `BepInEx/BenheimRuntimeCatalog.ndjson`.
+Readiness failures are visible; the bounded snapshot stays local.
+
+Normal packages stay credential-free. Use scoped secrets for
+`package-private-test.sh`; rotate its token if an archive leaves Ben, Johnny,
+and Ozi or before public release.
 
 ## Client mod rules
 
 - Keep one Benheim client DLL.
-- Put Away must use `Container.StackAll()` so Valheim's current chest owner
-  grants ownership before any transfer. Never write a non-owned local chest or
-  call `ClaimOwnership()` as a shortcut.
+- Before changing Put Away, follow the nested [Inventory development
+  guide](mods/benheim-qol/src/Inventory/PROMPT.md). Its shared protocol owns the
+  authority, conservation, correlation, and convergence rules. Do not replace
+  that protocol with requester-local `Container.StackAll()` or another cached
+  chest write.
 - Apply protected-item filtering whenever `Inventory.StackAll()` moves items
   out of the local player's inventory. The filter applies to Valheim's **Place
-  stacks**, **Hold to stack**, and Put Away actions. All three actions must keep
-  manually pocketed, equipped, and hotbar items in the player's inventory.
-  Manual item moves and **Take all** remain unchanged.
-- Count Put Away results only while `Inventory.StackAll()` handles the current
-  chest in the active batch. Use only Valheim's native `Container.StackAll()`
-  flow for the ownership request and response. Do not record whether **Place
-  stacks**, **Hold to stack**, or Put Away started the transfer. Any
-  `Inventory.StackAll()` call for the current chest can complete the Put Away
-  step while protected-item filtering is active.
-- Put Away must use Valheim's normal inventory persistence and interruption
-  behavior. Do not add forced character saves, transfer journals, transaction
-  receipts, automatic retries, or custom recovery.
-- Add custom persistent world objects or custom item data only when the product
-  design explicitly requires them.
-- Build the Valheim-styled Benheim menu with Unity UI and Valheim's loaded UI
-  templates. Keep its controls aligned with the owning feature `PRODUCT.md`.
+  stacks** and **Hold to stack** actions. Put Away filters the same protected
+  items before its owner-routed reservation. All three actions must keep
+  manually pocketed, equipped, and hotbar items protected. Manual item moves
+  and **Take all** remain unchanged.
+- Defer custom persistent world objects until a specific feature needs them.
+  That feature design must cover their effects on the world, recovery,
+  migration, and removal. Add custom item data only when the product design
+  requires it and removal cannot corrupt a character.
+- Build the Valheim-styled Benheim menu with Unity UI and loaded native
+  templates. Before every client version bump or package build, compare its
+  catalog with owning `PRODUCT.md` files; update and organize every new or
+  changed player-facing control or feature.
 - Bump the visible plugin version when installing a user-testable behavior
   change so testers can verify the loaded DLL after relaunch.
-- Valheim does not hot-reload the plugin DLL. After installation, fully quit and
-  relaunch the BepInEx-enabled game.
+- Valheim does not hot-reload the plugin DLL. After installation, fully quit and relaunch the BepInEx-enabled game.
 
 ## Documentation map
 
 - `README.md` is the public entrypoint.
 - `PRODUCT.md` owns the overall server and mod product promise.
-- `MIGRATION-1.0.md` temporarily owns the 1.0 cutover and mod-recovery
-  process.
+- `MIGRATION-1.0.md` temporarily owns the 1.0 cutover and mod-recovery process.
 - `AGENT_SETUP.md` is for an AI agent helping a human set up a server.
 - `AGENTS.md` owns agent behavior and points here for local workflow.

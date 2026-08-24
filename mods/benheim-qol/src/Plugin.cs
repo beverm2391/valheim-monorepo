@@ -1,11 +1,16 @@
 using System;
 using BepInEx;
 using BepInEx.Logging;
+using BenheimQoL.CombatFeedback;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.InventoryFeature;
 using BenheimQoL.Farming;
+using BenheimQoL.EnemyTiers;
 using BenheimQoL.Repair;
 using BenheimQoL.Shortcuts;
+using BenheimQoL.PlayerCombat;
+using BenheimQoL.KillAttribution;
+using BenheimQoL.ShipSprint;
 using HarmonyLib;
 using UnityEngine;
 
@@ -16,7 +21,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.52";
+    public const string PluginVersion = "0.1.70";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -26,11 +31,23 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Log = Logger;
+        Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
+        PlayerCombatRuntime.BeginSession();
+        DiagnosticsSharingSettings.Initialize(Config);
+        RemoteDiagnostics.Begin(Paths.ConfigPath);
+        DiagnosticsSharingSettings.ApplyLegacyPrivateTestDefault(
+            RemoteDiagnostics.IsConfigured);
+        BenheimTestCommandClient.InitializeConsole();
+        BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();
         try
         {
             harmony = new Harmony(PluginGuid);
             harmony.PatchAll();
+            if (ObjectDB.instance != null)
+            {
+                PlayerCombatRuntime.RegisterNativeEffects(ObjectDB.instance);
+            }
         }
         catch (Exception ex)
         {
@@ -58,6 +75,8 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         HealthReporting.UpdateCriticalMessage();
+        KillAttributionClient.Update();
+        RemoteDiagnostics.Update();
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
         if (!HealthReporting.GameplayActionsEnabled)
@@ -65,18 +84,28 @@ public sealed class Plugin : BaseUnityPlugin
             return;
         }
 
+        NativeConsoleShortcut.Update();
         TopLeftFeedbackHud.Update();
+        BenheimTestCommandClient.Update();
+        WildernessDangerPresentation.Update();
         QuickStack.Update();
         QuickStackHotkey.Update();
     }
 
     private void OnDestroy()
     {
+        ShipSprintRuntime.Reset("plugin_teardown");
         PlantingPreview.DestroyGhosts();
+        CombatFeedbackController.Reset();
         TopLeftFeedbackHud.Destroy();
+        WildernessDangerPresentation.Reset();
+        BenheimTestCommandClient.Reset();
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();
+        RemoteDiagnostics.Reset();
+        PlayerCombatRuntime.EndSession();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
+        Diagnostics.EndSession();
         TryRemoveFailedPatches(logFailure: false);
     }
 

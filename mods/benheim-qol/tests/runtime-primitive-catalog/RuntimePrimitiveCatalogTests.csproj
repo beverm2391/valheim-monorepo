@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../../src/Infrastructure/RuntimePrimitiveCatalogRequest.cs" Link="RuntimePrimitiveCatalogRequest.cs" />
+    <Compile Include="../../src/Infrastructure/RuntimePrimitiveCatalogReadiness.cs" Link="RuntimePrimitiveCatalogReadiness.cs" />
+    <Compile Include="../../src/Infrastructure/RuntimePrimitiveCatalogPolicy.cs" Link="RuntimePrimitiveCatalogPolicy.cs" />
+    <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
+    <Compile Include="../../src/Infrastructure/RuntimePrimitiveRecord.cs" Link="RuntimePrimitiveRecord.cs" />
+    <Compile Include="../../src/Infrastructure/RuntimePrimitiveCatalogSelection.cs" Link="RuntimePrimitiveCatalogSelection.cs" />
+    <Compile Include="../../src/Infrastructure/RuntimePrimitiveSnapshotFile.cs" Link="RuntimePrimitiveSnapshotFile.cs" />
+  </ItemGroup>
+</Project>

@@ -11,5 +11,6 @@ mods/**/obj/
 mods/**/dist/
 server-mods/**/bin/
 server-mods/**/obj/
+server-mods/**/dist/
 tests/**/bin/
 tests/**/obj/

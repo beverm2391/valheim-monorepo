@@ -174,6 +174,13 @@ internal static partial class ShortcutOverlay
                 keybindFailure,
                 isCoreFailure: false));
         }
+        if (HealthReporting.KillAttributionDetail is string killAttributionFailure)
+        {
+            warnings.Add(new ShortcutWarning(
+                HealthReporting.KillAttributionOwner,
+                killAttributionFailure,
+                isCoreFailure: false));
+        }
     }
 
     private static string EscapeMarkup(string value)

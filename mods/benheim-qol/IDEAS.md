@@ -32,8 +32,57 @@ development, its behavior and status move into the owning `PRODUCT.md`.
     its original stats, attacks, and practical hit behavior. Spiritually
     essential, technically harder.
 
+## Enemy Variants
+
+- **Sniper:** a starred ranged enemy with much greater perception and attack
+  range. Candidates include Skeleton Archers and Draugr Archers. A higher tier
+  could also use a creature-specific native projectile, such as a fire or
+  poison arrow. The creature, tier, projectile, accuracy, cadence, telegraph,
+  and counterplay remain open pending prefab research and gameplay testing.
+
+## Building and Travel
+
+- **Larger station build coverage:** increase the workbench and stonecutter
+  build radii so a large base needs fewer overlapping stations. The radius,
+  whether the two stations should match, and whether any other station coverage
+  belongs in the same change remain open.
+- **Portal-network management:** solve the shared world's roughly fifty-portal
+  sprawl without committing yet to a portal hub, destination selector, better
+  tagging/search, or another interaction. The goal is fewer physical portal
+  pairs and less destination-management friction while keeping shared travel
+  understandable to every player.
+
+## Crow
+
+- **Crow:** a private server-side fourth friend for Ben, Johnny, and Ozi. A
+  native-style crow appears and disappears near the group, hangs around indoors,
+  follows travel through portals or sailing without becoming easy to lose, and
+  occasionally roasts the players. One Crow message appears both above the bird
+  and in global chat, like player speech.
+- Crow is event-driven rather than agentic. The server selects a small subset of
+  typed gameplay events, combines them with recent global chat and Crow messages,
+  player-name mappings, and Ben-authored player lore and examples, then asks an
+  OpenRouter model for exactly one optional `{speak, text}` response. Crow does
+  not query logs or invent an objective for itself.
+- Early event candidates include repeated deaths to the same enemy, escape from
+  critical health, one survivor after everyone else dies, meaningful boss or
+  miniboss kills, raids, sailing, and particularly funny enemy encounters. The
+  model decides whether the supplied event creates a specific enough angle to
+  speak; silence is a valid result.
+- The physical crow lifecycle and the event-to-model-to-chat path are separate
+  experiments. Later buffs or gameplay effects can build on a proven companion,
+  but the first version is commentary only.
+
 ## World Fuckery
 
+- **Berserk Ooze Bomb:** a heavy bomb with a short throw range that temporarily
+  makes every affected creature ignore its normal faction and fight any nearby
+  character, including the player and one another. It should turn a village or
+  crowded fight into dangerous monster civil war, not safe mind control. Its
+  cost, radius, duration, and eligible targets remain open. If the bomb proves
+  fun, a later sling or launcher can extend its range while reusing the same
+  bomb payload. Technical faction evidence is in
+  [Creature Factions](src/CreatureMechanics/FACTIONS.md).
 - **Diddy Party:** a raid announced as “Diddy party!” containing exactly one
   huge, glossy tar-dark greydwarf brute. It runs terrifyingly fast, strongly
   resists stagger, and has enough health to create a chase without one-shotting

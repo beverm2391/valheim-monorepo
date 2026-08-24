@@ -24,7 +24,7 @@ The server and optional mod product direction is tracked in
 - Scripts to upload an existing legacy world save or restore a complete backup.
 - Local nightly backups on the VM.
 - Optional Cloudflare R2 uploads for off-box backups.
-- Optional pinned server mods with a vanilla-client compatibility requirement.
+- Optional pinned server and client mods with explicit player requirements.
 - No bundled game files, world saves, passwords, or cloud credentials.
 
 ## How It Works
@@ -320,12 +320,14 @@ session are worse than a manual update before game night.
 
 ## Server Mods
 
-The server can run a small, pinned mod stack. Server mods must remain
-compatible with vanilla clients. The repo-managed stack is:
+The server can run a small, pinned mod stack. Each mod states which client and
+server components it requires. The repo-managed stack is:
 
 - BepInEx, the plugin loader.
 - Benheim Eternal Fire, a first-party server plugin that makes ordinary fires,
   torches, hearths, and braziers never require manual refueling.
+- Benheim Test Commands, a first-party server plugin that exposes only the
+  selected native-admin gameplay-test commands documented by that plugin.
 
 Benheim Eternal Fire updates Valheim's native world-object fuel field. Vanilla
 clients receive the normal synchronized state and do not need the plugin. It
@@ -337,14 +339,9 @@ one complete `m_secPerFuel` interval; that interval is the synchronization
 margin. The allowlist excludes cooking stations, smelters, blast furnaces, and
 eitr refineries.
 
-The pinned plugin binary is built from the source in this repo. Maintainers can
-rebuild it against their current Valheim installation with:
-
-```bash
-server-mods/benheim-eternal-fire/scripts/build.sh
-```
-
-Install or refresh the pinned stack:
+The pinned plugin binaries are built from source in this repo. The installer
+builds both approved plugins against the current Valheim installation before it
+stages them.
 
 ```bash
 scripts/install-server-mods.sh
@@ -352,11 +349,12 @@ scripts/install-server-mods.sh
 
 The installer verifies BepInEx and plugin checksums, stages every file before
 downtime, stops Valheim, takes a stopped-server backup, uploads it when R2 is
-configured, installs the files, and starts the modded launch path. Success
-requires both ordinary server readiness and the exact Benheim Eternal Fire load
-message from that start. A failed install switches back to vanilla and verifies
-that the recovered server reaches readiness. The installer also removes the
-retired Jotunn and third-party Eternal Fire files.
+configured, replaces the BepInEx plugin directory with exactly the approved
+stack, and starts the modded launch path. Success
+requires the configured world, ordinary server readiness, and both exact plugin
+load messages from that start. A failed install restores the previous stack or
+switches back to vanilla, then verifies that recovery reaches readiness. The
+installer also removes the retired Jotunn and third-party Eternal Fire files.
 
 Bypass BepInEx and restart immediately on the vanilla launch path:
 

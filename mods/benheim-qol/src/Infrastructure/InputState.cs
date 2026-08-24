@@ -34,6 +34,16 @@ internal static class InputState
             || ZInput.GetKey(KeyCode.RightAlt);
     }
 
+    internal static bool IsNativeRunHeld()
+    {
+        if (IsTextEntryActive())
+        {
+            return false;
+        }
+
+        return ZInput.GetButton("Run") || ZInput.GetButton("JoyRun");
+    }
+
     internal static bool IsKeyDown(KeyCode key)
     {
         if (IsTextEntryActive())

@@ -5,26 +5,28 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static class QuickStackPatches
 {
-    [HarmonyPatch(typeof(Container), "RPC_StackResponse")]
-    private static class StackResponsePatch
+    [HarmonyPatch(typeof(Container), "RPC_OpenRespons")]
+    private static class OpenResponsePatch
     {
-        private static bool Prefix(Container __instance, bool granted)
+        private static void Postfix(Container __instance, bool granted)
         {
-            if (QuickStack.TryHandleTimedOutResponse(__instance, granted))
+            if (granted)
             {
-                return false;
+                // Capture exactly the cached inventory that InventoryGui.Show just
+                // presented. Waiting for CheckForChanges would hide a stale first
+                // open, which is the cross-client regression this probe must expose.
+                QuickStackDiagnostics.ContainerOpened(__instance);
             }
-
-            return granted || !QuickStack.TryHandleNativeDenial(__instance);
         }
     }
 
     [HarmonyPatch(typeof(Inventory), nameof(Inventory.StackAll), new[] { typeof(Inventory), typeof(bool) })]
     private static class BulkStackPatch
     {
-        private static void Prefix(Inventory __instance, Inventory fromInventory, out QuickStackBulkScope? __state)
+        private static bool Prefix(Inventory __instance, Inventory fromInventory, out QuickStackBulkScope? __state)
         {
             __state = QuickStack.BeginBulkStack(__instance, fromInventory);
+            return QuickStack.ShouldRunBulkStack(__state);
         }
 
         private static void Postfix(QuickStackBulkScope? __state) => QuickStack.CompleteBulkStack(__state);

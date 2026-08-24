@@ -14,8 +14,9 @@ successful perfect defenses, and shows decay timing on Valheim's meter.
 - Every positive adrenaline grant is doubled. This includes ordinary hits,
   perfect parries and dodges, staggering an enemy, and Guardian Power.
 - Negative adrenaline changes are not doubled.
-- Valheim still applies its normal adrenaline rate, current-fill curve, status
-  modifiers, meter cap, and full-meter behavior once.
+- Valheim still applies its normal adrenaline rules once. These include its
+  rate, how the current meter fill affects each grant, status modifiers, meter
+  cap, and full-meter behavior.
 - The normal 10-second delay and subsequent decay remain unchanged.
 - Perfect-parry and perfect-dodge feedback must show the amount the doubled
   native grant actually adds to the meter.
@@ -24,4 +25,18 @@ successful perfect defenses, and shows decay timing on Valheim's meter.
 
 ## In Development
 
-No adrenaline changes are currently in development.
+Doubling every positive adrenaline grant is a proven baseline, not the intended
+final adrenaline economy. The next tuning pass will combine three parts:
+
+- A more conservative baseline for ordinary adrenaline gains that still lets
+  adrenaline matter during normal combat.
+- Larger rewards for skilled actions than for routine attacks.
+- Additional rewards when the player succeeds while taking a meaningful risk.
+
+The [Player Combat product](../PlayerCombat/PRODUCT.md) owns which skilled and
+risky actions receive those rewards. It also owns earned combat states, which
+are separate from the adrenaline meter.
+
+The redesign should tune Valheim's existing adrenaline system instead of
+creating a separate combat resource. Native meter capacity, spending,
+current-fill behavior, status modifiers, and decay remain the starting point.

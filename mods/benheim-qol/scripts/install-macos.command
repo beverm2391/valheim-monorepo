@@ -12,7 +12,12 @@ plugin="$plugin_dir/BenheimQoL.dll"
 dll="${BENHEIM_QOL_DLL:-$script_dir/BenheimQoL.dll}"
 launcher_source="${BENHEIM_QOL_LAUNCHER_SOURCE:-$script_dir/macos-launcher.sh}"
 version_source="${BENHEIM_QOL_VERSION_FILE:-$script_dir/VERSION}"
+private_diagnostics_source="${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE:-$script_dir/PRIVATE-TEST-DIAGNOSTICS.cfg}"
+private_diagnostics="$game_dir/BepInEx/config/BenheimPrivateDiagnostics.cfg"
 bepinex_url="${BENHEIM_QOL_BEPINEX_URL:-https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip}"
+if [[ -n "${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE:-}" ]]; then
+  private_diagnostics_source="$BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE"
+fi
 bepinex_sha256="${BENHEIM_QOL_BEPINEX_SHA256:-5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716}"
 tmp_dir="$(mktemp -d)"
 staged_app=""
@@ -27,6 +32,9 @@ installed_version="$plugin_dir/VERSION"
 version_backup="$tmp_dir/VERSION.previous"
 version_replaced=0
 version_had_previous=0
+private_diagnostics_backup="$tmp_dir/BenheimPrivateDiagnostics.previous.cfg"
+private_diagnostics_touched=0
+private_diagnostics_had_previous=0
 
 cleanup() {
   status=$?
@@ -56,6 +64,13 @@ cleanup() {
         install -m 0644 "$version_backup" "$installed_version"
       else
         rm -f "$installed_version"
+      fi
+    fi
+    if [[ "$private_diagnostics_touched" == "1" ]]; then
+      if [[ "$private_diagnostics_had_previous" == "1" ]]; then
+        install -m 0600 "$private_diagnostics_backup" "$private_diagnostics"
+      else
+        rm -f "$private_diagnostics"
       fi
     fi
   fi
@@ -170,6 +185,10 @@ if [[ -f "$installed_version" ]]; then
   cp "$installed_version" "$version_backup"
   version_had_previous=1
 fi
+if [[ -f "$private_diagnostics" ]]; then
+  cp "$private_diagnostics" "$private_diagnostics_backup"
+  private_diagnostics_had_previous=1
+fi
 plugin_tmp="$plugin_dir/.BenheimQoL.dll.$$"
 install -m 0644 "$dll" "$plugin_tmp"
 mv -f "$plugin_tmp" "$plugin"
@@ -178,6 +197,16 @@ version_tmp="$plugin_dir/.VERSION.$$"
 install -m 0644 "$version_source" "$version_tmp"
 mv -f "$version_tmp" "$installed_version"
 version_replaced=1
+
+install -d "$game_dir/BepInEx/config"
+private_diagnostics_touched=1
+if [[ -f "$private_diagnostics_source" ]]; then
+  diagnostics_tmp="$game_dir/BepInEx/config/.BenheimPrivateDiagnostics.cfg.$$"
+  install -m 0600 "$private_diagnostics_source" "$diagnostics_tmp"
+  mv -f "$diagnostics_tmp" "$private_diagnostics"
+else
+  rm -f "$private_diagnostics"
+fi
 
 # BenheimQoL owns farming now. Leaving the old plugin active would execute two
 # Shift-interact and planting handlers against the same player action.
@@ -285,3 +314,6 @@ echo "Installed Benheim and:"
 echo "  $app"
 echo
 echo "Open Benheim to play. Rerun the installer to update Benheim."
+if [[ -f "$private_diagnostics_source" ]]; then
+  echo "This PRIVATE TEST install includes automatic typed diagnostic sharing."
+fi

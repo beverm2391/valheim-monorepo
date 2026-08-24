@@ -36,6 +36,7 @@ function Archive-PreviousSession {
     param([Parameter(Mandatory = $true)][string]$GameDir)
 
     $bepInExLog = Join-Path $GameDir 'BepInEx\LogOutput.log'
+    $structuredEventFile = Join-Path $GameDir 'BepInEx\BenheimEvents.ndjson'
     if (-not (Test-Path -LiteralPath $bepInExLog -PathType Leaf)) {
         return
     }
@@ -68,18 +69,39 @@ function Archive-PreviousSession {
         # Copy before BepInEx starts so the prior complete log survives either
         # a normal shutdown or a crash that left LogOutput.log behind.
         Copy-Item -LiteralPath $bepInExLog -Destination $archivePath
+        $eventArchivePath = [IO.Path]::ChangeExtension($archivePath, '.ndjson')
+        if (Test-Path -LiteralPath $structuredEventFile -PathType Leaf) {
+            Copy-Item -LiteralPath $structuredEventFile -Destination $eventArchivePath
+        }
+        else {
+            New-Item -ItemType File -Path $eventArchivePath | Out-Null
+        }
 
         $archives = @(
             Get-ChildItem -LiteralPath $archiveDir -Filter 'Benheim-session-*.log' -File |
                 Sort-Object -Property Name -Descending
         )
         if ($archives.Count -gt 10) {
-            $archives | Select-Object -Skip 10 | Remove-Item -Force
+            foreach ($oldArchive in @($archives | Select-Object -Skip 10)) {
+                Remove-Item -LiteralPath $oldArchive.FullName -Force
+                $oldEventArchive = [IO.Path]::ChangeExtension($oldArchive.FullName, '.ndjson')
+                Remove-Item -LiteralPath $oldEventArchive -Force -ErrorAction SilentlyContinue
+            }
+        }
+        foreach ($eventArchive in @(
+            Get-ChildItem -LiteralPath $archiveDir -Filter 'Benheim-session-*.ndjson' -File
+        )) {
+            $textArchive = [IO.Path]::ChangeExtension($eventArchive.FullName, '.log')
+            if (-not (Test-Path -LiteralPath $textArchive -PathType Leaf)) {
+                Remove-Item -LiteralPath $eventArchive.FullName -Force
+            }
         }
     }
     catch {
         if ($archivePath -and (Test-Path -LiteralPath $archivePath)) {
             Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
+            $eventArchivePath = [IO.Path]::ChangeExtension($archivePath, '.ndjson')
+            Remove-Item -LiteralPath $eventArchivePath -Force -ErrorAction SilentlyContinue
         }
         # A full or unavailable archive directory must not unexpectedly block
         # the modded launch. The warning remains in launch.log when possible.

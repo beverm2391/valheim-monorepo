@@ -10,17 +10,24 @@ internal static class HealthReporting
     internal const string CriticalPlayerMessage =
         "Benheim disabled: a required Valheim hook failed. Press Left Shift+B for details.";
     internal const string KeybindInspectionOwner = "Shortcuts";
+    internal const string KillAttributionOwner = "BERSERKER";
+    internal const string KillAttributionPlayerMessage =
+        "BERSERKER unavailable: Benheim Server Support is missing or incompatible. Press Left Shift+B for details.";
 
     private static bool coreGameplayDisabled;
     private static bool keybindInspectionFailed;
     private static bool criticalMessageShown;
     private static bool criticalMessageFailureLogged;
+    private static bool killAttributionMessageShown;
+    private static bool killAttributionMessageFailureLogged;
     private static string? coreFailureDetail;
     private static string? keybindInspectionDetail;
+    private static string? killAttributionDetail;
 
     internal static bool GameplayActionsEnabled => !coreGameplayDisabled;
     internal static string? CoreFailureDetail => coreFailureDetail;
     internal static string? KeybindInspectionDetail => keybindInspectionDetail;
+    internal static string? KillAttributionDetail => killAttributionDetail;
 
     internal static void BeginSession()
     {
@@ -28,8 +35,11 @@ internal static class HealthReporting
         keybindInspectionFailed = false;
         criticalMessageShown = false;
         criticalMessageFailureLogged = false;
+        killAttributionMessageShown = false;
+        killAttributionMessageFailureLogged = false;
         coreFailureDetail = null;
         keybindInspectionDetail = null;
+        killAttributionDetail = null;
     }
 
     internal static void DisableCore(Exception exception)
@@ -66,26 +76,78 @@ internal static class HealthReporting
             $"owner={KeybindInspectionOwner} key=shortcuts.keybind_inspection detail={Diagnostics.Flatten(keybindInspectionDetail)}");
     }
 
+    internal static void ReportKillAttributionUnavailable(string detail)
+    {
+        string message =
+            $"Benheim Server Support is required for BERSERKER/SLAUGHTERHOUSE ({detail}).";
+        if (killAttributionDetail == message)
+        {
+            return;
+        }
+
+        killAttributionDetail = message;
+        Plugin.Log.LogWarning($"Benheim warning [{KillAttributionOwner}]: {message}");
+        Diagnostics.Event(
+            "Health",
+            "warning",
+            $"owner={KillAttributionOwner} detail={Diagnostics.Flatten(message)}");
+    }
+
+    internal static void ReportKillAttributionAvailable()
+    {
+        killAttributionDetail = null;
+    }
+
     internal static void UpdateCriticalMessage()
     {
-        if (GameplayActionsEnabled
-            || Player.m_localPlayer == null
-            || criticalMessageShown)
+        if (Player.m_localPlayer == null)
+        {
+            return;
+        }
+
+        if (!GameplayActionsEnabled)
+        {
+            if (criticalMessageShown)
+            {
+                return;
+            }
+
+            try
+            {
+                Player.m_localPlayer.Message(MessageHud.MessageType.Center, CriticalPlayerMessage);
+                criticalMessageShown = true;
+            }
+            catch (Exception ex)
+            {
+                if (!criticalMessageFailureLogged)
+                {
+                    criticalMessageFailureLogged = true;
+                    Plugin.Log.LogWarning($"Benheim could not show its startup warning yet: {ex.Message}");
+                }
+            }
+
+            return;
+        }
+
+        if (killAttributionDetail == null || killAttributionMessageShown)
         {
             return;
         }
 
         try
         {
-            Player.m_localPlayer.Message(MessageHud.MessageType.Center, CriticalPlayerMessage);
-            criticalMessageShown = true;
+            Player.m_localPlayer.Message(
+                MessageHud.MessageType.Center,
+                KillAttributionPlayerMessage);
+            killAttributionMessageShown = true;
         }
         catch (Exception ex)
         {
-            if (!criticalMessageFailureLogged)
+            if (!killAttributionMessageFailureLogged)
             {
-                criticalMessageFailureLogged = true;
-                Plugin.Log.LogWarning($"Benheim could not show its startup warning yet: {ex.Message}");
+                killAttributionMessageFailureLogged = true;
+                Plugin.Log.LogWarning(
+                    $"Benheim could not show its BERSERKER compatibility warning yet: {ex.Message}");
             }
         }
     }

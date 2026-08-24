@@ -1,5 +1,6 @@
 using System;
 using BenheimQoL.Infrastructure;
+using BenheimQoL.PlayerCombat;
 using HarmonyLib;
 
 namespace BenheimQoL.Adrenaline;
@@ -7,14 +8,14 @@ namespace BenheimQoL.Adrenaline;
 [HarmonyPatch(typeof(Humanoid), "BlockAttack")]
 internal static class PerfectParryContextPatch
 {
-    private static void Prefix(Humanoid __instance, Character attacker)
+    private static void Prefix(Humanoid __instance, HitData hit, Character attacker)
     {
-        AdrenalineFeedback.BeginPerfectParry(__instance, attacker);
+        PerfectDefenseObservation.BeginParry(__instance, hit, attacker);
     }
 
     private static Exception? Finalizer(Exception? __exception)
     {
-        AdrenalineFeedback.End();
+        PerfectDefenseObservation.End();
         return __exception;
     }
 }
@@ -24,12 +25,12 @@ internal static class PerfectDodgeContextPatch
 {
     private static void Prefix(Player __instance)
     {
-        AdrenalineFeedback.BeginPerfectDodge(__instance);
+        PerfectDefenseObservation.BeginDodge(__instance);
     }
 
     private static Exception? Finalizer(Exception? __exception)
     {
-        AdrenalineFeedback.End();
+        PerfectDefenseObservation.End();
         return __exception;
     }
 }
@@ -39,6 +40,18 @@ internal static class AdrenalineAwardFeedbackPatch
 {
     private static void Prefix(Player __instance, ref float v, out AdrenalineFeedback.Award? __state)
     {
+        // The outer parry/dodge Prefix only identifies a candidate. Reaching
+        // Valheim's nested adrenaline callback confirms the perfect defense,
+        // even when the configured native award is zero.
+        PerfectDefenseConfirmation confirmation =
+            PerfectDefenseObservation.ConfirmFromNativeAdrenaline(__instance);
+        if (confirmation == PerfectDefenseConfirmation.DuplicateNativeOutcome)
+        {
+            v = 0f;
+            __state = null;
+            return;
+        }
+
         if (v > 0f)
         {
             float requested = v;
@@ -59,9 +72,13 @@ internal static class AdrenalineAwardFeedbackPatch
         AdrenalineFeedback.EndModifiedAmountCapture(__state);
     }
 
-    private static Exception? Finalizer(Exception? __exception, AdrenalineFeedback.Award? __state)
+    private static Exception? Finalizer(
+        Player __instance,
+        Exception? __exception,
+        AdrenalineFeedback.Award? __state)
     {
         AdrenalineFeedback.EndModifiedAmountCapture(__state);
+        PlayerCombatRuntime.CompletePerfectDefensePresentation(__instance, adrenalineLine: null);
         return __exception;
     }
 }

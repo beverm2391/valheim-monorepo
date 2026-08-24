@@ -1,4 +1,5 @@
 using System;
+using BenheimQoL.CombatFeedback;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
 
@@ -140,6 +141,8 @@ internal static class HeadshotLogic
                     "text_skipped",
                     $"reason={Diagnostics.Flatten(exception.Message)}");
             }
+
+            CombatFeedbackController.RequestShake(CombatFeedbackTrigger.Headshot);
         }
 
         // Valheim already emits this same native critical effect for damage to

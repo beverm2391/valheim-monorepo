@@ -42,12 +42,11 @@ while leaving Valheim's native damage ownership and acceptance rules in charge.
   keeps the old fallback. This automated proof is not gameplay proof, so the
   exact-volume behavior still needs a focused gameplay retest.
 
-## Open Product Decision
+## Future Ideas
 
-- `SNIPED` kill feedback and headshot-specific adrenaline rewards remain
-  deliberately omitted. Decide after the first successful gameplay test
-  whether they are valuable enough to justify a custom multiplayer result
-  protocol and transient shot lifecycle. Valheim does not return accepted
-  damage, authoritative death, full-health state, or the shooter's actual meter
-  delta through its native projectile path, so this slice does not claim those
-  facts.
+- Headshot-specific adrenaline rewards remain omitted. After focused gameplay
+  testing, Ben will decide whether they improve archery enough to justify
+  further work.
+- [Combat Feedback](../CombatFeedback/PRODUCT.md) owns the deferred
+  confirmed-kill feedback, including `SNIPED` punctuation and any required
+  multiplayer confirmation protocol.

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
+    <Compile Include="../../src/Infrastructure/DiagnosticEventRouter.cs" Link="DiagnosticEventRouter.cs" />
+    <Compile Include="../../src/Infrastructure/Diagnostics.cs" Link="Diagnostics.cs" />
+  </ItemGroup>
+</Project>

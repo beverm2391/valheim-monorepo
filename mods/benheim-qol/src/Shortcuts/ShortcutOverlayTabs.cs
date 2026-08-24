@@ -35,6 +35,7 @@ internal static partial class ShortcutOverlay
 
         AddTab(buttons, templates, ShortcutTab.Controls, "Controls", ControlsAccent);
         AddTab(buttons, templates, ShortcutTab.Features, "Features", FeaturesAccent);
+        AddTab(buttons, templates, ShortcutTab.Config, "Benheim Config", ConfigAccent);
 
         RectTransform divider = CreateRectObject("Divider", parent);
         divider.anchorMin = new Vector2(0f, 1f);
@@ -89,6 +90,10 @@ internal static partial class ShortcutOverlay
             AddSection(features.transform as RectTransform, section, templates);
         }
         Pages.Add(ShortcutTab.Features, features);
+
+        GameObject config = CreatePage("ConfigPage", parent);
+        BuildFxConfig((RectTransform)config.transform, templates);
+        Pages.Add(ShortcutTab.Config, config);
 
         SelectTab(activeTab, force: true);
     }
@@ -217,6 +222,7 @@ internal static partial class ShortcutOverlay
     {
         Tabs.Clear();
         Pages.Clear();
+        ResetFxConfigState();
         controlsWarnings = null;
         activeTab = ShortcutTab.Controls;
     }
@@ -225,6 +231,7 @@ internal static partial class ShortcutOverlay
     {
         Controls,
         Features,
+        Config,
     }
 
     private readonly struct TabState

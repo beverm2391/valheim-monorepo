@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/EnemyTiers/WildernessStarChance.cs" Link="WildernessStarChance.cs" />
+    <Compile Include="../../src/EnemyTiers/WildernessDanger.cs" Link="WildernessDanger.cs" />
+    <Compile Include="../../src/EnemyTiers/WildernessPlayerArea.cs" Link="WildernessPlayerArea.cs" />
+    <Compile Include="../../src/EnemyTiers/WildernessDangerTransition.cs" Link="WildernessDangerTransition.cs" />
+    <Compile Include="../../src/EnemyTiers/WildernessMapLabelLayout.cs" Link="WildernessMapLabelLayout.cs" />
+    <Compile Include="../../src/EnemyTiers/BiomeStarChanceTuning.cs" Link="BiomeStarChanceTuning.cs" />
+    <Compile Include="../../src/EnemyTiers/BoarTierPhysicalProfile.cs" Link="BoarTierPhysicalProfile.cs" />
+    <Compile Include="../../src/EnemyTiers/BoarTierObservationState.cs" Link="BoarTierObservationState.cs" />
+    <Compile Include="../../src/EnemyTiers/BoarTestCommandProtocol.cs" Link="BoarTestCommandProtocol.cs" />
+  </ItemGroup>
+</Project>

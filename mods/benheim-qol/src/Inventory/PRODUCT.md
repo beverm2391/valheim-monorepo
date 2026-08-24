@@ -2,6 +2,15 @@
 
 The Inventory module makes routine item movement faster.
 
+## Durability Decision
+
+Put Away prioritizes item integrity over implementation size. Multiple simpler
+multiplayer implementations produced live stale writes and item loss. Benheim
+may use a substantial owner-authoritative protocol when that complexity is
+necessary to prevent loss, duplication, or invisible writes. Do not remove
+protocol machinery only to reduce code size. A simplification must preserve
+the same durability contract and pass the stale-payload regression proof.
+
 ## Current Behavior
 
 - You can immediately enter a number in a split-stack dialog.
@@ -41,8 +50,34 @@ The Inventory module makes routine item movement faster.
   protection applies and show the same manual `P` again when it no longer
   applies.
 - Hold `Left Alt` while clicking an item to toggle manual pocketing.
-- Ben confirmed the `0.1.49` solo Put Away behavior except for the dedicated
-  receipt placement. The focused multiplayer gate remains unproven.
+- Before Put Away scans chests, Benheim Server Support grants one global lease
+  to one connected player. Another simultaneous Put Away stops before any
+  chest or inventory mutation and says `Put Away busy — retry in a few
+  seconds`.
+- Put Away routes each deposit to the current chest owner through the
+  [owner-authoritative
+  protocol](../../../../shared/benheim-inventory-protocol/PROTOCOL.md). The
+  protocol owns the transaction mechanics and stale-payload controls.
+- Every connected player sees the same completed chest state, including after
+  chest ownership changes.
+- Each accepted item moves once. Rejected items return to the requester's
+  inventory. If the inventory cannot accept a rejected remainder, Put Away
+  drops that exact remainder nearby and shows `Put Away refund dropped nearby.
+  Pick it up.`
+- Put Away reports success after the requester settles every accepted,
+  refunded, or emergency-dropped item from the correlated owner result. Its
+  one-way receipt cleanup does not retain the completed batch or global lease.
+  Put Away does not force or gate on a character save, and Valheim's native
+  character and world save lifecycle remains unchanged.
+- Put Away emits complete typed transaction evidence. Diagnostic failures
+  cannot block settlement, result delivery, batch completion, or lease
+  release.
+- Ben's three-player `0.1.66` review accepted the owner-authoritative path. The
+  review covered rapid repeated use, both assignments of requester and current
+  chest owner, simultaneous contention followed by immediate reuse, and exact
+  accepted/refunded settlement. Players saw no item loss, duplication, stuck
+  batch or global lease, or chest-state disagreement.
+- Crash or reconnect recovery during an in-flight reservation is unsupported.
 
 ## In Development
 
@@ -53,47 +88,24 @@ The Inventory module makes routine item movement faster.
 - `R` keeps Valheim's normal Hide weapons behavior unless slots `1` and `2`
   can form an equipable paired loadout and slot `3` can form an equipable
   single-item loadout.
-- Put Away can cause a brief frame hitch when it scans many nearby chests and
-  matches their contents against the player's inventory.
+- Live `0.1.67` timing showed that owner routing and handoff dominated
+  multi-chest Put Away latency. After each existing cohort validation, Put Away
+  can start another owner-authoritative chest deposit before earlier deposits
+  settle when their item names do not overlap. If a later eligible chest
+  contains the same item name, Put Away waits for exact settlement and scans
+  that chest after any refund returns. Results for independent deposits can
+  settle in any order. A validation failure stops new reservations. The batch
+  becomes terminal and Put Away releases the global lease only after scheduling
+  stops and every reserved deposit settles. This scheduler still needs live
+  multiplayer latency and durability proof.
 - Put Away's grouped receipt keeps every destination line and every item line.
   Its placement follows the shared top-left feedback lane defined in the root
   product document and still needs gameplay proof.
 - Pocket and unpocket confirmations and Put Away's already-in-progress message
   use that same lane. They never enter Valheim's native top-left status-message
   feed.
-- Put Away asks the current owner for access to each chest through Valheim's
-  Stack All action. It moves items only after the owner grants access.
-- During normal gameplay, each completed transfer must move each accepted item
-  once and leave each rejected remainder in the player's inventory. Every
-  connected player must see the same chest state, including after chest
-  ownership changes.
-- Put Away keeps native inventory persistence and interruption behavior. It
-  does not force a character save or add a transfer journal, transaction
-  receipt, automatic retry, or crash recovery.
-- If a chest does not answer Put Away within 5 seconds, Put Away cancels the
-  batch and clears the in-progress state. It does not retry the chest or
-  continue to another chest in that batch. It logs the timeout and tells the
-  player to try again in the shared top-left lane.
-- A timed-out chest stays unavailable to Put Away until one native Stack All
-  response for that chest arrives. Benheim discards exactly that one response.
-  Later Put Away attempts can use other chests. Put Away can use the timed-out
-  chest again after Benheim discards the response.
-- Valheim does not identify Stack All responses by request. If the timed-out
-  response never arrives, the next manual Stack All response for that chest can
-  be the response that Benheim discards. This releases the chest for later
-  attempts without moving items or creating a Put Away receipt.
-- Automated lifecycle checks prove:
-  - timeout cancellation;
-  - late-response discard;
-  - cleanup after a normal grant or denial; and
-  - later use of other chests.
-  The recovery feedback and gameplay flow still need player proof.
-- The transfer must work with either player as the requester or current chest
-  owner, and a completed transfer must remain visible after ownership changes.
 - Valheim's **Place stacks** button and **Hold to stack** action must keep
   manually pocketed, equipped, and hotbar items in the player's inventory.
   Manual item moves and **Take all** must remain unchanged.
 - For an active Put Away batch, the displayed result must include only items
   moved into the chest currently being processed.
-- Put Away should continue to work while a player without Benheim is online.
-  This is useful compatibility evidence, but it is not a release gate.

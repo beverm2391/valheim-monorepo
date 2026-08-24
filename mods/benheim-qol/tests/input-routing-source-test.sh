@@ -15,6 +15,7 @@ expected_raw_input_files="$(printf '%s\n' \
   'src/Infrastructure/InputState.cs' \
   'src/Inventory/LoadoutSwap.cs' \
   'src/Inventory/SplitStackPatches.cs' \
+  'src/Shortcuts/NativeConsoleShortcut.cs' \
   'src/Shortcuts/ShortcutOverlay.cs')"
 
 if [[ "$actual_raw_input_files" != "$expected_raw_input_files" ]]; then
@@ -24,7 +25,8 @@ if [[ "$actual_raw_input_files" != "$expected_raw_input_files" ]]; then
   exit 1
 fi
 
-test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 3
+test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 4
+grep -Fq 'ZInput.GetButton("Run") || ZInput.GetButton("JoyRun")' "$input_state"
 grep -Fq 'InputState.IsTextEntryActive()' "$farming_input"
 grep -Fq 'InputState.IsTextEntryActive()' \
   "$root/src/Inventory/LoadoutSwap.cs"
@@ -35,5 +37,9 @@ grep -Fq 'MenuShortcutDown()' \
   "$root/src/Shortcuts/ShortcutOverlay.cs"
 grep -Fq 'RawKeyDown(KeyCode.B)' \
   "$root/src/Shortcuts/ShortcutOverlay.cs"
+grep -Fq 'This owner needs the raw key-down only so it can record that exact' \
+  "$root/src/Shortcuts/NativeConsoleShortcut.cs"
+grep -Fq 'InputState.IsTextEntryActive()' \
+  "$root/src/Shortcuts/NativeConsoleShortcut.cs"
 
 printf 'text-entry input routing checks passed\n'

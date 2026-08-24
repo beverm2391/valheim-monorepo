@@ -2,11 +2,13 @@ using System;
 using BenheimQoL.InventoryFeature;
 
 var summary = new QuickStackSummary();
-summary.Add(101, "Chest", "4m NE", "Resin", 3);
-summary.Add(202, "Black metal chest", "11m S", "Needle", 2);
-summary.Add(101, "Chest", "4m NE", "Wood", 10);
-summary.Add(101, "Chest", "4m NE", "Resin", 4);
-summary.Add(202, "Black metal chest", "11m S", "Dandelion", 2);
+// The farther chest settles first. Formatting must preserve the original
+// nearest-first scheduling order instead of callback order.
+summary.Add(202, 1, "Black metal chest", "11m S", "Needle", 2);
+summary.Add(101, 0, "Chest", "4m NE", "Resin", 3);
+summary.Add(101, 0, "Chest", "4m NE", "Wood", 10);
+summary.Add(101, 0, "Chest", "4m NE", "Resin", 4);
+summary.Add(202, 1, "Black metal chest", "11m S", "Dandelion", 2);
 
 const string expected =
     "Chest 1 (4m NE): 10x Wood, 7x Resin\n" +

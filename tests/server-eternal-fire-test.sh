@@ -7,7 +7,13 @@ source_file="$root/server-mods/benheim-eternal-fire/src/ZdoFuelPatches.cs"
 supported_file="$root/server-mods/benheim-eternal-fire/src/SupportedFireplaces.cs"
 plugin_source="$root/server-mods/benheim-eternal-fire/src/Plugin.cs"
 plugin="$root/server-mods/benheim-eternal-fire/dist/BenheimEternalFire.dll"
-verifier="$root/server/verify-benheim-eternal-fire"
+test_commands_source="$root/server-mods/benheim-test-commands/src/Plugin.cs"
+test_commands_plugin="$root/server-mods/benheim-test-commands/dist/BenheimTestCommands.dll"
+test_commands_build="$root/server-mods/benheim-test-commands/scripts/build.sh"
+server_support_source="$root/server-mods/benheim-server-support/src/Plugin.cs"
+server_support_plugin="$root/server-mods/benheim-server-support/dist/BenheimServerSupport.dll"
+server_support_build="$root/server-mods/benheim-server-support/scripts/build.sh"
+verifier="$root/server/verify-benheim-server-plugins"
 recovery="$root/server/recover-valheim-vanilla"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -35,6 +41,8 @@ assert_not_contains() {
 
 bash -n "$installer"
 bash -n "$root/server-mods/benheim-eternal-fire/scripts/build.sh"
+bash -n "$test_commands_build"
+bash -n "$server_support_build"
 bash -n "$verifier"
 bash -n "$recovery"
 
@@ -45,9 +53,26 @@ expected_checksum=8f452cc68d839b7a843676c89b479e357c2b932db8f0f02106de5c5cfde451
 actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 [[ "$actual_checksum" == "$expected_checksum" ]] || fail "first-party plugin checksum changed"
 assert_contains "installer pins the first-party plugin checksum" "$expected_checksum" "$installer"
-assert_contains "installer removes the old Jotunn directory" "/BepInEx/plugins/Jotunn" "$installer"
-assert_contains "installer removes the old Eternal Fire directory" "/BepInEx/plugins/EternalFire" "$installer"
-assert_contains "installer removes the obsolete Benheim Inventory directory" "/BepInEx/plugins/BenheimInventory" "$installer"
+test_commands_checksum=27d97b48bb98efa1abb2dd73aaf3b946bb1a06cbcce183563c6154d6dc902a4c
+actual_test_commands_checksum="$(shasum -a 256 "$test_commands_plugin" | awk '{print $1}')"
+[[ "$actual_test_commands_checksum" == "$test_commands_checksum" ]] || fail "test-command plugin checksum changed"
+assert_contains "installer pins the test-command plugin checksum" "$test_commands_checksum" "$installer"
+server_support_checksum=00b64b4b17426b25ca23f4216f53dfad544e763c345abc17aaf32e9ab7746e5e
+actual_server_support_checksum="$(shasum -a 256 "$server_support_plugin" | awk '{print $1}')"
+[[ "$actual_server_support_checksum" == "$server_support_checksum" ]] || fail "server-support plugin checksum changed"
+assert_contains "installer pins the server-support plugin checksum" "$server_support_checksum" "$installer"
+assert_contains "installer builds Eternal Fire before staging" 'server-mods/benheim-eternal-fire/scripts/build.sh' "$installer"
+assert_contains "installer builds Test Commands before staging" 'server-mods/benheim-test-commands/scripts/build.sh' "$installer"
+assert_contains "installer builds Server Support before staging" 'server-mods/benheim-server-support/scripts/build.sh' "$installer"
+assert_contains "Test Commands build produces its staged artifact" 'dist/BenheimTestCommands.dll' "$test_commands_build"
+assert_contains "Server Support build produces its staged artifact" 'dist/BenheimServerSupport.dll' "$server_support_build"
+assert_contains "installer replaces the complete plugin set" 'rm -rf /opt/valheim/server/BepInEx/plugins' "$installer"
+assert_contains "installer owns an Eternal Fire namespace" "/BepInEx/plugins/BenheimEternalFire" "$installer"
+assert_contains "installer owns a Test Commands namespace" "/BepInEx/plugins/BenheimTestCommands" "$installer"
+assert_contains "installer owns a Server Support namespace" "/BepInEx/plugins/BenheimServerSupport" "$installer"
+assert_not_contains "installer must not auto-discover server mods" 'server-mods/*' "$installer"
+assert_not_contains "installer must not add a remote env-file config read" 'source /etc/valheim/server.env' "$installer"
+assert_contains "installer passes the already-loaded world into verification" "printf -v expected_world_arg '%q'" "$installer"
 assert_contains "mod staging is restricted before transfer" 'install -d -m 0700 /tmp/valheim-server-mods' "$installer"
 assert_contains "password-bearing rollback archive is root-only" 'chmod 0600 "$work/rollback/system.tar.gz.tmp"' "$installer"
 assert_contains "mod staging is removed after recovery or success" 'rm -rf "$work"' "$installer"
@@ -61,6 +86,8 @@ if strings "$plugin" | grep -Fiq "Jotunn"; then
   fail "plugin binary depends on Jotunn"
 fi
 assert_contains "plugin source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$plugin_source"
+assert_contains "test-command source pins version 0.1.2" 'PluginVersion = "0.1.2"' "$test_commands_source"
+assert_contains "server-support source pins version 0.1.6" 'PluginVersion = "0.1.6"' "$server_support_source"
 assert_contains \
   "plugin logs the exact post-PatchAll message" \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
@@ -95,33 +122,83 @@ cat > "$tmp_dir/journalctl" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" > "$MOCK_JOURNAL_ARGS"
+if [[ "${MOCK_JOURNAL_DELAY:-0}" == 1 ]]; then
+  count="$(cat "$MOCK_JOURNAL_COUNT")"
+  count=$((count + 1))
+  printf '%s\n' "$count" > "$MOCK_JOURNAL_COUNT"
+  if (( count < 3 )); then
+    exit 0
+  fi
+fi
 cat "$MOCK_JOURNAL_LOG"
 MOCK
 chmod +x "$tmp_dir/journalctl"
+
+cat > "$tmp_dir/systemctl-verify" <<'MOCK'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$1" == show ]]; then
+  printf '%s\n' "${MOCK_ACTIVE_INVOCATION:-invocation-a}"
+  exit 0
+fi
+[[ "$1" == is-active && "$2" == --quiet && "$3" == valheim.service ]]
+MOCK
+chmod +x "$tmp_dir/systemctl-verify"
 
 printf '%s\n' 'Game server connected' > "$tmp_dir/journal.log"
 if MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
   MOCK_JOURNAL_LOG="$tmp_dir/journal.log" \
   JOURNALCTL_BIN="$tmp_dir/journalctl" \
-  "$verifier" '2026-08-01T12:00:00-04:00' >/dev/null 2>&1; then
+  SYSTEMCTL_BIN="$tmp_dir/systemctl-verify" \
+  SLEEP_BIN=true \
+  "$verifier" invocation-a first >/dev/null 2>&1; then
   fail "generic readiness must not satisfy the plugin load gate"
 fi
 
 printf '%s\n' \
+  'Load world: first (first)' \
+  'Game server connected' \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
+  'Benheim Test Commands 0.1.2 loaded with direct peer RPC authorization.' \
+  'Benheim Server Support 0.1.6 loaded with Put Away and confirmed-kill coordination.' \
   > "$tmp_dir/journal.log"
+printf '%s\n' 0 > "$tmp_dir/journal.count"
 MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
 MOCK_JOURNAL_LOG="$tmp_dir/journal.log" \
+MOCK_JOURNAL_DELAY=1 \
+MOCK_JOURNAL_COUNT="$tmp_dir/journal.count" \
 JOURNALCTL_BIN="$tmp_dir/journalctl" \
-  "$verifier" '2026-08-01T12:00:00-04:00' >/dev/null
+SYSTEMCTL_BIN="$tmp_dir/systemctl-verify" \
+SLEEP_BIN=true \
+  "$verifier" invocation-a first >/dev/null
+[[ "$(cat "$tmp_dir/journal.count")" == 3 ]] || fail "verifier must poll until one invocation is fully ready"
 assert_contains \
-  "plugin verification is bounded to the current start" \
-  '--since 2026-08-01T12:00:00-04:00' \
+  "plugin verification is bounded to one systemd invocation" \
+  '_SYSTEMD_INVOCATION_ID=invocation-a' \
   "$tmp_dir/journal.args"
+if MOCK_ACTIVE_INVOCATION=invocation-b \
+  MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
+  MOCK_JOURNAL_LOG="$tmp_dir/journal.log" \
+  JOURNALCTL_BIN="$tmp_dir/journalctl" \
+  SYSTEMCTL_BIN="$tmp_dir/systemctl-verify" \
+  SLEEP_BIN=true \
+  "$verifier" invocation-a first >/dev/null 2>&1; then
+  fail "verifier must reject an automatic restart into a different invocation"
+fi
 assert_contains \
-  "verifier requires the plugin's exact load message" \
+  "verifier requires Eternal Fire's exact load message" \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
   "$verifier"
+assert_contains \
+  "verifier requires Test Commands' exact load message" \
+  'Benheim Test Commands 0.1.2 loaded with direct peer RPC authorization.' \
+  "$verifier"
+assert_contains \
+  "verifier requires Server Support's exact load message" \
+  'Benheim Server Support 0.1.6 loaded with Put Away and confirmed-kill coordination.' \
+  "$verifier"
+assert_contains "verifier requires the configured world" 'Load world: $world ($world)' "$verifier"
+assert_contains "verifier requires normal readiness" 'Game server connected' "$verifier"
 
 cat > "$tmp_dir/systemctl" <<'MOCK'
 #!/usr/bin/env bash
@@ -178,12 +255,16 @@ fi
 [[ ! -s "$tmp_dir/wait.log" ]] || fail "readiness must not run after failed start"
 
 assert_contains \
-  "installer executes the exact plugin gate" \
-  '"$work/verify-benheim-eternal-fire" "$started_at"' \
+  "installer executes the whole-stack gate" \
+  '"$work/verify-benheim-server-plugins" "$invocation_id" "$expected_world"' \
+  "$installer"
+assert_contains \
+  "installer captures the exact started invocation" \
+  'systemctl show --property=InvocationID --value valheim.service' \
   "$installer"
 assert_contains \
   "installer executes verified vanilla recovery" \
   '"$work/recover-valheim-vanilla"' \
   "$installer"
 
-echo "PASS: server Eternal Fire behavior, installer gates, and recovery"
+echo "PASS: approved server plugin stack, Eternal Fire behavior, and recovery"

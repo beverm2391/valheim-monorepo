@@ -25,9 +25,11 @@ if [[ ! -f "$dll" ]]; then
   exit 1
 fi
 
-BENHEIM_QOL_DLL="$dll" BENHEIM_QOL_DIST="$dist" BENHEIM_QOL_SKIP_BUILD=1 \
+env -u BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG \
+  BENHEIM_QOL_DLL="$dll" BENHEIM_QOL_DIST="$dist" BENHEIM_QOL_SKIP_BUILD=1 \
   "$root/scripts/package-macos.sh"
-BENHEIM_QOL_DLL="$dll" BENHEIM_QOL_DIST="$dist" BENHEIM_QOL_SKIP_BUILD=1 \
+env -u BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG \
+  BENHEIM_QOL_DLL="$dll" BENHEIM_QOL_DIST="$dist" BENHEIM_QOL_SKIP_BUILD=1 \
   "$root/scripts/package-windows.sh"
 
 complete=1

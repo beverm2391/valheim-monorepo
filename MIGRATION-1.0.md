@@ -62,6 +62,12 @@ passes.
 
 ### Now Through August 31
 
+Continue product design, source-code research, and upstream-mod evaluation for
+future Benheim systems. Limit pre-1.0 implementation to important stability
+work and migration preparation. Do not begin large gameplay-system
+implementation until the vanilla Valheim 1.0 migration is complete and
+Benheim's stable behavior has been ported and retested.
+
 - [ ] Keep every server mod removable without changing the world save.
 - [ ] Keep a tested vanilla launch path on the server.
 - [ ] Keep a tested vanilla launch path on every Mac and Windows client.
@@ -99,7 +105,7 @@ is required to keep the server playable.
 
 - [ ] Keep production vanilla through a normal session and nightly backup.
 - [ ] Reintroduce server dependencies and mods in the order defined below.
-- [ ] Reintroduce the shared client profile only after explicit 1.0 proof.
+- [ ] Port and prove stable Benheim behavior before adding new gameplay systems.
 - [ ] Record restored, replaced, and deferred decisions below.
 - [ ] Close and archive this runbook when the archive condition is satisfied.
 
@@ -116,7 +122,7 @@ files, not this table, own exact versions.
 | Benheim Eternal Fire | Server | Disabled | Vanilla clients see existing zero-fuel pieces relight and burning pieces refill before they extinguish. This behavior survives a server restart and client reconnect. | Benheim Eternal Fire `0.1.1` is deployed on Valheim `0.221.12`. Existing empty fires and torches relit for a client that did not have Benheim Eternal Fire installed. Low-fuel and restart proof is pending. |
 | Metal portals | Server, native | Reapply after vanilla proof | Restricted items pass through portals for vanilla clients after restart. | Passed portal traversal with a normally restricted metal item; restart proof pending. |
 | BepInEx | Clients | Use vanilla launch | Mac and Windows clients launch and join with the compatible loader. | Pending |
-| BenheimQoL | Clients | Disabled | The current product behavior passes a focused 1.0 test pass. | Pre-1.0 `0.1.13` passed farming, quick stack, extended chest interaction, and adrenaline UI checks. Final 1.0 proof pending. |
+| Benheim | Clients | Disabled | Benheim's stable behavior passes focused 1.0 testing. | Benheim `0.1.52` is the accepted stable pre-1.0 client on Valheim `0.221.12`. All regular players use version `0.1.52`. Final 1.0 proof is pending. |
 | Future gameplay mods | To classify | Not admitted | Source audit identifies network ownership, persistence, and platform support. | Deferred |
 
 ## Character Backups
@@ -353,12 +359,45 @@ Use a copy of the post-migration world on the temporary server for server-mod
 validation. Use backed-up characters and a non-production session for risky
 client-mod validation.
 
+### Upstream references for mod recovery
+
+[Jere Kuusela's Valheim repositories](https://github.com/JereKuusela) are the
+first external source to inspect when Valheim 1.0 changes a native interface
+that Benheim uses. The repositories show current examples of the mechanisms
+Benheim uses for locations, prefabs, server commands, and world updates. They
+show how an implementation can work. Benheim's product contracts still define
+what each feature must do.
+
+- [valheim-dev](https://github.com/JereKuusela/valheim-dev) shows current
+  server-executed commands, native location lookup, permission checks, and
+  temporary minimap pins. Its `find` command is the reference for a Benheim
+  marker that shows only the location selected by the server.
+- [valheim-upgrade_world](https://github.com/JereKuusela/valheim-upgrade_world)
+  shows how Valheim stores, regenerates, filters, and repairs location
+  instances across world versions. Before using its world-edit operations,
+  prove them safe in a rehearsal on a copy of the production world. Until
+  then, use them only as references.
+- [valheim-expand_world_data](https://github.com/JereKuusela/valheim-expand_world_data)
+  shows current location registration, location generation, and data-driven
+  world configuration.
+- [valheim-expand_world_prefabs](https://github.com/JereKuusela/valheim-expand_world_prefabs)
+  shows current prefab discovery and loading through Valheim's asset system.
+- [valheim-world_edit_commands](https://github.com/JereKuusela/valheim-world_edit_commands)
+  and [valheim-infinity_hammer](https://github.com/JereKuusela/valheim-infinity_hammer)
+  show current administrator selection, visualization, and world-edit command
+  boundaries.
+
+At migration time, inspect the current upstream source and license before
+copying anything. Pin the exact upstream commit only when Benheim adopts code
+or a behavioral pattern. Do not import a broad upstream command or world-edit
+framework to recover one narrow Benheim feature.
+
 Restore in this order:
 
 1. Server BepInEx.
 2. Benheim Eternal Fire.
 3. Client BepInEx on Mac and Windows.
-4. BenheimQoL.
+4. Benheim.
 5. Any newly selected gameplay mods.
 
 For every layer:

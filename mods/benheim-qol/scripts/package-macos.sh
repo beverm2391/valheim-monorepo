@@ -5,7 +5,16 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
 dll="${BENHEIM_QOL_DLL:-$root/src/bin/Release/netstandard2.1/BenheimQoL.dll}"
 dist="${BENHEIM_QOL_DIST:-$root/dist}"
+private_diagnostics_config="${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG:-}"
 package_name="Benheim-macOS-$version"
+if [[ -n "$private_diagnostics_config" ]]; then
+  package_name="Benheim-PRIVATE-TEST-macOS-$version"
+  if [[ ! -f "$private_diagnostics_config" ]] ||
+    [[ "$(sed -n '1p' "$private_diagnostics_config")" != "BENHEIM_PRIVATE_DIAGNOSTICS_V1" ]]; then
+    echo "The private-test diagnostics config is missing or invalid." >&2
+    exit 1
+  fi
+fi
 stage="$dist/$package_name"
 
 if [[ -z "$version" ]]; then
@@ -27,6 +36,9 @@ install -m 0755 "$root/scripts/install-macos.command" "$stage/Install Benheim.co
 install -m 0755 "$root/scripts/macos-launcher.sh" "$stage/macos-launcher.sh"
 install -m 0644 "$dll" "$stage/BenheimQoL.dll"
 printf '%s\n' "$version" > "$stage/VERSION"
+if [[ -n "$private_diagnostics_config" ]]; then
+  install -m 0600 "$private_diagnostics_config" "$stage/PRIVATE-TEST-DIAGNOSTICS.cfg"
+fi
 
 (
   cd "$dist"

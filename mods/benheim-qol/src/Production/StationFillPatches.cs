@@ -5,6 +5,13 @@ namespace BenheimQoL.Production;
 [HarmonyPatch]
 internal static class StationFillPatches
 {
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Smelter), "Awake")]
+    private static void SmelterAwakePostfix(Smelter __instance)
+    {
+        StationFill.RegisterSmelterBatchRpc(__instance);
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Smelter), "OnAddOre")]
     private static bool SmelterOrePrefix(

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../mods/benheim-qol/src/Inventory/PutAwayLeaseProtocol.cs" Link="PutAwayLeaseProtocol.cs" />
+    <Compile Include="../../shared/benheim-inventory-protocol/InventoryTransactionProtocol.cs" Link="InventoryTransactionProtocol.cs" />
+  </ItemGroup>
+</Project>
