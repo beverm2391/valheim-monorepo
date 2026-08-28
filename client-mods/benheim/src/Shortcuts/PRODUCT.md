@@ -32,7 +32,7 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The `0.1.70` candidate adds organized feature entries for Ship Sprint,
+- The `0.1.71` candidate adds organized feature entries for Ship Sprint,
   manual collection of submerged native Tar, Perfect Impact, and reduced
   planting stamina. It says each successful plant placement, including every
   successful mass-grid placement, costs 50% of Valheim's resolved native
@@ -40,6 +40,10 @@ use it to find controls and passive features.
   tuning detail. UNTOUCHABLE now says that qualifying kills as well as perfect
   defenses add streak points. Combat Shake also names Perfect Impact. The
   updated presentation still needs gameplay proof.
+- The `0.1.71` candidate adds a Building section. It says Workbench and
+  Stonecutter build-piece placement coverage is `2x` Valheim's native range,
+  from 20 meters to 40 meters for level-1 stations. It also names the station
+  behaviors that remain native.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep
   their native behavior. The shortcut does nothing while the player is typing
   or while a menu, password field, or other text input is active. This
