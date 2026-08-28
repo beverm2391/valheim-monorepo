@@ -1,0 +1,27 @@
+{
+  "title": "Repeated death to the same enemy",
+  "timeline": [
+    {
+      "timestamp": "2026-08-17T22:10:03Z",
+      "kind": "gameplay_event",
+      "event": "player_died",
+      "player": "Player A",
+      "enemy": "Deathsquito"
+    },
+    {
+      "timestamp": "2026-08-17T22:15:31Z",
+      "kind": "global_chat",
+      "player": "Player A",
+      "text": "going back for my stuff"
+    },
+    {
+      "timestamp": "2026-08-17T22:16:04Z",
+      "kind": "gameplay_event",
+      "trigger": true,
+      "event": "player_died",
+      "player": "Player A",
+      "enemy": "Deathsquito",
+      "same_enemy_death_count": 2
+    }
+  ]
+}

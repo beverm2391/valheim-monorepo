@@ -1,0 +1,25 @@
+{
+  "title": "Random event begins",
+  "timeline": [
+    {
+      "timestamp": "2026-08-17T23:03:00Z",
+      "kind": "global_chat",
+      "player": "Player A",
+      "text": "finally home"
+    },
+    {
+      "timestamp": "2026-08-17T23:03:04Z",
+      "kind": "gameplay_event",
+      "event": "players_at_base",
+      "players": ["Player A", "Player B", "Player C"]
+    },
+    {
+      "timestamp": "2026-08-17T23:03:09Z",
+      "kind": "gameplay_event",
+      "trigger": true,
+      "event": "random_event_started",
+      "raid": "The ground is shaking",
+      "location": "main_base"
+    }
+  ]
+}

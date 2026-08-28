@@ -15,3 +15,7 @@ server-mods/**/dist/
 tests/**/bin/
 tests/**/obj/
 __pycache__/
+/tools/crow-lab/prompts/player_lore.md
+/tools/crow-lab/prompts/examples.md
+/tools/crow-lab/private/
+/tools/crow-lab/results/

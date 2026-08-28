@@ -1,0 +1,35 @@
+{
+  "title": "Everyone dies except one player",
+  "timeline": [
+    {
+      "timestamp": "2026-08-17T22:48:11Z",
+      "kind": "gameplay_event",
+      "event": "encounter_started",
+      "enemy": "Gjall",
+      "players": ["Player A", "Player B", "Player C"]
+    },
+    {
+      "timestamp": "2026-08-17T22:49:38Z",
+      "kind": "gameplay_event",
+      "event": "player_died",
+      "player": "Player A",
+      "enemy": "Gjall"
+    },
+    {
+      "timestamp": "2026-08-17T22:49:51Z",
+      "kind": "gameplay_event",
+      "event": "player_died",
+      "player": "Player C",
+      "enemy": "Gjall"
+    },
+    {
+      "timestamp": "2026-08-17T22:50:16Z",
+      "kind": "gameplay_event",
+      "trigger": true,
+      "event": "encounter_resolved",
+      "enemy": "Gjall",
+      "survivors": ["Player B"],
+      "dead_players": ["Player A", "Player C"]
+    }
+  ]
+}
