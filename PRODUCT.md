@@ -48,7 +48,7 @@ Benheim Eternal Fire, Benheim Test Commands, and Benheim Server Support. None
 requires another shared mod library.
 
 Benheim's detailed product behavior is owned by
-[`mods/benheim-qol/PRODUCT.md`](mods/benheim-qol/PRODUCT.md). Benheim Eternal
+[`client-mods/benheim/PRODUCT.md`](client-mods/benheim/PRODUCT.md). Benheim Eternal
 Fire's behavior and player experience are owned by
 [`server-mods/benheim-eternal-fire/PRODUCT.md`](server-mods/benheim-eternal-fire/PRODUCT.md).
 Benheim Test Commands' allowlist, native-admin boundary, and component

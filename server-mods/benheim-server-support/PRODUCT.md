@@ -54,7 +54,7 @@ Diagnostic failures cannot interrupt result delivery or settlement. When a
 requester disconnects, the server removes that requester's pending and
 completed route entries.
 
-The owning [Inventory product](../../mods/benheim-qol/src/Inventory/PRODUCT.md) defines
+The owning [Inventory product](../../client-mods/benheim/src/Inventory/PRODUCT.md) defines
 Put Away's player-visible behavior and acceptance boundary. The [shared
 protocol](../../shared/benheim-inventory-protocol/PROTOCOL.md) owns cleanup
 correlation, routing, the transaction runtime, and typed-event lifecycle.

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-client="$root/mods/benheim-qol/src/KillAttribution"
+client="$root/client-mods/benheim/src/KillAttribution"
 server="$root/server-mods/benheim-server-support/src/KillAttributionServer.cs"
 server_patches="$root/server-mods/benheim-server-support/src/KillAttributionServerPatches.cs"
 chain_state="$root/server-mods/benheim-server-support/src/KillChainState.cs"
@@ -81,7 +81,7 @@ grep -Fq '[HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]' "$se
 grep -Fq 'KillAttributionProtocol.cs' "$project"
 grep -Fq 'LethalHitObservation.cs' "$project"
 
-character_source="$($root/mods/benheim-qol/scripts/decompile-valheim.sh Character)"
+character_source="$($root/client-mods/benheim/scripts/decompile-valheim.sh Character)"
 grep -Fq 'public bool IsMonsterFaction(float time)' <<<"$character_source"
 grep -Fq 'm_faction != Faction.ForestMonsters' <<<"$character_source"
 grep -Fq 'return m_faction == Faction.MistlandsMonsters;' <<<"$character_source"
@@ -92,16 +92,16 @@ grep -Fq 'return m_faction == Faction.MistlandsMonsters;' <<<"$character_source"
 # transport. Steam queues reliable messages, PlayFab retains acknowledged
 # in-flight messages, and ZNet destroys disconnected peers instead of
 # reconnecting an existing ZRpc.
-zrpc_source="$($root/mods/benheim-qol/scripts/decompile-valheim.sh ZRpc)"
+zrpc_source="$($root/client-mods/benheim/scripts/decompile-valheim.sh ZRpc)"
 grep -Fq 'if (IsConnected())' <<<"$zrpc_source"
 grep -Fq 'SendPackage(m_pkg);' <<<"$zrpc_source"
-steam_socket_source="$($root/mods/benheim-qol/scripts/decompile-valheim.sh ZSteamSocket)"
+steam_socket_source="$($root/client-mods/benheim/scripts/decompile-valheim.sh ZSteamSocket)"
 grep -Fq 'm_sendQueue.Enqueue(array);' <<<"$steam_socket_source"
 grep -Fq 'SendMessageToConnection(m_con, intPtr, (uint)array.Length, 8,' <<<"$steam_socket_source"
-playfab_socket_source="$($root/mods/benheim-qol/scripts/decompile-valheim.sh ZPlayFabSocket)"
+playfab_socket_source="$($root/client-mods/benheim/scripts/decompile-valheim.sh ZPlayFabSocket)"
 grep -Fq 'm_inFlightQueue.Enqueue(array);' <<<"$playfab_socket_source"
 grep -Fq 'CheckRetransmit();' <<<"$playfab_socket_source"
-znet_source="$($root/mods/benheim-qol/scripts/decompile-valheim.sh ZNet)"
+znet_source="$($root/client-mods/benheim/scripts/decompile-valheim.sh ZNet)"
 grep -Fq 'if (peer.m_rpc.IsConnected())' <<<"$znet_source"
 grep -Fq 'Disconnect(peer);' <<<"$znet_source"
 

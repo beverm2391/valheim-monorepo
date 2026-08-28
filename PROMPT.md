@@ -11,7 +11,7 @@ This repo has three related jobs:
 
 - Provision and operate a Valheim dedicated server on a cloud VM.
 - Support selected server-side mods with explicit player requirements.
-- Build client mods under `mods/`, including quality-of-life and gameplay
+- Build client mods under `client-mods/`, including quality-of-life and gameplay
   features. Keep server-assisted features explicit.
 
 The root `PRODUCT.md` owns which clients and server components a shared feature
@@ -19,7 +19,7 @@ requires. A server-assisted feature must fail visibly when a required component
 is missing or incompatible.
 
 The root `PRODUCT.md` owns the overall server and mod promise. The client mod
-at `mods/benheim-qol/` owns its promise in `PRODUCT.md`, each user-facing
+at `client-mods/benheim/` owns its promise in `PRODUCT.md`, each user-facing
 feature module owns its behavior and proof status in its own `PRODUCT.md`, and
 each first-party server mod owns its behavior in a `PRODUCT.md` at the mod
 root. Do not duplicate detailed feature behavior in the root product doc.
@@ -140,7 +140,7 @@ characters, and restore mods only after vanilla 1.0 is stable.
 
 ## Benheim development and testing
 
-The Benheim client mod lives under `mods/benheim-qol/`. Product behavior,
+The Benheim client mod lives under `client-mods/benheim/`. Product behavior,
 controls, player feedback, acceptance meaning, and proof status belong in the
 owning product document. Keep implementation details in code or a deeper
 technical document.
@@ -158,10 +158,10 @@ and update the owning product document.
 
 Build and test a client-only change with the canonical verification entrypoint:
 ```bash
-mods/benheim-qol/scripts/verify.sh
+client-mods/benheim/scripts/verify.sh
 ```
 
-`verify.sh` runs every `mods/benheim-qol/tests/*-test.sh` source/installer
+`verify.sh` runs every `client-mods/benheim/tests/*-test.sh` source/installer
 check, the quick-stack summary checks, and the Release DLL build. It does not
 install files, touch a Valheim game directory, create a platform package, or
 publish a release. The build and quick-stack checks may write ignored `bin/`
@@ -174,7 +174,7 @@ successfully.
 Inspect one type from the installed Valheim assembly:
 
 ```bash
-mods/benheim-qol/scripts/decompile-valheim.sh Character
+client-mods/benheim/scripts/decompile-valheim.sh Character
 ```
 
 The helper caches decompiled source by the exact assembly SHA-256 and requested
@@ -184,19 +184,19 @@ assembly path, SHA-256, requested type, and cache hit or miss to standard error.
 Cache and search the complete installed assembly:
 
 ```bash
-mods/benheim-qol/scripts/ensure-valheim-source.sh
-mods/benheim-qol/scripts/search-valheim-source.sh -n 'StackAll\('
-mods/benheim-qol/scripts/list-valheim-types.sh projectile
-mods/benheim-qol/scripts/diff-valheim-types.sh --help
+client-mods/benheim/scripts/ensure-valheim-source.sh
+client-mods/benheim/scripts/search-valheim-source.sh -n 'StackAll\('
+client-mods/benheim/scripts/list-valheim-types.sh projectile
+client-mods/benheim/scripts/diff-valheim-types.sh --help
 ```
 
 Build and install locally on Mac, then package for Mac and Windows:
 
 ```bash
-mods/benheim-qol/scripts/build.sh
-mods/benheim-qol/scripts/install-local.sh
-mods/benheim-qol/scripts/package-macos.sh
-mods/benheim-qol/scripts/package-windows.sh
+client-mods/benheim/scripts/build.sh
+client-mods/benheim/scripts/install-local.sh
+client-mods/benheim/scripts/package-macos.sh
+client-mods/benheim/scripts/package-windows.sh
 ```
 
 `install-local.sh` must run the same Mac installer shipped to players. The
@@ -229,7 +229,7 @@ The Windows installer must:
 - refuse to overwrite an unrelated desktop shortcut; and
 - keep the normal Steam launch vanilla after installation.
 
-Use `mods/benheim-qol/tests/windows-installer-test.sh` to verify installer
+Use `client-mods/benheim/tests/windows-installer-test.sh` to verify installer
 source and packaged files. Keep this test until a Windows CI runner can execute
 the installer.
 
@@ -254,7 +254,7 @@ For a gameplay change:
 Diagnostic events use `[diag][Feature] action key=value`. Log actions, important
 decisions, and results, not every frame. Keep normal BepInEx warnings and errors.
 Benheim also writes each event to `BepInEx/BenheimEvents.ndjson`. Use
-`mods/benheim-qol/scripts/query-events.py --help` to stream current or archived
+`client-mods/benheim/scripts/query-events.py --help` to stream current or archived
 events, filter fields, or find starts without a terminal event.
 
 After a world loads, `bh debug catalog effects|text|ui [filter]` previews native
@@ -269,7 +269,7 @@ and Ozi or before public release.
 
 - Keep one Benheim client DLL.
 - Before changing Put Away, follow the nested [Inventory development
-  guide](mods/benheim-qol/src/Inventory/PROMPT.md). Its shared protocol owns the
+  guide](client-mods/benheim/src/Inventory/PROMPT.md). Its shared protocol owns the
   authority, conservation, correlation, and convergence rules. Do not replace
   that protocol with requester-local `Container.StackAll()` or another cached
   chest write.

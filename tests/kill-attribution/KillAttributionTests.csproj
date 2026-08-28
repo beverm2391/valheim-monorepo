@@ -6,12 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillAttributionProtocol.cs" Link="KillAttributionProtocol.cs" />
-    <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillAttributionRpcAttempt.cs" Link="KillAttributionRpcAttempt.cs" />
-    <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillAttributionCapabilityRetry.cs" Link="KillAttributionCapabilityRetry.cs" />
-    <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillChainDeliveryCursor.cs" Link="KillChainDeliveryCursor.cs" />
-    <Compile Include="../../mods/benheim-qol/src/KillAttribution/KillChainRules.cs" Link="KillChainRules.cs" />
-    <Compile Include="../../mods/benheim-qol/src/KillAttribution/LethalHitObservation.cs" Link="LethalHitObservation.cs" />
+    <Compile Include="../../client-mods/benheim/src/KillAttribution/KillAttributionProtocol.cs" Link="KillAttributionProtocol.cs" />
+    <Compile Include="../../client-mods/benheim/src/KillAttribution/KillAttributionRpcAttempt.cs" Link="KillAttributionRpcAttempt.cs" />
+    <Compile Include="../../client-mods/benheim/src/KillAttribution/KillAttributionCapabilityRetry.cs" Link="KillAttributionCapabilityRetry.cs" />
+    <Compile Include="../../client-mods/benheim/src/KillAttribution/KillChainDeliveryCursor.cs" Link="KillChainDeliveryCursor.cs" />
+    <Compile Include="../../client-mods/benheim/src/KillAttribution/KillChainRules.cs" Link="KillChainRules.cs" />
+    <Compile Include="../../client-mods/benheim/src/KillAttribution/LethalHitObservation.cs" Link="LethalHitObservation.cs" />
     <Compile Include="../../server-mods/benheim-server-support/src/ConfirmedKillState.cs" Link="ConfirmedKillState.cs" />
     <Compile Include="../../server-mods/benheim-server-support/src/KillChainState.cs" Link="KillChainState.cs" />
     <Compile Include="../../server-mods/benheim-server-support/src/VictimQualification.cs" Link="VictimQualification.cs" />

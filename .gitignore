@@ -6,11 +6,12 @@ r2.env
 tmp/
 worlds/
 backups/
-mods/**/bin/
-mods/**/obj/
-mods/**/dist/
+client-mods/**/bin/
+client-mods/**/obj/
+client-mods/**/dist/
 server-mods/**/bin/
 server-mods/**/obj/
 server-mods/**/dist/
 tests/**/bin/
 tests/**/obj/
+__pycache__/

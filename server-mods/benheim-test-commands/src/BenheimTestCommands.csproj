@@ -20,12 +20,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/BoarTestCommandProtocol.cs" Link="BoarTestCommandProtocol.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/HengeOverlayProtocol.cs" Link="HengeOverlayProtocol.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/BoarTierCombat.cs" Link="BoarTierCombat.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/BoarTierIdentity.cs" Link="BoarTierIdentity.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/EnemyTiers/BoarTierPhysicalProfile.cs" Link="BoarTierPhysicalProfile.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
+    <Compile Include="../../../client-mods/benheim/src/EnemyTiers/BoarTestCommandProtocol.cs" Link="BoarTestCommandProtocol.cs" />
+    <Compile Include="../../../client-mods/benheim/src/EnemyTiers/HengeOverlayProtocol.cs" Link="HengeOverlayProtocol.cs" />
+    <Compile Include="../../../client-mods/benheim/src/EnemyTiers/BoarTierCombat.cs" Link="BoarTierCombat.cs" />
+    <Compile Include="../../../client-mods/benheim/src/EnemyTiers/BoarTierIdentity.cs" Link="BoarTierIdentity.cs" />
+    <Compile Include="../../../client-mods/benheim/src/EnemyTiers/BoarTierPhysicalProfile.cs" Link="BoarTierPhysicalProfile.cs" />
+    <Compile Include="../../../client-mods/benheim/src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
   </ItemGroup>
 
   <ItemGroup>

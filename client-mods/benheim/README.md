@@ -75,7 +75,7 @@ reference.
 Install BepInExPack Valheim locally, then run:
 
 ```bash
-mods/benheim-qol/scripts/verify.sh
+client-mods/benheim/scripts/verify.sh
 ```
 
 `verify.sh` runs all client source and installer checks, the Put Away summary
@@ -83,26 +83,26 @@ checks, and the Release DLL build. It does not install, package, or publish
 anything. To build only the DLL, run:
 
 ```bash
-mods/benheim-qol/scripts/build.sh
+client-mods/benheim/scripts/build.sh
 ```
 
 If Valheim is not in the default Steam path, set:
 
 ```bash
-VALHEIM_GAME_DIR="/path/to/Valheim" mods/benheim-qol/scripts/verify.sh
+VALHEIM_GAME_DIR="/path/to/Valheim" client-mods/benheim/scripts/verify.sh
 ```
 
 ## Install Locally
 
 ```bash
-mods/benheim-qol/scripts/install-local.sh
+client-mods/benheim/scripts/install-local.sh
 ```
 
 `install-local.sh` builds the DLL and invokes the same Mac installer shipped to
 players. To create the shareable Mac and Windows packages, run:
 
 ```bash
-mods/benheim-qol/scripts/package-all.sh
+client-mods/benheim/scripts/package-all.sh
 ```
 
 `package-all.sh` runs `verify.sh` once, then creates the versioned Mac and
@@ -113,7 +113,7 @@ Publish a tested release from a clean local `main` branch that exactly matches
 `origin/main`:
 
 ```bash
-mods/benheim-qol/scripts/release.sh
+client-mods/benheim/scripts/release.sh
 ```
 
 The release command:
@@ -123,7 +123,7 @@ The release command:
 - creates a versioned GitHub release; and
 - uploads both packages with stable asset names.
 
-The packages are written under `mods/benheim-qol/dist/`. The installer copies
+The packages are written under `client-mods/benheim/dist/`. The installer copies
 `BenheimQoL.dll` into:
 
 ```text
