@@ -1,6 +1,6 @@
 # Game design resources
 
-Use this shelf to retrieve source material. `GAME_DEV_RESEARCH.md` keeps the
+Use this shelf to retrieve source material. [`NOTES.md`](NOTES.md) keeps the
 notes and open questions drawn from it. Neither file makes a Benheim
 product decision or proves a Valheim implementation.
 

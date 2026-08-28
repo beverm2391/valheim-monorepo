@@ -1,7 +1,7 @@
 # Adrenaline research
 
 This note owns the ways Benheim can change the native meter and charm. [Player
-Combat research](../PlayerCombat/RESEARCH.md) owns the skill and risk signals
+Combat research](PLAYER-COMBAT.md) owns the skill and risk signals
 that can feed the meter or create an earned combat state.
 
 ## Evidence baseline
@@ -13,7 +13,7 @@ This note uses Valheim source evidence from version `0.221.12`. The inspected
 ada4bd74e926680f7c17e1275b344ad2a9afd5759bf52146ad1a4c7866721b48
 ```
 
-[`PROMPT.md`](../../../../PROMPT.md) owns the source-inspection commands. A
+[`PROMPT.md`](../../PROMPT.md) owns the source-inspection commands. A
 different assembly hash requires revalidation before implementation.
 
 ## Base-system levers

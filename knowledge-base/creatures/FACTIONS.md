@@ -2,7 +2,7 @@
 
 Factions tell ordinary AI and attacks who is hostile. They do not make a
 character immune to damage. The evidence baseline and shared authority rules
-live in [Creature Mechanics](RESEARCH.md).
+live in [Creature Mechanics](CREATURE-MECHANICS.md).
 
 ## Native Factions
 

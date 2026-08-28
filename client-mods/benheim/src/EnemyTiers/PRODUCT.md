@@ -49,8 +49,9 @@ capsule, pathfinding agent, perception, pursuit, speed, turning, and push fields
 on live Boars. These events prove that the fields were applied, not the
 behavior or feel they produced.
 
-[`RESEARCH.md`](RESEARCH.md) owns the code evidence, multiplayer authority,
-extension seams, and Valheim `1.0` revalidation gate behind this baseline.
+[Enemy Tiers research](../../../../knowledge-base/creatures/ENEMY-TIERS.md) owns
+the code evidence, multiplayer authority, extension seams, and Valheim `1.0`
+revalidation gate behind this baseline.
 
 ## In Development
 

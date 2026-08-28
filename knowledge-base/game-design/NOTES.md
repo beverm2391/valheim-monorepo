@@ -2,7 +2,8 @@
 
 This notebook preserves what was interesting in the sources, including open
 questions. It does not decide a Benheim feature or establish that Valheim can
-express a mechanism. `GAME_DEV_RESOURCES.md` is the short retrieval shelf.
+express a mechanism. [`RESOURCES.md`](RESOURCES.md) is the short retrieval
+shelf.
 
 ## Coordinating more than one enemy
 

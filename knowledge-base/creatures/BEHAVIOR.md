@@ -3,7 +3,7 @@
 Behavior decides what a creature notices, where it moves, how long it pursues,
 and when it creates space or attacks. Native level does not select different
 behavior. The evidence baseline and ownership rules live in
-[Creature Mechanics](RESEARCH.md).
+[Creature Mechanics](CREATURE-MECHANICS.md).
 
 ## Sensing And Navigation
 

@@ -19,7 +19,7 @@ ada4bd74e926680f7c17e1275b344ad2a9afd5759bf52146ad1a4c7866721b48
 ```
 
 ILSpy `9.1.0.7988` produced the inspected source. The cache manifest recorded
-the assembly hash and decompiler identity. [`PROMPT.md`](../../../../PROMPT.md)
+the assembly hash and decompiler identity. [`PROMPT.md`](../../PROMPT.md)
 owns the source inspection commands. To reproduce this evidence, cache the
 installed assembly, confirm `Version.CurrentVersion`, and inspect the types
 named below. A different assembly hash is a different evidence baseline.

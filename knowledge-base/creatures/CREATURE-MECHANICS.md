@@ -15,7 +15,7 @@ Use these focused references for two mechanics:
 - [Behavior](BEHAVIOR.md) covers sensing, navigation, pursuit, positioning,
   retreat, and attack spacing.
 
-[Enemy Tiers research](../EnemyTiers/RESEARCH.md) owns star selection, spawn
+[Enemy Tiers research](ENEMY-TIERS.md) owns star selection, spawn
 context, Alpha identity, and retaliation evidence.
 
 ## Evidence Baseline

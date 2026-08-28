@@ -6,9 +6,9 @@ Player Combat has three design questions:
 - When is a successful action bold or risky?
 - Which reward helps the player continue skilled, bold combat?
 
-The [product document](PRODUCT.md) owns the combination Benheim chooses.
-[Adrenaline research](../Adrenaline/RESEARCH.md) owns the native meter and
-full-meter charm paths.
+The [product document](../../client-mods/benheim/src/PlayerCombat/PRODUCT.md)
+owns the combination Benheim chooses. [Adrenaline research](ADRENALINE.md) owns
+the native meter and full-meter charm paths.
 
 ## Evidence baseline
 
@@ -19,7 +19,7 @@ This note uses Valheim source evidence from version `0.221.12`. The inspected
 ada4bd74e926680f7c17e1275b344ad2a9afd5759bf52146ad1a4c7866721b48
 ```
 
-[`PROMPT.md`](../../../../PROMPT.md) owns the source-inspection commands. A
+[`PROMPT.md`](../../PROMPT.md) owns the source-inspection commands. A
 different assembly hash requires revalidation before implementation.
 
 ## Skill signals

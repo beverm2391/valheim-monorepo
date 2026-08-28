@@ -10,7 +10,7 @@ framework. Any creature-specific mechanics or AI variation would be new
 Benheim behavior layered on a native level. This document records research,
 not a product promise or implementation plan.
 
-[Creature Mechanics research](../CreatureMechanics/RESEARCH.md) owns the
+[Creature Mechanics research](CREATURE-MECHANICS.md) owns the
 reusable creature AI, attack, damage, drop, animation, asset, and authority
 control inventory. This document keeps only the evidence specific to star
 identity, spawning, encounter context, Alpha feasibility, and retaliation.
