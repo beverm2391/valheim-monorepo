@@ -56,6 +56,16 @@ internal static partial class ShortcutOverlay
     private static readonly Section[] FeatureSections =
     {
         new(
+            "Building",
+            new Color(1f, 0.58f, 0.36f, 1f),
+            new[]
+            {
+                new Entry(
+                    "Station coverage",
+                    "Workbench and Stonecutter build-piece placement coverage is 2× Valheim's native range (20 m to 40 m for level-1 stations)"),
+            },
+            "Crafting, repair, station interaction, Workbench suppression, enemy spawning, and all other station behavior stay native."),
+        new(
             "World & Travel",
             TravelAccent,
             new[]

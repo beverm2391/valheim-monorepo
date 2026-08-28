@@ -30,6 +30,7 @@ VerifyCookingPatch(
 VerifyCookingScope();
 VerifyCookingRollObservation();
 VerifyComfortPatch();
+StationBuildCoverageTests.Run();
 VerifyTarPolicy();
 VerifyTarTranspilers();
 VerifyPlantingStamina();

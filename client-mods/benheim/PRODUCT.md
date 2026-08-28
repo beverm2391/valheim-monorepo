@@ -193,11 +193,19 @@ readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.70` is the current private-test candidate. It keeps the Kill
+Benheim `0.1.71` is the current private-test candidate. It keeps the Kill
 Attribution V3 capability boundary and the 6/12 kill-chain thresholds from
 `0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
 untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
 for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
+
+The candidate doubles only native Workbench and Stonecutter build-piece
+placement coverage. In installed Valheim `0.221.12`, both level-1 stations have
+a native 20-meter build radius. The candidate doubles each build radius to 40
+meters. Benheim includes native Workbench extension contributions when it
+resolves the range, then doubles the total. The [Interaction
+module](src/Interaction/PRODUCT.md) defines the exact client-only boundary and
+gameplay proof requirements.
 
 The candidate includes Ship Sprint's first `3x` native-thrust tuning. Holding
 Valheim's logical Run control at the helm boosts forward paddle, half sail, and
