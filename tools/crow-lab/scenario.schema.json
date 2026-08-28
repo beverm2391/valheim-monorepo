@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/beverm2391/valheim-monorepo/blob/main/tools/crow-lab/scenario.schema.json",
+  "title": "Crow lab scenario",
+  "type": "object",
+  "required": ["title", "timeline"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timeline": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/timelineEntry"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "timelineEntry": {
+      "type": "object",
+      "required": ["timestamp", "kind"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "kind": {
+          "enum": ["global_chat", "crow_message", "gameplay_event"]
+        },
+        "trigger": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

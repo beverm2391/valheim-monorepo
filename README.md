@@ -1,4 +1,16 @@
-# valheim-server
+# valheim-monorepo
+
+Benheim is a small Valheim project that Ben owns and builds for friends. It is
+public so people from Discord and the wider Valheim community can use it. They
+can also lift working code for their own projects. This is a working personal
+project, not a polished framework. Ben does not promise support.
+
+> [!WARNING]
+> The current server and mod builds target pre-1.0 Valheim. Valheim 1.0 is
+> scheduled for September 9, 2026, according to the
+> [official release announcement](https://www.valheimgame.com/news/valheim-has-a-release-date-/).
+> These builds may stop working after that update until Ben migrates and
+> verifies them.
 
 Run a Valheim dedicated server on a small cloud VM.
 

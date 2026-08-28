@@ -1,0 +1,30 @@
+{
+  "title": "Escaped critical health",
+  "timeline": [
+    {
+      "timestamp": "2026-08-17T22:22:14Z",
+      "kind": "gameplay_event",
+      "event": "player_health_changed",
+      "player": "Player A",
+      "health": 4,
+      "max_health": 156,
+      "nearby_enemy": "Fuling Berserker"
+    },
+    {
+      "timestamp": "2026-08-17T22:22:17Z",
+      "kind": "global_chat",
+      "player": "Player B",
+      "text": "run"
+    },
+    {
+      "timestamp": "2026-08-17T22:22:28Z",
+      "kind": "gameplay_event",
+      "trigger": true,
+      "event": "critical_health_escaped",
+      "player": "Player A",
+      "lowest_health": 4,
+      "max_health": 156,
+      "enemy": "Fuling Berserker"
+    }
+  ]
+}

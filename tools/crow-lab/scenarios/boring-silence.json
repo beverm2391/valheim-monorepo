@@ -1,0 +1,28 @@
+{
+  "title": "Routine event where silence is correct",
+  "timeline": [
+    {
+      "timestamp": "2026-08-17T23:12:02Z",
+      "kind": "global_chat",
+      "player": "Player A",
+      "text": "grabbing wood"
+    },
+    {
+      "timestamp": "2026-08-17T23:12:21Z",
+      "kind": "gameplay_event",
+      "event": "item_picked_up",
+      "player": "Player A",
+      "item": "Wood",
+      "count": 8
+    },
+    {
+      "timestamp": "2026-08-17T23:12:29Z",
+      "kind": "gameplay_event",
+      "trigger": true,
+      "event": "item_picked_up",
+      "player": "Player A",
+      "item": "Wood",
+      "count": 4
+    }
+  ]
+}
