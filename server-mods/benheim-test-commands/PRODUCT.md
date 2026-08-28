@@ -64,5 +64,5 @@ pattern from the Unlicense-licensed
 [`valheim-dev` `find` command](https://github.com/JereKuusela/valheim-dev/blob/359e59c3d2fd2c40a6e2bb1e447723d6180c89b1/ServerDevcommands/Commands/Find.cs),
 without importing its general remote-command framework.
 
-[`../../mods/benheim-qol/src/EnemyTiers/PRODUCT.md`](../../mods/benheim-qol/src/EnemyTiers/PRODUCT.md)
+[`../../client-mods/benheim/src/EnemyTiers/PRODUCT.md`](../../client-mods/benheim/src/EnemyTiers/PRODUCT.md)
 owns the Boar physical experiment and its gameplay acceptance boundary.

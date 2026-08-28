@@ -20,12 +20,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="../../../mods/benheim-qol/src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/Inventory/PutAwayLeaseProtocol.cs" Link="PutAwayLeaseProtocol.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/KillAttribution/KillAttributionRpcAttempt.cs" Link="KillAttribution/KillAttributionRpcAttempt.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/KillAttribution/KillChainRules.cs" Link="KillAttribution/KillChainRules.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/KillAttribution/KillAttributionProtocol.cs" Link="KillAttribution/KillAttributionProtocol.cs" />
-    <Compile Include="../../../mods/benheim-qol/src/KillAttribution/LethalHitObservation.cs" Link="KillAttribution/LethalHitObservation.cs" />
+    <Compile Include="../../../client-mods/benheim/src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
+    <Compile Include="../../../client-mods/benheim/src/Inventory/PutAwayLeaseProtocol.cs" Link="PutAwayLeaseProtocol.cs" />
+    <Compile Include="../../../client-mods/benheim/src/KillAttribution/KillAttributionRpcAttempt.cs" Link="KillAttribution/KillAttributionRpcAttempt.cs" />
+    <Compile Include="../../../client-mods/benheim/src/KillAttribution/KillChainRules.cs" Link="KillAttribution/KillChainRules.cs" />
+    <Compile Include="../../../client-mods/benheim/src/KillAttribution/KillAttributionProtocol.cs" Link="KillAttribution/KillAttributionProtocol.cs" />
+    <Compile Include="../../../client-mods/benheim/src/KillAttribution/LethalHitObservation.cs" Link="KillAttribution/LethalHitObservation.cs" />
     <Compile Include="../../../shared/benheim-inventory-protocol/*.cs" Link="InventoryProtocol/%(Filename)%(Extension)" />
   </ItemGroup>
 

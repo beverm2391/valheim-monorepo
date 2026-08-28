@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Valheim enemy AI: a mental model</title>
+<style>
+  /* Visual style follows beneverman.com (globals.css): warm paper, near-black
+     ink, Geist, hairline borders, quiet card surfaces. */
+  :root {
+    --bg: #faf9f6;
+    --fg: #262626;
+    --muted: #686868;
+    --border: rgb(0 0 0 / 0.08);
+    --accent: #0a0a0a;
+    --code-bg: rgb(0 0 0 / 0.04);
+    --surface: color-mix(in srgb, var(--bg) 98%, var(--fg));
+    --warning: #b45309;
+    --radius: 0.625rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161616;
+      --fg: #f5f5f5;
+      --muted: #818181;
+      --border: rgb(255 255 255 / 0.06);
+      --accent: #fafafa;
+      --code-bg: rgb(255 255 255 / 0.04);
+      --surface: color-mix(in srgb, var(--bg) 96%, var(--fg));
+      --warning: #d97706;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; border-color: var(--border); }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    color: var(--fg);
+    background: var(--bg);
+    font-family: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    width: min(100% - 2rem, 68ch);
+    margin-inline: auto;
+    padding-block: 4rem;
+  }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+  h2 { font-size: 1.25rem; margin: 3rem 0 0.75rem; letter-spacing: -0.01em; }
+  p { margin: 0 0 1rem; }
+  .kicker { color: var(--muted); font-size: 0.875rem; margin-bottom: 2.5rem; }
+  code {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 0.125rem 0.3rem;
+    border-radius: 0.25rem;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; font-size: 0.8125rem; }
+  /* The connector: the one line per section meant to survive in memory.
+     Skimming only these should rebuild the model. */
+  .connector {
+    font-weight: 600;
+    font-size: 1.0625rem;
+    border-left: 3px solid var(--accent);
+    padding: 0.25rem 0 0.25rem 1rem;
+    margin: 1.25rem 0 1.5rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .card figcaption { color: var(--muted); font-size: 0.8125rem; margin-top: 0.75rem; }
+  figure { margin: 0; }
+  svg { display: block; max-width: 100%; height: auto; }
+  svg text { font-family: inherit; }
+  /* Raw anchors: the symbols that index a section back into decompiled source. */
+  .anchors { color: var(--muted); font-size: 0.8125rem; margin: 1.5rem 0 0; }
+  /* Design friction: the behavior in each concept that most constrains
+     Benheim design or implementation. */
+  .friction {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warning);
+    border-radius: var(--radius);
+    padding: 0.875rem 1.25rem;
+    margin: 1.5rem 0;
+  }
+  .friction .label {
+    display: block;
+    color: var(--warning);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.375rem;
+  }
+  .friction p { margin: 0; }
+  .toc-coming { color: var(--muted); font-size: 0.875rem; }
+  .toc-coming ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+  a { color: var(--accent); text-underline-offset: 0.2em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Valheim enemy AI: a mental model</h1>
+  <p class="kicker">Verified against decompiled Valheim <code>0.221.12</code> source.</p>
+
+  <h2>The clock: <code>MonoUpdaters</code></h2>
+  <p class="connector">
+    AI decisions run 20 times a second on one shared, global metronome.
+    Execution (movement, physics, animation) runs every frame.
+  </p>
+  <p>
+    The shared <code>MonoUpdaters</code> instance stores the entire AI clock in
+    one accumulator. Unity's <code>FixedUpdate</code>, the fixed-rate
+    50&nbsp;Hz step that also runs physics, advances it:
+  </p>
+  <pre><code>// MonoUpdaters.FixedUpdate: this is the entire AI clock
+m_updateAITimer += fixedDeltaTime;         // 50 Hz fixed timestep
+if (m_updateAITimer &gt;= 0.05f) {            // ONE global accumulator → 20 Hz
+    foreach (var ai in BaseAI.Instances)   // every loaded BaseAI, one flat list
+        ai.UpdateAI(0.05f);
+    m_updateAITimer -= 0.05f;
+}</code></pre>
+  <p>
+    Every creature carries a <code>BaseAI</code>-derived component
+    (<code>MonsterAI</code> for enemies, <code>AnimalAI</code> for passive
+    animals), but <strong>no creature ticks itself</strong>: each registers
+    into the static list <code>BaseAI.Instances</code>, and the loop above is
+    the whole clock. Every brain in the world thinks in turn, on the same
+    beat, 20 times a second, sequentially, on one thread.
+  </p>
+  <p>
+    The throttle only touches decisions: <code>Character.Instances</code>
+    (movement, physics) ticks at the full 50&nbsp;Hz and animation renders
+    every frame, so fights look smooth however sparse the thinking is, and
+    50&nbsp;ms sits far below human reaction time, so no player perceives the
+    throttle itself. Between ticks a creature keeps executing its last
+    choice, but at 50&nbsp;ms that alone is nearly imperceptible; the
+    commitment players feel in fights comes from slower layers, stacked in
+    the Commitment section below. The throttle's real implication is a
+    boundary: tactical behavior (which attack, how long to pursue, when to
+    flee) belongs in <code>UpdateAI</code>, where 20&nbsp;Hz is always
+    enough, while <strong>anything frame-accurate (hit detection, parry
+    timing, movement integration) lives in the execution layers and cannot
+    be patched into the decision chain</strong>.
+  </p>
+  <aside class="friction">
+    <span class="label">Design friction</span>
+    <p>
+      The AI budget is shared. Every loaded brain runs in the same
+      <code>FixedUpdate</code> call on one thread, so logic added inside
+      <code>UpdateAI</code> is multiplied by every loaded creature, 20 times a
+      second: a patch that is cheap on one Boar becomes a frame hitch when a
+      raid event floods the base with thirty Greydwarfs.
+    </p>
+  </aside>
+  <p class="anchors">
+    Anchors: <code>MonoUpdaters.FixedUpdate</code> ·
+    <code>MonoUpdatersExtra.UpdateAI</code> · <code>BaseAI.Instances</code> ·
+    <code>Character.Instances</code>
+  </p>
+
+  <hr>
+
+  <h2>Ownership: <code>ZDO</code> and <code>ZNetView</code></h2>
+  <p class="connector">
+    A creature has exactly one brain running, on whichever machine owns it,
+    and the brain can migrate between machines.
+  </p>
+  <p>
+    In multiplayer, no central machine simulates every creature.
+    <strong>The world is peer-simulated</strong>: for each object, exactly one
+    peer (the dedicated server or one player's client) runs its simulation,
+    and every other peer just renders the result. Mapped onto the clock above: the "brain" is the
+    creature's <code>UpdateAI</code> pass, and "owning" a creature means being
+    the peer currently assigned to run that pass. That assignment lives in
+    the creature's ZDO (zone data object).
+  </p>
+  <figure class="card">
+    <svg viewBox="0 0 660 230" role="img" aria-label="One creature's ZDO replicated across three peers, with one owner running the brain">
+      <g fill="none" stroke="currentColor" stroke-opacity="0.25">
+        <rect x="20"  y="36" width="190" height="160" rx="8"/>
+        <rect x="235" y="36" width="190" height="160" rx="8"/>
+        <rect x="450" y="36" width="190" height="160" rx="8"/>
+      </g>
+      <g font-size="13" fill="currentColor">
+        <text x="45"  y="60" fill-opacity="0.7">Dedicated server</text>
+        <text x="260" y="60" font-weight="600">Client A · owner</text>
+        <text x="475" y="60" fill-opacity="0.7">Client B</text>
+      </g>
+      <!-- ZDO cards: same record on every peer -->
+      <rect x="45"  y="74" width="140" height="80" rx="6" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-dasharray="4 3"/>
+      <rect x="260" y="74" width="140" height="80" rx="6" fill="none" stroke="currentColor" stroke-opacity="0.5"/>
+      <rect x="475" y="74" width="140" height="80" rx="6" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-dasharray="4 3"/>
+      <g font-size="12" fill="currentColor">
+        <text x="57"  y="92" font-weight="600">Boar ZDO</text>
+        <text x="57"  y="110" fill-opacity="0.7">health 43 · level 2</text>
+        <text x="57"  y="126" fill-opacity="0.7">alert true · pos …</text>
+        <text x="272" y="92" font-weight="600">Boar ZDO</text>
+        <text x="272" y="110" fill-opacity="0.7">health 43 · level 2</text>
+        <text x="272" y="126" fill-opacity="0.7">alert true · pos …</text>
+        <text x="487" y="92" font-weight="600">Boar ZDO</text>
+        <text x="487" y="110" fill-opacity="0.7">health 43 · level 2</text>
+        <text x="487" y="126" fill-opacity="0.7">alert true · pos …</text>
+      </g>
+      <!-- writes replicate outward from the owner -->
+      <g stroke="currentColor" stroke-opacity="0.5" fill="none">
+        <line x1="256" y1="114" x2="196" y2="114"/>
+        <path d="M 203 109 L 195 114 L 203 119"/>
+        <line x1="404" y1="114" x2="464" y2="114"/>
+        <path d="M 457 109 L 465 114 L 457 119"/>
+      </g>
+      <g font-size="12.5" fill="currentColor">
+        <text x="57"  y="180" fill-opacity="0.55">read-only mirror</text>
+        <text x="260" y="180">runs UpdateAI() · the brain</text>
+        <text x="487" y="180" fill-opacity="0.55">read-only mirror</text>
+      </g>
+    </svg>
+    <figcaption>
+      One Boar, one record, three copies. The owner's <code>UpdateAI</code> is
+      the only brain; its writes replicate outward. If Client A disconnects,
+      the record survives on the other peers, and whichever peer takes
+      ownership starts ticking <code>UpdateAI</code> from that exact state.
+      Nothing about the Boar resets.
+    </figcaption>
+  </figure>
+  <p>
+    The ZDO is the replicated key-value record behind every
+    networked object; health, position, the alert flag, and star level all
+    live there. <code>ZNetView</code> is the component that binds a live
+    GameObject to its ZDO. <strong>Exactly one peer owns a given ZDO at a
+    time</strong>: the owner simulates the object and writes its state,
+    everyone else just reads.
+    That is why the very first check in every AI pass is
+    <code>m_nview.IsOwner()</code>: on non-owning machines
+    <code>BaseAI.UpdateAI</code> returns immediately, running zero AI and
+    mirroring the alert flag out of the ZDO. Ten players in a zone still means
+    one brain per creature.
+  </p>
+  <p>
+    Ownership follows players around: the peer best placed to simulate a zone
+    owns its objects, and when that changes (a player logs off, walks away,
+    or a zone loads on the dedicated server) <strong>the brain migrates with
+    it</strong>. The creature's state survives the move because it was never
+    in the brain: it is in the ZDO, and the new owner picks up where the
+    record left off. Leave a group fight and the friend still standing there
+    inherits the Boar's brain mid-swing; the Boar never notices.
+  </p>
+  <aside class="friction">
+    <span class="label">Design friction</span>
+    <p>
+      Behavior is installed per machine, and the brain moves. When ownership
+      migrates to a peer without the mod, the creature silently reverts to
+      native behavior mid-fight; nothing errors. Changed behavior must ship to
+      every peer that can own the creature (Benheim: the client mod for
+      player-owned creatures, Benheim Test Commands for server-owned ones),
+      and single-machine testing proves nothing about the group.
+    </p>
+  </aside>
+  <p class="anchors">
+    Anchors: <code>ZDO.IsOwner</code> · <code>ZNetView.ClaimOwnership</code> ·
+    <code>BaseAI.UpdateAI</code> (owner gate) · <code>ZDOVars.s_alert</code>
+  </p>
+
+  <hr>
+
+  <h2 id="the-pass">The pass: <code>MonsterAI.UpdateAI</code></h2>
+  <p class="connector">
+    One tick evaluates the priority chain from top to bottom. It acts on the
+    first match and returns. Control is stateless, but the data is stateful:
+    every tick starts again at the top.
+  </p>
+  <figure class="card">
+    <svg viewBox="0 0 660 450" role="img" aria-label="Priority chain of MonsterAI.UpdateAI">
+      <g fill="none" stroke="currentColor" stroke-opacity="0.25">
+        <rect x="20"  y="16"  width="400" height="44" rx="8"/>
+        <rect x="20"  y="76"  width="400" height="44" rx="8" stroke-dasharray="4 3"/>
+        <rect x="20"  y="136" width="400" height="44" rx="8"/>
+        <rect x="20"  y="196" width="400" height="44" rx="8"/>
+        <rect x="20"  y="256" width="400" height="44" rx="8"/>
+        <rect x="20"  y="316" width="400" height="44" rx="8"/>
+        <rect x="20"  y="376" width="400" height="44" rx="8"/>
+      </g>
+      <g font-size="14" fill="currentColor">
+        <text x="36" y="43">Sleeping? <tspan fill-opacity="0.55">UpdateSleep() → return</tspan></text>
+        <text x="36" y="103">Sense targets <tspan fill-opacity="0.55">UpdateTarget() → canHear, canSee</tspan></text>
+        <text x="36" y="163">Flee / avoid? <tspan fill-opacity="0.55">low HP · fire · lava · no-monster zone</tspan></text>
+        <text x="36" y="223">Eat? <tspan fill-opacity="0.55">UpdateConsumeItem(), if no target or not alerted</tspan></text>
+        <text x="36" y="283">Circle target <tspan fill-opacity="0.55">m_circleTargetInterval timer</tspan></text>
+        <text x="36" y="343">Pick attack <tspan fill-opacity="0.55">SelectBestAttack() over inventory</tspan></text>
+        <text x="36" y="403">Close in · face · swing <tspan fill-opacity="0.55">or search last known pos</tspan></text>
+      </g>
+      <g stroke="currentColor" stroke-opacity="0.4">
+        <line x1="220" y1="60"  x2="220" y2="76"/>
+        <line x1="220" y1="120" x2="220" y2="136"/>
+        <line x1="220" y1="180" x2="220" y2="196"/>
+        <line x1="220" y1="240" x2="220" y2="256"/>
+        <line x1="220" y1="300" x2="220" y2="316"/>
+        <line x1="220" y1="360" x2="220" y2="376"/>
+      </g>
+      <g font-size="13" fill="currentColor" fill-opacity="0.55">
+        <text x="448" y="103">← always runs (dashed);</text>
+        <text x="448" y="123">every other row: first</text>
+        <text x="448" y="143">match ends the tick</text>
+      </g>
+    </svg>
+    <figcaption>
+      <code>MonsterAI.UpdateAI</code> in source order. Omitted for clarity:
+      the hunt-player flag, riding, move-to-water, day-despawn, and
+      event-creature branches. Ordering of what is shown is exact.
+    </figcaption>
+  </figure>
+  <p>
+    <code>MonsterAI.UpdateAI(0.05f)</code> is a plain function: a chain of
+    guarded actions evaluated top to bottom, where <strong>the first condition
+    that holds performs its one action and returns</strong>, and everything
+    below it goes unevaluated that tick. A calm Boar grazing never reaches the attack rows;
+    a cornered one falls straight through the flee checks to the bottom. A
+    tick therefore executes a <em>prefix</em> of the chain, and which prefix
+    depends entirely on what is true at that moment. There is no loop inside,
+    no pointer into the chain, no saved position: control falls out of the
+    function, and 50&nbsp;ms later the clock re-enters it at the top.
+  </p>
+  <p>
+    What makes this workable is where state lives: <strong>the control flow is
+    stateless, but the data is not</strong>.
+    <code>m_targetCreature</code> stays set
+    between ticks, the alert flag stays up in the ZDO, the circle-pause timer
+    keeps accruing, and per-attack cooldowns keep counting on the attack
+    items. A creature attacks the same player for ten straight seconds not
+    because it remembers deciding to, but because the same persistent inputs
+    keep producing the same decision, 20 times a second.
+  </p>
+  <p>
+    Expensive inputs <strong>refresh only at fixed intervals</strong>.
+    <code>UpdateTarget</code> re-runs its enemy search only every 2&nbsp;s
+    (6&nbsp;s with no player within 50&nbsp;m), <code>SelectBestAttack</code>
+    re-picks a weapon only every 1&nbsp;s, and both wait out an attack in
+    progress; between refreshes the chain reads the cached fields. The same
+    pattern repeats at every scale: each attack item carries its own cooldown
+    (<code>m_aiAttackInterval</code>), the creature has a global
+    <code>m_minAttackInterval</code>, and circling and wander waypoints run
+    on their own randomized timers. The chain itself runs every tick;
+    stability comes from inputs that change more slowly by design. This is why
+    a Greydwarf keeps hammering your friend for a beat after you step closer:
+    it is not stubborn, its target search just has not fired yet.
+  </p>
+  <aside class="friction">
+    <span class="label">Design friction</span>
+    <p>
+      Reaction cadence is tunable, but not data-driven. Per-attack cooldowns
+      are fields on the attack items. <code>MonsterAI</code> hardcodes the
+      2&nbsp;s and 6&nbsp;s target-search intervals and the 1&nbsp;s
+      weapon-selection interval for every creature. A mod can change those
+      intervals only by patching <code>MonsterAI</code>. For a starred Boar,
+      the behavior "detects players earlier and pursues longer" partly depends
+      on reaction timing. The current rate limits protect the shared AI budget,
+      so more frequent reactions spend more of that budget.
+    </p>
+  </aside>
+  <p>
+    Interruption needs no stored-plan recovery. A stagger (Valheim's
+    hit-reaction stun from heavy or parried damage) <strong>cannot corrupt
+    a plan that was never stored</strong>. On the next tick, the priority chain
+    derives an action from the current state. This is also the engine idiom behind
+    Benheim's tier rule of deriving behavior from prefab and star level with
+    no custom saved state: a modded creature stays correct through reload and
+    ownership migration for the same reason a native one does.
+  </p>
+  <aside class="friction">
+    <span class="label">Design friction</span>
+    <p>
+      Order is load-bearing. Because a tick executes only a prefix, any
+      condition added high in the chain shadows everything below it: a new
+      flee rule can silently starve the attack rows. For modded behavior,
+      <em>where</em> in the chain is as much a design decision as
+      <em>what</em>.
+    </p>
+  </aside>
+  <p class="anchors">
+    Anchors: <code>MonsterAI.UpdateAI</code> · <code>BaseAI.UpdateAI</code> ·
+    <code>UpdateTarget</code> · <code>m_updateTargetTimer</code> ·
+    <code>m_updateWeaponTimer</code> · <code>m_circleTargetInterval</code>
+  </p>
+
+  <hr>
+
+  <h2>Commitment: <code>Attack</code> and the Animator</h2>
+  <p class="connector">
+    The AI decision pass never waits and does not handle interruptions. The
+    animation state machine owns commitment, and the next decision pass reads
+    its state.
+  </p>
+  <figure class="card">
+    <svg viewBox="0 0 660 320" role="img" aria-label="Timeline of AI ticks against an attack animation, completed and staggered">
+      <!-- tick axis -->
+      <g stroke="currentColor" stroke-opacity="0.4">
+        <line x1="30" y1="40" x2="630" y2="40"/>
+        <line x1="60"  y1="32" x2="60"  y2="48"/>
+        <line x1="120" y1="32" x2="120" y2="48"/>
+        <line x1="180" y1="32" x2="180" y2="48"/>
+        <line x1="240" y1="32" x2="240" y2="48"/>
+        <line x1="300" y1="32" x2="300" y2="48"/>
+        <line x1="360" y1="32" x2="360" y2="48"/>
+        <line x1="420" y1="32" x2="420" y2="48"/>
+        <line x1="480" y1="32" x2="480" y2="48"/>
+        <line x1="540" y1="32" x2="540" y2="48"/>
+      </g>
+      <text x="30" y="20" font-size="13" fill="currentColor" fill-opacity="0.55">UpdateAI ticks · one every 50 ms</text>
+      <circle cx="120" cy="40" r="4" fill="currentColor"/>
+      <text x="132" y="66" font-size="13" fill="currentColor">this tick calls DoAttack()</text>
+
+      <!-- scenario A: completes -->
+      <text x="30" y="92" font-size="13" fill="currentColor" fill-opacity="0.55">uninterrupted</text>
+      <rect x="120" y="104" width="360" height="40" rx="8" fill="none" stroke="currentColor" stroke-opacity="0.25"/>
+      <text x="136" y="129" font-size="14" fill="currentColor">attack animation <tspan fill-opacity="0.55">· owned by the Animator</tspan></text>
+      <line x1="380" y1="104" x2="380" y2="144" stroke="currentColor" stroke-opacity="0.4"/>
+      <text x="388" y="160" font-size="13" fill="currentColor">hit event → damage</text>
+      <text x="150" y="180" font-size="13" fill="currentColor" fill-opacity="0.55">ticks in this span: InAttack() == true → decide nothing</text>
+
+      <!-- scenario B: staggered -->
+      <text x="30" y="222" font-size="13" fill="currentColor" fill-opacity="0.55">staggered</text>
+      <rect x="120" y="234" width="180" height="40" rx="8" fill="none" stroke="currentColor" stroke-opacity="0.25"/>
+      <rect x="300" y="234" width="180" height="40" rx="8" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-dasharray="4 3"/>
+      <text x="136" y="259" font-size="14" fill="currentColor">attack animation</text>
+      <text x="316" y="259" font-size="14" fill="currentColor" fill-opacity="0.55">abandoned · no hit event</text>
+      <g stroke="currentColor" stroke-opacity="0.6">
+        <line x1="300" y1="304" x2="300" y2="278"/>
+        <path d="M 295 284 L 300 276 L 305 284" fill="none"/>
+      </g>
+      <text x="310" y="304" font-size="13" fill="currentColor">Stagger() → "stagger" trigger</text>
+    </svg>
+    <figcaption>
+      One swing across many ticks. The chain never waits and never handles the
+      interrupt; both outcomes are just different Animator states read back on
+      the next tick.
+    </figcaption>
+  </figure>
+  <p>
+    A swing takes half a second and a tick lasts 50&nbsp;ms, so
+    <strong>an attack outlives the tick that chose it</strong> and something
+    other than the chain has to carry it. When the chain reaches
+    <code>DoAttack</code>,
+    <code>Humanoid.StartAttack</code> clones an <code>Attack</code> object
+    from the chosen weapon item and starts its animation through the Animator
+    (Unity's animation state machine, networked so every peer sees the same
+    swing), then returns immediately: same tick, same thread. Nothing is
+    dispatched to any asynchronous system. From that point the frame loop
+    carries the swing, the Animator advancing the animation every frame with
+    <code>Attack.Update</code> running alongside, and the damage lands when
+    the animation reaches its hit event. A Troll's log swing keeps coming
+    while you roll past it because the commitment is in the clip, not in any
+    decision.
+  </p>
+  <p>
+    The Animator alone records whether an attack is active.
+    <code>InAttack()</code> does not read an AI flag; it asks whether the
+    current Animator state carries the attack tag. That is why
+    the chain can keep ticking mid-swing without misbehaving: its guards read
+    the Animator, see an attack in flight, and conclude there is nothing to
+    decide yet.
+  </p>
+  <pre><code>// the handoff: one tick, then done
+DoAttack() → StartAttack():
+    m_currentAttack = weapon.m_shared.m_attack.Clone();
+    m_currentAttack.Start(...);   // kicks the animation, returns immediately
+
+// every later tick, while the swing is in flight
+InAttack()                        // asks the Animator for the attack tag
+    → true: decision guards no-op; the chain "waits" by deciding nothing
+
+// interruption, from the damage layer, any time
+Character.Stagger() → m_zanim.SetTrigger("stagger");
+    // Animator leaves the attack state → InAttack() == false
+    // Attack.Update sees IsStaggering() → swing abandoned</code></pre>
+  <p>
+    Interruption works through the same door: a hard enough hit fires the
+    animator's <code>"stagger"</code> trigger, the Animator leaves the
+    attack-tagged state, and the swing is abandoned.
+    <strong><code>MonsterAI</code> contains no interruption handling at
+    all</strong>: one layer shoves the Animator into a different state, and
+    the chain observes different truth on its next tick. Stagger-based
+    counter-play (Valheim's parry, Benheim's Perfect Impact) is this
+    mechanism.
+  </p>
+  <p>
+    The commitment a player feels is therefore <strong>a stack of four
+    mechanisms with very different strengths</strong>. The tick gap holds a
+    choice for at most 50&nbsp;ms and is nearly imperceptible. Sticky inputs
+    (the pass section) reproduce the same choice for seconds at a time, but
+    can flip on any tick. Movement inertia
+    (<code>Character.m_turnSpeed</code>, <code>m_acceleration</code>) caps
+    how fast the body can follow a changed decision: a charging Boar
+    overshoots your sidestep because its turn rate is capped, not because it
+    failed to notice you. And the animation lock owns a started attack
+    outright until the clip ends or a stagger cuts it. Only the last two are
+    commitments a player can exploit on purpose, and they live in different
+    layers: dodging a charge beats the movement layer, dodging a swing beats
+    the Animator.
+  </p>
+  <aside class="friction">
+    <span class="label">Design friction</span>
+    <p>
+      Attack pacing is not an AI knob. Speed, commitment, and interruptibility
+      live in the animation layer: a faster swing means changing animation
+      speed, and an uninterruptible one means a higher stagger threshold. The
+      AI chooses only <em>when</em> a swing starts, never how it unfolds.
+    </p>
+  </aside>
+  <p class="anchors">
+    Anchors: <code>Humanoid.InAttack</code> ·
+    <code>Humanoid.StartAttack</code> · <code>Attack.Update</code> ·
+    <code>Character.RPC_Stagger</code> · <code>s_animatorTagAttack</code>
+  </p>
+
+  <hr>
+
+  <section class="toc-coming">
+    <strong>Next concepts</strong>
+    <ul>
+      <li>Attack selection: <code>SelectBestAttack</code> / <code>Humanoid.EquipBestWeapon</code>: movesets as inventories, the uniform-random pick</li>
+      <li>Perception: <code>UpdateTarget</code>: hearing vs. sight, alert range × stealth, losing a target</li>
+      <li>What other games do: Elden Ring's weighted picks, Monster Hunter's recovery graphs, planner-based AI</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

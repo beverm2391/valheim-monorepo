@@ -10,4 +10,4 @@ request correlation, and peer convergence. Changing any of those guarantees
 requires Ben's explicit product decision.
 
 Run the protocol's stale-payload, lease-contention, and receipt checks before
-`mods/benheim-qol/scripts/verify.sh`.
+`client-mods/benheim/scripts/verify.sh`.
