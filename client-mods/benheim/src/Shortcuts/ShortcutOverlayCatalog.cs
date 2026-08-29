@@ -75,7 +75,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Portal travel", "Finish the transition sooner after the destination is ready"),
                 new Entry(
                     "Ship Sprint",
-                    $"Hold Run at the helm for ×{ShipSprintTuning.ThrustMultiplier:0.#} native thrust at paddle, half sail, and full sail; release, helm exit, and reverse stay native"),
+                    $"Hold Run at the helm for ×{ShipSprintTuning.ThrustMultiplier:0.#} native thrust at paddle, half sail, and full sail; the helm readout shows planar speed and marks SPRINT while requested"),
             },
             "These features reduce waiting and positioning friction without automating play. Every possible ship physics owner needs compatible Benheim."),
         new(

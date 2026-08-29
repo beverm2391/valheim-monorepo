@@ -129,7 +129,7 @@ grep -Fq 'RestoreRemainder' "$protocol_root/InventoryTransactionClient.cs"
 grep -Fq 'TryResolveOwnedContainer' "$protocol_root/InventoryTransactionOwner.cs"
 grep -Fq 'target.AddItem(item.Clone())' "$protocol_root/InventoryTransactionOwner.cs"
 grep -Fq 'BeginBulkStack' "$quick_stack"
-grep -Fq 'PluginVersion = "0.1.71"' "$client_plugin"
+grep -Fq 'PluginVersion = "0.1.72"' "$client_plugin"
 if rg -n 'ClaimOwnership|container\.StackAll\(\)|QuickStackContainerWrite|QuickStackResponseGuard' \
     "$quick_stack" "$quick_stack_validation" "$quick_stack_transfer" "$protocol_root"; then
   printf 'Put Away must not restore requester-local chest writes or native uncorrelated responses\n' >&2

@@ -47,6 +47,48 @@ internal static class ShipSprintRuntime
         long playerId = Player.m_localPlayer == null ? 0L : Player.m_localPlayer.GetPlayerID();
         SendRequest(ship, playerId, requested: false);
         state.RequestCadence.Reset();
+        ShipSprintHud.Hide(ship);
+    }
+
+    internal static bool IsLocalRequestActive(Ship ship)
+    {
+        Player? localPlayer = Player.m_localPlayer;
+        if (localPlayer == null
+            || !States.TryGetValue(ship.GetInstanceID(), out ShipState? state))
+        {
+            return false;
+        }
+
+        return ShipSprintRules.IsAuthenticatedLocalRequest(
+            localPlayer.GetControlledShip() == ship,
+            state.RequestState.Requested,
+            localPlayer.GetPlayerID(),
+            state.RequestState.PlayerId,
+            localPlayer.GetOwner(),
+            state.RequestState.PeerId,
+            ship.GetSpeedSetting());
+    }
+
+    internal static Vector3 GaugeVelocity(Ship ship, Rigidbody body)
+    {
+        ZNetView? view = View(ship);
+        if (view?.IsValid() != true)
+        {
+            return Vector3.zero;
+        }
+
+        if (view.IsOwner())
+        {
+            return body.linearVelocity;
+        }
+
+        // ZSyncTransform.OwnerSync publishes the physics owner's world
+        // velocity here. A non-owner Rigidbody is interpolation state and is
+        // not the authoritative measurement for the helmsman's readout.
+        ZDO? zdo = view.GetZDO();
+        return zdo == null
+            ? Vector3.zero
+            : zdo.GetVec3(ZDOVars.s_velHash, Vector3.zero);
     }
 
     internal static ShipSprintPhysicsScope BeginPhysics(Ship ship)
@@ -95,6 +137,7 @@ internal static class ShipSprintRuntime
 
     internal static void Teardown(Ship ship, string reason)
     {
+        ShipSprintHud.Hide(ship);
         ClearLocalRequestIfControlling(ship);
         if (States.TryGetValue(ship.GetInstanceID(), out ShipState? state))
         {
@@ -118,6 +161,7 @@ internal static class ShipSprintRuntime
         }
 
         States.Clear();
+        ShipSprintHud.Destroy();
     }
 
     private static void SendRequest(Ship ship, long playerId, bool requested)

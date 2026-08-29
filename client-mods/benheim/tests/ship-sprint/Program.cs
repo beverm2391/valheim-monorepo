@@ -25,6 +25,22 @@ ExpectFalse(
 ExpectFalse(
     ShipSprintRules.IsAuthorizedSender(10L, 10L, 20L, 20L, false),
     "invalid native controller is rejected");
+ExpectTrue(
+    ShipSprintRules.IsAuthenticatedLocalRequest(
+        true, true, 10L, 10L, 20L, 20L, Ship.Speed.Full),
+    "accepted local request renders sprint state");
+ExpectFalse(
+    ShipSprintRules.IsAuthenticatedLocalRequest(
+        true, true, 10L, 11L, 20L, 20L, Ship.Speed.Full),
+    "another player's accepted request does not render local sprint state");
+ExpectFalse(
+    ShipSprintRules.IsAuthenticatedLocalRequest(
+        true, true, 10L, 10L, 20L, 21L, Ship.Speed.Full),
+    "another peer's accepted request does not render local sprint state");
+ExpectFalse(
+    ShipSprintRules.IsAuthenticatedLocalRequest(
+        true, true, 10L, 10L, 20L, 20L, Ship.Speed.Back),
+    "accepted request does not label native reverse as sprinting");
 
 ShipSprintRequestCadence cadence = new ShipSprintRequestCadence();
 ExpectTrue(cadence.ShouldSend(false, 1f), "first controller sample clears stale owner state");
@@ -96,6 +112,14 @@ ExpectNear(7f, root.GetProperty("peak_speed").GetSingle(), "diagnostic peak spee
 ExpectNear(3f, root.GetProperty("thrust_multiplier").GetSingle(), "diagnostic tuning");
 
 ExpectNear(3f, ShipSprintTuning.ThrustMultiplier, "first tuning candidate");
+
+ExpectNear(5f, ShipSprintGaugeRules.PlanarSpeed(3f, 4f), "world-planar speed ignores vertical motion");
+ExpectEqual("5.0 m/s", ShipSprintGaugeRules.Format(5f, sprintActive: false), "native speed label");
+ExpectEqual(
+    "5.0 m/s  <alpha=#A0>SPRINT</alpha>",
+    ShipSprintGaugeRules.Format(5.04f, sprintActive: true),
+    "active request adds restrained sprint state");
+ExpectEqual("0.0 m/s", ShipSprintGaugeRules.Format(-1f, sprintActive: false), "speed never renders negative");
 
 Console.WriteLine("Ship Sprint forward-throttle, lifecycle, and diagnostic checks passed");
 return;

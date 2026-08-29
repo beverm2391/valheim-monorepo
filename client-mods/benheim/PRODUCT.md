@@ -193,7 +193,7 @@ readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.71` is the current private-test candidate. It keeps the Kill
+Benheim `0.1.72` is the current private-test candidate. It keeps the Kill
 Attribution V3 capability boundary and the 6/12 kill-chain thresholds from
 `0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
 untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
@@ -209,9 +209,10 @@ gameplay proof requirements.
 
 The candidate includes Ship Sprint's first `3x` native-thrust tuning. Holding
 Valheim's logical Run control at the helm boosts forward paddle, half sail, and
-full sail. Reverse and every other native ship rule remain unchanged. The
-[Ship Sprint module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live
-proof gates.
+full sail. A compact readout beside the native ship controls shows the ship's
+planar world speed and marks an active Ship Sprint request from the local
+player. Reverse and every other native ship rule remain unchanged. The [Ship Sprint
+module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live proof gates.
 
 The candidate also lets a player manually collect native Tar while the Tar is
 submerged in a tar pit. Only manual interaction with native Tar changes. Tar

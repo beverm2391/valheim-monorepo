@@ -17,7 +17,7 @@ Valheim's normal farming restrictions.
 
 ## In Development
 
-- The `0.1.71` candidate is a centered, deterministic 9x9 planting grid.
+- The `0.1.72` candidate is a centered, deterministic 9x9 planting grid.
   Compared with the accepted centered 5x5 grid, it changes only the grid
   dimensions and the stamina cost of successful planting.
 - Each successful plant placement costs 50% of Valheim's resolved native

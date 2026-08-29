@@ -48,6 +48,18 @@ internal static class ShipSprintPatches
         }
     }
 
+    [HarmonyPatch(typeof(Hud), "LateUpdate")]
+    private static class ShipHudPatch
+    {
+        private static void Postfix(Hud __instance) => ShipSprintHud.Update(__instance);
+    }
+
+    [HarmonyPatch(typeof(Hud), "OnDestroy")]
+    private static class ShipHudDestroyPatch
+    {
+        private static void Prefix(Hud __instance) => ShipSprintHud.Destroy(__instance);
+    }
+
     [HarmonyPatch(typeof(Ship), "GetSailForce")]
     private static class ShipSailForcePatch
     {
