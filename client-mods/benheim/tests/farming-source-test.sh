@@ -44,7 +44,8 @@ grep -Fq 'UseStamina(GetBuildStamina());' "$native_player"
 grep -Fq 'private float GetBuildStamina()' "$native_player"
 placement_block="$(sed -n '/Piece selectedPiece = m_buildPieces.GetSelectedPiece()/,/if (TryPlacePiece(selectedPiece))/p' "$native_player")"
 grep -Fq 'HaveStamina(rightItem.m_shared.m_attack.m_attackStamina)' <<<"$placement_block"
-grep -Fq 'Successful planting costs 25% of Valheim' "$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
+grep -Fq 'Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved' "$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
+grep -Fq 'Skipped, failed, and rejected placements cost no stamina' "$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 
 # Grid placement reaches its only stamina debit after every rejection and after
 # the successful placement call. Skipped, failed, and rejected positions are free.

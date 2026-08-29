@@ -32,7 +32,7 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The next candidate adds organized feature entries for Ship Sprint,
+- The `0.1.74` candidate adds organized feature entries for Ship Sprint,
   manual collection of submerged native Tar, Perfect Impact, and reduced
   planting stamina. The planting-stamina entry says that each successful
   ordinary or grid plant placement costs 25% of the native planting stamina
@@ -43,10 +43,19 @@ use it to find controls and passive features.
   The updated presentation still needs gameplay proof.
 - The Ship Sprint entry explains that the helm readout shows planar speed and
   marks `SPRINT` while the local player has an active Ship Sprint request.
-- The `0.1.73` candidate adds a Building section. It says Workbench and
+- The `0.1.74` candidate adds a Building section. It says Workbench and
   Stonecutter build-piece placement coverage is `2x` Valheim's native range,
   from 20 meters to 40 meters for level-1 stations. It also names the station
   behaviors that remain native.
+- The candidate renames the Skills section to **Gathering & Skills**. It adds a
+  Finewood entry. The entry says that the compatible client that owns a native
+  Birch or Oak log converts each final ordinary Wood drop to Finewood. This
+  conversion also works when another compatible client attacks the log. Each
+  log keeps its native item count unchanged. Valheim still spawns every drop
+  through its native path. Native Finewood drops and all non-Wood drops remain
+  unchanged. For the Finewood conversion, other logs, standing-tree drops,
+  stumps, native damage-type conversions, and unrelated destruction stay
+  native.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep
   their native behavior. The shortcut does nothing while the player is typing
   or while a menu, password field, or other text input is active. This

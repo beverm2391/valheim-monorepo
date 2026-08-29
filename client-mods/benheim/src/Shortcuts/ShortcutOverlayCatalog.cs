@@ -50,7 +50,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
                 new Entry("Left Shift + plant", $"Plant a centered {FarmingSettings.GridWidth}x{FarmingSettings.GridLength} grid"),
             },
-            "Successful planting costs 25% of Valheim's native stamina; resource, spacing, and cultivated-ground rules stay native."),
+            "Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Apart from the grid dimensions and stamina cost, all other planting behavior stays native."),
     };
 
     private static readonly Section[] FeatureSections =
@@ -87,14 +87,17 @@ internal static partial class ShortcutOverlay
             },
             "Faster baking preserves Valheim's normal fuel use."),
         new(
-            "Skills",
+            "Gathering & Skills",
             new Color(1f, 0.48f, 0.54f, 1f),
             new[]
             {
                 new Entry("Rockbreaker", "Pickaxes adds scaling damage; crits and AOE unlock at level 25"),
                 new Entry("Cleave", "After level 25, axe hits can add one half-damage hit to the same tree or log"),
+                new Entry(
+                    "Finewood",
+                    "Native Birch and Oak logs convert each final ordinary Wood drop to Finewood without changing each log's native item count or Valheim's spawn path"),
             },
-            "Skill-based effects grow through normal play without granting bonus drops."),
+            "The compatible client that owns the log converts its drops, including when another compatible client attacks. Native Finewood and non-Wood drops, other logs, standing-tree drops, stumps, damage-type conversions, and unrelated destruction stay native."),
         new(
             "Combat",
             new Color(1f, 0.48f, 0.54f, 1f),
