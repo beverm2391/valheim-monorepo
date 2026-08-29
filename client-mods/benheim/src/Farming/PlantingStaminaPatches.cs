@@ -24,8 +24,8 @@ internal static class PlantingStaminaPatches
         var output = new List<CodeInstruction>(instructions);
         MethodInfo getSelectedPiece = AccessTools.Method(typeof(PieceTable), nameof(PieceTable.GetSelectedPiece))
             ?? throw new MissingMethodException(typeof(PieceTable).FullName, nameof(PieceTable.GetSelectedPiece));
-        MethodInfo haveStamina = AccessTools.Method(typeof(Player), nameof(Player.HaveStamina))
-            ?? throw new MissingMethodException(typeof(Player).FullName, nameof(Player.HaveStamina));
+        MethodInfo haveStamina = AccessTools.Method(typeof(Character), nameof(Character.HaveStamina))
+            ?? throw new MissingMethodException(typeof(Character).FullName, nameof(Character.HaveStamina));
         MethodInfo tryPlacePiece = AccessTools.Method(typeof(Player), nameof(Player.TryPlacePiece))
             ?? throw new MissingMethodException(typeof(Player).FullName, nameof(Player.TryPlacePiece));
         MethodInfo replacement = AccessTools.Method(typeof(PlantingStamina), nameof(PlantingStamina.HasPlacementStamina))

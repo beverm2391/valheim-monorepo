@@ -110,7 +110,7 @@ numeric attack reach, breeding rules, or spawning rules. The complete fight,
 larger collision, pen and gate navigation, slopes, water behavior, and
 practical bite reach remain gameplay-unproven.
 
-For this experiment, a native administrator using Benheim `0.1.72` can request
+For this experiment, a native administrator using Benheim `0.1.73` can request
 an ordinary Boar as a control or request a one-star or two-star native Boar.
 This requires Benheim Test Commands `0.1.2` on the dedicated server.
 [Benheim Test Commands](../../../../server-mods/benheim-test-commands/PRODUCT.md)

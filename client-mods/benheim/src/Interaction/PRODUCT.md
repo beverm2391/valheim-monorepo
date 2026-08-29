@@ -25,7 +25,7 @@ interaction, crafting, repair, upgrade attachment, comfort, Workbench suppressio
 enemy spawning, wards, other crafting stations, persistence, networking, or world
 data.
 
-The `0.1.72` candidate still needs gameplay proof for:
+The `0.1.73` candidate still needs gameplay proof for:
 
 - the native 20-meter boundary at each level-1 station;
 - the extended area beyond 20 meters and through 40 meters;

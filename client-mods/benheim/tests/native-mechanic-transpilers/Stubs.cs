@@ -66,7 +66,7 @@ public static class Skills
     }
 }
 
-public class Player
+public class Player : Humanoid
 {
     public enum RequirementMode
     {
@@ -92,7 +92,7 @@ public class Player
         return station;
     }
 
-    public bool HaveStamina(float amount)
+    public override bool HaveStamina(float amount)
     {
         LastStaminaCheck = amount;
         return Stamina >= amount;
@@ -131,7 +131,12 @@ public class Plant
     public static implicit operator bool(Plant? plant) => plant is not null;
 }
 
-public class Humanoid
+public class Character
+{
+    public virtual bool HaveStamina(float amount) => false;
+}
+
+public class Humanoid : Character
 {
 }
 

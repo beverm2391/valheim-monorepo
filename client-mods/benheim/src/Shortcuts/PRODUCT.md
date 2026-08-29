@@ -32,7 +32,7 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The `0.1.72` candidate adds organized feature entries for Ship Sprint,
+- The `0.1.73` candidate adds organized feature entries for Ship Sprint,
   manual collection of submerged native Tar, Perfect Impact, and reduced
   planting stamina. It says each successful plant placement, including every
   successful mass-grid placement, costs 50% of Valheim's resolved native
@@ -42,7 +42,7 @@ use it to find controls and passive features.
   updated presentation still needs gameplay proof.
 - The Ship Sprint entry explains that the helm readout shows planar speed and
   marks `SPRINT` while the local player has an active Ship Sprint request.
-- The `0.1.72` candidate adds a Building section. It says Workbench and
+- The `0.1.73` candidate adds a Building section. It says Workbench and
   Stonecutter build-piece placement coverage is `2x` Valheim's native range,
   from 20 meters to 40 meters for level-1 stations. It also names the station
   behaviors that remain native.

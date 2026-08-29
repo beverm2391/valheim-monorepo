@@ -193,9 +193,13 @@ readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.72` is the current private-test candidate. It keeps the Kill
-Attribution V3 capability boundary and the 6/12 kill-chain thresholds from
-`0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
+On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
+because the required planting-stamina hook did not attach. Because Benheim
+fails closed when this hook is missing, it disabled all gameplay actions.
+Benheim `0.1.73` is the current private-test candidate. It preserves all
+`0.1.72` gameplay semantics and corrects only this startup failure. It keeps
+the Kill Attribution V3 capability boundary and the 6/12 kill-chain thresholds
+from `0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
 untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
 for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
 

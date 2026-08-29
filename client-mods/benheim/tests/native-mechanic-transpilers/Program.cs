@@ -68,7 +68,9 @@ static void VerifyPlantingStamina()
     Expect(player.LastStaminaCheck == 10f);
 
     MethodInfo getSelectedPiece = typeof(PieceTable).GetMethod(nameof(PieceTable.GetSelectedPiece))!;
-    MethodInfo haveStamina = typeof(Player).GetMethod(nameof(Player.HaveStamina))!;
+    // Player overrides Character.HaveStamina, but installed Valheim 0.221.12 calls the
+    // base-declared virtual slot from Player.UpdatePlacement.
+    MethodInfo haveStamina = typeof(Character).GetMethod(nameof(Character.HaveStamina))!;
     MethodInfo tryPlacePiece = typeof(Player).GetMethod(nameof(Player.TryPlacePiece))!;
     MethodInfo replacement = typeof(PlantingStamina).GetMethod(
         nameof(PlantingStamina.HasPlacementStamina),

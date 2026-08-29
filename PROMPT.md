@@ -199,27 +199,22 @@ client-mods/benheim/scripts/package-macos.sh
 client-mods/benheim/scripts/package-windows.sh
 ```
 
-`install-local.sh` must run the same Mac installer shipped to players. The
-installer must be safe to run repeatedly. Keep BepInEx installation,
-legacy-plugin cleanup, and launcher generation in that installer. The Mac
-launcher must start Steam when needed before it starts Valheim.
+`install-local.sh` must run the same Mac installer shipped to players. The installer must
+be safe to run repeatedly. Keep BepInEx installation, legacy-plugin cleanup, and launcher
+generation in that installer. The Mac launcher must start Steam when needed before it starts Valheim.
 
-The normal Steam launch remains vanilla on Mac and Windows. `Benheim.app` on
-Mac and the managed `Benheim` shortcut on Windows are the explicit modded launch
-paths. Launchers and installers must not check GitHub or another network source
-for updates. Share updates as complete platform packages; a player updates by
-rerunning the installer while Valheim is closed.
+The normal Steam launch remains vanilla on Mac and Windows. `Benheim.app` on Mac and the
+managed `Benheim` shortcut on Windows are the explicit modded launch paths. Launchers and
+installers must not check GitHub or another network source for updates. Share updates as
+complete platform packages; a player updates by rerunning the installer while Valheim is closed.
 
-The Mac launcher starts the installed BepInEx launch script only after Steam's
-connection log shows a successful login. Do not use the `ipcserver` process as
-the readiness signal because it can remain after Steam exits.
+The Mac launcher starts the installed BepInEx launch script only after Steam's connection
+log shows a successful login. Do not use `ipcserver` as the readiness signal because it can remain after Steam exits.
 
-The Windows installer keeps UnityDoorstop disabled in `doorstop_config.ini`.
-Its managed shortcut starts Steam, finds Valheim across configured Steam
-libraries, and launches `valheim.exe` with `--doorstop-enabled true`. Do not
-rename Doorstop DLLs to switch modes. Remove retired updater apps, shortcuts,
-and state only when a managed identifier or marker proves ownership. Leave
-unrelated paths unchanged.
+The Windows installer keeps UnityDoorstop disabled in `doorstop_config.ini`. Its managed shortcut starts Steam,
+finds Valheim across configured Steam libraries, and launches `valheim.exe` with `--doorstop-enabled true`.
+Do not rename Doorstop DLLs to switch modes. Remove retired updater apps, shortcuts, and state only when a
+managed identifier or marker proves ownership. Leave unrelated paths unchanged.
 
 The Windows installer must:
 
@@ -229,9 +224,14 @@ The Windows installer must:
 - refuse to overwrite an unrelated desktop shortcut; and
 - keep the normal Steam launch vanilla after installation.
 
-Use `client-mods/benheim/tests/windows-installer-test.sh` to verify installer
-source and packaged files. Keep this test until a Windows CI runner can execute
-the installer.
+Use `client-mods/benheim/tests/windows-installer-test.sh` to verify installer source and
+packaged files. Keep this test until a Windows CI runner can execute the installer.
+
+Before distributing a Benheim client candidate, install the exact packaged artifact that will be shared.
+Launch it through the managed Benheim path to Valheim's real main menu. Verify that the log shows the expected
+version, session start, and chainloader completion, with no Harmony, core-disablement, or gameplay-disabled markers.
+Then quit cleanly without entering a world. One clean packaged-build startup is the normal gate.
+Repeat the launch only when an active incident requires more evidence.
 
 When `release.sh` publishes Benheim, it must run only from a clean local `main`
 that exactly matches `origin/main`. It runs `verify.sh`, packages both
