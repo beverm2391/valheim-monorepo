@@ -39,11 +39,6 @@ item, remove it from this queue and update that product owner.
   character. A hit that meets the owning product's qualification rule shows one
   `PERFECT IMPACT`. Other hits keep normal Valheim behavior. Combat Shake
   controls only the optional shake.
-- **Put Away with two players:** Split one item stack between a nearly full
-  nearby chest and a farther chest. Then deposit different item names from each
-  player. Both clients must show the same final chest and inventory contents.
-  No item may be lost or duplicated, and neither deposit may remain stuck.
-
 ## Not in `0.1.73`
 
 - The approved 25% Farming stamina cost moves to the next feature candidate.
