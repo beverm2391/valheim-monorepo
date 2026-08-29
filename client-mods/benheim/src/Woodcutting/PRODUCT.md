@@ -20,3 +20,11 @@ swings without creating bonus drops.
   drops.
 - A successful cleave shows yellow `CLEAVE` combat text at the axe impact,
   using the same feedback style as mining's `AOE` proc.
+- When a qualifying player axe hit destroys a Birch or Oak log, the hit can
+  convert that log's native Wood/Finewood composition to Finewood. The total
+  item count does not change.
+- The Finewood chance is Valheim's native 50% at Wood Cutting skill 25 and
+  below. It increases linearly to 100% at Wood Cutting skill 100. It reaches
+  about 67% at Wood Cutting skill 50 and 83% at Wood Cutting skill 75.
+- Stumps and Birch or Oak logs destroyed without a qualifying player axe hit
+  keep their native drops.
