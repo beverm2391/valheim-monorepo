@@ -32,14 +32,15 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The `0.1.73` candidate adds organized feature entries for Ship Sprint,
+- The next candidate adds organized feature entries for Ship Sprint,
   manual collection of submerged native Tar, Perfect Impact, and reduced
-  planting stamina. It says each successful plant placement, including every
-  successful mass-grid placement, costs 50% of Valheim's resolved native
-  planting stamina cost. It preserves the menu's named combat states and useful
-  tuning detail. UNTOUCHABLE now says that qualifying kills as well as perfect
-  defenses add streak points. Combat Shake also names Perfect Impact. The
-  updated presentation still needs gameplay proof.
+  planting stamina. The planting-stamina entry says that each successful
+  ordinary or grid plant placement costs 25% of the native planting stamina
+  cost that Valheim has already resolved. Skipped, failed, and rejected
+  placements cost no stamina. It preserves the menu's named combat states and
+  useful tuning detail. UNTOUCHABLE now says that qualifying kills as well as
+  perfect defenses add streak points. Combat Shake also names Perfect Impact.
+  The updated presentation still needs gameplay proof.
 - The Ship Sprint entry explains that the helm readout shows planar speed and
   marks `SPRINT` while the local player has an active Ship Sprint request.
 - The `0.1.73` candidate adds a Building section. It says Workbench and

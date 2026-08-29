@@ -47,8 +47,8 @@ static MethodInfo Resolver(string name)
 static void VerifyPlantingStamina()
 {
     Expect(PlantingStamina.Cost(0f) == 0f);
-    Expect(PlantingStamina.Cost(10f) == 5f);
-    Expect(PlantingStamina.Cost(7.5f) == 3.75f);
+    Expect(PlantingStamina.Cost(10f) == 2.5f);
+    Expect(PlantingStamina.Cost(7.5f) == 1.875f);
 
     Piece plantPiece = new Piece();
     plantPiece.gameObject.AddComponent(new Plant());
@@ -57,13 +57,13 @@ static void VerifyPlantingStamina()
     PieceTable ordinaryTable = new PieceTable(ordinaryPiece);
     float resolvedCost = 10f;
     PlantingStamina.ApplyResolvedCost(plantTable, ref resolvedCost);
-    Expect(resolvedCost == 5f);
+    Expect(resolvedCost == 2.5f);
     PlantingStamina.ApplyResolvedCost(ordinaryTable, ref resolvedCost);
-    Expect(resolvedCost == 5f);
+    Expect(resolvedCost == 2.5f);
 
-    Player player = new Player(station: null) { Stamina = 5f, ResolvedBuildStamina = 5f };
+    Player player = new Player(station: null) { Stamina = 2.5f, ResolvedBuildStamina = 2.5f };
     Expect(PlantingStamina.HasPlacementStamina(player, 10f, plantPiece));
-    Expect(player.LastStaminaCheck == 5f);
+    Expect(player.LastStaminaCheck == 2.5f);
     Expect(!PlantingStamina.HasPlacementStamina(player, 10f, ordinaryPiece));
     Expect(player.LastStaminaCheck == 10f);
 

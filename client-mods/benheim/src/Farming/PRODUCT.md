@@ -17,13 +17,13 @@ Valheim's normal farming restrictions.
 
 ## In Development
 
-- The `0.1.73` candidate is a centered, deterministic 9x9 planting grid.
+- The next candidate always produces the same centered 9x9 grid from the same
+  planting input.
   Compared with the accepted centered 5x5 grid, it changes only the grid
   dimensions and the stamina cost of successful planting.
-- Each successful plant placement costs 50% of Valheim's resolved native
-  planting stamina cost. The same proportional cost applies to every successful
-  placement in the mass-planting grid; skipped and failed positions are not
-  charged.
+- Each successful ordinary or grid plant placement costs 25% of the native
+  planting stamina cost that Valheim has already resolved. Skipped, failed, and
+  rejected placements cost no stamina.
 - The candidate otherwise preserves native resource consumption, tool
   durability, plant spacing, cultivated-ground checks, creator ownership,
   placement effects, statistics, skill gain, rotation, preview validity,

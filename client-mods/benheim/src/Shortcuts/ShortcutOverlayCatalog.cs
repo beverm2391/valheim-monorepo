@@ -50,7 +50,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
                 new Entry("Left Shift + plant", $"Plant a centered {FarmingSettings.GridWidth}x{FarmingSettings.GridLength} grid"),
             },
-            "Successful planting costs 50% of Valheim's native stamina; resource, spacing, and cultivated-ground rules stay native."),
+            "Successful planting costs 25% of Valheim's native stamina; resource, spacing, and cultivated-ground rules stay native."),
     };
 
     private static readonly Section[] FeatureSections =

@@ -2,7 +2,7 @@ namespace BenheimQoL.Farming;
 
 internal static class PlantingStamina
 {
-    internal const float CostMultiplier = 0.5f;
+    internal const float CostMultiplier = 0.25f;
 
     internal static float Cost(float nativeCost)
     {
