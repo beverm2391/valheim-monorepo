@@ -13,13 +13,23 @@ document lists it under **Current Behavior**.
 ## Current candidate
 
 - Accepted client baseline: `0.1.52`
-- Installed private-test client: `0.1.70`
+- Installed private-test client on Ben's Mac: `0.1.72`
 - Deployed Server Support: `0.1.6`
 - Deployed Test Commands: `0.1.2`
 - Required Server Support for this pass: `0.1.6`
-- Required group version for this pass: Benheim `0.1.70`
+- Station Coverage and the sailing gauge are client-only; the server is
+  unchanged.
 
-## Test now on installed `0.1.70`
+## Test now on installed `0.1.72`
+
+- **Station Coverage:** with isolated level-1 Workbench and Stonecutter controls,
+  place a station-required piece at about 22 m and 38 m, then confirm placement
+  fails beyond 40 m. Ordinary station interaction, crafting, repair, and
+  upgrades must remain native.
+- **Sailing gauge:** while steering, confirm the compact speed readout follows
+  actual ship motion, `SPRINT` follows the accepted forward Run request, reverse
+  never shows `SPRINT`, and the whole readout disappears immediately on helm
+  exit.
 
 - **Perfect defense:** one qualifying parry gives one confirmation, adrenaline
   award, and UNTOUCHABLE point; food normalization preserves the streak while
