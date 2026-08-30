@@ -11,15 +11,14 @@ item, remove it from this queue and update that product owner.
 
 ## Current candidate
 
-- Ben's Mac has the private-test `0.1.73` client installed.
-- Clients `0.1.70` through `0.1.72` contain the broken Farming startup matcher
-  and must not be used.
-- The `0.1.73` hotfix changes only that startup matcher. In all three launches,
-  the installed client reached Valheim's main menu without Harmony or
-  gameplay-disabled markers. The client quit before loading a world each time.
-- Server Support remains `0.1.6`. This client hotfix needs no server update.
+- Ben's Mac has the private-test `0.1.74` client installed.
+- The client installed from the private-test `0.1.74` package reached Valheim's
+  main menu without Harmony or gameplay-disabled markers. Valheim then quit
+  cleanly without loading a world.
+- Benheim Server Support remains at `0.1.6`. The `0.1.74` client requires no
+  change to that server component.
 
-## Test on `0.1.73`
+## Test on `0.1.74`
 
 - **Workbench and Stonecutter range:** Place a Workbench-required piece around
   22 m and 38 m from an isolated level-1 Workbench. Confirm that placement fails
@@ -30,18 +29,20 @@ item, remove it from this queue and update that product owner.
   throttle. Confirm that `SPRINT` appears and `3x` thrust applies. Release Run,
   reverse the throttle, and leave the helm. Each action must restore normal
   Valheim behavior.
-- **Mass planting:** Preview and place the centered 9x9 grid. Each successful
-  plant still costs half the normal Valheim stamina cost in this candidate. A
-  failed planting attempt costs no stamina.
+- **Mass planting:** Place one plant normally. Then preview and place the
+  centered 9x9 grid. Each successful ordinary or grid placement costs 25% of
+  the native stamina cost after Valheim applies the Farming skill adjustment.
+  A failed, skipped, or rejected placement costs no stamina.
+- **Finewood:** Break native Birch and Oak logs. Every ordinary Wood item from
+  those logs must become Finewood. The conversion must preserve the exact item
+  count and Valheim's native drop behavior. In multiplayer, break a Birch or
+  Oak log that another compatible player owns. Confirm the same conversion,
+  item count, and native drop behavior. Drops from other logs and stumps must
+  remain unchanged. Non-Wood drops from Birch and Oak logs must also remain
+  unchanged.
 - **Tar:** Manually collect native Tar while it is submerged. Items other than
   Tar must remain stuck. No item may be collected automatically.
 - **Perfect Impact:** While airborne and descending, land one melee hit on a
   character. A hit that meets the owning product's qualification rule shows one
   `PERFECT IMPACT`. Other hits keep normal Valheim behavior. Combat Shake
   controls only the optional shake.
-## Not in `0.1.73`
-
-- The approved 25% Farming stamina cost moves to the next feature candidate.
-- Skill-scaled Finewood needs a small multiplayer message that includes the
-  player's skill level. Valheim does not send a remote player's Wood Cutting
-  level to the player who owns the log.
