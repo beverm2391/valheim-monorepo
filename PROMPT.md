@@ -227,11 +227,19 @@ The Windows installer must:
 Use `client-mods/benheim/tests/windows-installer-test.sh` to verify installer source and
 packaged files. Keep this test until a Windows CI runner can execute the installer.
 
-Before distributing a Benheim client candidate, install the exact packaged artifact that will be shared.
-Launch it through the managed Benheim path to Valheim's real main menu. Verify that the log shows the expected
-version, session start, and chainloader completion, with no Harmony, core-disablement, or gameplay-disabled markers.
-Then quit cleanly without entering a world. One clean packaged-build startup is the normal gate.
-Repeat the launch only when an active incident requires more evidence.
+Before this task installs or launches a packaged build for bounded startup
+proof, confirm that no Valheim process is running. Any Valheim process that was
+already running is a hard stop. Do not quit or kill it, install over it, or
+launch or relaunch around it. Wait for Ben's explicit instruction.
+
+Install the exact packaged artifact that will be shared. Launch the installed
+package through Benheim's managed path and reach Valheim's real main menu.
+Verify that the log shows the expected version, session start, and chainloader
+completion, with no Harmony, core-disablement, or gameplay-disabled markers. A
+task may quit only the Valheim process that it launched for this bounded
+startup proof. After validation, quit that process cleanly. Do not enter a
+world. One clean packaged-build startup is the normal gate. Do not launch again
+unless an active incident requires more evidence.
 
 When `release.sh` publishes Benheim, it must run only from a clean local `main`
 that exactly matches `origin/main`. It runs `verify.sh`, packages both
