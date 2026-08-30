@@ -206,6 +206,15 @@ hostile kills now advance the shared,
 untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
 for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
 
+The exact `0.1.74` macOS private-test package was installed byte-for-byte and
+launched through the managed Benheim launcher on installed Valheim `0.221.12`.
+It reached Valheim's real main menu. The fresh log contained the expected
+version, session-start, chainloader-complete, and clean session-end markers. It
+contained no Harmony, partial-patch cleanup, core-disablement,
+gameplay-disabled, or world-load marker. No world was loaded. This proves
+packaged startup only. It does not prove Farming gameplay. It also does not
+prove Finewood behavior in live gameplay or multiplayer.
+
 The candidate doubles only native Workbench and Stonecutter build-piece
 placement coverage. In installed Valheim `0.221.12`, both level-1 stations have
 a native 20-meter build radius. The candidate doubles each build radius to 40
