@@ -130,6 +130,9 @@ earned-state titles. Benheim combines them into one local Bonus text in the
 order that the defense earns them. It also plays at most one charm cue for that
 defense. This rule does not combine unrelated actions or callbacks.
 
+The native charm cue remains distance-based. Compatible nearby players may
+hear it. Distant players must not hear it.
+
 None of the three states adds extra adrenaline. Existing perfect-defense
 adrenaline behavior remains unchanged. Exact avoided-damage evidence may refine
 CLUTCH later.
@@ -153,7 +156,8 @@ Automated checks cover:
 - exclusion of passive maximum-health normalization from food expiry;
 - UNTOUCHABLE thresholds for the streak shared by defenses and kills;
 - rolling kill thresholds;
-- tier replacement; and
+- tier replacement;
+- selection and distance-based configuration of the native charm cue; and
 - bounded typed telemetry for earned-state payloads.
 
 Automated checks alone do not establish gameplay acceptance. The following
@@ -164,7 +168,9 @@ behavior still needs gameplay proof:
 - reset from an intentional health cost;
 - UNTOUCHABLE progression that mixes defenses and kills;
 - BERSERKER activation at six qualifying kills;
-- SLAUGHTERHOUSE activation at twelve qualifying kills; and
+- SLAUGHTERHOUSE activation at twelve qualifying kills;
+- live multiplayer proof that compatible nearby players may hear the native
+  charm cue, but distant players must not hear it; and
 - the measured effect payloads.
 
 [Adrenaline](../Adrenaline/PRODUCT.md) owns meter behavior and tuning.

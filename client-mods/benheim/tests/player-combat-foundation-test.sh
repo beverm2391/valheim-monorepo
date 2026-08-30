@@ -14,6 +14,7 @@ untouchable="$root/src/PlayerCombat/UntouchableMechanic.cs"
 berserker="$root/src/PlayerCombat/BerserkerMechanic.cs"
 effects="$root/src/PlayerCombat/EarnedStateEffects.cs"
 presentation="$root/src/PlayerCombat/EarnedStatePresentation.cs"
+activation_audio="$root/src/PlayerCombat/EarnedStateActivationAudio.cs"
 adrenaline_feedback="$root/src/Adrenaline/AdrenalineFeedback.cs"
 plugin="$root/src/Plugin.cs"
 
@@ -126,6 +127,14 @@ grep -Fq '!nativeCharmActivated' "$presentation"
 grep -Fq 'player.GetAdrenaline() < award.Maximum' "$adrenaline_feedback"
 grep -Fq 'm_adrenalinePopEffects' "$presentation"
 grep -Fq 'activationEffects.Create(' "$presentation"
+grep -Fq 'NativeEffectPrefab = "fx_Adrenaline1"' "$activation_audio"
+grep -Fq 'ShieldGeneratorAudioLayer = "sfx_shieldgenerator_startup"' "$activation_audio"
+grep -Fq 'MaximumAudibleDistance = 14f' "$activation_audio"
+grep -Fq 'audioSource.spatialBlend = 1f;' "$activation_audio"
+grep -Fq 'audioSource.maxDistance = MaximumAudibleDistance;' "$activation_audio"
+grep -Fq '[HarmonyPatch(typeof(ZSFX), nameof(ZSFX.Awake))]' "$native_patches"
+grep -Fq 'Utils.GetPrefabName(__instance.transform.root.gameObject)' "$native_patches"
+grep -Fq '__instance.GetComponent<AudioSource>()' "$native_patches"
 if grep -Fq 'ShowBiomeFoundMsg' "$presentation"; then
   printf 'earned-state presentation must not use the discovery banner\n' >&2
   exit 1
@@ -217,5 +226,8 @@ grep -Fq 'modifiers.Apply(m_mods);' "$native_tree/SE_Stats.cs"
 # The exact local charm one-shot is a presentation-only EffectList call.
 grep -Fq 'm_adrenalinePopEffects.Create(base.transform.position, Quaternion.identity);' "$native_tree/Player.cs"
 grep -Fq 'public bool HasEffects()' "$native_tree/EffectList.cs"
+grep -Fq 'UnityEngine.Object.Instantiate(effectData.m_prefab, position, rotation);' "$native_tree/EffectList.cs"
+grep -Fq 'm_zdo = ZDOMan.instance.CreateNewZDO(base.transform.position' "$native_tree/ZNetView.cs"
+grep -Fq 'm_audioSource = GetComponent<AudioSource>();' "$native_tree/ZSFX.cs"
 
 dotnet run --project "$root/tests/player-combat-foundation/PlayerCombatFoundationTests.csproj" -c Release
