@@ -196,7 +196,7 @@ gameplay proof or fixes.
 On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
 because the required planting-stamina hook did not attach. Because Benheim
 fails closed when this hook is missing, it disabled all gameplay actions.
-Benheim `0.1.75` is the current private-test candidate. It preserves the
+Benheim `0.1.76` is the current private-test candidate. It preserves the
 `0.1.73` startup correction. It adds the
 [Farming](src/Farming/PRODUCT.md) module's 9x9 grid and planting-stamina
 behavior. It also adds the [Woodcutting](src/Woodcutting/PRODUCT.md) module's
@@ -205,6 +205,10 @@ the 6/12 kill-chain thresholds from `0.1.66`. Server-confirmed qualifying
 hostile kills now advance the shared,
 untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
 for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
+
+The candidate also corrects the [Player Combat](src/PlayerCombat/PRODUCT.md)
+earned-state activation cue. Compatible nearby players may hear the cue, but
+distant players must not hear it.
 
 The exact `0.1.74` macOS private-test package was installed byte-for-byte and
 launched through the managed Benheim launcher on installed Valheim `0.221.12`.

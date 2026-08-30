@@ -25,7 +25,7 @@ interaction, crafting, repair, upgrade attachment, comfort, Workbench suppressio
 enemy spawning, wards, other crafting stations, persistence, networking, or world
 data.
 
-The `0.1.75` candidate still needs gameplay proof for:
+The `0.1.76` candidate still needs gameplay proof for:
 
 - the native 20-meter boundary at each level-1 station;
 - the extended area beyond 20 meters and through 40 meters;
@@ -55,11 +55,11 @@ and in nearby buildings can provide comfort.
 Run `bh debug comfort` in the console to capture one Valheim comfort
 calculation. The command does not start continuous logging. The diagnostic log
 records the calculation's radius and the player's shelter and comfort state.
-It records every comfort candidate exposed by Valheim's native query. For each
-candidate, it records whether Valheim counted or skipped the piece and why. It
-also records a limited number of the nearest pieces excluded by radius. The
-command does not change the player, furniture, or world. It cannot record pieces
-that Valheim hides before the native comfort query.
+It records every comfort candidate exposed by Valheim's native comfort query.
+For each comfort candidate, it records whether Valheim counted or skipped it
+and why. It also records a limited number of the nearest pieces excluded by
+radius. The command does not change the player, furniture, or world. It cannot
+record pieces that Valheim hides before the native comfort query.
 
 Benheim does not change:
 

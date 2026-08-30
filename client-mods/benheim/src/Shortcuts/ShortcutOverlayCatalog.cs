@@ -122,6 +122,9 @@ internal static partial class ShortcutOverlay
                 new Entry(
                     "SLAUGHTERHOUSE",
                     $"At {KillChainRules.SlaughterhouseKillThreshold} qualifying kills: 50% physical resistance and +100% stamina regeneration"),
+                new Entry(
+                    "Earned-state cue",
+                    "Compatible nearby players may hear the native charm audio; distant players cannot"),
             },
             $"Each qualifying kill resets the {KillChainRules.WindowSeconds:0}-second BERSERKER timer. " +
                 "BERSERKER, SLAUGHTERHOUSE, and kill-based UNTOUCHABLE progression require Benheim Server Support. " +

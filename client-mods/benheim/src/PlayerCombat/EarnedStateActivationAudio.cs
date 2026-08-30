@@ -6,7 +6,8 @@ namespace BenheimQoL.PlayerCombat;
 /// Keeps Valheim's networked adrenaline activation effect while correcting its
 /// shield-generator audio layer. In 0.221.12 that layer becomes fully 2D at
 /// distance, so every peer that receives the effect can hear it without normal
-/// spatial attenuation. The companion sound layer is already fully 3D at 14 m.
+/// spatial attenuation. The corrected layer remains fully 3D and fades to
+/// silence at the companion sound layer's 14 m maximum distance.
 /// </summary>
 internal static class EarnedStateActivationAudio
 {
@@ -26,5 +27,9 @@ internal static class EarnedStateActivationAudio
     {
         audioSource.spatialBlend = 1f;
         audioSource.maxDistance = MaximumAudibleDistance;
+        audioSource.SetCustomCurve(
+            AudioSourceCurveType.SpatialBlend,
+            AnimationCurve.Linear(0f, 1f, 1f, 1f));
+        audioSource.rolloffMode = AudioRolloffMode.Linear;
     }
 }

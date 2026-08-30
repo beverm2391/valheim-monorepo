@@ -114,6 +114,8 @@ grep -Fq "The comfort command records every furniture candidate exposed by Valhe
 grep -Fq 'It also records a limited number of the nearest pieces excluded by radius' "$catalog_file"
 grep -Fq 'Pieces hidden before the query cannot appear in the log' "$catalog_file"
 grep -Fq 'new Entry("F7", "Save the active Benheim log to the Desktop")' "$catalog_file"
+grep -Fq '"Earned-state cue"' "$catalog_file"
+grep -Fq '"Compatible nearby players may hear the native charm audio; distant players cannot"' "$catalog_file"
 grep -Fq 'controlsWarnings.SetActive(warnings.Count > 0)' "$warnings_file"
 grep -Fq 'conflicts with native {EscapeMarkup(warning.NativeAction)}' "$warnings_file"
 grep -Fq 'new Entry("Left Shift + hammer repair", $"Repair eligible buildings and structures within {BuildingRepair.RepairRadius:0.#} m")' "$catalog_file"

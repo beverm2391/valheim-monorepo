@@ -130,8 +130,9 @@ earned-state titles. Benheim combines them into one local Bonus text in the
 order that the defense earns them. It also plays at most one charm cue for that
 defense. This rule does not combine unrelated actions or callbacks.
 
-The native charm cue remains distance-based. Compatible nearby players may
-hear it. Distant players must not hear it.
+The `0.1.76` candidate uses Valheim's distance-based playback for the native
+charm cue. Compatible nearby players may hear it. Distant players must not hear
+it.
 
 None of the three states adds extra adrenaline. Existing perfect-defense
 adrenaline behavior remains unchanged. Exact avoided-damage evidence may refine

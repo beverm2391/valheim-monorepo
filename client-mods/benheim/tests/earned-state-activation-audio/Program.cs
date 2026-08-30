@@ -26,6 +26,11 @@ Expect(source.spatialBlend == 1f,
     "the donor layer stays fully spatial at every distance");
 Expect(source.maxDistance == 14f,
     "the donor layer matches the native companion layer's audible range");
+Expect(source.SpatialBlendCurve?.StartValue == 1f
+        && source.SpatialBlendCurve.EndValue == 1f,
+    "the donor layer cannot return to 2D through its distance curve");
+Expect(source.rolloffMode == AudioRolloffMode.Linear,
+    "the donor layer fades to silence at its maximum distance");
 
 Console.WriteLine("earned-state activation audio checks passed");
 
