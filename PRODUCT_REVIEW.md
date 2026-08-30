@@ -41,22 +41,8 @@ ledger and who can accept its items.
   centered 9x9 grid. Each successful ordinary or grid placement costs 25% of
   the native stamina cost after Valheim applies the Farming skill adjustment.
   A failed, skipped, or rejected placement costs no stamina.
-- **Finewood:** Break native Birch and Oak logs. Every ordinary Wood item from
-  those logs must become Finewood. The conversion must preserve the exact item
-  count and Valheim's native drop behavior. In multiplayer, break a Birch or
-  Oak log that another compatible player owns. Confirm the same conversion,
-  item count, and native drop behavior. Drops from other logs and stumps must
-  remain unchanged. Non-Wood drops from Birch and Oak logs must also remain
-  unchanged.
 - **Tar:** Manually collect native Tar while it is submerged. Items other than
   Tar must remain stuck. No item may be collected automatically.
-- **Comfort:** Put comfort furniture between 10 m and 20 m away in a nearby
-  room, floor, or building. Confirm that it can contribute comfort while native
-  furniture values, grouping, shelter, fire, and Rested behavior stay unchanged.
-  Run `bh debug comfort` once. Confirm that the log records the radius, shelter,
-  comfort state, which candidates Valheim's native comfort query counted or
-  skipped, why it made each decision, and the nearest pieces excluded by radius.
-  The command must not change the player or world.
 - **Perfect Impact:** While airborne and descending, land one melee hit on a
   character. A hit that meets the owning product's qualification rule shows one
   `PERFECT IMPACT`. Other hits keep normal Valheim behavior. Combat Shake

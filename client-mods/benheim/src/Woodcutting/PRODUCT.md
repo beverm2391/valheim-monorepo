@@ -5,7 +5,17 @@ to obtain without increasing native drop counts.
 
 ## Current Behavior
 
-- No woodcutting changes have been gameplay-confirmed yet.
+- Each final ordinary Wood drop from a native Birch or Oak log becomes
+  Finewood. Native Finewood drops and all non-Wood drops from those logs remain
+  unchanged.
+- The conversion keeps each log's native item count unchanged. Valheim still
+  creates every drop through its normal drop process.
+- Drops from logs other than native Birch and Oak, standing trees, and stumps
+  remain unchanged.
+- Valheim's native damage-type conversions and unrelated destruction remain
+  unchanged.
+- A compatible client converts the drops when it attacks a log owned by
+  another compatible client.
 
 ## In Development
 
@@ -20,13 +30,3 @@ to obtain without increasing native drop counts.
   drops.
 - A successful cleave shows yellow `CLEAVE` combat text at the axe impact,
   using the same feedback style as mining's `AOE` proc.
-- The `0.1.76` candidate converts each final ordinary Wood drop from a native
-  Birch or Oak log to Finewood.
-  Native Finewood drops and all non-Wood drops remain unchanged.
-- The conversion keeps each log's native item count unchanged. Valheim still
-  spawns every drop through its native path.
-- Other logs remain native.
-- Standing-tree drops and stumps remain native.
-- Native damage-type conversions and unrelated destruction remain native.
-- The conversion works when one compatible client attacks a log that another
-  compatible client owns.

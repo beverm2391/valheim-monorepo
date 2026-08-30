@@ -20,25 +20,23 @@ grep -Fq 'normal Steam Play button starts vanilla Valheim' "$release_script"
 # A packaged-build startup gate cannot clear or adopt a Valheim process that
 # predates the task running the gate. Only that task's own bounded proof process
 # may be closed after validation.
-grep -Fq 'Before this task installs or launches a packaged build for bounded startup' "$prompt"
-grep -Fq 'already running is a hard stop.' "$prompt"
-grep -Fq 'Do not quit or kill it, install over it, or' "$prompt"
-grep -Fq 'launch or relaunch around it.' "$prompt"
-grep -Fq "Wait for Ben's explicit instruction." "$prompt"
-grep -Fq 'task may quit only the Valheim process that it launched for this bounded' "$prompt"
-grep -Fq 'startup proof.' "$prompt"
+prompt_flat="$(awk '{$1 = $1; printf "%s ", $0}' "$prompt")"
+grep -Fq 'Before this task installs or launches a packaged build for bounded startup' <<<"$prompt_flat"
+grep -Fq 'already running is a hard stop.' <<<"$prompt_flat"
+grep -Fq 'Do not quit or kill it, install over it, or launch or relaunch around it.' <<<"$prompt_flat"
+grep -Fq "Wait for Ben's explicit instruction." <<<"$prompt_flat"
+grep -Fq 'task may quit only the Valheim process that it launched for this bounded startup proof.' <<<"$prompt_flat"
 
 # The integration lead owns release-state freshness and unproven queue entries,
 # while Ben and the Project Lead own acceptance judgments.
-grep -Fq '`PRODUCT_REVIEW.md` is the live release ledger and acceptance queue.' "$prompt"
-grep -Fq 'integration lead for each client release must record its exact packaged' "$prompt"
-grep -Fq 'exact installed version, and concise remaining live checks.' "$prompt"
-grep -Fq 'The integration lead may add unproven items.' "$prompt"
-grep -Fq 'Ben and the Project Lead own acceptance judgments.' "$prompt"
-grep -Fq 'mark behavior from its own release as accepted;' "$prompt"
-grep -Fq 'remove passed items based only on static proof; or' "$prompt"
-grep -Fq 'promote behavior into accepted `PRODUCT.md` truth.' "$prompt"
-grep -Fq 'the integration lead removes it from the queue and' "$prompt"
+grep -Fq '`PRODUCT_REVIEW.md` is the live release ledger and acceptance queue.' <<<"$prompt_flat"
+grep -Fq 'integration lead for each client release must record its exact packaged version, exact installed version, and concise remaining live checks.' <<<"$prompt_flat"
+grep -Fq 'The integration lead may add unproven items.' <<<"$prompt_flat"
+grep -Fq 'Ben and the Project Lead own acceptance judgments.' <<<"$prompt_flat"
+grep -Fq 'mark behavior from its own release as accepted;' <<<"$prompt_flat"
+grep -Fq 'remove passed items based only on static proof; or' <<<"$prompt_flat"
+grep -Fq 'promote behavior into accepted `PRODUCT.md` truth.' <<<"$prompt_flat"
+grep -Fq 'the integration lead removes it from the queue and' <<<"$prompt_flat"
 
 release_state="$(awk '
   /^## Release state$/ { capture = 1; next }

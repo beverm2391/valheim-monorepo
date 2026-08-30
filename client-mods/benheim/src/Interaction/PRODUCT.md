@@ -9,6 +9,20 @@ without enabling remote use across a base.
   default range.
 - When a player opens a chest from extended range, both the player inventory
   and chest inventory appear.
+- Benheim changes only the range at which Valheim detects comfort furniture,
+  from exactly 10 meters to 20 meters. Comfort furniture in nearby rooms, on
+  nearby floors, and in nearby buildings can provide comfort.
+- `bh debug comfort` records one Valheim comfort calculation, then stops. It
+  does not change the player, furniture, or world. The diagnostic records the
+  radius used for that calculation, the shelter and comfort state, and every
+  candidate exposed by Valheim's native query. For each candidate, it records
+  whether Valheim counted or skipped it and why. It also records a limited
+  number of the nearest pieces excluded by the radius. It cannot record pieces
+  that Valheim excludes before the native comfort query.
+
+Benheim does not change furniture comfort values or how Valheim resolves
+duplicate furniture and furniture groups. It also does not change shelter and
+fire requirements, the Rested calculation, persistence, or networking.
 
 ## In Development
 
@@ -45,27 +59,5 @@ Other submerged items remain stuck. Benheim does not:
 - drain or mutate the pit;
 - change terrain or locations; or
 - write new world or character state.
-
-This behavior needs gameplay proof.
-
-Benheim changes only Valheim's comfort-furniture detection range, from exactly
-10 meters to 20 meters. Comfort furniture in nearby rooms, on nearby floors,
-and in nearby buildings can provide comfort.
-
-Run `bh debug comfort` in the console to capture one Valheim comfort
-calculation. The command does not start continuous logging. The diagnostic log
-records the calculation's radius and the player's shelter and comfort state.
-It records every comfort candidate exposed by Valheim's native comfort query.
-For each comfort candidate, it records whether Valheim counted or skipped it
-and why. It also records a limited number of the nearest pieces excluded by
-radius. The command does not change the player, furniture, or world. It cannot
-record pieces that Valheim hides before the native comfort query.
-
-Benheim does not change:
-
-- furniture comfort values or how Valheim resolves duplicate furniture and
-  furniture groups;
-- shelter and fire requirements or Rested calculation; or
-- persistence or networking.
 
 This behavior needs gameplay proof.
