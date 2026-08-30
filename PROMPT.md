@@ -145,31 +145,35 @@ controls, player feedback, acceptance meaning, and proof status belong in the
 owning product document. Keep implementation details in code or a deeper
 technical document.
 
-Ben and the Project Lead own `PRODUCT_REVIEW.md` as the live acceptance queue;
-Dev Leads may provide evidence or investigate ambiguity, but do not own it.
-Each item states the shortest player action and decision-changing outcome.
-Keep telemetry schemas, implementation invariants, and exhaustive edges in
-code, tests, or deeper technical docs; behavior and acceptance meaning stay in
-the owning `PRODUCT.md`. Player-observable feel can accept clear, low-risk
-tuning or presentation. Reserve programmatic or log proof for hidden,
-ambiguous, or destructive boundaries such as conservation, ownership,
-networking, persistence, and credentials. After acceptance, remove the item
-and update the owning product document.
+`PRODUCT_REVIEW.md` is the live release ledger and acceptance queue. The integration lead for each client
+release must record its exact packaged version, exact installed version, and concise remaining live checks.
+When the packaged version is not installed, keep its checks separate from the current installed-client queue.
+The integration lead may add unproven items.
+
+Ben and the Project Lead own acceptance judgments. An integration lead must not:
+
+- mark behavior from its own release as accepted;
+- remove passed items based only on static proof; or
+- promote behavior into accepted `PRODUCT.md` truth.
+
+Each review item states the shortest player action and decision-changing outcome. Keep telemetry schemas,
+implementation invariants, and exhaustive edges in code, tests, or deeper technical docs. Reserve programmatic
+or log proof for hidden, ambiguous, or destructive boundaries such as conservation, ownership, networking,
+persistence, and credentials. After Ben or the Project Lead accepts an item, the integration lead removes it from
+the queue and updates the owning product document.
 
 Build and test a client-only change with the canonical verification entrypoint:
 ```bash
 client-mods/benheim/scripts/verify.sh
 ```
 
-`verify.sh` runs every `client-mods/benheim/tests/*-test.sh` source/installer
-check, the quick-stack summary checks, and the Release DLL build. It does not
-install files, touch a Valheim game directory, create a platform package, or
-publish a release. The build and quick-stack checks may write ignored `bin/`
-and `obj/` outputs. Use `verify.sh` instead of running its checks separately.
+`verify.sh` runs every `client-mods/benheim/tests/*-test.sh` source/installer check, the quick-stack summary checks,
+and the Release DLL build. It does not install files, touch a Valheim game directory, create a platform package,
+or publish a release. The build and quick-stack checks may write ignored `bin/` and `obj/` outputs. Use
+`verify.sh` instead of running its checks separately.
 
-The expected build caveat is a `System.Net.Http` version conflict warning from
-Valheim assembly references. It is acceptable when the build exits
-successfully.
+The expected build caveat is a `System.Net.Http` version conflict warning from Valheim assembly references. It is
+acceptable when the build exits successfully.
 
 Inspect one type from the installed Valheim assembly:
 
@@ -177,9 +181,8 @@ Inspect one type from the installed Valheim assembly:
 client-mods/benheim/scripts/decompile-valheim.sh Character
 ```
 
-The helper caches decompiled source by the exact assembly SHA-256 and requested
-type. It writes decompiled source to standard output. It writes the resolved
-assembly path, SHA-256, requested type, and cache hit or miss to standard error.
+The helper caches decompiled source by the exact assembly SHA-256 and requested type. It writes decompiled source
+to standard output. It writes the resolved assembly path, SHA-256, requested type, and cache hit or miss to standard error.
 
 Cache and search the complete installed assembly:
 
@@ -199,22 +202,18 @@ client-mods/benheim/scripts/package-macos.sh
 client-mods/benheim/scripts/package-windows.sh
 ```
 
-`install-local.sh` must run the same Mac installer shipped to players. The installer must
-be safe to run repeatedly. Keep BepInEx installation, legacy-plugin cleanup, and launcher
-generation in that installer. The Mac launcher must start Steam when needed before it starts Valheim.
+`install-local.sh` must run the same Mac installer shipped to players. The installer must be safe to run repeatedly.
+Keep BepInEx installation, legacy-plugin cleanup, and launcher generation in that installer. The Mac launcher must start Steam when needed before it starts Valheim.
 
-The normal Steam launch remains vanilla on Mac and Windows. `Benheim.app` on Mac and the
-managed `Benheim` shortcut on Windows are the explicit modded launch paths. Launchers and
-installers must not check GitHub or another network source for updates. Share updates as
-complete platform packages; a player updates by rerunning the installer while Valheim is closed.
+The normal Steam launch remains vanilla on Mac and Windows. `Benheim.app` on Mac and the managed `Benheim` shortcut
+on Windows are the explicit modded launch paths. Launchers and installers must not check GitHub or another network
+source for updates. Share updates as complete platform packages; a player updates by rerunning the installer while Valheim is closed.
 
-The Mac launcher starts the installed BepInEx launch script only after Steam's connection
-log shows a successful login. Do not use `ipcserver` as the readiness signal because it can remain after Steam exits.
+The Mac launcher starts the installed BepInEx launch script only after Steam's connection log shows a successful login. Do not use `ipcserver` as the readiness signal because it can remain after Steam exits.
 
-The Windows installer keeps UnityDoorstop disabled in `doorstop_config.ini`. Its managed shortcut starts Steam,
-finds Valheim across configured Steam libraries, and launches `valheim.exe` with `--doorstop-enabled true`.
-Do not rename Doorstop DLLs to switch modes. Remove retired updater apps, shortcuts, and state only when a
-managed identifier or marker proves ownership. Leave unrelated paths unchanged.
+The Windows installer keeps UnityDoorstop disabled in `doorstop_config.ini`. Its managed shortcut starts Steam, finds
+Valheim across configured Steam libraries, and launches `valheim.exe` with `--doorstop-enabled true`. Do not rename
+Doorstop DLLs to switch modes. Remove retired updater apps, shortcuts, and state only when a managed identifier or marker proves ownership. Leave unrelated paths unchanged.
 
 The Windows installer must:
 
@@ -224,28 +223,21 @@ The Windows installer must:
 - refuse to overwrite an unrelated desktop shortcut; and
 - keep the normal Steam launch vanilla after installation.
 
-Use `client-mods/benheim/tests/windows-installer-test.sh` to verify installer source and
-packaged files. Keep this test until a Windows CI runner can execute the installer.
+Use `client-mods/benheim/tests/windows-installer-test.sh` to verify installer source and packaged files. Keep this test until a Windows CI runner can execute the installer.
 
-Before this task installs or launches a packaged build for bounded startup
-proof, confirm that no Valheim process is running. Any Valheim process that was
-already running is a hard stop. Do not quit or kill it, install over it, or
-launch or relaunch around it. Wait for Ben's explicit instruction.
+Before this task installs or launches a packaged build for bounded startup proof, confirm that no Valheim process is
+running. Any Valheim process that was already running is a hard stop. Do not quit or kill it, install over it, or launch or relaunch around it. Wait for Ben's explicit instruction.
 
-Install the exact packaged artifact that will be shared. Launch the installed
-package through Benheim's managed path and reach Valheim's real main menu.
-Verify that the log shows the expected version, session start, and chainloader
-completion, with no Harmony, core-disablement, or gameplay-disabled markers. A
-task may quit only the Valheim process that it launched for this bounded
-startup proof. After validation, quit that process cleanly. Do not enter a
-world. One clean packaged-build startup is the normal gate. Do not launch again
-unless an active incident requires more evidence.
+Install the exact packaged artifact that will be shared. Launch the installed package through Benheim's managed path
+and reach Valheim's real main menu. Verify that the log shows the expected version, session start, and chainloader
+completion, with no Harmony, core-disablement, or gameplay-disabled markers. A task may quit only the Valheim process
+that it launched for this bounded startup proof. After validation, quit that process cleanly. Do not enter a world.
+One clean packaged-build startup is the normal gate. Do not launch again unless an active incident requires more evidence.
 
-When `release.sh` publishes Benheim, it must run only from a clean local `main`
-that exactly matches `origin/main`. It runs `verify.sh`, packages both
-platforms from that verified build, creates the `benheim-v<version>` GitHub
-release, and uploads stable `Benheim-macOS.zip` and `Benheim-Windows.zip`
-assets. Release assets are distribution artifacts, not an update channel.
+When `release.sh` publishes Benheim, it must run only from a clean local `main` that exactly matches `origin/main`.
+It runs `verify.sh`, packages both platforms from that verified build, creates the `benheim-v<version>` GitHub
+release, and uploads stable `Benheim-macOS.zip` and `Benheim-Windows.zip` assets. Release assets are distribution
+artifacts, not an update channel.
 
 ## Gameplay development loop
 
