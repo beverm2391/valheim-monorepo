@@ -19,6 +19,10 @@ without enabling remote use across a base.
   whether Valheim counted or skipped it and why. It also records a limited
   number of the nearest pieces excluded by the radius. It cannot record pieces
   that Valheim excludes before the native comfort query.
+- The command prints the calculated comfort and readable **Counted**,
+  **Ignored**, and **Just outside range** sections in the console. The command
+  still records the complete typed diagnostic and log evidence for later
+  investigation.
 
 Benheim does not change furniture comfort values or how Valheim resolves
 duplicate furniture and furniture groups. It also does not change shelter and

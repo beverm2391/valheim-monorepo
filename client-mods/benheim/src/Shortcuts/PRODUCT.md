@@ -58,10 +58,11 @@ use it to find controls and passive features.
   native.
 - The Diagnostics section lists `bh debug comfort`. It says the command records
   evidence from one native comfort calculation without changing the player,
-  furniture, or world. The menu says the log contains every comfort candidate
-  exposed by Valheim's native comfort query. The log also contains a limited
-  number of the nearest pieces excluded by radius. The menu says the command
-  cannot record pieces that Valheim hides before the native comfort query.
+  furniture, or world. The menu says the command prints the calculated comfort
+  plus **Counted**, **Ignored**, and **Just outside range** sections. It also
+  says the command preserves the complete typed diagnostic and log evidence.
+  The menu explains that the command cannot report pieces that Valheim filters
+  out before its native comfort query.
 - The Combat section says compatible nearby players may hear the native charm
   cue for earned states. It says distant players must not hear the cue.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep

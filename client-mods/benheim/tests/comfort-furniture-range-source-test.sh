@@ -5,6 +5,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 patch="$root/src/Interaction/ComfortFurnitureRangePatch.cs"
 capture="$root/src/Interaction/ComfortDiagnosticCapture.cs"
 command="$root/src/Interaction/ComfortDiagnosticCommand.cs"
+summary="$root/src/Interaction/ComfortDiagnosticSummary.cs"
 client="$root/src/EnemyTiers/BenheimTestCommandClient.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native="$source_tree/SE_Rested.cs"
@@ -43,6 +44,10 @@ rg -Fq 'DiagnosticEvent.Create("Comfort", "comfort_debug_summary")' "$command"
 rg -Fq 'DiagnosticEvent.Create("Comfort", "comfort_debug_piece")' "$command"
 rg -Fq '.String("native_prefilter_visibility", "not_observable")' "$command"
 rg -Fq '.String("identity_scope", piece.IdentityScope)' "$command"
+rg -Fq 'ComfortDiagnosticSummary.Format' "$command"
+rg -Fq 'lines.Add("COUNTED")' "$summary"
+rg -Fq 'lines.Add("IGNORED")' "$summary"
+rg -Fq 'lines.Add("JUST OUTSIDE RANGE")' "$summary"
 rg -Fq '"session_only"' "$capture"
 rg -Fq 'ComfortDiagnosticCommand.TryExecute(args.Args, args.Context)' "$client"
 rg -Fq 'ComfortDiagnosticCommand.PrintUsage(context)' "$client"
@@ -59,7 +64,7 @@ if [[ "$health_line" -ge "$emit_line" ]]; then
   exit 1
 fi
 
-if rg -n 'Set\(|InvokeRPC|ZDOMan|ZRoutedRpc|ZNetScene|Destroy\(|Instantiate\(' "$capture" "$command"; then
+if rg -n 'Set\(|InvokeRPC|ZDOMan|ZRoutedRpc|ZNetScene|Destroy\(|Instantiate\(' "$capture" "$command" "$summary"; then
   printf 'comfort diagnostic must not mutate native, network, persistent, or world state\n' >&2
   exit 1
 fi

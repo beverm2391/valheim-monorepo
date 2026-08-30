@@ -51,7 +51,7 @@ internal static class ComfortDiagnosticCommand
     {
         context.AddString($"  {Usage}");
         context.AddString(
-            "  record one Valheim comfort calculation in the diagnostic log, including why Valheim counted or skipped each recorded piece of comfort furniture");
+            "  show one readable Valheim comfort calculation and record the complete diagnostic evidence");
     }
 
     private static void Emit(Player player, Terminal context)
@@ -98,19 +98,15 @@ internal static class ComfortDiagnosticCommand
             snapshot.RadiusExclusions,
             snapshot.RadiusExclusions.Count);
 
-        string radius = snapshot.RadiusUsed
-            ? $"{snapshot.QueryRadius:0.##}m"
-            : "not used because the player is not sheltered";
-        context.AddString(
-            $"Benheim wrote the comfort diagnostic to the diagnostic log. Radius: {radius}. " +
-            $"Calculated comfort: {snapshot.CalculatedComfort}. " +
-            $"Cached comfort: {snapshot.CachedComfort}. " +
-            $"Furniture candidates: {snapshot.Candidates.Count}.");
-        context.AddString(
-            $"Benheim recorded all {snapshot.Candidates.Count} native comfort candidates and " +
-            $"{snapshot.RadiusExclusions.Count} of {snapshot.RadiusExclusionCount} nearest radius exclusions.");
-        context.AddString(
-            "Pieces that Valheim hides before its native comfort query are not observable by this command.");
+        IReadOnlyList<string> summary = ComfortDiagnosticSummary.Format(
+            snapshot,
+            token => Localization.instance != null
+                ? Localization.instance.Localize(token)
+                : token);
+        for (int index = 0; index < summary.Count; index++)
+        {
+            context.AddString(summary[index]);
+        }
     }
 
     private static void EmitPieces(

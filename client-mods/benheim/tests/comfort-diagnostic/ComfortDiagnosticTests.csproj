@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Interaction/ComfortDiagnosticDecision.cs" Link="ComfortDiagnosticDecision.cs" />
+    <Compile Include="../../src/Interaction/ComfortDiagnosticSummary.cs" Link="ComfortDiagnosticSummary.cs" />
   </ItemGroup>
 </Project>
