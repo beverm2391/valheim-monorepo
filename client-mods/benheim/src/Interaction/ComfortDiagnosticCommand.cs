@@ -20,6 +20,13 @@ internal static class ComfortDiagnosticCommand
             return true;
         }
 
+        if (!HealthReporting.GameplayActionsEnabled)
+        {
+            context.AddString(
+                "The Benheim comfort diagnostic is unavailable because its required observation hooks did not load. Open Left Shift + B for details.");
+            return true;
+        }
+
         Player? player = Player.m_localPlayer;
         if (player == null)
         {

@@ -32,7 +32,7 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The `0.1.74` candidate adds organized feature entries for Ship Sprint,
+- The `0.1.75` candidate adds organized feature entries for Ship Sprint,
   manual collection of submerged native Tar, Perfect Impact, and reduced
   planting stamina. The planting-stamina entry says that each successful
   ordinary or grid plant placement costs 25% of the native planting stamina
@@ -43,7 +43,7 @@ use it to find controls and passive features.
   The updated presentation still needs gameplay proof.
 - The Ship Sprint entry explains that the helm readout shows planar speed and
   marks `SPRINT` while the local player has an active Ship Sprint request.
-- The `0.1.74` candidate adds a Building section. It says Workbench and
+- The `0.1.75` candidate adds a Building section. It says Workbench and
   Stonecutter build-piece placement coverage is `2x` Valheim's native range,
   from 20 meters to 40 meters for level-1 stations. It also names the station
   behaviors that remain native.
@@ -56,6 +56,12 @@ use it to find controls and passive features.
   unchanged. For the Finewood conversion, other logs, standing-tree drops,
   stumps, native damage-type conversions, and unrelated destruction stay
   native.
+- The Diagnostics section lists `bh debug comfort`. It says the command records
+  evidence from one native comfort calculation without changing the player,
+  furniture, or world. The menu explains that the log contains every comfort
+  candidate exposed by Valheim's native query and a limited number of the
+  nearest pieces excluded by radius. It also says that the command cannot
+  record pieces Valheim hides before the query.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep
   their native behavior. The shortcut does nothing while the player is typing
   or while a menu, password field, or other text input is active. This

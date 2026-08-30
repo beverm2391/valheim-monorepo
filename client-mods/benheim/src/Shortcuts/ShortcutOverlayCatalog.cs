@@ -133,9 +133,10 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("/", "Open Valheim's native console when enabled"),
+                new Entry("bh debug comfort", "Record one native comfort calculation without changing the player, furniture, or world"),
                 new Entry("F7", "Save the active Benheim log to the Desktop"),
             },
-            "Attach the exported log when reporting behavior another player cannot reproduce."),
+            "The comfort command records every furniture candidate exposed by Valheim's native query. It also records a limited number of the nearest pieces excluded by radius. Pieces hidden before the query cannot appear in the log. Attach the exported log when reporting behavior another player cannot reproduce."),
     };
 
     // Valheim's keyboard bindings are single key paths: holding a modifier does

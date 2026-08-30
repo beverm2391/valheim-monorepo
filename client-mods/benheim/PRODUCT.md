@@ -196,7 +196,7 @@ gameplay proof or fixes.
 On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
 because the required planting-stamina hook did not attach. Because Benheim
 fails closed when this hook is missing, it disabled all gameplay actions.
-Benheim `0.1.74` is the current private-test candidate. It preserves the
+Benheim `0.1.75` is the current private-test candidate. It preserves the
 `0.1.73` startup correction. It adds the
 [Farming](src/Farming/PRODUCT.md) module's 9x9 grid and planting-stamina
 behavior. It also adds the [Woodcutting](src/Woodcutting/PRODUCT.md) module's
@@ -232,6 +232,11 @@ ship's planar world speed. It shows `SPRINT` only after Benheim accepts the loca
 player's Ship Sprint request and while that request remains active. Reverse and
 every other native ship rule remain unchanged. The [Ship Sprint
 module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live proof gates.
+
+The candidate also adds the one-shot `bh debug comfort` command. It records
+evidence from one native comfort calculation without changing the player,
+furniture, or world. See the [Interaction module](src/Interaction/PRODUCT.md)
+for what the command records and what it cannot observe.
 
 The candidate also lets a player manually collect native Tar while the Tar is
 submerged in a tar pit. Only manual interaction with native Tar changes. Tar

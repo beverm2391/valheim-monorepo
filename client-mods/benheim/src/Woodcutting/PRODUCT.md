@@ -20,7 +20,7 @@ to obtain without increasing native drop counts.
   drops.
 - A successful cleave shows yellow `CLEAVE` combat text at the axe impact,
   using the same feedback style as mining's `AOE` proc.
-- The `0.1.74` candidate converts each final ordinary Wood drop from a native
+- The `0.1.75` candidate converts each final ordinary Wood drop from a native
   Birch or Oak log to Finewood.
   Native Finewood drops and all non-Wood drops remain unchanged.
 - The conversion keeps each log's native item count unchanged. Valheim still

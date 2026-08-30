@@ -47,6 +47,18 @@ rg -Fq '"session_only"' "$capture"
 rg -Fq 'ComfortDiagnosticCommand.TryExecute(args.Args, args.Context)' "$client"
 rg -Fq 'ComfortDiagnosticCommand.PrintUsage(context)' "$client"
 
+# A failed Harmony startup removes every observation hook. The command must
+# refuse capture before it can emit a plausible empty snapshot.
+command_gate="$(sed -n '/internal static bool TryExecute/,/private static void Emit/p' "$command")"
+grep -Fq 'if (!HealthReporting.GameplayActionsEnabled)' <<<"$command_gate"
+grep -Fq 'required observation hooks did not load' <<<"$command_gate"
+health_line="$(grep -n 'if (!HealthReporting.GameplayActionsEnabled)' "$command" | cut -d: -f1)"
+emit_line="$(grep -n 'Emit(player, context);' "$command" | cut -d: -f1)"
+if [[ "$health_line" -ge "$emit_line" ]]; then
+  printf 'comfort diagnostic health gate must run before capture\n' >&2
+  exit 1
+fi
+
 if rg -n 'Set\(|InvokeRPC|ZDOMan|ZRoutedRpc|ZNetScene|Destroy\(|Instantiate\(' "$capture" "$command"; then
   printf 'comfort diagnostic must not mutate native, network, persistent, or world state\n' >&2
   exit 1

@@ -17,7 +17,7 @@ Valheim's normal farming restrictions.
 
 ## In Development
 
-- The `0.1.74` candidate always produces the same centered 9x9 grid from the same
+- The `0.1.75` candidate always produces the same centered 9x9 grid from the same
   planting input.
   Compared with the accepted centered 5x5 grid, it changes only the grid
   dimensions and the stamina cost of successful planting.
