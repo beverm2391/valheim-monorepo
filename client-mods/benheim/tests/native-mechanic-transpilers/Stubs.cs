@@ -286,6 +286,14 @@ namespace BenheimQoL.Infrastructure
     }
 }
 
+namespace BenheimQoL.Interaction
+{
+    internal static class ComfortDiagnosticCapture
+    {
+        internal static float ObserveRadius(float radius) => radius;
+    }
+}
+
 namespace BenheimQoL.Farming
 {
     internal static class FarmingReflection

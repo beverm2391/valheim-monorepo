@@ -1,4 +1,5 @@
 using BenheimQoL.Infrastructure;
+using BenheimQoL.Interaction;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -69,6 +70,8 @@ internal static class BenheimTestCommandClient
             return true;
         }
 
+        if (ComfortDiagnosticCommand.TryExecute(args.Args, args.Context)) return true;
+
         if (HengeOverlayProtocol.TryParse(args.Args, out bool hengeEnabled))
         {
             return ExecuteHengeOverlay(hengeEnabled, args.Context);
@@ -121,6 +124,7 @@ internal static class BenheimTestCommandClient
         context.AddString("  bh debug colliders on|off");
         context.AddString("  locally show live capsules for nearby non-player Characters");
         RuntimePrimitiveCatalogCommand.PrintUsage(context);
+        ComfortDiagnosticCommand.PrintUsage(context);
     }
 
     private static bool EnsureResultRpcRegistered()

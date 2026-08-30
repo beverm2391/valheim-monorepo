@@ -52,6 +52,14 @@ Benheim changes only Valheim's comfort-furniture detection range, from exactly
 10 meters to 20 meters. Comfort furniture in nearby rooms, on nearby floors,
 and in nearby buildings can provide comfort.
 
+Run `bh debug comfort` in the console to capture one Valheim comfort
+calculation. The command does not start continuous logging. The diagnostic log
+records the calculation's radius and the player's shelter and comfort state.
+It also records each nearby piece of comfort furniture, whether Valheim counted
+or skipped it and why, and the nearest excluded pieces. The command does not
+change the player, furniture, or world. Pieces that Valheim hides before its
+native comfort query are not observable through this command.
+
 Benheim does not change:
 
 - furniture comfort values or how Valheim resolves duplicate furniture and

@@ -220,12 +220,17 @@ static void VerifyCookingRollObservation()
 static void VerifyComfortPatch()
 {
     CodeInstruction nativeRadius = new CodeInstruction(OpCodes.Ldc_R4, 10f);
-    VerifyReplacement(
+    List<CodeInstruction> output = Invoke(
         typeof(ComfortFurnitureRangePatch),
-        Frame(nativeRadius),
-        nativeRadius,
-        OpCodes.Ldc_R4,
-        20f);
+        Frame(nativeRadius));
+    MethodInfo observer = typeof(ComfortDiagnosticCapture).GetMethod(
+        nameof(ComfortDiagnosticCapture.ObserveRadius),
+        BindingFlags.NonPublic | BindingFlags.Static)!;
+    int observerIndex = output.FindIndex(instruction => Equals(instruction.operand, observer));
+    Expect(output.Count == 4);
+    Expect(nativeRadius.opcode == OpCodes.Ldc_R4 && Equals(nativeRadius.operand, 20f));
+    Expect(observerIndex == 2 && output[observerIndex].opcode == OpCodes.Call);
+    Expect(ComfortDiagnosticCapture.ObserveRadius(20f) == 20f);
     ExpectThrows(() => Invoke(
         typeof(ComfortFurnitureRangePatch),
         Frame(new CodeInstruction(OpCodes.Ldc_R4, 9f))));
