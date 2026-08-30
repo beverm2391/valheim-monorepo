@@ -12,14 +12,20 @@ ledger and who can accept its items.
 
 ## Release state
 
-- Packaged version: private-test `0.1.76` for Mac and Windows. This version is
-  not installed and has no packaged-build startup proof.
-- Installed version: private-test `0.1.75` on Ben's Mac. It is currently
-  running.
+- Packaged version: private-test `0.1.76` for Mac and Windows.
+- Installed version: private-test `0.1.76` on Ben's Mac, installed from the
+  exact macOS package.
+- Startup proof: The managed Benheim launcher started the exact installed macOS
+  package. It reached the real main menu in Valheim `0.221.12`. The fresh log
+  contained the expected version, session-start, and chainloader-complete
+  markers. The log contained no Harmony cleanup marker, core-disablement
+  marker, gameplay-disabled marker, or world-load marker. No world was entered.
+  The task quit only the Valheim process that it launched, and no Valheim
+  process remained.
 - Benheim Server Support remains at `0.1.6`. Clients `0.1.75` and `0.1.76`
   require no change to that server component.
 
-## Test on installed `0.1.75`
+## Test on installed `0.1.76`
 
 - **Workbench and Stonecutter range:** Place a Workbench-required piece around
   22 m and 38 m from an isolated level-1 Workbench. Confirm that placement fails
@@ -55,12 +61,6 @@ ledger and who can accept its items.
   character. A hit that meets the owning product's qualification rule shows one
   `PERFECT IMPACT`. Other hits keep normal Valheim behavior. Combat Shake
   controls only the optional shake.
-
-## After `0.1.76` installation
-
-Keep these checks out of the installed-client queue until the exact `0.1.76`
-package is installed and passes startup proof.
-
 - **Earned-state audio:** In multiplayer, trigger an earned combat state near
   one compatible player and far from another. The nearby player may hear the
   native charm cue. The distant player must not hear it.

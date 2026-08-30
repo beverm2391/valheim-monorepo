@@ -40,20 +40,28 @@ grep -Fq 'remove passed items based only on static proof; or' "$prompt"
 grep -Fq 'promote behavior into accepted `PRODUCT.md` truth.' "$prompt"
 grep -Fq 'the integration lead removes it from the queue and' "$prompt"
 
-grep -Fq "Packaged version: private-test \`$version\` for Mac and Windows." "$product_review"
-grep -Fq 'Installed version: private-test `0.1.75` on Ben' "$product_review"
-grep -Fq 'running.' "$product_review"
-grep -Fq 'not installed' "$product_review"
-grep -Fq 'has no packaged-build startup proof.' "$product_review"
-grep -Fq '## Test on installed `0.1.75`' "$product_review"
-grep -Fq '## After `0.1.76` installation' "$product_review"
+release_state="$(awk '
+  /^## Release state$/ { capture = 1; next }
+  capture && /^## / { exit }
+  capture { print }
+' "$product_review")"
+grep -Fq "Packaged version: private-test \`$version\` for Mac and Windows." <<<"$release_state"
+grep -Fq "Installed version: private-test \`$version\` on Ben's Mac, installed from the" <<<"$release_state"
+grep -Fq 'Startup proof: The managed Benheim launcher started the exact installed macOS' <<<"$release_state"
+grep -Fq 'expected version, session-start, and chainloader-complete' <<<"$release_state"
+grep -Fq 'No world was entered.' <<<"$release_state"
+release_state_flat="$(awk '{$1 = $1; printf "%s ", $0}' <<<"$release_state")"
+grep -Fq 'The task quit only the Valheim process that it launched, and no Valheim process remained.' <<<"$release_state_flat"
+! grep -Fq 'not installed and has no packaged-build startup proof.' <<<"$release_state"
 
-installed_queue="$(sed -n '/^## Test on installed /,/^## After /p' "$product_review")"
-if grep -Fq 'Earned-state audio' <<<"$installed_queue"; then
-  echo "future-version audio proof must stay outside the installed-client queue" >&2
-  exit 1
-fi
-grep -Fq '**Earned-state audio:**' "$product_review"
+installed_heading="## Test on installed \`$version\`"
+installed_queue="$(awk -v heading="$installed_heading" '
+  $0 == heading { capture = 1 }
+  capture && /^## / && $0 != heading { exit }
+  capture { print }
+' "$product_review")"
+grep -Fxq "$installed_heading" <<<"$installed_queue"
+grep -Fq '**Earned-state audio:**' <<<"$installed_queue"
 
 if grep -Eq 'SHA256SUMS\.txt|"\$release_dir/VERSION"|offers? to install future stable updates|releases/latest/download/VERSION' "$release_script"; then
   echo "release flow still publishes automatic-updater artifacts or instructions" >&2
