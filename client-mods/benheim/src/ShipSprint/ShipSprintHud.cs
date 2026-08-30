@@ -3,11 +3,15 @@ using UnityEngine;
 
 namespace BenheimQoL.ShipSprint;
 
-// The gauge is a child of Valheim's moving ship-control anchor, so it follows
-// the native helm readout instead of introducing a second HUD positioning
-// system. Its only visual source is a clone of an existing HUD text element.
+// The gauge shares the wind indicator's stable parent and copies the native
+// wind anchor. The indicator itself rotates with ship heading, so parenting
+// below it would rotate the text. Its only visual source is a clone of an
+// existing HUD text element.
 internal static class ShipSprintHud
 {
+    private const float LabelHeight = 28f;
+    private const float WindGap = 8f;
+
     private static TMP_Text? label;
     private static Hud? owner;
     private static Ship? displayedShip;
@@ -82,15 +86,23 @@ internal static class ShipSprintHud
 
     private static bool EnsureLabel(Hud hud)
     {
-        Transform parent = hud.m_shipControlsRoot.transform;
+        RectTransform windAnchor = hud.m_shipWindIndicatorRoot;
+        if (!windAnchor || !windAnchor.parent)
+        {
+            Destroy();
+            return false;
+        }
+
+        Transform parent = windAnchor.parent;
         if (label && owner == hud && label.transform.parent == parent)
         {
+            ApplyLayout(label.rectTransform, windAnchor);
             return true;
         }
 
         Destroy();
         TMP_Text donor = hud.m_healthText;
-        if (!donor || !parent)
+        if (!donor)
         {
             return false;
         }
@@ -104,13 +116,24 @@ internal static class ShipSprintHud
         label.raycastTarget = false;
         label.gameObject.SetActive(false);
 
-        RectTransform rect = label.rectTransform;
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = new Vector2(0f, -52f);
-        rect.sizeDelta = new Vector2(180f, 28f);
+        ApplyLayout(label.rectTransform, windAnchor);
         owner = hud;
         return true;
+    }
+
+    private static void ApplyLayout(RectTransform rect, RectTransform windAnchor)
+    {
+        rect.localRotation = Quaternion.identity;
+        rect.anchorMin = windAnchor.anchorMin;
+        rect.anchorMax = windAnchor.anchorMax;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        float windCenterX = windAnchor.anchoredPosition.x
+            + (windAnchor.rect.width * (0.5f - windAnchor.pivot.x));
+        float windBottom = windAnchor.anchoredPosition.y
+            - (windAnchor.rect.height * windAnchor.pivot.y);
+        rect.anchoredPosition = new Vector2(
+            windCenterX,
+            windBottom - WindGap - (LabelHeight * 0.5f));
+        rect.sizeDelta = new Vector2(180f, LabelHeight);
     }
 }

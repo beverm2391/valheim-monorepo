@@ -15,13 +15,15 @@ wind effectiveness, drag, steering, buoyancy, waves, collisions, water impacts,
 damage, throttle states, or momentum decay. Ship Sprint adds no stamina cost,
 fuel, cooldown, status icon, saved state, or separate progression system.
 
-While the local player controls a ship, a compact readout beside Valheim's ship
-controls shows the ship's planar world speed in meters per second. It shows one
-decimal place. A subtle `SPRINT` label appears only while the local player has
-an active Ship Sprint request. The readout disappears when the player leaves the
-helm, the ship or world becomes unavailable, or Benheim shuts down. It uses
-native HUD text and adds no custom assets, saved UI state, network state, or
-diagnostics.
+While the local player is at a ship's helm, a compact readout stays upright on
+the screen. It sits directly below Valheim's native wind UI on the right. It
+follows that UI at every supported resolution and UI scale. It shows the ship's
+planar world speed in meters per second with one decimal place. Benheim shows a
+subtle `SPRINT` label only after it accepts the local player's Ship Sprint
+request and while that request remains active. The readout disappears when the
+player leaves the helm, the ship or world becomes unavailable, or Benheim shuts
+down. It uses native HUD text and adds no custom assets, saved UI state, network
+state, or diagnostics.
 
 Every client that can become the ship's physics owner must run a compatible
 Benheim build. The physics owner is the client that applies the ship's physics.

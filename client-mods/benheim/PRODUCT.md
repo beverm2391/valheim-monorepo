@@ -225,9 +225,12 @@ gameplay proof requirements.
 
 The candidate includes Ship Sprint's first `3x` native-thrust tuning. Holding
 Valheim's logical Run control at the helm boosts forward paddle, half sail, and
-full sail. A compact readout beside the native ship controls shows the ship's
-planar world speed and marks an active Ship Sprint request from the local
-player. Reverse and every other native ship rule remain unchanged. The [Ship Sprint
+full sail. At the helm, the local player sees a compact readout directly below
+Valheim's native wind UI on the right. The readout stays upright on the screen
+and follows that UI at every supported resolution and UI scale. It shows the
+ship's planar world speed. It shows `SPRINT` only after Benheim accepts the local
+player's Ship Sprint request and while that request remains active. Reverse and
+every other native ship rule remain unchanged. The [Ship Sprint
 module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live proof gates.
 
 The candidate also lets a player manually collect native Tar while the Tar is
