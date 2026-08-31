@@ -11,6 +11,7 @@ using BenheimQoL.Shortcuts;
 using BenheimQoL.PlayerCombat;
 using BenheimQoL.KillAttribution;
 using BenheimQoL.ShipSprint;
+using BenheimQoL.WorldLabels;
 using HarmonyLib;
 using UnityEngine;
 
@@ -94,6 +95,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        WorldLabelRuntime.Reset();
         ShipSprintRuntime.Reset("plugin_teardown");
         PlantingPreview.DestroyGhosts();
         CombatFeedbackController.Reset();

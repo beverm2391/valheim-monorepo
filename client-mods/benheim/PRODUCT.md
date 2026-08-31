@@ -150,6 +150,7 @@ technical cost.
 | [Repair](src/Repair/PRODUCT.md) | Batch gear repair and nearby building repair. |
 | [Interaction](src/Interaction/PRODUCT.md) | Less fussy interaction and station range. |
 | [Portals](src/Portals/PRODUCT.md) | Faster transitions after the destination is ready. |
+| [World Labels](src/WorldLabels/PRODUCT.md) | Make existing sign text and portal destinations readable at a glance. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
 | [Woodcutting](src/Woodcutting/PRODUCT.md) | Skill-based cleave for trees and logs. |
 | [Player Combat](src/PlayerCombat/PRODUCT.md) | Reward skilled and bold play with adrenaline and earned combat states. |

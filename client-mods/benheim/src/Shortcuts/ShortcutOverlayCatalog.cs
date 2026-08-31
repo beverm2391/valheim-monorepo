@@ -6,6 +6,7 @@ using BenheimQoL.PlayerCombat;
 using BenheimQoL.Repair;
 using BenheimQoL.ShipSprint;
 using BenheimQoL.WeaponRhythm;
+using BenheimQoL.WorldLabels;
 using UnityEngine;
 
 namespace BenheimQoL.Shortcuts;
@@ -49,8 +50,9 @@ internal static partial class ShortcutOverlay
             {
                 new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
                 new Entry("Left Shift + plant", $"Plant a centered {FarmingSettings.GridWidth}x{FarmingSettings.GridLength} grid"),
+                new Entry("Cultivator berries", $"Plant native Raspberry, Blueberry, and Cloudberry bushes for {PlantableBerries.BerryCost} matching berries each"),
             },
-            "Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Apart from the grid dimensions and stamina cost, all other planting behavior stays native."),
+            "Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Apart from the grid dimensions and stamina cost, all other planting behavior stays native. Berry bushes need ordinary ground, not cultivated ground or a matching biome; the 9x9 uses each native bush's collider footprint for spacing."),
     };
 
     private static readonly Section[] FeatureSections =
@@ -73,6 +75,10 @@ internal static partial class ShortcutOverlay
                 new Entry("Extended reach", "Use interactable objects from up to 8 m; open containers stay available to 10 m"),
                 new Entry("Tar pickup", "Manually collect native Tar while submerged; auto-pickup and other submerged items remain stuck"),
                 new Entry("Portal travel", "Finish the transition sooner after the destination is ready"),
+                new Entry("Glowing signs", "Existing sign letters have a soft, warm portal-amber glow. The wooden board stays unchanged"),
+                new Entry(
+                    "Portal labels",
+                    $"Show each portal's exact non-empty tag above it when the portal is within {WorldLabelVisibility.PortalMaxDistanceMeters:0} m and in the player's line of sight"),
                 new Entry(
                     "Ship Sprint",
                     $"Hold Run at the helm for ×{ShipSprintTuning.ThrustMultiplier:0.#} native thrust at paddle, half sail, and full sail; the helm readout shows planar speed and marks SPRINT while requested"),
