@@ -10,6 +10,13 @@ penalty cancels its reward. A substantial upfront grind for progression and
 materials buys real power. The affinity's permanent bias keeps that power from
 making every other weapon irrelevant.
 
+Affinities should create new actions, physical interactions, or tactical
+possibilities that existing weapons do not provide. An affinity cannot satisfy
+this requirement only by reusing base-game elemental damage or another
+existing weapon property. Useful options outside combat are desirable when
+they arise naturally from the same mechanic. Players should be able to discover
+creative uses rather than having those uses designed away.
+
 ## Permanent weapon specialization
 
 An affinity modifies one existing weapon item. The weapon keeps its native
