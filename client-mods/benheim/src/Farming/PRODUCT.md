@@ -29,5 +29,29 @@ Valheim's normal farming restrictions.
   placement effects, statistics, skill gain, rotation, preview validity,
   cultivating and terrain actions, food, all other stamina behavior, crops,
   growth, networking, and saves.
+- The candidate adds the native RaspberryBush, BlueberryBush, and
+  CloudberryBush to the Cultivator. Planting each bush costs five berries of its
+  matching type.
+- Berry bushes can be planted only on ordinary ground. They do not require
+  cultivated ground or a matching biome. In a 9x9 grid, each bush's native
+  collider determines the spacing between bushes.
+- Each planted bush uses its native network prefab. It keeps the exact native
+  visual, `Pickable` output, 300-minute respawn, `Destructible` behavior, `ZDO`
+  persistence, and creator ownership. Players cannot remove naturally spawned
+  or planted bushes with the Hammer or Cultivator.
+- Benheim adds the `Piece` component, but not the `Plant` component, to each
+  native network prefab. It does not create a custom prefab or persistent
+  object. Removing the feature leaves the world readable. Planted bushes remain
+  native `Pickable` objects.
+- Live single-player acceptance remains unproven. Testing must confirm:
+  - ordinary single-bush placement
+  - centered 9x9 grid placement
+  - exact berry costs
+  - native harvesting and the 300-minute respawn
+  - save reloads
+- Live multiplayer acceptance remains unproven. Testing must confirm:
+  - shared placement and harvesting
+  - creator ownership
+  - reconnect behavior
 - The 9x9 planting grid remains an unproven candidate until Ben tests it in
   Valheim.

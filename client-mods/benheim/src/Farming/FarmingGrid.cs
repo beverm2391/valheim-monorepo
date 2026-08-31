@@ -23,9 +23,8 @@ internal readonly struct FarmingGridPoint
 
 internal static class FarmingGrid
 {
-    internal static List<FarmingGridPoint> Build(Vector3 origin, Plant plant, Quaternion rotation)
+    internal static List<FarmingGridPoint> Build(Vector3 origin, float spacing, Quaternion rotation)
     {
-        float spacing = plant.m_growRadius * 2f;
         Vector3 left = rotation * Vector3.left * spacing;
         Vector3 forward = rotation * Vector3.forward * spacing;
         Vector3 rowOrigin = origin

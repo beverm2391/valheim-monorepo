@@ -12,7 +12,9 @@ internal static class PlantingStamina
     internal static void ApplyResolvedCost(PieceTable? buildPieces, ref float resolvedCost)
     {
         Piece? selectedPiece = buildPieces?.GetSelectedPiece();
-        if (selectedPiece is not null && selectedPiece && selectedPiece.GetComponent<Plant>())
+        if (selectedPiece is not null
+            && selectedPiece
+            && (selectedPiece.GetComponent<Plant>() || PlantableBerries.IsBerryBush(selectedPiece.gameObject)))
         {
             resolvedCost = Cost(resolvedCost);
         }
@@ -20,7 +22,8 @@ internal static class PlantingStamina
 
     internal static bool HasPlacementStamina(Player player, float nativeThreshold, Piece selectedPiece)
     {
-        if (!selectedPiece || !selectedPiece.GetComponent<Plant>())
+        if (!selectedPiece
+            || (!selectedPiece.GetComponent<Plant>() && !PlantableBerries.IsBerryBush(selectedPiece.gameObject)))
         {
             return player.HaveStamina(nativeThreshold);
         }

@@ -296,6 +296,17 @@ namespace BenheimQoL.Interaction
 
 namespace BenheimQoL.Farming
 {
+    internal static class PlantableBerries
+    {
+        internal static bool IsBerryBush(UnityEngine.GameObject prefab)
+        {
+            string name = Utils.GetPrefabName(prefab);
+            return name == "RaspberryBush"
+                || name == "BlueberryBush"
+                || name == "CloudberryBush";
+        }
+    }
+
     internal static class FarmingReflection
     {
         internal static float GetBuildStamina(Player player) => player.ResolvedBuildStamina;

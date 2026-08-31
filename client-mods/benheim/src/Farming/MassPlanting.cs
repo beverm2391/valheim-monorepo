@@ -15,8 +15,8 @@ internal static class MassPlanting
             return;
         }
 
-        Plant? plant = anchorPiece.GetComponent<Plant>();
-        if (!plant || !FarmingInput.IsMassActionHeld())
+        if (!PlantingRules.TryGetGridSpacing(anchorPiece.gameObject, out float gridSpacing)
+            || !FarmingInput.IsMassActionHeld())
         {
             return;
         }
@@ -24,7 +24,7 @@ internal static class MassPlanting
         PlantingState.MassPlacementRunning = true;
         try
         {
-            PlantGrid(player, anchorPiece, plant);
+            PlantGrid(player, anchorPiece, gridSpacing);
         }
         finally
         {
@@ -32,7 +32,7 @@ internal static class MassPlanting
         }
     }
 
-    private static void PlantGrid(Player player, Piece anchorPiece, Plant plant)
+    private static void PlantGrid(Player player, Piece anchorPiece, float gridSpacing)
     {
         Heightmap? heightmap = Heightmap.FindHeightmap(PlantingState.AnchorPosition);
         if (!heightmap)
@@ -45,7 +45,7 @@ internal static class MassPlanting
         bool freeBuild = ZoneSystem.instance.GetGlobalKey(anchorPiece.FreeBuildKey());
         List<FarmingGridPoint> points = FarmingGrid.Build(
             PlantingState.AnchorPosition,
-            plant,
+            gridSpacing,
             PlantingState.AnchorRotation);
 
         int planted = 0;

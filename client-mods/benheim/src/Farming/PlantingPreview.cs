@@ -23,9 +23,10 @@ internal static class PlantingPreview
             return;
         }
 
-        Plant? plant = anchorGhost.GetComponent<Plant>();
         Piece? anchorPiece = anchorGhost.GetComponent<Piece>();
-        if (!plant || !anchorPiece || !EnsureGhostsBuilt(player))
+        if (!anchorPiece
+            || !PlantingRules.TryGetGridSpacing(anchorGhost, out float gridSpacing)
+            || !EnsureGhostsBuilt(player))
         {
             HideGhosts();
             return;
@@ -37,7 +38,7 @@ internal static class PlantingPreview
         Heightmap? heightmap = Heightmap.FindHeightmap(anchorGhost.transform.position);
         List<FarmingGridPoint> points = FarmingGrid.Build(
             anchorGhost.transform.position,
-            plant,
+            gridSpacing,
             anchorGhost.transform.rotation);
 
         PrepareFakeRequirement(requirement);

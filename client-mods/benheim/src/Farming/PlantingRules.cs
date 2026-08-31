@@ -20,15 +20,36 @@ internal static class PlantingRules
     private static readonly int PlantSpaceMask =
         LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "piece_nonsolid");
 
+    internal static bool TryGetGridSpacing(GameObject prefab, out float spacing)
+    {
+        Plant? plant = prefab.GetComponent<Plant>();
+        if (plant)
+        {
+            spacing = plant.m_growRadius * 2f;
+            return true;
+        }
+
+        return PlantableBerries.TryGetGridSpacing(prefab, out spacing);
+    }
+
     internal static bool HasGrowSpace(Vector3 position, GameObject plantPrefab)
     {
         Plant? plant = plantPrefab.GetComponent<Plant>();
-        if (!plant)
+        float radius;
+        if (plant)
+        {
+            radius = plant.m_growRadius;
+        }
+        else if (PlantableBerries.TryGetGridSpacing(plantPrefab, out float spacing))
+        {
+            radius = spacing * 0.5f;
+        }
+        else
         {
             return true;
         }
 
-        Collider[] nearbyObjects = Physics.OverlapSphere(position, plant.m_growRadius, PlantSpaceMask);
+        Collider[] nearbyObjects = Physics.OverlapSphere(position, radius, PlantSpaceMask);
         return nearbyObjects.Length == 0;
     }
 
