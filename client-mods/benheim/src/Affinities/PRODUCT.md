@@ -35,10 +35,25 @@ The MVP has these boundaries:
 - Uninstalling the Benheim mod leaves the weapon usable with its base-game
   behavior. Reinstalling Benheim restores the affinity's stored behavior.
 
-The player unlocks an affinity through ordinary Valheim progression and pays a
-substantial cost in base-game materials for each weapon they modify. Each
-affinity's playable design defines its exact recipe, required station, and
-application method.
+## Acquisition and application
+
+Defeating one designated boss unlocks the affinity system for the entire world.
+This unlock happens only once. The exact boss remains open.
+
+The player applies an affinity directly in a menu:
+
+1. Select an eligible weapon from the inventory.
+2. Select an affinity available for that weapon family.
+3. Review its new behavior, permanent bias, and exact resource cost.
+4. Confirm that the application cannot be reversed.
+5. Apply the affinity, consuming the listed resources and permanently
+   modifying the selected weapon.
+
+There is no Sigil or other intermediate affinity item. Each affinity has its
+own resource cost, which the menu consumes in full when the player applies it.
+Materials from harder biomes gate normal progression through ordinary
+exploration and resource gathering. The exact recipes and the physical station
+that hosts the menu remain open.
 
 ## Power creates a loadout choice
 
