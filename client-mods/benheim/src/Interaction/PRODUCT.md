@@ -19,16 +19,17 @@ without enabling remote use across a base.
   whether Valheim counted or skipped it and why. It also records a limited
   number of the nearest pieces excluded by the radius. It cannot record pieces
   that Valheim excludes before the native comfort query.
-- The command prints the calculated comfort and readable **Counted**,
-  **Ignored**, and **Just outside range** sections in the console. The command
-  still records the complete typed diagnostic and log evidence for later
-  investigation.
-
 Benheim does not change furniture comfort values or how Valheim resolves
 duplicate furniture and furniture groups. It also does not change shelter and
 fire requirements, the Rested calculation, persistence, or networking.
 
 ## In Development
+
+The `0.1.77` candidate prints a readable summary in the console. The summary
+includes the calculated comfort and **Counted**, **Ignored**, and **Just outside
+range** sections. The command still records the complete diagnostic in its
+structured form and writes the evidence to the log. The summary needs live
+console proof.
 
 Benheim doubles only the build-piece placement coverage resolved from native
 Workbench and Stonecutter stations. In installed Valheim `0.221.12`, both
@@ -43,7 +44,7 @@ interaction, crafting, repair, upgrade attachment, comfort, Workbench suppressio
 enemy spawning, wards, other crafting stations, persistence, networking, or world
 data.
 
-The `0.1.76` candidate still needs gameplay proof for:
+The `0.1.77` candidate still needs gameplay proof for:
 
 - the native 20-meter boundary at each level-1 station;
 - the extended area beyond 20 meters and through 40 meters;

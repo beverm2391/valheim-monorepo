@@ -32,7 +32,7 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The `0.1.76` candidate adds organized feature entries for Ship Sprint,
+- The `0.1.77` candidate adds organized feature entries for Ship Sprint,
   manual collection of submerged native Tar, Perfect Impact, and reduced
   planting stamina. The planting-stamina entry says that each successful
   ordinary or grid plant placement costs 25% of the native planting stamina
@@ -43,7 +43,7 @@ use it to find controls and passive features.
   The updated presentation still needs gameplay proof.
 - The Ship Sprint entry explains that the helm readout shows planar speed and
   marks `SPRINT` while the local player has an active Ship Sprint request.
-- The `0.1.76` candidate adds a Building section. It says Workbench and
+- The `0.1.77` candidate adds a Building section. It says Workbench and
   Stonecutter build-piece placement coverage is `2x` Valheim's native range,
   from 20 meters to 40 meters for level-1 stations. It also names the station
   behaviors that remain native.
@@ -63,6 +63,13 @@ use it to find controls and passive features.
   says the command preserves the complete typed diagnostic and log evidence.
   The menu explains that the command cannot report pieces that Valheim filters
   out before its native comfort query.
+- The Farming section lists native Raspberry, Blueberry, and Cloudberry bushes.
+  It says that planting each bush costs five matching berries and requires only
+  ordinary ground. In a centered 9x9 grid, each bush's native collision
+  boundary determines its spacing.
+- The World & Travel section lists sign glow and portal labels. It says that
+  each portal label exactly matches its portal's non-empty tag. It also states
+  the 30-meter range and line-of-sight rule.
 - The Combat section says compatible nearby players may hear the native charm
   cue for earned states. It says distant players must not hear the cue.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep

@@ -61,10 +61,10 @@ IReadOnlyList<string> lines = ComfortDiagnosticSummary.Format(
 ExpectLine(lines, "COMFORT 9 — sheltered, resting, rested — radius 20m");
 ExpectLine(lines, "COUNTED");
 ExpectLine(lines, "  Hearth +2 — 7.4m");
+ExpectLine(lines, "  Hot tub +0 — 19.4m");
 ExpectLine(lines, "IGNORED");
 ExpectLine(lines, "  Hearth — 18.1m — duplicate Fire group and furniture");
 ExpectLine(lines, "  piece brazierceiling01 — 5.6m — duplicate Fire group");
-ExpectLine(lines, "  Hot tub — 19.4m — 0 comfort");
 ExpectLine(lines, "JUST OUTSIDE RANGE");
 ExpectLine(lines, "  Table — 27.2m");
 ExpectLine(lines, "  …and 2 more outside range");

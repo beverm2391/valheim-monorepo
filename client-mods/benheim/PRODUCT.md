@@ -197,7 +197,7 @@ gameplay proof or fixes.
 On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
 because the required planting-stamina hook did not attach. Because Benheim
 fails closed when this hook is missing, it disabled all gameplay actions.
-Benheim `0.1.76` is the current private-test candidate. It preserves the
+Benheim `0.1.77` is the current private-test candidate. It preserves the
 `0.1.73` startup correction. It adds the
 [Farming](src/Farming/PRODUCT.md) module's 9x9 grid and planting-stamina
 behavior. It also adds the [Woodcutting](src/Woodcutting/PRODUCT.md) module's
@@ -242,6 +242,13 @@ The candidate also adds the one-shot `bh debug comfort` command. It records
 evidence from one native comfort calculation without changing the player,
 furniture, or world. See the [Interaction module](src/Interaction/PRODUCT.md)
 for what the command records and what it cannot observe.
+
+The candidate prints that comfort evidence as a readable summary.
+
+The candidate also adds the [Farming](src/Farming/PRODUCT.md) module's native
+plantable berry bushes and the [World Labels](src/WorldLabels/PRODUCT.md)
+module's sign glow and portal labels. Those modules own the unproven behavior
+and live acceptance gates.
 
 The candidate also lets a player manually collect native Tar while the Tar is
 submerged in a tar pit. Only manual interaction with native Tar changes. Tar

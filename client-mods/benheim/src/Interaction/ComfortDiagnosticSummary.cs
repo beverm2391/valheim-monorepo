@@ -72,7 +72,8 @@ internal static class ComfortDiagnosticSummary
         for (int index = 0; index < pieces.Count; index++)
         {
             ComfortDiagnosticPiece piece = pieces[index];
-            bool counted = piece.Decision == ComfortDiagnosticDecision.Contributed;
+            bool counted = piece.Decision == ComfortDiagnosticDecision.Contributed
+                || piece.Decision == ComfortDiagnosticDecision.ContributedZero;
             if (counted != includeCounted)
             {
                 continue;
@@ -116,8 +117,6 @@ internal static class ComfortDiagnosticSummary
     {
         switch (piece.Decision)
         {
-            case ComfortDiagnosticDecision.ContributedZero:
-                return "0 comfort";
             case ComfortDiagnosticDecision.DuplicateGroup:
                 return $"duplicate {piece.Group} group";
             case ComfortDiagnosticDecision.DuplicateName:
