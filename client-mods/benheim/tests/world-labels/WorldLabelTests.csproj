@@ -7,6 +7,8 @@
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/WorldLabels/PortalLabelController.cs" Link="PortalLabelController.cs" />
+    <Compile Include="../../src/WorldLabels/WorldLabelRuntime.cs" Link="WorldLabelRuntime.cs" />
     <Compile Include="../../src/WorldLabels/WorldLabelVisibility.cs" Link="WorldLabelVisibility.cs" />
   </ItemGroup>
 </Project>

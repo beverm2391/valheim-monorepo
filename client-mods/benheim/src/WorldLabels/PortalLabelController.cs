@@ -5,7 +5,6 @@ namespace BenheimQoL.WorldLabels;
 
 internal sealed class PortalLabelController : MonoBehaviour
 {
-    private const string NativeSignPrefab = "piece_sign";
     private const float LabelClearanceMeters = 0.35f;
     private const float CanvasScale = 0.005f;
 
@@ -77,13 +76,8 @@ internal sealed class PortalLabelController : MonoBehaviour
 
     private bool TryBuildLabel()
     {
-        ZNetScene? scene = ZNetScene.instance;
-        GameObject? signPrefab = scene != null ? scene.GetPrefab(NativeSignPrefab) : null;
-        Sign? sign = signPrefab != null ? signPrefab.GetComponent<Sign>() : null;
-        TextMeshProUGUI? donor = sign != null ? sign.m_textWidget : null;
-        if (donor == null || donor.font == null || donor.fontSharedMaterial == null)
+        if (!WorldLabelRuntime.TryGetNativeTextDonor(out NativeTextDonor donor))
         {
-            WorldLabelRuntime.LogNativeDonorPending();
             return false;
         }
 
@@ -107,16 +101,16 @@ internal sealed class PortalLabelController : MonoBehaviour
         rootRect.sizeDelta = new Vector2(640f, 110f);
         rootRect.localScale = Vector3.one * CanvasScale;
 
-        labelCanvas = labelRoot.GetComponent<Canvas>();
+        labelCanvas = labelRoot.GetComponent<Canvas>()!;
         labelCanvas.renderMode = RenderMode.WorldSpace;
 
-        Billboard billboard = labelRoot.GetComponent<Billboard>();
+        Billboard billboard = labelRoot.GetComponent<Billboard>()!;
         billboard.m_vertical = true;
         billboard.m_invert = true;
 
         label = labelRoot.AddComponent<TextMeshProUGUI>();
-        label.font = donor.font;
-        label.fontSharedMaterial = donor.fontSharedMaterial;
+        label.font = donor.Font;
+        label.fontSharedMaterial = donor.Material;
         label.color = WorldLabelStyle.PortalAmber;
         label.fontSize = 64f;
         label.alignment = TextAlignmentOptions.Center;
@@ -124,6 +118,7 @@ internal sealed class PortalLabelController : MonoBehaviour
         label.richText = false;
         label.raycastTarget = false;
         labelRoot.SetActive(false);
+        WorldLabelRuntime.LogPortalLabelCreated(portal);
         return true;
     }
 
