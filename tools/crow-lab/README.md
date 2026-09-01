@@ -6,6 +6,9 @@ files contain the runner, required response format, public base prompt, schema,
 and synthetic scenarios.
 Personal lore, private examples, and model results stay local.
 
+[`PRODUCT.md`](PRODUCT.md) owns the Crow product direction and the lab's proof
+boundary. This README owns only setup and use of the local lab.
+
 The runner works with only `prompts/base.md`. It also loads
 `prompts/player_lore.md` and `prompts/examples.md` when those ignored files
 exist and contain text.

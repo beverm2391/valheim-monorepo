@@ -8,13 +8,6 @@ development, its behavior and status move into the owning `PRODUCT.md`.
 
 - Grow a long-term stealth-and-sniping play style around global arrow headshots,
   distance, and Valheim's native unaware/backstab behavior.
-- **The Grassy Knoll:** a dedicated scoped bow, kitbashed from a native longbow
-  with a crystal and greydwarf-eye optic plus a custom icon. Holding secondary
-  attack gives roughly 3x zoom and shows distance and the possible headshot
-  multiplier, without aim assist or hitscan. Balance it with reduced movement
-  and peripheral vision plus higher stamina cost or slower draw. Bow skill can
-  reduce scope sway and stamina cost. It should work with special arrows.
-  Tooltip: “From this angle, there may have been a second archer.”
 - Special arrows should be tactical toys that combine with one another. Unlock
   recipes through discovering native materials; let Bow skill and headshots
   improve their mechanics instead of creating another mastery currency or tree.
@@ -51,27 +44,6 @@ development, its behavior and status move into the owning `PRODUCT.md`.
   tagging/search, or another interaction. The goal is fewer physical portal
   pairs and less destination-management friction while keeping shared travel
   understandable to every player.
-
-## Crow
-
-- **Crow:** a private server-side fourth friend for Ben, Johnny, and Ozi. A
-  native-style crow appears and disappears near the group, hangs around indoors,
-  follows travel through portals or sailing without becoming easy to lose, and
-  occasionally roasts the players. One Crow message appears both above the bird
-  and in global chat, like player speech.
-- Crow is event-driven rather than agentic. The server selects a small subset of
-  typed gameplay events, combines them with recent global chat and Crow messages,
-  player-name mappings, and Ben-authored player lore and examples, then asks an
-  OpenRouter model for exactly one optional `{speak, text}` response. Crow does
-  not query logs or invent an objective for itself.
-- Early event candidates include repeated deaths to the same enemy, escape from
-  critical health, one survivor after everyone else dies, meaningful boss or
-  miniboss kills, raids, sailing, and particularly funny enemy encounters. The
-  model decides whether the supplied event creates a specific enough angle to
-  speak; silence is a valid result.
-- The physical crow lifecycle and the event-to-model-to-chat path are separate
-  experiments. Later buffs or gameplay effects can build on a proven companion,
-  but the first version is commentary only.
 
 ## World Fuckery
 

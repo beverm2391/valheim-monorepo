@@ -159,6 +159,28 @@ poor close-range flexibility provides its persistent bias. Its exact unlock,
 recipe, scope presentation, range benefit, handling cost, and headshot behavior
 remain open.
 
+## Later candidate: Chain Lightning
+
+Chain Lightning is the first melee candidate after Lunge. A successful direct
+melee contact starts one readable sequence of lightning jumps through nearby
+hostile creatures. The chain must not hit one creature twice, retrigger itself,
+or jump through terrain and building pieces. It must preserve Valheim's native
+damage ownership and resistance behavior.
+
+The first tuning candidate reduces the weapon's direct damage to `75%`, then
+jumps to as many as three additional targets within eight meters of the prior
+target. These numbers are test inputs, not accepted balance. The eligible
+weapon, lightning damage curve, blocking and dodging behavior, stagger, target
+ordering, and final persistent bias remain open. A later ranged version may
+reuse the product concept, but it is not part of the first melee candidate.
+
+Research in the original source of public Valheim mods and the installed
+Valheim runtime found no suitable mod to adopt as a dependency. Native Valheim
+damage routing and chain effects provide the smallest implementation path.
+During one Chain Lightning activation, the implementation must remember every
+target already hit. It must prevent repeated targets and must not let generated
+lightning hits start another chain.
+
 ## Status
 
 The first Affinity slice is implemented as an unproven playable candidate. It

@@ -90,7 +90,6 @@ gameplay. A live Valheim test still must show that the commands are visible,
 snapshots leave no temporary runtime state, watcher status is correct, and
 overlay cleanup is complete.
 
-The Wisp Echo render experiment is a useful first feature to use a watcher. It
-should prove that a watcher can attach while the game runs, observe a named
-behavior for a limited time, show when it is active, and clean up. The full Wisp
-Echo product remains outside Developer Diagnostics.
+The [Wisp Echo product](../WispEcho/PRODUCT.md) owns its render experiment and
+acceptance result. Developer Diagnostics owns only the watcher lifecycle,
+status, bounded runtime work, and cleanup used to run that experiment.

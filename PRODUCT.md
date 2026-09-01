@@ -60,6 +60,13 @@ Third-party mod behavior remains owned by each upstream project; this document
 records only why the mod belongs in our stack and what compatibility promise it
 must preserve.
 
+## Product Candidates
+
+[Crow](tools/crow-lab/PRODUCT.md) is a private companion candidate for Ben,
+Johnny, and Ozi. Its current implementation is only a local writer's-room lab.
+It is not part of Benheim, the deployed server stack, or the live acceptance
+queue.
+
 ## Acceptance Shape
 
 The server product is healthy when the world survives restarts and restores,

@@ -4,6 +4,12 @@ Product behavior, controls, player feedback, acceptance meaning, and proof
 status belong in the owning `PRODUCT.md`. Keep implementation details in code
 or a deeper technical document.
 
+When Ben moves a feature or product candidate into feasibility work or
+implementation, create one owning `PRODUCT.md` before the task closes. Keep
+loose ideas in `IDEAS.md`. Do not put an unimplemented candidate in
+`PRODUCT_REVIEW.md`; add it only after the candidate is packaged and installed
+for live acceptance.
+
 ## Product review
 
 `../../PRODUCT_REVIEW.md` is the live release ledger and acceptance queue. The
