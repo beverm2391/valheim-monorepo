@@ -7,5 +7,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Spawning/LeechSpawnFrequency.cs" Link="LeechSpawnFrequency.cs" />
+    <Compile Include="../../src/Spawning/LeechSpawnPatches.cs" Link="LeechSpawnPatches.cs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <BepInExCoreDir>$(HOME)/Library/Application Support/Steam/steamapps/common/Valheim/BepInEx/core</BepInExCoreDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExCoreDir)/0Harmony.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

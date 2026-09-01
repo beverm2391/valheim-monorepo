@@ -45,6 +45,46 @@ internal static class LeechSpawnPatches
         PendingSpawnSystems.Clear();
     }
 
+    [HarmonyPatch(
+        typeof(SpawnSystem),
+        "Spawn",
+        typeof(SpawnSystem.SpawnData),
+        typeof(Vector3),
+        typeof(bool),
+        typeof(int),
+        typeof(float))]
+    private static class SuccessfulSpawnPatch
+    {
+        [HarmonyPrefix]
+        private static void Prefix(
+            SpawnSystem.SpawnData critter,
+            bool eventSpawner,
+            out bool __state)
+        {
+            // Spawn() has one normal early return: the global no-spawn flag.
+            // A postfix with this state therefore runs only after the adjusted
+            // ordinary SpawnData completed native instantiation and setup.
+            __state = !SpawnSystem.m_nospawn &&
+                !eventSpawner &&
+                Adjusted.Contains(critter);
+        }
+
+        [HarmonyPostfix]
+        private static void Postfix(SpawnSystem.SpawnData critter, bool __state)
+        {
+            if (!__state)
+            {
+                return;
+            }
+
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("Spawning", "leech_spawn_succeeded")
+                    .String("source", "base_world")
+                    .String("prefab", critter.m_prefab.name)
+                    .Number("opportunity_multiplier", LeechSpawnFrequency.OpportunityMultiplier));
+        }
+    }
+
     private static void Adjust(SpawnSystem spawnSystem)
     {
         GameObject? prefab = ResolveLeechPrefab();
