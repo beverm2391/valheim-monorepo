@@ -39,7 +39,8 @@ internal static class PlantingPreview
         List<FarmingGridPoint> points = FarmingGrid.Build(
             anchorGhost.transform.position,
             gridSpacing,
-            anchorGhost.transform.rotation);
+            anchorGhost.transform.rotation,
+            FarmingGridSelection.CurrentSize);
 
         PrepareFakeRequirement(requirement);
         List<PlantingInvalidReason> reasons = EvaluateAndDraw(
@@ -181,7 +182,8 @@ internal static class PlantingPreview
             return false;
         }
 
-        int requiredSize = FarmingSettings.GridWidth * FarmingSettings.GridLength;
+        int gridSize = FarmingGridSelection.CurrentSize;
+        int requiredSize = gridSize * gridSize;
         bool needsRebuild = placementGhosts.Length != requiredSize
             || placementGhosts.Length == 0
             || !placementGhosts[0]
@@ -304,6 +306,7 @@ internal static class PlantingPreview
         lastDiagnosticSignature = signature;
         int valid = 0;
         int invalid = 0;
+        int gridSize = FarmingGridSelection.CurrentSize;
         for (int index = 0; index < reasons.Count; index++)
         {
             PlantingInvalidReason reason = reasons[index];
@@ -319,8 +322,8 @@ internal static class PlantingPreview
             }
 
             invalid++;
-            int row = index / FarmingSettings.GridWidth;
-            int column = index % FarmingSettings.GridWidth;
+            int row = index / gridSize;
+            int column = index % gridSize;
             Diagnostics.Event(
                 "Farming",
                 "plant_preview_invalid",
@@ -330,6 +333,6 @@ internal static class PlantingPreview
         Diagnostics.Event(
             "Farming",
             "plant_preview_updated",
-            $"valid={valid} invalid={invalid} grid={FarmingSettings.GridWidth}x{FarmingSettings.GridLength}");
+            $"valid={valid} invalid={invalid} grid={gridSize}x{gridSize}");
     }
 }

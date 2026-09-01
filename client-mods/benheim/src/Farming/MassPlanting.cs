@@ -37,7 +37,10 @@ internal static class MassPlanting
         Heightmap? heightmap = Heightmap.FindHeightmap(PlantingState.AnchorPosition);
         if (!heightmap)
         {
-            Diagnostics.Event("Farming", "mass_plant_finished", "planted=1 extra_planted=0 reason=no_heightmap");
+            Diagnostics.Event(
+                "Farming",
+                "mass_plant_finished",
+                $"planted=1 extra_planted=0 reason=no_heightmap grid={PlantingState.GridSize}x{PlantingState.GridSize}");
             return;
         }
 
@@ -46,7 +49,8 @@ internal static class MassPlanting
         List<FarmingGridPoint> points = FarmingGrid.Build(
             PlantingState.AnchorPosition,
             gridSpacing,
-            PlantingState.AnchorRotation);
+            PlantingState.AnchorRotation,
+            PlantingState.GridSize);
 
         int planted = 0;
         int notCultivated = 0;
@@ -119,7 +123,7 @@ internal static class MassPlanting
         Diagnostics.Event(
             "Farming",
             "mass_plant_finished",
-            $"planted={planted + 1} extra_planted={planted} skipped_not_cultivated={notCultivated} skipped_blocked={blocked} grid={FarmingSettings.GridWidth}x{FarmingSettings.GridLength}");
+            $"planted={planted + 1} extra_planted={planted} skipped_not_cultivated={notCultivated} skipped_blocked={blocked} grid={PlantingState.GridSize}x{PlantingState.GridSize}");
     }
 
     private static void LogSkipped(FarmingGridPoint point, PlantingInvalidReason reason)
@@ -146,6 +150,6 @@ internal static class MassPlanting
         Diagnostics.Event(
             "Farming",
             "mass_plant_finished",
-            $"planted={planted + 1} extra_planted={planted} skipped_not_cultivated={notCultivated} skipped_blocked={blocked} stopped={stopReason}");
+            $"planted={planted + 1} extra_planted={planted} skipped_not_cultivated={notCultivated} skipped_blocked={blocked} stopped={stopReason} grid={PlantingState.GridSize}x{PlantingState.GridSize}");
     }
 }

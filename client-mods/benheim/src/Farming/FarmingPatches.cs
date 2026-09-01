@@ -7,6 +7,20 @@ namespace BenheimQoL.Farming;
 internal static class FarmingPatches
 {
     [HarmonyPrefix]
+    [HarmonyPatch(typeof(Player), "Update")]
+    private static void PlayerUpdatePrefix(Player __instance)
+    {
+        FarmingInput.UpdateGridSelection(__instance);
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Player), "UseHotbarItem")]
+    private static bool UseHotbarItemPrefix(Player __instance, int index)
+    {
+        return !FarmingInput.ShouldSuppressHotbarUse(__instance, index);
+    }
+
+    [HarmonyPrefix]
     [HarmonyPatch(typeof(Player), "Interact")]
     private static void InteractPrefix(
         Player __instance,

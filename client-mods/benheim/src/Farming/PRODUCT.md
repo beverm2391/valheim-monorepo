@@ -17,10 +17,8 @@ Valheim's normal farming restrictions.
 
 ## In Development
 
-- The `0.1.77` candidate always produces the same centered 9x9 grid from the same
-  planting input.
-  Compared with the accepted centered 5x5 grid, it changes only the grid
-  dimensions and the stamina cost of successful planting.
+- Compared with the accepted centered 5x5 grid, the candidate adds selectable
+  odd grid sizes and changes the stamina cost of successful planting.
 - Each successful ordinary or grid plant placement costs 25% of the native
   planting stamina cost that Valheim has already resolved. Skipped, failed, and
   rejected placements cost no stamina.
@@ -50,12 +48,30 @@ Valheim's normal farming restrictions.
 - The current source derives each bush's placement footprint from its native
   collider shapes and transforms. It no longer reads world-space bounds during
   registration.
+- While the local player's Cultivator piece picker is open, pressing one of the
+  literal number keys `1`, `3`, `5`, `7`, or `9` selects a centered grid of
+  that size. Benheim confirms the selection immediately, and the next visible
+  mass-planting preview uses it.
+- Each Valheim session starts with a 9x9 grid. Benheim does not save the
+  selection between sessions.
+- When the picker is closed, number keys keep their native hotbar behavior.
+  While the picker is open, pressing an even number key does not change the
+  grid or switch hotbar items. Benheim shows the allowed odd sizes.
 - Live single-player acceptance remains unproven. Testing must confirm:
   - ordinary single-bush placement
   - centered 9x9 grid placement
   - exact berry costs
   - native harvesting and the 300-minute respawn
   - save reloads
+  - each session starts with a 9x9 selection and does not restore the prior
+    session's selection
+  - each odd number key produces immediate selection confirmation, and the next
+    visible preview uses the selected dimensions
+  - literal `1`, `3`, `5`, `7`, and `9` place centered grids with the
+    corresponding dimensions
+  - even number keys leave the grid and hotbar item unchanged and show the
+    allowed odd sizes
+  - native number-key behavior immediately after the Cultivator picker closes
 - Live multiplayer acceptance remains unproven. Testing must confirm:
   - shared placement and harvesting
   - creator ownership

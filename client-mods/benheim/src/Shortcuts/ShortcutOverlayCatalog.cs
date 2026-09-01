@@ -50,10 +50,11 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
-                new Entry("Left Shift + plant", $"Plant a centered {FarmingSettings.GridWidth}x{FarmingSettings.GridLength} grid"),
+                new Entry("1 / 3 / 5 / 7 / 9", "Choose the planting grid while the Cultivator picker is open"),
+                new Entry("Left Shift + plant", $"Plant the centered selected grid (defaults to {FarmingSettings.DefaultGridSize}x{FarmingSettings.DefaultGridSize} each session)"),
                 new Entry("Cultivator berries", $"Plant native Raspberry, Blueberry, and Cloudberry bushes for {PlantableBerries.BerryCost} matching berries each"),
             },
-            "Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Apart from the grid dimensions and stamina cost, all other planting behavior stays native. Berry bushes need ordinary ground, not cultivated ground or a matching biome; the 9x9 uses each native bush's collider footprint for spacing."),
+            "Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Apart from the selected odd grid dimensions and stamina cost, all other planting behavior stays native. Berry bushes need ordinary ground, not cultivated ground or a matching biome; every grid uses each native bush's collider footprint for spacing."),
     };
 
     private static readonly Section[] FeatureSections =
