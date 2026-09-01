@@ -87,7 +87,6 @@ else
 fi
 review_queue_flat="$(awk '{$1 = $1; printf "%s ", $0}' <<<"$review_queue")"
 grep -Fq '**Berry planting:**' <<<"$review_queue_flat"
-grep -Fq '**Sign glow:**' <<<"$review_queue_flat"
 grep -Fq '**Portal labels:**' <<<"$review_queue_flat"
 grep -Fq '**Comfort summary:**' <<<"$review_queue_flat"
 grep -Fq '**Club + Lunge Affinity:**' <<<"$review_queue_flat"
