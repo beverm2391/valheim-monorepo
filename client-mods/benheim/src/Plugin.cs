@@ -12,6 +12,7 @@ using BenheimQoL.PlayerCombat;
 using BenheimQoL.KillAttribution;
 using BenheimQoL.ShipSprint;
 using BenheimQoL.WorldLabels;
+using BenheimQoL.Affinities;
 using HarmonyLib;
 using UnityEngine;
 
@@ -33,6 +34,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
         Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
+        LungeRuntime.ResetSession();
         PlayerCombatRuntime.BeginSession();
         DiagnosticsSharingSettings.Initialize(Config);
         RemoteDiagnostics.Begin(Paths.ConfigPath);
@@ -106,6 +108,7 @@ public sealed class Plugin : BaseUnityPlugin
         QuickStack.ResetState();
         RemoteDiagnostics.Reset();
         PlayerCombatRuntime.EndSession();
+        LungeRuntime.ResetSession();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         Diagnostics.EndSession();
         TryRemoveFailedPatches(logFailure: false);

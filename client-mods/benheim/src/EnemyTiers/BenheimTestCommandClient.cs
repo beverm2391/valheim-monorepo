@@ -1,5 +1,6 @@
 using BenheimQoL.Infrastructure;
 using BenheimQoL.Interaction;
+using BenheimQoL.Affinities;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -16,7 +17,6 @@ internal static class BenheimTestCommandClient
     private static Minimap? hengeOverlayMinimap;
     private static string? pendingHengeOperationId;
     private static float pendingHengeRequestedAt;
-
     internal static void InitializeConsole()
     {
         if (commandRegistered)
@@ -32,7 +32,6 @@ internal static class BenheimTestCommandClient
             isNetwork: true);
         commandRegistered = true;
     }
-
     internal static void Update()
     {
         CharacterColliderOverlay.Update();
@@ -40,7 +39,6 @@ internal static class BenheimTestCommandClient
         ExpireUnansweredRequests(Time.realtimeSinceStartup);
         ExpireHengeRequest(Time.realtimeSinceStartup);
     }
-
     internal static void Reset()
     {
         CharacterColliderOverlay.Reset();
@@ -51,7 +49,6 @@ internal static class BenheimTestCommandClient
         pendingHengeOperationId = null;
         pendingHengeRequestedAt = 0f;
     }
-
     private static object Execute(Terminal.ConsoleEventArgs args)
     {
         if (BoarTestCommandProtocol.IsHelpRequest(args.Args))
@@ -71,6 +68,8 @@ internal static class BenheimTestCommandClient
         }
 
         if (ComfortDiagnosticCommand.TryExecute(args.Args, args.Context)) return true;
+
+        if (AffinityDebugCommand.TryExecute(args.Args, args.Context)) return true;
 
         if (HengeOverlayProtocol.TryParse(args.Args, out bool hengeEnabled))
         {
@@ -125,6 +124,7 @@ internal static class BenheimTestCommandClient
         context.AddString("  locally show live capsules for nearby non-player Characters");
         RuntimePrimitiveCatalogCommand.PrintUsage(context);
         ComfortDiagnosticCommand.PrintUsage(context);
+        AffinityDebugCommand.PrintUsage(context);
     }
 
     private static bool EnsureResultRpcRegistered()

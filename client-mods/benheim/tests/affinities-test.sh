@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+feature="$root/src/Affinities"
+native_tree="$($root/scripts/ensure-valheim-source.sh)"
+
+rg -Fq 'm_customData.Count' "$native_tree/Inventory.cs"
+rg -Fq 'customDatum.Key' "$native_tree/Inventory.cs"
+rg -Fq 'itemData.m_customData.Count' "$native_tree/ItemDrop.cs"
+rg -Fq 'obj.m_customData = new Dictionary<string, string>(m_customData)' "$native_tree/ItemDrop.cs"
+rg -Fq 'player.GetInventory().RemoveItem(m_craftUpgradeItem)' "$native_tree/InventoryGui.cs"
+rg -Fq 'm_craftUpgradeItem.m_quality + 1' "$native_tree/InventoryGui.cs"
+
+rg -Fq 'ReferenceEquals(item.m_dropPrefab, canonicalClub)' "$feature/AffinityState.cs"
+rg -Fq 'item.m_quality,' "$feature/AffinityState.cs"
+rg -Fq 'inventory.ContainsItem(target)' "$feature/AffinityApplication.cs"
+rg -Fq 'inventory.CountItems(resourceName)' "$feature/AffinityApplication.cs"
+rg -Fq 'inventory.RemoveItem(resourceName, TestResourceAmount)' "$feature/AffinityApplication.cs"
+rg -Fq 'AffinityRules.CountConsumed(resourcesBefore, afterFailure)' "$feature/AffinityApplication.cs"
+rg -Fq 'CheckUsable(player, false)' "$feature/AffinityApplication.cs"
+rg -Fq 'NotifyInventoryChanged(inventory)' "$feature/AffinityApplication.cs"
+rg -Fq 'item.m_customData[CustomDataKey] = LungeValue' "$feature/AffinityState.cs"
+rg -Fq 'AffinityDiagnostics.Emit' "$feature/AffinityState.cs"
+rg -Fq '[HarmonyPatch(typeof(Attack), "DoMeleeAttack")]' "$feature/AffinityPatches.cs"
+rg -Fq '[HarmonyPrefix]' "$feature/AffinityPatches.cs"
+rg -Fq 'ConditionalWeakTable<Attack, LungeSwingState>' "$feature/LungeRuntime.cs"
+rg -Fq 'state.Consumed = true' "$feature/LungeRuntime.cs"
+rg -Fq 'ReferenceEquals(attack.GetWeapon(), state.Weapon)' "$feature/LungeRuntime.cs"
+rg -Fq 'body.AddForce(impulse, ForceMode.VelocityChange)' "$feature/LungeRuntime.cs"
+rg -Fq 'yield return new WaitForFixedUpdate()' "$feature/LungeRuntime.cs"
+rg -Fq 'body != null ? body.linearVelocity' "$feature/LungeRuntime.cs"
+
+for event in affinity_menu_discovered affinity_eligibility affinity_application_validation affinity_resources_consumed affinity_state_written affinity_state_loaded lunge_attempt_accepted lunge_attempt_rejected; do
+  rg -Fq "\"$event\"" "$feature"
+done
+
+rg -Fq 'ui?.Active != true) return true' "$feature/AffinityForgeUiPatches.cs"
+rg -Fq 'LeaveForNative();' "$feature/AffinityForgeUiPatches.cs"
+rg -Fq 'new Button.ButtonClickedEvent()' "$feature/AffinityForgeUiNative.cs"
+rg -Fq 'RemoveClonedGamepadBindings' "$feature/AffinityForgeUiNative.cs"
+rg -Fq 'InputState.IsButtonDown' "$feature/AffinityForgeUi.cs"
+rg -Fq 'gui.m_tabUpgrade.navigation = restoreUpgradeNavigation' "$feature/AffinityForgeUiNative.cs"
+rg -Fq 'UnifiedPopup.Push(new YesNoPopup(' "$feature/AffinityForgeUi.cs"
+rg -Fq 'requireForge: true' "$feature/AffinityForgeUi.cs"
+rg -Fq 'consumeResources: true' "$feature/AffinityForgeUi.cs"
+rg -Fq 'AffinityDebugCommand.TryExecute' "$root/src/EnemyTiers/BenheimTestCommandClient.cs"
+rg -Fq 'AffinityState.StoredValue(weapon)' "$feature/AffinityDebugCommand.cs"
+
+dotnet run --project "$root/tests/affinities/AffinitiesTests.csproj"
+printf 'Affinity source, native seam, and rule checks passed\n'

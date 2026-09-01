@@ -156,5 +156,18 @@ remain open.
 
 ## Status
 
-The first Affinity slice is ready for implementation. No affinity application,
-persistence, or combat behavior is implemented yet.
+The first Affinity slice is implemented as an unproven playable candidate. It
+uses a max-quality base-game Club, a Forge Affinity tab, versioned item state, a
+temporary cost of 1 Wood, and a 6 m/s candidate Lunge impulse. Static proof
+proves only the guards for the selected item and resources, the code connections
+to native persistence, isolation of the Affinity tab, one Lunge per qualifying
+swing, isolation of developer commands, and separate diagnostic event types.
+
+Live product review must still prove the Affinity tab's layout, weapon list,
+affinity details, resource requirements, input behavior, sounds, and restoration
+of the native Craft and Upgrade tabs. It must also prove persistence through
+native item paths, movement ownership and smoothing in multiplayer, and whether
+the candidate force plus forced airborne commitment creates meaningful power
+with a felt loss of flexibility. Valheim's short grounded grace period
+immediately after takeoff may affect the Lunge timing and remains part of the
+live feel test.
