@@ -1,9 +1,11 @@
-# valheim-server development, testing, and operations
+# Valheim monorepo development, testing, and operations
 
 [`AGENTS.md`](AGENTS.md) owns agent behavior and the shared safety defaults.
-This file owns the commands, development workflow, tests, and operating rules
-for this repository. Read the root [`PRODUCT.md`](PRODUCT.md) before changing
-the product promise or a compatibility boundary.
+This file owns monorepo-wide commands, tests, operating rules, and development
+workflow. It also owns the server, migration, and public-repository workflows.
+Nested `PROMPT.md` files add rules for their paths. Read the root
+[`PRODUCT.md`](PRODUCT.md) before changing the product promise or a compatibility
+boundary.
 
 ## Product boundaries
 
@@ -138,158 +140,11 @@ Migration work must preserve a vanilla launch path, prove the world on a
 temporary server before production, back up server worlds and client
 characters, and restore mods only after vanilla 1.0 is stable.
 
-## Benheim development and testing
+## Benheim client development
 
-The Benheim client mod lives under `client-mods/benheim/`. Product behavior,
-controls, player feedback, acceptance meaning, and proof status belong in the
-owning product document. Keep implementation details in code or a deeper
-technical document.
-
-`PRODUCT_REVIEW.md` is the live release ledger and acceptance queue. The integration lead for each client
-release must record its exact packaged version, exact installed version, and concise remaining live checks.
-When the packaged version is not installed, keep its checks separate from the current installed-client queue.
-The integration lead may add unproven items.
-
-Ben and the Project Lead own acceptance judgments. An integration lead must not:
-
-- mark behavior from its own release as accepted;
-- remove passed items based only on static proof; or
-- promote behavior into accepted `PRODUCT.md` truth.
-
-Each review item states the shortest player action and decision-changing outcome. Keep telemetry schemas,
-implementation invariants, and exhaustive edges in code, tests, or deeper technical docs. Reserve programmatic
-or log proof for hidden, ambiguous, or destructive boundaries such as conservation, ownership, networking,
-persistence, and credentials. After Ben or the Project Lead accepts an item, the integration lead removes it from
-the queue and updates the owning product document.
-
-Build and test a client-only change with the canonical verification entrypoint:
-```bash
-client-mods/benheim/scripts/verify.sh
-```
-
-`verify.sh` runs every `client-mods/benheim/tests/*-test.sh` source/installer check, the quick-stack summary checks,
-and the Release DLL build. It does not install files, touch a Valheim game directory, create a platform package,
-or publish a release. The build and quick-stack checks may write ignored `bin/` and `obj/` outputs. Use
-`verify.sh` instead of running its checks separately.
-
-The expected build caveat is a `System.Net.Http` version conflict warning from Valheim assembly references. It is
-acceptable when the build exits successfully.
-
-Inspect one type from the installed Valheim assembly:
-
-```bash
-client-mods/benheim/scripts/decompile-valheim.sh Character
-```
-
-The helper caches decompiled source by the exact assembly SHA-256 and requested type. It writes decompiled source
-to standard output. It writes the resolved assembly path, SHA-256, requested type, and cache hit or miss to standard error.
-
-Cache and search the complete installed assembly:
-
-```bash
-client-mods/benheim/scripts/ensure-valheim-source.sh
-client-mods/benheim/scripts/search-valheim-source.sh -n 'StackAll\('
-client-mods/benheim/scripts/list-valheim-types.sh projectile
-client-mods/benheim/scripts/diff-valheim-types.sh --help
-```
-
-Build and install locally on Mac, then package for Mac and Windows:
-
-```bash
-client-mods/benheim/scripts/build.sh
-client-mods/benheim/scripts/install-local.sh
-client-mods/benheim/scripts/package-macos.sh
-client-mods/benheim/scripts/package-windows.sh
-```
-
-`install-local.sh` must run the same Mac installer shipped to players. The installer must be safe to run repeatedly.
-Keep BepInEx installation, legacy-plugin cleanup, and launcher generation in that installer. The Mac launcher must start Steam when needed before it starts Valheim.
-
-The normal Steam launch remains vanilla on Mac and Windows. `Benheim.app` on Mac and the managed `Benheim` shortcut
-on Windows are the explicit modded launch paths. Launchers and installers must not check GitHub or another network
-source for updates. Share updates as complete platform packages; a player updates by rerunning the installer while Valheim is closed.
-
-The Mac launcher starts the installed BepInEx launch script only after Steam's connection log shows a successful login. Do not use `ipcserver` as the readiness signal because it can remain after Steam exits.
-
-The Windows installer keeps UnityDoorstop disabled in `doorstop_config.ini`. Its managed shortcut starts Steam, finds
-Valheim across configured Steam libraries, and launches `valheim.exe` with `--doorstop-enabled true`. Do not rename
-Doorstop DLLs to switch modes. Remove retired updater apps, shortcuts, and state only when a managed identifier or marker proves ownership. Leave unrelated paths unchanged.
-
-The Windows installer must:
-
-- find Valheim in configured Steam libraries;
-- verify the pinned BepInEx archive;
-- disable the standalone MassFarming plugin;
-- refuse to overwrite an unrelated desktop shortcut; and
-- keep the normal Steam launch vanilla after installation.
-
-Use `client-mods/benheim/tests/windows-installer-test.sh` to verify installer source and packaged files. Keep this test until a Windows CI runner can execute the installer.
-
-Before this task installs or launches a packaged build for bounded startup proof, confirm that no Valheim process is
-running. Any Valheim process that was already running is a hard stop. Do not quit or kill it, install over it, or launch or relaunch around it. Wait for Ben's explicit instruction.
-
-Install the exact packaged artifact that will be shared. Launch the installed package through Benheim's managed path
-and reach Valheim's real main menu. Verify that the log shows the expected version, session start, and chainloader
-completion, with no Harmony, core-disablement, or gameplay-disabled markers. A task may quit only the Valheim process
-that it launched for this bounded startup proof. After validation, quit that process cleanly. Do not enter a world.
-One clean packaged-build startup is the normal gate. Do not launch again unless an active incident requires more evidence.
-
-When `release.sh` publishes Benheim, it must run only from a clean local `main` that exactly matches `origin/main`.
-It runs `verify.sh`, packages both platforms from that verified build, creates the `benheim-v<version>` GitHub
-release, and uploads stable `Benheim-macOS.zip` and `Benheim-Windows.zip` assets. Release assets are distribution
-artifacts, not an update channel.
-
-## Gameplay development loop
-
-For a gameplay change:
-
-1. Before coding against a native runtime asset, inspect it in a loaded world with `bh debug catalog effects|text|ui [filter]`.
-   If none covers it, add the smallest focused probe for identity, components, hierarchy, and readiness.
-   Source names, decompiled code, and mocks are not runtime proof. Preserve the observed contract in focused tests,
-   then rerun the probe against the candidate build.
-2. Add diagnostics only when acceptance depends on a result the player cannot
-   reliably see or a hidden, ambiguous, or destructive invariant. Reuse evidence
-   that already answers the product question.
-3. Bump the visible version and install while Valheim is fully quit.
-4. Relaunch, reproduce, and record what the player tried.
-5. Query `[diag]` events; read the server journal only for server-owned behavior.
-6. Fix observed failures and repeat until gameplay and evidence agree.
-
-Diagnostic events use `[diag][Feature] action key=value`. Log actions, important
-decisions, and results, not every frame. Keep normal BepInEx warnings and errors.
-Benheim also writes each event to `BepInEx/BenheimEvents.ndjson`. Use
-`client-mods/benheim/scripts/query-events.py --help` to stream current or archived
-events, filter fields, or find starts without a terminal event.
-
-Normal packages stay credential-free. Use scoped secrets for
-`package-private-test.sh`; rotate its token if an archive leaves Ben, Johnny,
-and Ozi or before public release.
-
-## Client mod rules
-
-- Keep one Benheim client DLL.
-- Before changing Put Away, follow the nested [Inventory development
-  guide](client-mods/benheim/src/Inventory/PROMPT.md). Its shared protocol owns the
-  authority, conservation, correlation, and convergence rules. Do not replace
-  that protocol with requester-local `Container.StackAll()` or another cached
-  chest write.
-- Apply protected-item filtering whenever `Inventory.StackAll()` moves items
-  out of the local player's inventory. The filter applies to Valheim's **Place
-  stacks** and **Hold to stack** actions. Put Away filters the same protected
-  items before its owner-routed reservation. All three actions must keep
-  manually pocketed, equipped, and hotbar items protected. Manual item moves
-  and **Take all** remain unchanged.
-- Defer custom persistent world objects until a specific feature needs them.
-  That feature design must cover their effects on the world, recovery,
-  migration, and removal. Add custom item data only when the product design
-  requires it and removal cannot corrupt a character.
-- Build the Valheim-styled Benheim menu with Unity UI and loaded native
-  templates. Before every client version bump or package build, compare its
-  catalog with owning `PRODUCT.md` files; update and organize every new or
-  changed player-facing control or feature.
-- Bump the visible plugin version when installing a user-testable behavior
-  change so testers can verify the loaded DLL after relaunch.
-- Valheim does not hot-reload the plugin DLL. After installation, fully quit and relaunch the BepInEx-enabled game.
+`client-mods/benheim/PROMPT.md` owns Product Review, Benheim client development,
+testing, installation, release, gameplay workflow, and client rules. Work under
+`client-mods/benheim/` inherits those rules.
 
 ## Documentation map
 

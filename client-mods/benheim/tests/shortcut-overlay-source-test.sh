@@ -10,7 +10,7 @@ tabs_file="$root/src/Shortcuts/ShortcutOverlayTabs.cs"
 catalog_file="$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 warnings_file="$root/src/Shortcuts/ShortcutOverlayWarnings.cs"
 plugin="$root/src/Plugin.cs"
-prompt="$root/../../PROMPT.md"
+prompt="$root/PROMPT.md"
 overlay_files=("$source_file" "$content_file" "$patches_file" "$templates_file" "$tabs_file" "$catalog_file" "$warnings_file")
 
 if rg -n 'OnGUI|GUIStyle|GUILayout|GUI\.Label|Texture2D|PreloadTextOnce' "${overlay_files[@]}" "$plugin"; then

@@ -3,7 +3,7 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 release_script="$root/scripts/release.sh"
-prompt="$root/../../PROMPT.md"
+prompt="$root/PROMPT.md"
 product_review="$root/../../PRODUCT_REVIEW.md"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
 installed_version="0.1.78"
