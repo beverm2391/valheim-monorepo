@@ -144,8 +144,8 @@ For a gameplay change:
      other mod's product assumptions. Treat source with no license or an
      incompatible license as evidence only.
 2. Before coding against a native runtime asset, inspect each required asset
-   after Valheim loads it in a world. Use an existing `bh debug catalog
-   effects|text|ui [filter]` catalog when it covers the asset. Otherwise, add
+   after Valheim loads it in a world. Use `bhcatalog effects|text|ui [filter]`
+   when that command covers the asset. Otherwise, add
    the smallest focused probe for identity, components, hierarchy, and
    readiness. Source names, decompiled code, and mocks are not runtime proof.
 3. Preserve the observed contract in focused tests. Rerun the probe against the

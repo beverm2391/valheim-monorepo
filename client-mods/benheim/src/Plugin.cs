@@ -2,6 +2,7 @@ using System;
 using BepInEx;
 using BepInEx.Logging;
 using BenheimQoL.CombatFeedback;
+using BenheimQoL.DeveloperDiagnostics;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.InventoryFeature;
 using BenheimQoL.Farming;
@@ -42,6 +43,7 @@ public sealed class Plugin : BaseUnityPlugin
         DiagnosticsSharingSettings.ApplyLegacyPrivateTestDefault(
             RemoteDiagnostics.IsConfigured);
         BenheimTestCommandClient.InitializeConsole();
+        DeveloperDiagnosticsRuntime.InitializeConsole();
         BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();
         try
@@ -83,6 +85,7 @@ public sealed class Plugin : BaseUnityPlugin
         RemoteDiagnostics.Update();
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
+        DeveloperDiagnosticsRuntime.Update();
         if (!HealthReporting.GameplayActionsEnabled)
         {
             return;
@@ -105,6 +108,7 @@ public sealed class Plugin : BaseUnityPlugin
         CombatFeedbackController.Reset();
         TopLeftFeedbackHud.Destroy();
         WildernessDangerPresentation.Reset();
+        DeveloperDiagnosticsRuntime.Reset();
         BenheimTestCommandClient.Reset();
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();

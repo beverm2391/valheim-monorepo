@@ -1,5 +1,4 @@
 using BenheimQoL.Infrastructure;
-using BenheimQoL.Interaction;
 using BenheimQoL.Affinities;
 using System.Collections.Generic;
 using UnityEngine;
@@ -34,14 +33,12 @@ internal static class BenheimTestCommandClient
     }
     internal static void Update()
     {
-        CharacterColliderOverlay.Update();
         EnsureResultRpcRegistered();
         ExpireUnansweredRequests(Time.realtimeSinceStartup);
         ExpireHengeRequest(Time.realtimeSinceStartup);
     }
     internal static void Reset()
     {
-        CharacterColliderOverlay.Reset();
         ClearHengeOverlay();
         registeredServerRpc = null;
         PendingOperations.Clear();
@@ -56,18 +53,6 @@ internal static class BenheimTestCommandClient
             PrintHelp(args.Context);
             return true;
         }
-
-        if (CharacterColliderOverlay.TryExecute(args.Args, args.Context))
-        {
-            return true;
-        }
-
-        if (RuntimePrimitiveCatalogCommand.TryExecute(args.Args, args.Context))
-        {
-            return true;
-        }
-
-        if (ComfortDiagnosticCommand.TryExecute(args.Args, args.Context)) return true;
 
         if (AffinityDebugCommand.TryExecute(args.Args, args.Context)) return true;
 
@@ -120,10 +105,6 @@ internal static class BenheimTestCommandClient
         context.AddString("  0 = unstarred, 1 = one star, 2 = two stars");
         context.AddString($"  {HengeOverlayProtocol.Usage}");
         context.AddString("  locally show or remove every native Yagluth-henge candidate");
-        context.AddString("  bh debug colliders on|off");
-        context.AddString("  locally show live capsules for nearby non-player Characters");
-        RuntimePrimitiveCatalogCommand.PrintUsage(context);
-        ComfortDiagnosticCommand.PrintUsage(context);
         AffinityDebugCommand.PrintUsage(context);
     }
 

@@ -9,11 +9,8 @@ command="$root/src/Infrastructure/RuntimePrimitiveCatalogCommand.cs"
 readiness="$root/src/Infrastructure/RuntimePrimitiveCatalogReadiness.cs"
 selection="$root/src/Infrastructure/RuntimePrimitiveCatalogSelection.cs"
 snapshot_file="$root/src/Infrastructure/RuntimePrimitiveSnapshotFile.cs"
-client="$root/src/EnemyTiers/BenheimTestCommandClient.cs"
-
-rg -Fq 'RuntimePrimitiveCatalogCommand.TryExecute(args.Args, args.Context)' "$client"
-rg -Fq 'RuntimePrimitiveCatalogCommand.PrintUsage(context)' "$client"
-rg -Fq 'bh debug catalog effects|text|ui [filter]' "$request"
+rg -Fq 'RuntimePrimitiveCatalogRequest.TryCreate(' "$command"
+rg -Fq 'arguments.Length > 1' "$request"
 
 rg -Fq 'ObjectDB.instance' "$command"
 rg -Fq 'worldReady: Player.m_localPlayer != null' "$command"
@@ -60,7 +57,7 @@ rg -Fq 'written_count' "$selection"
 rg -Fq 'MaximumSnapshotEntries' "$command"
 rg -Fq 'File.Replace(temporaryPath, path' "$snapshot_file"
 
-if rg -n 'FindObjectsOfTypeAll<Sprite>|Diagnostics\.Emit|RemoteDiagnostics' "$catalog" "$command"; then
+if rg -n 'FindObjectsOfTypeAll<Sprite>|Diagnostics\.Emit|RemoteDiagnostics|bh debug' "$catalog" "$command" "$request"; then
   printf 'runtime catalog must remain a bounded local donor snapshot, not sprite spam or remote diagnostics\n' >&2
   exit 1
 fi

@@ -63,13 +63,6 @@ use it to find controls and passive features.
   unchanged. For the Finewood conversion, other logs, standing-tree drops,
   stumps, native damage-type conversions, and unrelated destruction stay
   native.
-- The Diagnostics section lists `bh debug comfort`. It says the command records
-  evidence from one native comfort calculation without changing the player,
-  furniture, or world. The menu says the command prints the calculated comfort
-  plus **Counted**, **Ignored**, and **Just outside range** sections. It also
-  says the command preserves the complete typed diagnostic and log evidence.
-  The menu explains that the command cannot report pieces that Valheim filters
-  out before its native comfort query.
 - The Farming section lists `1`, `3`, `5`, `7`, and `9` as selectable centered
   grid sizes while the Cultivator picker is open. It says each Cultivator-picker
   session starts with the 9x9 grid selected. It also lists native Raspberry,

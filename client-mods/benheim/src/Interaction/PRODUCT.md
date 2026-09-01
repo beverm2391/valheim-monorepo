@@ -12,7 +12,7 @@ without enabling remote use across a base.
 - Benheim changes only the range at which Valheim detects comfort furniture,
   from exactly 10 meters to 20 meters. Comfort furniture in nearby rooms, on
   nearby floors, and in nearby buildings can provide comfort.
-- `bh debug comfort` records one Valheim comfort calculation, then stops. It
+- `bhrun comfort` records one Valheim comfort calculation, then stops. It
   does not change the player, furniture, or world. The diagnostic records the
   radius used for that calculation, the shelter and comfort state, and every
   candidate exposed by Valheim's native query. For each candidate, it records

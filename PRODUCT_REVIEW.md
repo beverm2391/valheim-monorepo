@@ -46,7 +46,7 @@ ledger and who can accept its items.
   one compatible player and far from another. The nearby player may hear the
   native charm cue. The distant player must not hear it.
 
-- **Comfort summary:** Run `bh debug comfort`. Confirm that the console shows a
+- **Comfort summary:** Run `bhrun comfort`. Confirm that the console shows a
   readable summary with the calculated comfort and **Counted**, **Ignored**, and
   **Just outside range** sections.
 - **Berry planting:** For each native Raspberry, Blueberry, and Cloudberry bush:

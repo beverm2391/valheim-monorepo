@@ -6,55 +6,33 @@ namespace BenheimQoL.Interaction;
 
 internal static class ComfortDiagnosticCommand
 {
-    internal const string Usage = "bh debug comfort";
-
-    internal static bool TryExecute(string[] arguments, Terminal context)
+    internal static void Run(string[] arguments, Action<string> output)
     {
-        if (!HasPrefix(arguments))
+        if (arguments.Length != 0)
         {
-            return false;
-        }
-        if (arguments.Length != 3)
-        {
-            PrintUsage(context);
-            return true;
+            output("Usage: bhrun comfort");
+            return;
         }
 
         if (!HealthReporting.GameplayActionsEnabled)
         {
-            context.AddString(
+            output(
                 "The Benheim comfort diagnostic is unavailable because its required observation hooks did not load. Open Left Shift + B for details.");
-            return true;
+            return;
         }
 
         Player? player = Player.m_localPlayer;
         if (player == null)
         {
-            context.AddString(
+            output(
                 "The Benheim comfort diagnostic is unavailable. Enter a playable world first.");
-            return true;
+            return;
         }
 
-        try
-        {
-            Emit(player, context);
-        }
-        catch (Exception exception)
-        {
-            context.AddString(
-                $"Benheim comfort diagnostic failed: {Diagnostics.Flatten(exception.Message)}");
-        }
-        return true;
+        Emit(player, output);
     }
 
-    internal static void PrintUsage(Terminal context)
-    {
-        context.AddString($"  {Usage}");
-        context.AddString(
-            "  show one readable Valheim comfort calculation and record the complete diagnostic evidence");
-    }
-
-    private static void Emit(Player player, Terminal context)
+    private static void Emit(Player player, Action<string> output)
     {
         string operationId = Diagnostics.NewOperationId();
         ComfortDiagnosticSnapshot snapshot = ComfortDiagnosticCapture.Capture(player);
@@ -105,7 +83,7 @@ internal static class ComfortDiagnosticCommand
                 : token);
         for (int index = 0; index < summary.Count; index++)
         {
-            context.AddString(summary[index]);
+            output(summary[index]);
         }
     }
 
@@ -152,13 +130,5 @@ internal static class ComfortDiagnosticCommand
             }
         }
         return count;
-    }
-
-    private static bool HasPrefix(string[] arguments)
-    {
-        return arguments.Length >= 3
-            && string.Equals(arguments[0], "bh", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(arguments[1], "debug", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(arguments[2], "comfort", StringComparison.OrdinalIgnoreCase);
     }
 }

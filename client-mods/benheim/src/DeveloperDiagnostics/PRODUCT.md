@@ -71,21 +71,24 @@ active, and restore a watcher to its shipped default without relaunching.
 
 ## In Development
 
-The existing catalogs, comfort snapshot, and collider overlay prove parts of
-this direction, but they do not yet form one system.
+The first candidate puts the runtime catalogs, comfort snapshot, and collider
+overlay in one registry. `bhcatalog` lists the effects, text, and UI catalogs.
+`bhrun comfort` captures one comfort snapshot. `bhwatch colliders` reports the
+default setting in the shipped build, the current session setting, and whether
+the watcher is active.
 
-The first implementation slice must:
+The collider watcher is off by default. A developer can set the watcher to
+`on`, `off`, or `default` for the current session. The watcher removes its
+overlay when the player exits a world, logs out, or resets the plugin. If the
+session setting remains `on`, the watcher starts again when the next world
+loads.
 
-1. register snapshots and watchers in one catalog that native completion can
-   discover;
-2. continue recording important gameplay events at all times;
-3. support session-only watcher settings and show the shipped default, session
-   setting, and effective state;
-4. add native console completion for the three command families;
-5. prevent probe failures from interrupting gameplay and clean up on world
-   exit, logout, and plugin reset; and
-6. prove that the registry shipped with Benheim can discover and run one
-   snapshot and one watcher.
+Focused tests show that the shipped registry exposes its snapshots and watcher
+through native first-argument completion. The tests cover snapshot dispatch,
+watcher status, lifecycle cleanup, and probe failures that must not interrupt
+gameplay. A live Valheim test still must show that the commands are visible,
+snapshots leave no temporary runtime state, watcher status is correct, and
+overlay cleanup is complete.
 
 The Wisp Echo render experiment is a useful first feature to use a watcher. It
 should prove that a watcher can attach while the game runs, observe a named

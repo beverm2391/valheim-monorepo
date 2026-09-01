@@ -248,7 +248,7 @@ player's Ship Sprint request and while that request remains active. Reverse and
 every other native ship rule remain unchanged. The [Ship Sprint
 module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live proof gates.
 
-The candidate also adds the one-shot `bh debug comfort` command. It records
+The candidate also adds the one-shot `bhrun comfort` command. It records
 evidence from one native comfort calculation without changing the player,
 furniture, or world. See the [Interaction module](src/Interaction/PRODUCT.md)
 for what the command records and what it cannot observe.
@@ -295,8 +295,9 @@ not require Server Support. See the root [Gameplay
 Breakdown](../../PRODUCT.md#gameplay-breakdown) for the exact client and server
 versions and compatibility boundary.
 
-A live test still must prove runtime catalog command visibility and local
-snapshot cleanup.
+The [Developer Diagnostics module](src/DeveloperDiagnostics/PRODUCT.md) owns
+the remaining live tests for the new command families, the snapshots, and the
+watcher.
 
 Configured private-test builds start with sharing enabled, and the first run
 explains what the build shares. A live test still must prove that turning
