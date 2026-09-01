@@ -37,15 +37,17 @@ ledger and who can accept its items.
   throttle. Confirm that `SPRINT` appears and `3x` thrust applies. Release Run,
   reverse the throttle, and leave the helm. Each action must restore normal
   Valheim behavior.
-- **Mass planting:** Place one plant normally. Then preview and place the
-  centered 9x9 grid. Each successful ordinary or grid placement costs 25% of
-  the native stamina cost after Valheim applies the Farming skill adjustment.
-  A failed, skipped, or rejected placement costs no stamina.
+- **Farming and Cultivator grids:** Open the Cultivator picker. Each time the
+  player opens the picker, the 9x9 grid must be selected. Press `1`, `3`, `5`,
+  `7`, and `9`; each key must select and preview the matching centered grid.
+  Even number keys must change neither the grid nor the hotbar, and number keys
+  must regain native behavior when the picker closes. Place one plant normally,
+  then place a centered 9x9 grid that contains both valid and invalid cells.
+  Each successful normal or grid-cell placement must cost 25% of the native
+  stamina cost after Valheim applies the Farming skill adjustment. A failed,
+  skipped, or rejected placement must cost no stamina.
 - **Tar:** Manually collect native Tar while it is submerged. Items other than
   Tar must remain stuck. No item may be collected automatically.
-- **Perfect Impact:** Ben confirmed that the first qualifying live hit showed
-  `PERFECT IMPACT`. Still confirm that nonqualifying hits keep normal Valheim
-  behavior. Confirm that Combat Shake controls only the optional shake.
 - **Developer command discovery:** In Valheim's built-in console, confirm that
   the console completes the first argument for each command: `bhcatalog`,
   `bhrun`, and `bhwatch`. Run the effects, text, and UI catalog commands.
@@ -68,12 +70,6 @@ ledger and who can accept its items.
   - reload the save and confirm persistence; and
   - in multiplayer, confirm shared placement and harvesting, creator ownership,
     and reconnect behavior.
-- **Cultivator grid selection:** Open the Cultivator picker and press `1`, `3`,
-  `5`, `7`, and `9`. Confirm each key immediately selects and previews the
-  matching centered grid. Confirm that each Cultivator-picker session starts
-  with the 9x9 grid selected. Confirm that even number keys change neither the
-  grid nor the hotbar. Confirm that number keys regain native behavior when the
-  Cultivator picker closes.
 - **Portal labels:** On wooden and stone portals, confirm that each label appears
   above the portal and exactly matches its current tag. Confirm that the label
   is visible at 30 meters but not beyond, hides when the player's line of sight

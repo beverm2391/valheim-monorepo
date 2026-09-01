@@ -99,7 +99,6 @@ grep -Fq 'Grounded Club swings must remain native.' <<<"$review_queue_flat"
 grep -Fq 'debug inspect,' <<<"$review_queue_flat"
 grep -Fq 'apply, clear, and session-force commands' <<<"$review_queue_flat"
 grep -Fq 'peer sees the Lunge' <<<"$review_queue_flat"
-grep -Fq '**Cultivator grid selection:**' <<<"$review_queue_flat"
 grep -Fq '**Leech spawning:**' <<<"$review_queue_flat"
 
 if grep -Eq 'SHA256SUMS\.txt|"\$release_dir/VERSION"|offers? to install future stable updates|releases/latest/download/VERSION' "$release_script"; then
