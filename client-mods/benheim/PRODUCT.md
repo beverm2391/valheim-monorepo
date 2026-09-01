@@ -198,7 +198,7 @@ gameplay proof or fixes.
 On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
 because the required planting-stamina hook did not attach. Because Benheim
 fails closed when this hook is missing, it disabled all gameplay actions.
-Benheim `0.1.79` is the current private-test candidate. It preserves the
+Benheim `0.1.80` is the current private-test candidate. It preserves the
 `0.1.73` startup correction. It adds the
 [Farming](src/Farming/PRODUCT.md) module's selectable 1x1, 3x3, 5x5, 7x7, and
 9x9 grids, corrected berry registration, and planting-stamina behavior. It
@@ -221,7 +221,7 @@ Club's primary attack while airborne, Lunge adds one 10 m/s forward impulse
 and raises vertical velocity to at least +3 m/s. Grounded Club swings remain
 native.
 
-The exact `0.1.79` macOS private-test package was installed byte-for-byte and
+The exact `0.1.80` macOS private-test package was installed byte-for-byte and
 launched through the managed Benheim launcher on installed Valheim `0.221.12`.
 It reached Valheim's real main menu. The fresh log contained the expected
 version, session-start, chainloader-complete, and clean session-end markers. It
@@ -248,12 +248,13 @@ player's Ship Sprint request and while that request remains active. Reverse and
 every other native ship rule remain unchanged. The [Ship Sprint
 module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live proof gates.
 
-The candidate also adds the one-shot `bhrun comfort` command. It records
-evidence from one native comfort calculation without changing the player,
-furniture, or world. See the [Interaction module](src/Interaction/PRODUCT.md)
-for what the command records and what it cannot observe.
-
-The candidate prints that comfort evidence as a readable summary.
+The candidate includes the first command set from the [Developer
+Diagnostics](src/DeveloperDiagnostics/PRODUCT.md) module. The `bhcatalog`
+command inspects the effects, text, and UI catalogs while Valheim is running.
+The `bhrun comfort` command records and prints one native comfort calculation
+without changing the player, furniture, or world. The `bhwatch colliders`
+command controls the temporary collider overlay for the current session and is
+off by default.
 
 The candidate also adds the [Farming](src/Farming/PRODUCT.md) module's native
 plantable berry bushes and the [World Labels](src/WorldLabels/PRODUCT.md)

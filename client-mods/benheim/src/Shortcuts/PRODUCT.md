@@ -32,7 +32,7 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The `0.1.79` candidate adds an Affinities section. For this candidate, the
+- The current candidate adds an Affinities section. The
   section says that binding Lunge to one specific max-quality Club at a Forge
   costs 1 Wood. The section says that Lunge stays with that item. It says that
   an airborne primary swing adds a 10 m/s forward impulse and raises vertical

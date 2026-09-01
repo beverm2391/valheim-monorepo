@@ -6,7 +6,7 @@ release_script="$root/scripts/release.sh"
 prompt="$root/PROMPT.md"
 product_review="$root/../../PRODUCT_REVIEW.md"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
-installed_version="0.1.79"
+installed_version="0.1.80"
 
 grep -Fq 'git status --porcelain' "$release_script"
 grep -Fq 'git branch --show-current' "$release_script"

@@ -7,21 +7,25 @@ ledger and who can accept its items.
 
 ## Release state
 
-- Packaged version: private-test `0.1.79` for Mac and Windows. The Windows
+- Packaged version: private-test `0.1.80` for Mac and Windows. The Windows
   package remains packaged-only.
-- Installed version: private-test `0.1.79` on Ben's Mac, installed from the
+- Installed version: private-test `0.1.80` on Ben's Mac, installed from the
   exact private-test macOS package.
 - Startup proof: The managed Benheim launcher started the exact installed
-  `0.1.79` package. It reached the real main menu in Valheim `0.221.12`. The
+  `0.1.80` package. It reached the real main menu in Valheim `0.221.12`. The
   fresh log contained the expected version, session-start,
   chainloader-complete, and clean session-end markers. The log contained no
   Harmony cleanup marker, core-disablement marker, gameplay-disabled marker,
   or world-load marker. No world was entered. The task quit only the Valheim
   process that it launched, and no Valheim process remained.
-- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.79`
+- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.80`
   require no change to that server component.
 
-## Test on installed `0.1.79`
+## Test on installed `0.1.80`
+
+- **Earned-state audio:** In multiplayer, trigger an earned combat state near
+  one compatible player and far from another. The nearby player may hear the
+  native charm cue. The distant player must not hear it.
 
 - **Workbench and Stonecutter range:** Place a Workbench-required piece around
   22 m and 38 m from an isolated level-1 Workbench. Confirm that placement fails
@@ -42,13 +46,20 @@ ledger and who can accept its items.
 - **Perfect Impact:** Ben confirmed that the first qualifying live hit showed
   `PERFECT IMPACT`. Still confirm that nonqualifying hits keep normal Valheim
   behavior. Confirm that Combat Shake controls only the optional shake.
-- **Earned-state audio:** In multiplayer, trigger an earned combat state near
-  one compatible player and far from another. The nearby player may hear the
-  native charm cue. The distant player must not hear it.
-
+- **Developer command discovery:** In Valheim's built-in console, confirm that
+  the console completes the first argument for each command: `bhcatalog`,
+  `bhrun`, and `bhwatch`. Run the effects, text, and UI catalog commands.
+  Confirm that each snapshot returns a result within its defined limit and
+  leaves no temporary state in the running game.
 - **Comfort summary:** Run `bhrun comfort`. Confirm that the console shows a
   readable summary with the calculated comfort and **Counted**, **Ignored**, and
   **Just outside range** sections.
+- **Collider watcher:** Run `bhwatch colliders` and confirm that the command
+  reports the default setting in the shipped build, the current session
+  setting, and the state that applies now. Set the watcher to `on` and confirm
+  that the overlay appears. Set the watcher to `off`, exit the world, and log
+  out. Confirm that all overlay objects are removed after each of these actions.
+  Restore `default` and confirm that the watcher is off by default.
 - **Berry planting:** For each native Raspberry, Blueberry, and Cloudberry bush:
 
   - confirm ordinary placement and centered 9x9 placement;
