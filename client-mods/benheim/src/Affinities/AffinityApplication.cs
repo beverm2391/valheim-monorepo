@@ -149,6 +149,10 @@ internal static class AffinityApplication
         Inventory inventory = player.GetInventory();
         if (!inventory.ContainsItem(target)) return "item_moved";
         if (!AffinityState.IsEligibleClub(target)) return "ineligible_item";
+        if (AffinityRules.IsSameAffinity(AffinityState.Read(target), AffinityLoadResult.Lunge))
+        {
+            return "affinity_already_installed";
+        }
         if (requireForge && !IsAtBaseGameForge(player)) return "not_at_base_game_forge";
         if (requireForge && player.GetCurrentCraftingStation()?.CheckUsable(player, false) != true)
         {

@@ -21,7 +21,8 @@ internal sealed class LungeSwingState
 
 internal static class LungeRuntime
 {
-    internal const float DefaultForce = 6f;
+    internal const float DefaultForce = 10f;
+    internal const float MinimumVerticalVelocity = 3f;
     private static readonly ConditionalWeakTable<Attack, LungeSwingState> Swings = new();
     private static float force = DefaultForce;
 
@@ -106,7 +107,10 @@ internal static class LungeRuntime
             EmitRejected(state.OperationId, state.Weapon, "missing_planar_forward");
             return;
         }
-        Vector3 impulse = new Vector3(impulseX, 0f, impulseZ);
+        Vector3 impulse = new Vector3(
+            impulseX,
+            AffinityRules.RequiredVerticalImpulse(before.y, MinimumVerticalVelocity),
+            impulseZ);
         body.AddForce(impulse, ForceMode.VelocityChange);
         player.StartCoroutine(EmitAcceptedAfterPhysics(
             body,

@@ -22,6 +22,20 @@ internal static class AffinityRules
         return Math.Max(0, before - after);
     }
 
+    internal static bool IsSameAffinity(
+        AffinityLoadResult installed,
+        AffinityLoadResult selected)
+    {
+        return installed != AffinityLoadResult.None
+            && installed != AffinityLoadResult.Unsupported
+            && installed == selected;
+    }
+
+    internal static float RequiredVerticalImpulse(float currentVelocity, float minimumVelocity)
+    {
+        return Math.Max(0f, minimumVelocity - currentVelocity);
+    }
+
     internal static string ResolveLunge(
         bool owner,
         bool sameWeapon,

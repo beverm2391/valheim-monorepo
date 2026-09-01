@@ -31,9 +31,14 @@ The MVP has these boundaries:
   the weapon item and do not preserve affinity data. Requiring max quality
   prevents a later upgrade from erasing the stored affinity, including while
   Benheim is uninstalled.
-- The player may replace an affinity only at the Forge by paying the new
-  affinity's full resource cost. The old affinity and all materials previously
-  spent on that affinity are permanently lost.
+- The player applies every affinity at the Forge, regardless of the weapon's
+  original crafting station.
+- The player may replace an affinity at the Forge by paying the new affinity's
+  full resource cost. The old affinity and all materials previously spent on
+  that affinity are permanently lost.
+- Applying the affinity already installed on the exact weapon is invalid. The
+  menu visibly disables that choice. It opens no confirmation and consumes no
+  resources. It does not modify the weapon or report a replacement attempt.
 - The player cannot remove an affinity to recover a native weapon or toggle the
   affinity off in the field.
 - Affinities have fixed behavior. They do not roll random values.
@@ -47,24 +52,22 @@ The MVP has these boundaries:
 Defeating one designated boss unlocks the affinity system for the entire world.
 This unlock happens only once. The exact boss remains open.
 
-The player applies an affinity directly in a menu:
+The player applies an affinity in the Affinity tab at the Forge:
 
 1. Select an eligible weapon from the inventory.
 2. Select an affinity available for that weapon family.
 3. Review its new behavior, persistent bias, and exact resource cost.
-4. Confirm the nonrefundable resource spend. If the weapon already has an
-   affinity, also confirm that the old affinity and all materials previously
-   spent on it will be lost.
-5. Apply the affinity, consuming the listed resources and storing the selected
-   specialization on that weapon until the player pays to replace it at the
-   Forge.
+4. Confirm the nonrefundable resource spend. If the weapon already has a
+   different affinity, also confirm that the old affinity and all materials
+   previously spent on it will be lost.
+5. Apply the affinity at the Forge. This consumes the listed resources and
+   stores the selected specialization until the player pays to replace it.
 
 There is no Sigil or other intermediate affinity item. Each affinity has its
 own resource cost, which the menu consumes in full when the player applies it.
 Materials from harder biomes gate normal progression through ordinary
-exploration and resource gathering. The exact recipes and physical stations for
-first-time application may vary as the system expands. Replacements always
-happen at the Forge.
+exploration and resource gathering. The exact recipes may vary as the system
+expands. Every application and replacement happens at the Forge.
 
 ## Power creates a loadout choice
 
@@ -86,12 +89,14 @@ The first playable slice applies Lunge to the base-game Club. This intentionally
 narrow combination must prove the complete path before the system expands to
 more weapons or affinities.
 
-A Lunge Club propels the player forward once when the player performs an
-airborne primary swing. The same physical behavior supports aggressive
-gap-closing and creative traversal. Grounded swings retain the Club's base-game
-behavior. The exact force and persistent combat drawback remain open. The slice
-is not product-complete until Lunge has a meaningful advantage and a felt loss
-of flexibility.
+A Lunge Club performs a sharp diagonal air dash when the player performs an
+airborne primary swing. It adds a 10 m/s forward impulse and raises vertical
+velocity to at least +3 m/s. Normal gravity resumes immediately. After the first
+Lunge, each later airborne primary swing can trigger one additional Lunge. This
+intentional repetition supports aggressive gap-closing and creative traversal.
+Grounded swings retain the Club's base-game behavior. The persistent combat
+drawback remains open. The slice is not product-complete until Lunge has a
+meaningful advantage and a felt loss of flexibility.
 
 For this slice only, the normal boss unlock is absent and the resource cost is
 a temporary testing recipe. This exception exists to test the system quickly;
@@ -108,16 +113,16 @@ separate Benheim window.
 The Affinity tab lists each eligible weapon item in the player's inventory and
 the affinities available for that exact item. Selecting Lunge for a Club shows
 that Club, Lunge's new behavior, its persistent drawback, and the complete
-resource cost. Before applying Lunge, the player must confirm that the resources
-will not be refunded. Replacing an existing affinity also requires confirmation
-that the old affinity and all materials previously spent on it will be lost.
-The application then revalidates the exact Club and listed resources, consumes
-the cost once, and modifies that Club.
+resource cost. Before applying Lunge to a Club that does not already have
+Lunge, the player must confirm that the resources will not be refunded. If
+Lunge replaces a different affinity, the player must also confirm that the old
+affinity and all materials previously spent on it will be lost. The application
+then revalidates the exact Club and listed resources, consumes the cost once,
+and modifies that Club.
 
 The Affinity tab must handle application separately from native crafting and
 upgrading. Applying an affinity must not appear as a normal craft or upgrade or
-change the existing Craft and Upgrade tabs. Support for other crafting stations
-remains open.
+change the existing Craft and Upgrade tabs.
 
 ## Developer testing and diagnostics
 
@@ -158,16 +163,26 @@ remain open.
 
 The first Affinity slice is implemented as an unproven playable candidate. It
 uses a max-quality base-game Club, a Forge Affinity tab, versioned item state, a
-temporary cost of 1 Wood, and a 6 m/s candidate Lunge impulse. Static proof
-proves only the guards for the selected item and resources, the code connections
-to native persistence, isolation of the Affinity tab, one Lunge per qualifying
-swing, isolation of developer commands, and separate diagnostic event types.
+temporary cost of 1 Wood, and a diagonal Lunge impulse. Static proof covers
+only:
 
-Live product review must still prove the Affinity tab's layout, weapon list,
-affinity details, resource requirements, input behavior, sounds, and restoration
-of the native Craft and Upgrade tabs. It must also prove persistence through
-native item paths, movement ownership and smoothing in multiplayer, and whether
-the candidate force plus forced airborne commitment creates meaningful power
-with a felt loss of flexibility. Valheim's short grounded grace period
-immediately after takeoff may affect the Lunge timing and remains part of the
-live feel test.
+- guards for the selected item and resources;
+- rejection of the affinity already installed on the exact item;
+- code paths that connect affinity state to native persistence;
+- isolation of the Affinity tab;
+- one Lunge per qualifying swing;
+- additional Lunges from later airborne primary swings;
+- isolation of developer commands; and
+- separate diagnostic event types.
+
+Live product review must still prove:
+
+- the Affinity tab's layout, weapon list, affinity details, resource
+  requirements, input behavior, sounds, and restoration of the native Craft
+  and Upgrade tabs;
+- persistence through native item paths;
+- movement ownership and smoothing in multiplayer;
+- whether the 10 m/s forward impulse and +3 m/s minimum vertical velocity
+  create meaningful power with a felt loss of flexibility; and
+- whether Valheim's short grounded grace period immediately after takeoff
+  affects Lunge timing and feel.

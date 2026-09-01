@@ -171,7 +171,8 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         gui.m_recipeName.text = $"{Localize(item.m_shared.m_name)} · Lunge";
         gui.m_recipeDecription.enabled = true;
         gui.m_recipeDecription.text =
-            "Airborne primary Club swings propel you forward once. Grounded swings remain native.\n\n" +
+            "Airborne primary Club swings dash 10 m/s forward and raise you to at least +3 m/s vertically. " +
+            "Each later airborne primary swing can Lunge again. Grounded swings remain native.\n\n" +
             "Candidate bias: every airborne primary swing commits to forward movement, reducing aerial precision and flexibility.\n\n" +
             "TEMPORARY TEST COST: 1 Wood. This is not final balance.\n\n" +
             "Replacement destroys the old Affinity and all prior investment. No refund.";
@@ -188,14 +189,23 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         bool canApply = AffinityApplication.IsAtBaseGameForge(player)
             && player.GetInventory().ContainsItem(item)
             && AffinityState.IsEligibleClub(item)
+            && !AffinityRules.IsSameAffinity(existing, AffinityLoadResult.Lunge)
             && owned >= AffinityApplication.TestResourceAmount;
         gui.m_craftButton.interactable = canApply;
         gui.m_craftButton.GetComponentInChildren<TMP_Text>().text =
-            existing == AffinityLoadResult.None ? "Apply Lunge" : "Replace with Lunge";
+            AffinityRules.IsSameAffinity(existing, AffinityLoadResult.Lunge)
+                ? "Lunge Applied"
+                : existing == AffinityLoadResult.None
+                    ? "Apply Lunge"
+                    : "Replace with Lunge";
         UITooltip? tooltip = gui.m_craftButton.GetComponent<UITooltip>();
         if (tooltip != null)
         {
-            tooltip.m_text = canApply ? string.Empty : "Requires the exact Club, the Forge, and 1 Wood.";
+            tooltip.m_text = canApply
+                ? string.Empty
+                : AffinityRules.IsSameAffinity(existing, AffinityLoadResult.Lunge)
+                    ? "This exact Club already has Lunge."
+                    : "Requires the exact Club, the Forge, and 1 Wood.";
         }
     }
 
@@ -223,6 +233,13 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
     {
         ItemDrop.ItemData? captured = SelectedItem();
         if (captured == null || UnifiedPopup.IsVisible()) return;
+
+        // The disabled button is the visible guard. Recheck here so indirect
+        // invocation cannot turn the same Affinity into a replacement attempt.
+        if (AffinityRules.IsSameAffinity(AffinityState.Read(captured), AffinityLoadResult.Lunge))
+        {
+            return;
+        }
 
         bool replacing = AffinityState.Load(captured, "forge_confirmation") != AffinityLoadResult.None;
         string body =
