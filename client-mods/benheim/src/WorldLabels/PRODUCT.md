@@ -12,9 +12,11 @@ Neither feature has a setting or saved state.
 
 ## In Development
 
-- A portal shows floating text above it in Valheim's native style. The text
-  matches the portal's current tag exactly. An empty tag has no label. The
-  label updates when the portal tag changes.
+- Each wooden or stone portal with a non-empty tag shows a label fixed in place
+  just above it. The label uses the same high-contrast overlay treatment as
+  Perfect Parry feedback, so it stays readable against scenery. It exactly
+  matches the portal's current tag and updates when that tag changes. An empty
+  tag has no label.
 - Portal labels appear at distances of 30 meters or less when nothing blocks
   the player's view of the portal. Walls and closed structures block the
   labels.

@@ -70,10 +70,13 @@ ledger and who can accept its items.
   - reload the save and confirm persistence; and
   - in multiplayer, confirm shared placement and harvesting, creator ownership,
     and reconnect behavior.
-- **Portal labels:** On wooden and stone portals, confirm that each label appears
-  above the portal and exactly matches its current tag. Confirm that the label
-  is visible at 30 meters but not beyond, hides when the player's line of sight
-  is blocked, and updates after the portal tag is renamed.
+- **Portal labels:** On wooden and stone portals with non-empty tags, confirm
+  that each label remains fixed just above its portal. Confirm that each label
+  uses the same high-contrast overlay treatment as Perfect Parry feedback and
+  stays readable against scenery. Confirm that each label exactly matches its
+  portal's current tag, is visible at 30 meters but not beyond, hides when line
+  of sight to the portal is blocked, and updates after a player renames the
+  portal. Give a portal an empty tag and confirm that no label appears.
 - **Leech spawning:** With compatible clients owning active Swamp zones, confirm
   ordinary base-world Leech opportunities use the 5x rate. Confirm each
   successful adjusted spawn records one event with source `base_world`, prefab
