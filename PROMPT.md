@@ -243,23 +243,23 @@ artifacts, not an update channel.
 
 For a gameplay change:
 
-1. Add diagnostics only when acceptance depends on a result the player cannot
+1. Before coding against a native runtime asset, inspect it in a loaded world with `bh debug catalog effects|text|ui [filter]`.
+   If none covers it, add the smallest focused probe for identity, components, hierarchy, and readiness.
+   Source names, decompiled code, and mocks are not runtime proof. Preserve the observed contract in focused tests,
+   then rerun the probe against the candidate build.
+2. Add diagnostics only when acceptance depends on a result the player cannot
    reliably see or a hidden, ambiguous, or destructive invariant. Reuse evidence
    that already answers the product question.
-2. Bump the visible version and install while Valheim is fully quit.
-3. Relaunch, reproduce, and record what the player tried.
-4. Query `[diag]` events; read the server journal only for server-owned behavior.
-5. Fix observed failures and repeat until gameplay and evidence agree.
+3. Bump the visible version and install while Valheim is fully quit.
+4. Relaunch, reproduce, and record what the player tried.
+5. Query `[diag]` events; read the server journal only for server-owned behavior.
+6. Fix observed failures and repeat until gameplay and evidence agree.
 
 Diagnostic events use `[diag][Feature] action key=value`. Log actions, important
 decisions, and results, not every frame. Keep normal BepInEx warnings and errors.
 Benheim also writes each event to `BepInEx/BenheimEvents.ndjson`. Use
 `client-mods/benheim/scripts/query-events.py --help` to stream current or archived
 events, filter fields, or find starts without a terminal event.
-
-After a world loads, `bh debug catalog effects|text|ui [filter]` previews native
-runtime sources and atomically replaces `BepInEx/BenheimRuntimeCatalog.ndjson`.
-Readiness failures are visible; the bounded snapshot stays local.
 
 Normal packages stay credential-free. Use scoped secrets for
 `package-private-test.sh`; rotate its token if an archive leaves Ben, Johnny,
