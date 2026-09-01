@@ -87,11 +87,12 @@ ledger and who can accept its items.
   appears beside Craft and Upgrade. Switch back to Craft and Upgrade, then
   confirm that each native tab returns unchanged. Spend 1 Wood to apply Lunge
   to one specific max-quality Club. Confirm that an ineligible weapon cannot
-  receive Lunge. Apply Lunge again as a replacement and confirm that it destroys
-  the prior Affinity without refunding the materials for the prior Affinity.
-  Move, equip, store, and drop the Club, then reconnect. Confirm that the same
-  Club retains Lunge after every action. An airborne primary swing must add one
-  10 m/s forward impulse and raise its vertical velocity to at least +3 m/s.
+  receive Lunge. Select Lunge again for that exact Club. The choice must be
+  disabled, open no confirmation, consume no resources, and leave the Club
+  unchanged. Move, equip, store, and drop the Club, then reconnect. Confirm that
+  the same Club retains Lunge after every action. An airborne primary swing
+  must add one 10 m/s forward impulse and raise its vertical velocity to at
+  least +3 m/s.
   Grounded Club swings must remain native. Use debug inspect, apply,
   clear, and session-force commands only to isolate a failure. If a compatible
   peer is available, confirm that the peer sees the Lunge movement.
