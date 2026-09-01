@@ -4,9 +4,7 @@ Product behavior, controls, player feedback, acceptance meaning, and proof
 status belong in the owning `PRODUCT.md`. Keep implementation details in code
 or a deeper technical document.
 
-When Ben moves a feature or product candidate into feasibility work or
-implementation, create one owning `PRODUCT.md` before the task closes. Keep
-loose ideas in `IDEAS.md`. Do not put an unimplemented candidate in
+Keep loose ideas in `IDEAS.md`. Do not put an unimplemented candidate in
 `PRODUCT_REVIEW.md`; add it only after the candidate is packaged and installed
 for live acceptance.
 
@@ -30,8 +28,8 @@ outcome. Keep telemetry schemas, implementation invariants, and exhaustive
 edges in code, tests, or deeper technical docs. Reserve programmatic or log
 proof for hidden, ambiguous, or destructive boundaries such as conservation,
 ownership, networking, persistence, and credentials. After Ben or the Project
-Lead accepts an item, the integration lead removes it from the queue and
-updates the owning product document.
+Lead accepts an item, the integration lead removes it from the queue. The
+Project Lead updates the owning product document.
 
 ## Build and release
 

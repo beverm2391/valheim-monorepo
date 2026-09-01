@@ -26,6 +26,12 @@ feature module owns its behavior and proof status in its own `PRODUCT.md`, and
 each first-party server mod owns its behavior in a `PRODUCT.md` at the mod
 root. Do not duplicate detailed feature behavior in the root product doc.
 
+During product discussion, Ben and the Project Lead create the feature folder
+and its owning `PRODUCT.md` before they dispatch feasibility or implementation
+work. Dev Leads and agents working on integration tasks do not edit
+`PRODUCT.md` files. They report feasibility and implementation evidence to the
+Project Lead, including evidence that supports or challenges the contract.
+
 ## Public repository rules
 
 Follow the safety rules in `AGENTS.md`.
@@ -126,8 +132,9 @@ print injected values. Scripts must finish credential preflight before their
 first remote mutation. Use `tests/secret-flow-test.sh` when changing this
 boundary.
 
-Mark a server-mod gate complete in `PRODUCT.md` only after every named condition
-passes. Record one-time rollout evidence in `MIGRATION-1.0.md`.
+Report completed server-mod gates to the Project Lead only after every named
+condition passes. Ben or the Project Lead records the accepted result in
+`PRODUCT.md`. Record one-time rollout evidence in `MIGRATION-1.0.md`.
 
 ## Valheim 1.0 migration
 

@@ -4,6 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 release_script="$root/scripts/release.sh"
 prompt="$root/PROMPT.md"
+repo_prompt="$root/../../PROMPT.md"
 product_review="$root/../../PRODUCT_REVIEW.md"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
 installed_version="0.1.80"
@@ -28,8 +29,12 @@ grep -Fq 'Do not quit or kill it, install over it, or launch or relaunch around 
 grep -Fq "Wait for Ben's explicit instruction." <<<"$prompt_flat"
 grep -Fq 'task may quit only the Valheim process that it launched for this bounded startup proof.' <<<"$prompt_flat"
 
-# The integration lead owns release-state freshness and unproven queue entries,
-# while Ben and the Project Lead own acceptance judgments.
+# Ben and the Project Lead own product documents. Integration leads own only
+# release-state freshness and unproven Product Review queue entries.
+repo_prompt_flat="$(awk '{$1 = $1; printf "%s ", $0}' "$repo_prompt")"
+grep -Fq 'During product discussion, Ben and the Project Lead create the feature folder and its owning `PRODUCT.md` before they dispatch feasibility or implementation work.' <<<"$repo_prompt_flat"
+grep -Fq 'Dev Leads and agents working on integration tasks do not edit `PRODUCT.md` files.' <<<"$repo_prompt_flat"
+grep -Fq 'They report feasibility and implementation evidence to the Project Lead' <<<"$repo_prompt_flat"
 grep -Fq '`../../PRODUCT_REVIEW.md` is the live release ledger and acceptance queue.' <<<"$prompt_flat"
 grep -Fq 'integration lead for each client release records the exact packaged version, exact installed version, and concise remaining live checks.' <<<"$prompt_flat"
 grep -Fq 'The integration lead may add unproven items.' <<<"$prompt_flat"
@@ -37,7 +42,7 @@ grep -Fq 'Ben and the Project Lead own acceptance judgments.' <<<"$prompt_flat"
 grep -Fq 'mark behavior from its own release as accepted;' <<<"$prompt_flat"
 grep -Fq 'remove passed items based only on static proof; or' <<<"$prompt_flat"
 grep -Fq 'promote behavior into accepted `PRODUCT.md` truth.' <<<"$prompt_flat"
-grep -Fq 'the integration lead removes it from the queue and' <<<"$prompt_flat"
+grep -Fq 'the integration lead removes it from the queue. The Project Lead updates the owning product document.' <<<"$prompt_flat"
 
 release_state="$(awk '
   /^## Release state$/ { capture = 1; next }
