@@ -164,6 +164,7 @@ technical cost.
 | [Combat Feedback](src/CombatFeedback/PRODUCT.md) | Add local bow focus and restrained camera response to existing Benheim outcomes. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 | [Ship Sprint](src/ShipSprint/PRODUCT.md) | Boost native forward ship thrust while the controlling player holds Valheim's Run control. |
+| [Developer Diagnostics](src/DeveloperDiagnostics/PRODUCT.md) | Always keep evidence of important gameplay outcomes. Let developers discover and control limited in-game probes, with clear status, when they need more detail. |
 
 `Infrastructure` contains shared implementation support and has no independent
 player-facing promise.
