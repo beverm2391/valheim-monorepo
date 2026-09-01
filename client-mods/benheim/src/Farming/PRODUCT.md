@@ -43,6 +43,13 @@ Valheim's normal farming restrictions.
   native network prefab. It does not create a custom prefab or persistent
   object. Removing the feature leaves the world readable. Planted bushes remain
   native `Pickable` objects.
+- Players could not place berry bushes with Benheim `0.1.78` on installed
+  Valheim `0.221.12`. During registration, Benheim tried to derive each bush's
+  placement footprint from world-space collider bounds. Because the native
+  prefab templates were inactive, Unity returned an empty footprint.
+- The current source derives each bush's placement footprint from its native
+  collider shapes and transforms. It no longer reads world-space bounds during
+  registration.
 - Live single-player acceptance remains unproven. Testing must confirm:
   - ordinary single-bush placement
   - centered 9x9 grid placement

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);CS0649;CS8602</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Farming/PlantableBerries.cs" Link="PlantableBerries.cs" />
+  </ItemGroup>
+</Project>

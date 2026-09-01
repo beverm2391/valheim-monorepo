@@ -6,9 +6,10 @@ using UnityEngine;
 
 namespace BenheimQoL.Farming;
 
-// PlantEverything proved the product shape with these same native prefabs, but
-// its implementation is GPL-3.0. Benheim independently uses Valheim's public
-// prefab, Piece, and PieceTable APIs here; no PlantEverything code is copied.
+// PlantEverything 1.20.0 (AdvizeGH/Advize_ValheimMods at f50a18f, GPL-3.0)
+// proved the product shape with these native prefabs. Benheim independently
+// uses Valheim's public prefab, Piece, and PieceTable APIs here; no upstream
+// code is copied.
 internal static class PlantableBerries
 {
     internal const int BerryCost = 5;
@@ -164,29 +165,73 @@ internal static class PlantableBerries
         Bounds footprint = default;
         foreach (Collider collider in prefab.GetComponentsInChildren<Collider>(includeInactive: true))
         {
-            if (!collider)
+            if (!collider || !collider.enabled || !TryGetLocalShapeBounds(collider, out Bounds shapeBounds))
             {
                 continue;
             }
 
-            Bounds bounds = collider.bounds;
-            if (bounds.size.x <= 0f && bounds.size.z <= 0f)
+            Vector3 center = shapeBounds.center;
+            Vector3 extents = shapeBounds.extents;
+            for (int x = -1; x <= 1; x += 2)
             {
-                continue;
-            }
-
-            if (!found)
-            {
-                footprint = bounds;
-                found = true;
-            }
-            else
-            {
-                footprint.Encapsulate(bounds);
+                for (int y = -1; y <= 1; y += 2)
+                {
+                    for (int z = -1; z <= 1; z += 2)
+                    {
+                        Vector3 localPoint = center + Vector3.Scale(
+                            extents,
+                            new Vector3(x, y, z));
+                        Vector3 rootPoint = prefab.transform.InverseTransformPoint(
+                            collider.transform.TransformPoint(localPoint));
+                        if (!found)
+                        {
+                            footprint = new Bounds(rootPoint, Vector3.zero);
+                            found = true;
+                        }
+                        else
+                        {
+                            footprint.Encapsulate(rootPoint);
+                        }
+                    }
+                }
             }
         }
 
         return found ? Mathf.Max(footprint.size.x, footprint.size.z) : 0f;
+    }
+
+    private static bool TryGetLocalShapeBounds(Collider collider, out Bounds bounds)
+    {
+        if (collider is SphereCollider sphere)
+        {
+            float diameter = sphere.radius * 2f;
+            bounds = new Bounds(sphere.center, new Vector3(diameter, diameter, diameter));
+            return diameter > 0f;
+        }
+
+        if (collider is CapsuleCollider capsule)
+        {
+            float diameter = capsule.radius * 2f;
+            Vector3 size = new Vector3(diameter, diameter, diameter);
+            size[capsule.direction] = Mathf.Max(capsule.height, diameter);
+            bounds = new Bounds(capsule.center, size);
+            return diameter > 0f && size[capsule.direction] > 0f;
+        }
+
+        if (collider is BoxCollider box)
+        {
+            bounds = new Bounds(box.center, box.size);
+            return box.size.x > 0f || box.size.y > 0f || box.size.z > 0f;
+        }
+
+        if (collider is MeshCollider mesh && mesh.sharedMesh)
+        {
+            bounds = mesh.sharedMesh.bounds;
+            return bounds.size.x > 0f || bounds.size.y > 0f || bounds.size.z > 0f;
+        }
+
+        bounds = default;
+        return false;
     }
 
     private sealed class BerryDefinition

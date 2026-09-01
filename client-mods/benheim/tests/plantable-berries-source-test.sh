@@ -40,8 +40,16 @@ grep -Fq 'm_amount = BerryCost,' "$registration"
 grep -Fq 'm_recover = false,' "$registration"
 
 # Grid spacing and collision rejection come from each native bush's collider
-# footprint. No made-up Plant grow radius is attached to a mature pickable.
+# shape data. Unity reports empty world-space bounds for inactive prefabs, so
+# registration measures the native shapes in prefab-root space instead.
 grep -Fq 'prefab.GetComponentsInChildren<Collider>(includeInactive: true)' "$registration"
+if grep -Fq 'collider.bounds' "$registration"; then
+  printf 'plantable berry registration must not read inactive collider bounds\n' >&2
+  exit 1
+fi
+grep -Fq 'TryGetLocalShapeBounds(collider, out Bounds shapeBounds)' "$registration"
+grep -Fq 'prefab.transform.InverseTransformPoint(' "$registration"
+grep -Fq 'collider.transform.TransformPoint(localPoint)' "$registration"
 grep -Fq 'Mathf.Max(footprint.size.x, footprint.size.z)' "$registration"
 grep -Fq 'PlantableBerries.TryGetGridSpacing' "$root/src/Farming/PlantingRules.cs"
 grep -Fq 'radius = spacing * 0.5f;' "$root/src/Farming/PlantingRules.cs"
@@ -74,4 +82,5 @@ grep -Fq 'Benheim adds the `Piece` component, but not the `Plant` component, to 
 grep -Fq 'Live single-player acceptance remains unproven.' "$product"
 grep -Fq 'Live multiplayer acceptance remains unproven.' "$product"
 
+dotnet run --project "$root/tests/plantable-berries/PlantableBerryRegistrationTests.csproj"
 printf 'plantable berries source checks passed\n'
