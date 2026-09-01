@@ -44,10 +44,9 @@ ledger and who can accept its items.
   A failed, skipped, or rejected placement costs no stamina.
 - **Tar:** Manually collect native Tar while it is submerged. Items other than
   Tar must remain stuck. No item may be collected automatically.
-- **Perfect Impact:** While airborne and descending, land one melee hit on a
-  character. A hit that meets the owning product's qualification rule shows one
-  `PERFECT IMPACT`. Other hits keep normal Valheim behavior. Combat Shake
-  controls only the optional shake.
+- **Perfect Impact:** Ben confirmed that the first qualifying live hit showed
+  `PERFECT IMPACT`. Still confirm that nonqualifying hits keep normal Valheim
+  behavior. Confirm that Combat Shake controls only the optional shake.
 - **Earned-state audio:** In multiplayer, trigger an earned combat state near
   one compatible player and far from another. The nearby player may hear the
   native charm cue. The distant player must not hear it.
@@ -60,8 +59,6 @@ ledger and who can accept its items.
   - reload the save and confirm persistence; and
   - in multiplayer, confirm shared placement and harvesting, creator ownership,
     and reconnect behavior.
-- **Sign glow:** Judge the warm portal-amber letter glow on an existing wooden
-  sign. The wooden board must not glow.
 - **Portal labels:** On wooden and stone portals, confirm that each label appears
   above the portal and exactly matches its current tag. Confirm that the label
   is visible at 30 meters but not beyond, hides when the player's line of sight
