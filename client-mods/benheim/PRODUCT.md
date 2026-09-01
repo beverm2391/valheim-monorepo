@@ -159,7 +159,7 @@ technical cost.
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and Cultivator grid planting. |
 | [Spawning](src/Spawning/PRODUCT.md) | Adjust spawn opportunities for selected native creatures. |
 | [Enemy Tiers](src/EnemyTiers/PRODUCT.md) | Extend native stars and creature behavior with coherent mechanical and AI variation. |
-| [Affinities](src/Affinities/PRODUCT.md) | Create weapon variation through existing combat properties and meaningful tradeoffs. |
+| [Affinities](src/Affinities/PRODUCT.md) | Specialize existing weapons with new combat actions and persistent tradeoffs. |
 | [Weapon Rhythm](src/WeaponRhythm/PRODUCT.md) | Reward weapon mastery through timing, charge, cadence, spacing, and existing animations. |
 | [Combat Feedback](src/CombatFeedback/PRODUCT.md) | Add local bow focus and restrained camera response to existing Benheim outcomes. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
@@ -197,7 +197,7 @@ gameplay proof or fixes.
 On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
 because the required planting-stamina hook did not attach. Because Benheim
 fails closed when this hook is missing, it disabled all gameplay actions.
-Benheim `0.1.77` is the current private-test candidate. It preserves the
+Benheim `0.1.78` is the current private-test candidate. It preserves the
 `0.1.73` startup correction. It adds the
 [Farming](src/Farming/PRODUCT.md) module's 9x9 grid and planting-stamina
 behavior. It also adds the [Woodcutting](src/Woodcutting/PRODUCT.md) module's
@@ -211,7 +211,14 @@ The candidate also corrects the [Player Combat](src/PlayerCombat/PRODUCT.md)
 earned-state activation cue. Compatible nearby players may hear the cue, but
 distant players must not hear it.
 
-The exact `0.1.74` macOS private-test package was installed byte-for-byte and
+The candidate includes the [Affinities](src/Affinities/PRODUCT.md) module's
+first feature set ready for live testing. It still needs gameplay acceptance.
+For this candidate, a player can spend 1 Wood at a base-game Forge to bind
+Lunge to one specific max-quality base-game Club. When the player uses the
+Club's primary attack while airborne, Lunge adds one 6 m/s forward impulse.
+Grounded Club swings remain native.
+
+The exact `0.1.78` macOS private-test package was installed byte-for-byte and
 launched through the managed Benheim launcher on installed Valheim `0.221.12`.
 It reached Valheim's real main menu. The fresh log contained the expected
 version, session-start, chainloader-complete, and clean session-end markers. It

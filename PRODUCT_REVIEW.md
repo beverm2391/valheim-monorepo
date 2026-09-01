@@ -12,21 +12,21 @@ ledger and who can accept its items.
 
 ## Release state
 
-- Packaged version: private-test `0.1.77` for Mac and Windows. This version is
-  not installed and has no packaged-build startup proof.
-- Installed version: private-test `0.1.76` on Ben's Mac, installed from the
-  exact macOS package.
-- Startup proof: The managed Benheim launcher started the exact installed macOS
-  package. It reached the real main menu in Valheim `0.221.12`. The fresh log
-  contained the expected version, session-start, and chainloader-complete
-  markers. The log contained no Harmony cleanup marker, core-disablement
-  marker, gameplay-disabled marker, or world-load marker. No world was entered.
-  The task quit only the Valheim process that it launched, and no Valheim
-  process remained.
-- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.77`
+- Packaged version: private-test `0.1.78` for Mac and Windows. The Windows
+  package remains packaged-only.
+- Installed version: private-test `0.1.78` on Ben's Mac, installed from the
+  exact private-test macOS package.
+- Startup proof: The managed Benheim launcher started the exact installed
+  `0.1.78` package. It reached the real main menu in Valheim `0.221.12`. The
+  fresh log contained the expected version, session-start,
+  chainloader-complete, and clean session-end markers. The log contained no
+  Harmony cleanup marker, core-disablement marker, gameplay-disabled marker,
+  or world-load marker. No world was entered. The task quit only the Valheim
+  process that it launched, and no Valheim process remained.
+- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.78`
   require no change to that server component.
 
-## Test on installed `0.1.76`
+## Test on installed `0.1.78`
 
 - **Workbench and Stonecutter range:** Place a Workbench-required piece around
   22 m and 38 m from an isolated level-1 Workbench. Confirm that placement fails
@@ -52,11 +52,6 @@ ledger and who can accept its items.
   one compatible player and far from another. The nearby player may hear the
   native charm cue. The distant player must not hear it.
 
-## After `0.1.77` installation
-
-Keep these checks out of the installed-client queue until the exact `0.1.77`
-package is installed and passes startup proof.
-
 - **Berry planting:** For each native Raspberry, Blueberry, and Cloudberry bush:
 
   - confirm ordinary placement and centered 9x9 placement;
@@ -74,3 +69,15 @@ package is installed and passes startup proof.
 - **Comfort summary:** Run `bh debug comfort`. Confirm that the console shows a
   readable summary with the calculated comfort and **Counted**, **Ignored**, and
   **Just outside range** sections.
+- **Club + Lunge Affinity:** At a base-game Forge, confirm that an Affinity tab
+  appears beside Craft and Upgrade. Switch back to Craft and Upgrade, then
+  confirm that each native tab returns unchanged. Spend 1 Wood to apply Lunge
+  to one specific max-quality Club. Confirm that an ineligible weapon cannot
+  receive Lunge. Apply Lunge again as a replacement and confirm that it destroys
+  the prior Affinity without refunding the materials for the prior Affinity.
+  Move, equip, store, and drop the Club, then reconnect. Confirm that the same
+  Club retains Lunge after every action. An airborne primary swing must add one
+  6 m/s forward impulse. Grounded Club swings must remain native. Use debug
+  inspect, apply, clear, and session-force commands only to isolate a failure.
+  If a compatible peer is available, confirm that the peer sees the Lunge
+  movement.

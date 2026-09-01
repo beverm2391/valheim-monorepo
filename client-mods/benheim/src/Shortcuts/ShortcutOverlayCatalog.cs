@@ -1,3 +1,4 @@
+using BenheimQoL.Affinities;
 using BenheimQoL.Archery;
 using BenheimQoL.Farming;
 using BenheimQoL.InventoryFeature;
@@ -104,6 +105,19 @@ internal static partial class ShortcutOverlay
                     "Native Birch and Oak logs convert each final ordinary Wood drop to Finewood without changing each log's native item count or Valheim's spawn path"),
             },
             "The compatible client that owns the log converts its drops, including when another compatible client attacks. Native Finewood and non-Wood drops, other logs, standing-tree drops, stumps, damage-type conversions, and unrelated destruction stay native."),
+        new(
+            "Affinities",
+            new Color(0.86f, 0.54f, 1f, 1f),
+            new[]
+            {
+                new Entry(
+                    "Club + Lunge",
+                    $"At a Forge, spend {AffinityApplication.TestResourceAmount} Wood to bind Lunge to one exact max-quality Club; the Affinity stays with that item"),
+                new Entry(
+                    "Airborne swing",
+                    $"A primary swing while airborne propels you forward at {LungeRuntime.DefaultForce:0.#} m/s; grounded Club swings stay native"),
+            },
+            "Replacing an Affinity consumes the new cost and destroys the old Affinity and its prior investment without a refund."),
         new(
             "Combat",
             new Color(1f, 0.48f, 0.54f, 1f),

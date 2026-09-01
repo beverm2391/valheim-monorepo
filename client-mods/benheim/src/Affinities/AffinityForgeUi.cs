@@ -266,7 +266,11 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         if (player != null && forge != null)
         {
             forge.m_craftItemDoneEffects.Create(player.transform.position, Quaternion.identity);
-            player.Message(MessageHud.MessageType.Center, "Lunge applied. Previous Affinity investment was not refunded.");
+            player.Message(
+                MessageHud.MessageType.Center,
+                result.Replacing
+                    ? "Lunge replaced. Previous Affinity investment was not refunded."
+                    : "Lunge applied. The 1 Wood cost is nonrefundable.");
         }
         Refresh();
     }

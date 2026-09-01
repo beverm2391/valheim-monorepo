@@ -6,17 +6,21 @@ namespace BenheimQoL.Affinities;
 
 internal sealed class AffinityApplicationResult
 {
-    private AffinityApplicationResult(bool applied, string reason)
+    private AffinityApplicationResult(bool applied, string reason, bool replacing)
     {
         Applied = applied;
         Reason = reason;
+        Replacing = replacing;
     }
 
     internal bool Applied { get; }
     internal string Reason { get; }
+    internal bool Replacing { get; }
 
-    internal static AffinityApplicationResult Success() => new(true, "applied");
-    internal static AffinityApplicationResult Rejected(string reason) => new(false, reason);
+    internal static AffinityApplicationResult Success(bool replacing) =>
+        new(true, "applied", replacing);
+    internal static AffinityApplicationResult Rejected(string reason) =>
+        new(false, reason, replacing: false);
 }
 
 internal static class AffinityApplication
@@ -81,7 +85,7 @@ internal static class AffinityApplication
 
             AffinityState.WriteLunge(target, source, replacing);
             NotifyInventoryChanged(inventory);
-            return AffinityApplicationResult.Success();
+            return AffinityApplicationResult.Success(replacing);
         }
         catch (Exception exception)
         {

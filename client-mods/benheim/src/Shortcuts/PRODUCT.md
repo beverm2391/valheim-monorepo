@@ -32,6 +32,13 @@ use it to find controls and passive features.
 
 ## In Development
 
+- The `0.1.78` candidate adds an Affinities section. For this candidate, the
+  section says that binding Lunge to one specific max-quality Club at a Forge
+  costs 1 Wood. The section says that Lunge stays with that item. It says that
+  an airborne primary swing adds one 6 m/s forward impulse, while grounded Club
+  swings remain native. It also says that replacing the Affinity does not refund
+  the materials for the prior Affinity. The updated presentation still needs
+  gameplay proof.
 - The `0.1.77` candidate adds organized feature entries for Ship Sprint,
   manual collection of submerged native Tar, Perfect Impact, and reduced
   planting stamina. The planting-stamina entry says that each successful

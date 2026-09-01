@@ -25,7 +25,7 @@ if [[ "$actual_raw_input_files" != "$expected_raw_input_files" ]]; then
   exit 1
 fi
 
-test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 4
+test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 5
 grep -Fq 'ZInput.GetButton("Run") || ZInput.GetButton("JoyRun")' "$input_state"
 grep -Fq 'InputState.IsTextEntryActive()' "$farming_input"
 grep -Fq 'InputState.IsTextEntryActive()' \

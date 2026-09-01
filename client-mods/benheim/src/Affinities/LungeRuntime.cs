@@ -51,6 +51,7 @@ internal static class LungeRuntime
         if (player == null || character != player) return;
 
         ItemDrop.ItemData? weapon = player.GetCurrentWeapon();
+        if (AffinityState.Read(weapon) != AffinityLoadResult.Lunge) return;
         if (AffinityState.Load(weapon, "attack_start") != AffinityLoadResult.Lunge) return;
 
         string operationId = Diagnostics.NewOperationId();
