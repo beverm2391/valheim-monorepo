@@ -6,7 +6,7 @@ release_script="$root/scripts/release.sh"
 prompt="$root/PROMPT.md"
 product_review="$root/../../PRODUCT_REVIEW.md"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
-installed_version="0.1.78"
+installed_version="0.1.79"
 
 grep -Fq 'git status --porcelain' "$release_script"
 grep -Fq 'git branch --show-current' "$release_script"
@@ -30,8 +30,8 @@ grep -Fq 'task may quit only the Valheim process that it launched for this bound
 
 # The integration lead owns release-state freshness and unproven queue entries,
 # while Ben and the Project Lead own acceptance judgments.
-grep -Fq '`PRODUCT_REVIEW.md` is the live release ledger and acceptance queue.' <<<"$prompt_flat"
-grep -Fq 'integration lead for each client release must record its exact packaged version, exact installed version, and concise remaining live checks.' <<<"$prompt_flat"
+grep -Fq '`../../PRODUCT_REVIEW.md` is the live release ledger and acceptance queue.' <<<"$prompt_flat"
+grep -Fq 'integration lead for each client release records the exact packaged version, exact installed version, and concise remaining live checks.' <<<"$prompt_flat"
 grep -Fq 'The integration lead may add unproven items.' <<<"$prompt_flat"
 grep -Fq 'Ben and the Project Lead own acceptance judgments.' <<<"$prompt_flat"
 grep -Fq 'mark behavior from its own release as accepted;' <<<"$prompt_flat"
@@ -96,11 +96,14 @@ grep -Fq 'ineligible weapon cannot' <<<"$review_queue_flat"
 grep -Fq 'Apply Lunge again as a replacement' <<<"$review_queue_flat"
 grep -Fq 'without refunding the materials for the prior Affinity' <<<"$review_queue_flat"
 grep -Fq 'Move, equip, store, and drop the Club, then reconnect' <<<"$review_queue_flat"
-grep -Fq 'one 6 m/s' <<<"$review_queue_flat"
+grep -Fq '10 m/s forward impulse' <<<"$review_queue_flat"
+grep -Fq 'vertical velocity to at least +3 m/s' <<<"$review_queue_flat"
 grep -Fq 'Grounded Club swings must remain native.' <<<"$review_queue_flat"
 grep -Fq 'debug inspect,' <<<"$review_queue_flat"
 grep -Fq 'apply, clear, and session-force commands' <<<"$review_queue_flat"
 grep -Fq 'peer sees the Lunge' <<<"$review_queue_flat"
+grep -Fq '**Cultivator grid selection:**' <<<"$review_queue_flat"
+grep -Fq '**Leech spawning:**' <<<"$review_queue_flat"
 
 if grep -Eq 'SHA256SUMS\.txt|"\$release_dir/VERSION"|offers? to install future stable updates|releases/latest/download/VERSION' "$release_script"; then
   echo "release flow still publishes automatic-updater artifacts or instructions" >&2

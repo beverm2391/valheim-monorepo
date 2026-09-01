@@ -32,13 +32,13 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The `0.1.78` candidate adds an Affinities section. For this candidate, the
+- The `0.1.79` candidate adds an Affinities section. For this candidate, the
   section says that binding Lunge to one specific max-quality Club at a Forge
   costs 1 Wood. The section says that Lunge stays with that item. It says that
-  an airborne primary swing adds one 6 m/s forward impulse, while grounded Club
-  swings remain native. It also says that replacing the Affinity does not refund
-  the materials for the prior Affinity. The updated presentation still needs
-  gameplay proof.
+  an airborne primary swing adds a 10 m/s forward impulse and raises vertical
+  velocity to at least +3 m/s. Grounded Club swings remain native. It also says
+  that replacing the Affinity does not refund the materials for the prior
+  Affinity. The updated presentation still needs gameplay proof.
 - The `0.1.77` candidate adds organized feature entries for Ship Sprint,
   manual collection of submerged native Tar, Perfect Impact, and reduced
   planting stamina. The planting-stamina entry says that each successful
@@ -70,10 +70,12 @@ use it to find controls and passive features.
   says the command preserves the complete typed diagnostic and log evidence.
   The menu explains that the command cannot report pieces that Valheim filters
   out before its native comfort query.
-- The Farming section lists native Raspberry, Blueberry, and Cloudberry bushes.
-  It says that planting each bush costs five matching berries and requires only
-  ordinary ground. In a centered 9x9 grid, each bush's native collision
-  boundary determines its spacing.
+- The Farming section lists `1`, `3`, `5`, `7`, and `9` as selectable centered
+  grid sizes while the Cultivator picker is open. It says each Cultivator-picker
+  session starts with the 9x9 grid selected. It also lists native Raspberry,
+  Blueberry, and Cloudberry bushes. It says planting each bush costs five
+  matching berries and requires only ordinary ground. Every grid uses each
+  native bush's collision boundary for spacing.
 - The World & Travel section lists sign glow and portal labels. It says that
   each portal label exactly matches its portal's non-empty tag. It also states
   the 30-meter range and line-of-sight rule.

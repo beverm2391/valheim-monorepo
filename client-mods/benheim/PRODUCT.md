@@ -197,10 +197,11 @@ gameplay proof or fixes.
 On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
 because the required planting-stamina hook did not attach. Because Benheim
 fails closed when this hook is missing, it disabled all gameplay actions.
-Benheim `0.1.78` is the current private-test candidate. It preserves the
+Benheim `0.1.79` is the current private-test candidate. It preserves the
 `0.1.73` startup correction. It adds the
-[Farming](src/Farming/PRODUCT.md) module's 9x9 grid and planting-stamina
-behavior. It also adds the [Woodcutting](src/Woodcutting/PRODUCT.md) module's
+[Farming](src/Farming/PRODUCT.md) module's selectable 1x1, 3x3, 5x5, 7x7, and
+9x9 grids, corrected berry registration, and planting-stamina behavior. It
+also adds the [Woodcutting](src/Woodcutting/PRODUCT.md) module's
 Finewood behavior. It keeps the Kill Attribution V3 capability boundary and
 the 6/12 kill-chain thresholds from `0.1.66`. Server-confirmed qualifying
 hostile kills now advance the shared,
@@ -215,17 +216,18 @@ The candidate includes the [Affinities](src/Affinities/PRODUCT.md) module's
 first feature set ready for live testing. It still needs gameplay acceptance.
 For this candidate, a player can spend 1 Wood at a base-game Forge to bind
 Lunge to one specific max-quality base-game Club. When the player uses the
-Club's primary attack while airborne, Lunge adds one 6 m/s forward impulse.
-Grounded Club swings remain native.
+Club's primary attack while airborne, Lunge adds one 10 m/s forward impulse
+and raises vertical velocity to at least +3 m/s. Grounded Club swings remain
+native.
 
-The exact `0.1.78` macOS private-test package was installed byte-for-byte and
+The exact `0.1.79` macOS private-test package was installed byte-for-byte and
 launched through the managed Benheim launcher on installed Valheim `0.221.12`.
 It reached Valheim's real main menu. The fresh log contained the expected
 version, session-start, chainloader-complete, and clean session-end markers. It
 contained no Harmony, partial-patch cleanup, core-disablement,
 gameplay-disabled, or world-load marker. No world was loaded. This proves
-packaged startup only. It does not prove Farming gameplay. It also does not
-prove Finewood behavior in live gameplay or multiplayer.
+packaged startup only. The module documents and the root Product Review own
+the remaining live gameplay gates.
 
 The candidate doubles only native Workbench and Stonecutter build-piece
 placement coverage. In installed Valheim `0.221.12`, both level-1 stations have
@@ -263,7 +265,9 @@ auto-pickup and every other submerged item remain native.
 The [Interaction module](src/Interaction/PRODUCT.md) owns the exact behavior
 and live proof gate.
 
-The candidate also changes the Cultivator's centered grid from 5x5 to 9x9.
+The candidate lets the player select a centered 1x1, 3x3, 5x5, 7x7, or 9x9
+Cultivator grid. Each Cultivator-picker session starts with the 9x9 grid
+selected.
 Perfect Impact now qualifies only at the first `Character` contact authored for
 the attack. That contact requires horizontal approach speed of at least `5.5
 m/s`. A live Lox contact proved the `1.15x` native damage and `3x` native

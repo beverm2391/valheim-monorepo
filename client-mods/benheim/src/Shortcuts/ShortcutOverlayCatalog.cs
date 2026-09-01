@@ -116,7 +116,7 @@ internal static partial class ShortcutOverlay
                     $"At a Forge, spend {AffinityApplication.TestResourceAmount} Wood to bind Lunge to one exact max-quality Club; the Affinity stays with that item"),
                 new Entry(
                     "Airborne swing",
-                    $"A primary swing while airborne propels you forward at {LungeRuntime.DefaultForce:0.#} m/s; grounded Club swings stay native"),
+                    $"A primary swing while airborne adds {LungeRuntime.DefaultForce:0.#} m/s forward and raises vertical velocity to at least +{LungeRuntime.MinimumVerticalVelocity:0.#} m/s; grounded Club swings stay native"),
             },
             "Replacing an Affinity consumes the new cost and destroys the old Affinity and its prior investment without a refund."),
         new(

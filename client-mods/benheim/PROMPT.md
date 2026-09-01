@@ -112,7 +112,7 @@ Benheim's managed path and reach Valheim's real main menu. Verify that the log
 shows the expected version, session start, and chainloader completion. Confirm
 that the log contains no Harmony, core-disablement, or gameplay-disabled
 markers. A task may quit only the Valheim process that it launched for this
-bounded proof. Quit it cleanly after validation. Do not enter a world. One
+bounded startup proof. Quit it cleanly after validation. Do not enter a world. One
 clean startup is the normal gate. Launch again only when an active incident
 requires more evidence.
 

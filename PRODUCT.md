@@ -39,7 +39,7 @@ promise.
 | Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use a version compatible with those used by every other member. |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Benheim Test Commands | Runs a fixed native-admin command allowlist for selected Benheim gameplay experiments. | Client command and server component | Only the requesting native admin needs the matching client command. The server component is required. Every peer that can own the spawned test creature still needs compatible Benheim gameplay behavior. |
-| Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Benheim `0.1.76` through `0.1.78` use Benheim Server Support `0.1.6` for Put Away and BERSERKER/SLAUGHTERHOUSE. Put Away uses lease generation `v2` and transaction generation `v4`. Kill Attribution V3 uses client-requested capability responses. |
+| Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Benheim `0.1.76` through `0.1.79` use Benheim Server Support `0.1.6` for Put Away and BERSERKER/SLAUGHTERHOUSE. Put Away uses lease generation `v2` and transaction generation `v4`. Kill Attribution V3 uses client-requested capability responses. |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
