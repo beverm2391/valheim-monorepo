@@ -126,11 +126,23 @@ distribution artifacts, not an update channel.
 
 For a gameplay change:
 
-1. Before designing a new gameplay feature implementation, inspect working
-   implementations in public Valheim mods. Inspect each candidate's original
-   source. Verify its exact version or commit and its license. Reuse a proven
-   shape when it fits. Treat source with no license or an incompatible license
-   as evidence only.
+1. Complete the public-mod source gate before you propose a design or edit
+   gameplay code. The gate is required for features, fixes, feasibility spikes,
+   UI, and supporting mechanics, even when Ben does not repeat it in the task
+   prompt.
+   - Inspect working implementations in the original source of public Valheim
+     mods. Search for the exact Valheim or Unity mechanism that the change
+     needs, not only mods with the same product idea. Package pages and
+     descriptions are not source.
+   - In the first technical handoff, name each useful candidate. Include its
+     original-source URL, exact version or commit, and license. State the narrow
+     implementation concept and whether to reuse it, adapt it, use it only as
+     evidence, or reject it, with the reason.
+   - If no candidate fits, state what the search covered and which required
+     mechanism was absent. Do this before you design a local solution.
+   - Reuse or adapt a proven implementation concept without inheriting the
+     other mod's product assumptions. Treat source with no license or an
+     incompatible license as evidence only.
 2. Before coding against a native runtime asset, inspect each required asset
    after Valheim loads it in a world. Use an existing `bh debug catalog
    effects|text|ui [filter]` catalog when it covers the asset. Otherwise, add
