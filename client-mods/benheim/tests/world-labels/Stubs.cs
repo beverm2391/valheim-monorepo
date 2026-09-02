@@ -61,6 +61,7 @@ public sealed class DamageText : MonoBehaviour
 
     private void AddInworldText(TextType type, Vector3 position, float distance, string text, bool mySelf)
     {
+        _ = UnityEngine.Random.insideUnitSphere;
         GameObject gui = UnityEngine.Object.Instantiate(m_worldTextBase, transform);
         TMP_Text textField = gui.GetComponent<TMP_Text>()!;
         textField.color = type == TextType.Bonus

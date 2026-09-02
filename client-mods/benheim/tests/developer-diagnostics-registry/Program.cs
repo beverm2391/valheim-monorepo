@@ -37,6 +37,7 @@ ExpectLine(
     initialStatus.Lines,
     "Benheim probe spawns: kind=event default=on override=default effective=off");
 
+ZNetScene.instance = new ZNetScene();
 Player.m_localPlayer = new Player();
 DeveloperDiagnosticsRuntime.Update();
 Expect(TestSpawnProbe.Active, "the production registration path activates a shipped-on event probe on world entry");
@@ -76,12 +77,30 @@ ExpectLine(
     "Benheim probe spawns: kind=event default=on override=default effective=on");
 Diagnostics.Events.Clear();
 
+int respawnCleanupCount = TestSpawnProbe.CleanupCount;
+int respawnEnableCount = TestSpawnProbe.EnableCount;
+Player.m_localPlayer = null;
+DeveloperDiagnosticsRuntime.Update();
+Expect(CharacterColliderOverlay.Active, "temporary player absence keeps the visual probe session active");
+Expect(TestSpawnProbe.Active, "temporary player absence during respawn keeps the event probe active");
+Expect(
+    TestSpawnProbe.CleanupCount == respawnCleanupCount,
+    "temporary player absence does not run world cleanup or discard registered rules");
+
+Player.m_localPlayer = new Player();
+DeveloperDiagnosticsRuntime.Update();
+Expect(
+    TestSpawnProbe.EnableCount == respawnEnableCount,
+    "respawn does not reactivate an event probe that never left its world");
+
+ZNetScene.instance = null;
 Player.m_localPlayer = null;
 DeveloperDiagnosticsRuntime.Update();
 Expect(!CharacterColliderOverlay.Active, "world exit cleans the active visual probe");
 Expect(!TestSpawnProbe.Active, "world exit cleans the active event probe");
 Expect(TestSpawnProbe.CleanupCount > 0, "world exit invokes event-probe cleanup");
 
+ZNetScene.instance = new ZNetScene();
 Player.m_localPlayer = new Player();
 DeveloperDiagnosticsRuntime.Update();
 Expect(CharacterColliderOverlay.Active, "world entry restores the visual session override");
@@ -122,6 +141,7 @@ Terminal numericAlias = Run("bhwatch", "colliders", "1");
 ExpectLine(numericAlias.Lines, "Usage: bhwatch [<probe> [on|off|default]]");
 
 Player.m_localPlayer = null;
+ZNetScene.instance = null;
 DeveloperDiagnosticsRuntime.Reset();
 Terminal resetStatus = Run("bhwatch");
 ExpectLine(

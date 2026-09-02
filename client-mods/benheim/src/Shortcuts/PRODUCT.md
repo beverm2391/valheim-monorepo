@@ -33,14 +33,16 @@ use it to find controls and passive features.
 ## In Development
 
 - The current candidate adds an Affinities section. The
-  section says that binding Lunge to one specific max-quality Club at a Forge
-  costs 1 Wood. The section says that Lunge stays with that item. It says that
-  an airborne primary swing adds a 10 m/s forward impulse and raises vertical
-  velocity to at least +3 m/s. Grounded Club swings remain native. It also says
-  that replacing the Affinity does not refund the materials for the prior
-  Affinity. The updated presentation still needs gameplay proof.
-- The `0.1.77` candidate adds organized feature entries for Ship Sprint,
-  manual collection of submerged native Tar, Perfect Impact, and reduced
+  section says that binding Lunge to one specific max-quality Club at a level-1
+  Forge costs 1 Wood. The section says that Lunge stays with that item and
+  appears in its inventory title and hover text. It says that an airborne
+  primary swing adds a 10 m/s forward impulse and raises vertical velocity to
+  at least +3 m/s. Grounded Club swings remain native. It also says that
+  replacing the Affinity does not refund the materials for the prior Affinity.
+  The updated presentation still needs gameplay proof.
+- The current candidate adds organized feature entries for Ship Sprint,
+  ordinary manual and automatic pickup of items submerged in native tar pits,
+  Perfect Impact, and reduced
   planting stamina. The planting-stamina entry says that each successful
   ordinary or grid plant placement costs 25% of the native planting stamina
   cost that Valheim has already resolved. Skipped, failed, and rejected
@@ -50,7 +52,7 @@ use it to find controls and passive features.
   The updated presentation still needs gameplay proof.
 - The Ship Sprint entry explains that the helm readout shows planar speed and
   marks `SPRINT` while the local player has an active Ship Sprint request.
-- The `0.1.77` candidate adds a Building section. It says Workbench and
+- The installed `0.1.80` build includes a Building section. It says Workbench and
   Stonecutter build-piece placement coverage is `2x` Valheim's native range,
   from 20 meters to 40 meters for level-1 stations. It also names the station
   behaviors that remain native.
@@ -63,15 +65,24 @@ use it to find controls and passive features.
   unchanged. For the Finewood conversion, other logs, standing-tree drops,
   stumps, native damage-type conversions, and unrelated destruction stay
   native.
-- The Farming section lists `1`, `3`, `5`, `7`, and `9` as selectable centered
-  grid sizes while the Cultivator picker is open. It says each Cultivator-picker
-  session starts with the 9x9 grid selected. It also lists native Raspberry,
-  Blueberry, and Cloudberry bushes. It says planting each bush costs five
-  matching berries and requires only ordinary ground. Every grid uses each
-  native bush's collision boundary for spacing.
+- The Farming section says that, while the local Cultivator picker is open,
+  holding `Left Shift` and pressing `1`, `3`, `5`, `7`, or `9` selects the
+  matching centered grid size. The selected size controls the existing
+  `Left Shift` mass-plant preview and placement. Each Cultivator-picker session
+  starts with 9x9 selected. The section also lists native Raspberry, Blueberry,
+  and Cloudberry bushes. It says planting each bush costs five matching berries
+  and requires only ordinary ground. Each newly planted bush starts empty.
+  Benheim assigns each newly planted bush a deterministic wait of 4,000 to
+  5,000 seconds before its first yield. It assigns the same wait after every
+  harvest of a planted or naturally spawned Raspberry, Blueberry, or Cloudberry
+  bush. The section says that the Hammer can remove a player-planted bush and
+  return five matching berries when native access and ward rules allow it.
+  Naturally spawned bushes cannot be removed with the Hammer, and the
+  Cultivator removes no berry bushes. Every grid uses each native bush's
+  collision boundary for spacing.
 - The World & Travel section lists sign glow and portal labels. It says that
-  each portal label exactly matches its portal's non-empty tag. It also states
-  the 30-meter range and line-of-sight rule.
+  each high-contrast portal label exactly matches its portal's non-empty tag.
+  It also states the 30-meter range and line-of-sight rule.
 - The Combat section says compatible nearby players may hear the native charm
   cue for earned states. It says distant players must not hear the cue.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep

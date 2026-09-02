@@ -62,7 +62,10 @@ internal static class Program
         DamageText damageText = CreateDamageText(nativeFont, nativeMaterial);
         DamageText.instance = damageText;
 
+        UnityEngine.Random.state = new UnityEngine.Random.State(1207);
         InvokeRefresh(controller);
+        Assert(UnityEngine.Random.state.Value == 1207,
+            "persistent portal-label creation must preserve Unity's shared random state");
         GameObject labelRoot = GetLabelRoot(controller)
             ?? throw new InvalidOperationException("native Bonus world text did not create a label");
         TMP_Text label = GetLabel(controller)
@@ -92,7 +95,10 @@ internal static class Program
         PortalLabelController secondController =
             secondPortal.GetComponent<PortalLabelController>()
             ?? throw new InvalidOperationException("second portal controller was not attached");
+        UnityEngine.Random.state = new UnityEngine.Random.State(4815);
         InvokeRefresh(secondController);
+        Assert(UnityEngine.Random.state.Value == 4815,
+            "each later portal-label creation must preserve Unity's shared random state");
         Assert(GetLabelRoot(secondController) != null,
             "a second portal must create its own persistent Bonus overlay");
         Assert(damageText.CreatedBonusTextCount == 2 && damageText.ActiveWorldTextCount == 0,

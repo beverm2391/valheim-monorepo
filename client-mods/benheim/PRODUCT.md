@@ -199,7 +199,8 @@ gameplay proof or fixes.
 On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
 because the required planting-stamina hook did not attach. Because Benheim
 fails closed when this hook is missing, it disabled all gameplay actions.
-Benheim `0.1.80` is the current private-test candidate. It preserves the
+Benheim `0.1.80` remains installed on Ben's Mac. Benheim `0.1.81` is the
+current private-test candidate. It preserves the
 `0.1.73` startup correction. It adds the
 [Farming](src/Farming/PRODUCT.md) module's selectable 1x1, 3x3, 5x5, 7x7, and
 9x9 grids, corrected berry registration, and planting-stamina behavior. It
@@ -249,28 +250,32 @@ player's Ship Sprint request and while that request remains active. Reverse and
 every other native ship rule remain unchanged. The [Ship Sprint
 module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live proof gates.
 
-The candidate includes the first command set from the [Developer
+The candidate includes the command set from the [Developer
 Diagnostics](src/DeveloperDiagnostics/PRODUCT.md) module. The `bhcatalog`
 command inspects the effects, text, and UI catalogs while Valheim is running.
 The `bhrun comfort` command records and prints one native comfort calculation
 without changing the player, furniture, or world. The `bhwatch colliders`
 command controls the temporary collider overlay for the current session and is
-off by default.
+off by default. The generic event-probe registry also includes the bounded
+`spawns` population probe, which is enabled by default.
 
 The candidate also adds the [Farming](src/Farming/PRODUCT.md) module's native
 plantable berry bushes and the [World Labels](src/WorldLabels/PRODUCT.md)
-module's sign glow and portal labels. Those modules own the unproven behavior
-and live acceptance gates.
+module's sign glow and high-contrast portal labels. Native Raspberry,
+Blueberry, and Cloudberry bushes use the candidate's deterministic
+4,000-to-5,000-second yield timing. Player-planted bushes use native Hammer
+removal and return five matching berries. Those modules own the unproven
+behavior and live acceptance gates.
 
-The candidate also lets a player manually collect native Tar while the Tar is
-submerged in a tar pit. Only manual interaction with native Tar changes. Tar
-auto-pickup and every other submerged item remain native.
+The candidate also lets a player manually or automatically collect ordinary
+items submerged in a native tar pit. Native pickup range, capacity, carry
+weight, ownership, effects, and failure behavior remain unchanged.
 The [Interaction module](src/Interaction/PRODUCT.md) owns the exact behavior
 and live proof gate.
 
-The candidate lets the player select a centered 1x1, 3x3, 5x5, 7x7, or 9x9
-Cultivator grid. Each Cultivator-picker session starts with the 9x9 grid
-selected.
+While the Cultivator picker is open, holding `Left Shift` and pressing `1`,
+`3`, `5`, `7`, or `9` selects the matching centered grid. Each picker session
+starts with the 9x9 grid selected. Other number-key input remains native.
 Perfect Impact now qualifies only at the first `Character` contact authored for
 the attack. That contact requires horizontal approach speed of at least `5.5
 m/s`. A live Lox contact proved the `1.15x` native damage and `3x` native

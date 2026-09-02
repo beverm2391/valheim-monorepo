@@ -18,7 +18,7 @@ ledger and who can accept its items.
   Harmony cleanup marker, core-disablement marker, gameplay-disabled marker,
   or world-load marker. No world was entered. The task quit only the Valheim
   process that it launched, and no Valheim process remained.
-- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.80`
+- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.81`
   require no change to that server component.
 
 ## Test on installed `0.1.80`
@@ -37,61 +37,85 @@ ledger and who can accept its items.
   throttle. Confirm that `SPRINT` appears and `3x` thrust applies. Release Run,
   reverse the throttle, and leave the helm. Each action must restore normal
   Valheim behavior.
-- **Farming and Cultivator grids:** Open the Cultivator picker. Each time the
-  player opens the picker, the 9x9 grid must be selected. Press `1`, `3`, `5`,
-  `7`, and `9`; each key must select and preview the matching centered grid.
-  Even number keys must change neither the grid nor the hotbar, and number keys
-  must regain native behavior when the picker closes. Place one plant normally,
-  then place a centered 9x9 grid that contains both valid and invalid cells.
-  Each successful normal or grid-cell placement must cost 25% of the native
-  stamina cost after Valheim applies the Farming skill adjustment. A failed,
-  skipped, or rejected placement must cost no stamina.
-- **Tar:** Manually collect native Tar while it is submerged. Items other than
-  Tar must remain stuck. No item may be collected automatically.
 - **Developer command discovery:** In Valheim's built-in console, confirm that
   the console completes the first argument for each command: `bhcatalog`,
   `bhrun`, and `bhwatch`. Run the effects, text, and UI catalog commands.
   Confirm that each snapshot returns a result within its defined limit and
   leaves no temporary state in the running game.
-- **Comfort summary:** Run `bhrun comfort`. Confirm that the console shows a
-  readable summary with the calculated comfort and **Counted**, **Ignored**, and
-  **Just outside range** sections.
-- **Collider watcher:** Run `bhwatch colliders` and confirm that the command
-  reports the default setting in the shipped build, the current session
-  setting, and the state that applies now. Set the watcher to `on` and confirm
-  that the overlay appears. Set the watcher to `off`, exit the world, and log
-  out. Confirm that all overlay objects are removed after each of these actions.
-  Restore `default` and confirm that the watcher is off by default.
-- **Berry planting:** For each native Raspberry, Blueberry, and Cloudberry bush:
-
-  - confirm ordinary placement and centered 9x9 placement;
-  - confirm that each placement costs exactly five matching berries;
-  - harvest the bush and confirm its native 300-minute respawn;
-  - reload the save and confirm persistence; and
-  - in multiplayer, confirm shared placement and harvesting, creator ownership,
-    and reconnect behavior.
-- **Portal labels:** On wooden and stone portals with non-empty tags, confirm
-  that each label remains fixed just above its portal. Confirm that each label
-  uses the same high-contrast overlay treatment as Perfect Parry feedback and
-  stays readable against scenery. Confirm that each label exactly matches its
-  portal's current tag, is visible at 30 meters but not beyond, hides when line
-  of sight to the portal is blocked, and updates after a player renames the
-  portal. Give a portal an empty tag and confirm that no label appears.
 - **Leech spawning:** With compatible clients owning active Swamp zones, confirm
   ordinary base-world Leech opportunities use the 5x rate. Confirm each
   successful adjusted spawn records one event with source `base_world`, prefab
   `Leech`, and multiplier `5`. Transfer zone ownership and confirm the same
   behavior continues.
-- **Club + Lunge Affinity:** At a base-game Forge, confirm that an Affinity tab
-  appears beside Craft and Upgrade. Switch back to Craft and Upgrade, then
-  confirm that each native tab returns unchanged. Spend 1 Wood to apply Lunge
-  to one specific max-quality Club. Confirm that an ineligible weapon cannot
-  receive Lunge. Select Lunge again for that exact Club. The choice must be
-  disabled, open no confirmation, consume no resources, and leave the Club
-  unchanged. Move, equip, store, and drop the Club, then reconnect. Confirm that
-  the same Club retains Lunge after every action. An airborne primary swing
-  must add one 10 m/s forward impulse and raise its vertical velocity to at
-  least +3 m/s.
-  Grounded Club swings must remain native. Use debug inspect, apply,
-  clear, and session-force commands only to isolate a failure. If a compatible
-  peer is available, confirm that the peer sees the Lunge movement.
+
+## Test after private-test `0.1.81` is installed
+
+- **Tar-pit pickup:** Installed `0.1.80` proved manual pickup of submerged
+  native Tar but left other items stuck and did not auto-pick up. Drop native
+  Tar, Stone, and one other ordinary item into a native tar pit. Confirm that
+  each item supports normal manual pickup and normal auto-pickup. Confirm that
+  native range, inventory-space, carry-weight, and ownership failures still
+  block collection normally.
+
+- **Farming and Cultivator grids:** Installed `0.1.80` exposed an input-boundary
+  failure. Open the Cultivator picker and confirm that each picker session
+  starts with 9x9 selected. Hold `Left Shift` and press each of `1`, `3`, `5`,
+  `7`, and `9`. After each selection, confirm that the existing `Left Shift`
+  mass-plant preview and placement both use the matching centered grid. Plain
+  number keys and every other number-key combination must keep native behavior.
+  Place one plant normally, then place a centered 9x9 grid containing valid and
+  invalid cells. Each successful normal or grid-cell placement must cost 25%
+  of the native stamina cost after Valheim applies the Farming skill adjustment.
+  A failed, skipped, or rejected placement must cost no stamina.
+- **Comfort summary:** Installed `0.1.80` accepted the Comfort calculation and
+  typed evidence but flooded Valheim's non-scrollable console. Run
+  `bhrun comfort`. Confirm that the console shows a short readable summary with
+  calculated comfort and counts for **Counted**, **Ignored**, and **Just outside
+  range**.
+  Confirm that complete per-piece evidence remains in typed diagnostics.
+- **Berry planting:** Installed `0.1.80` proved ordinary Raspberry placement
+  but exposed the initial-growth failure: the new bush did not start empty.
+  Retest Raspberry, Blueberry, and Cloudberry after the correction:
+
+  - confirm ordinary Blueberry and Cloudberry placement and centered 9x9
+    placement for all three bushes;
+  - confirm that each placement costs exactly five matching berries;
+  - confirm that each newly planted bush starts empty;
+  - confirm that Benheim assigns each planted or naturally spawned bush a wait
+    of 4,000 to 5,000 seconds before each yield, including the first yield of a
+    planted bush;
+  - confirm unrelated `Pickable` objects keep native timing;
+  - use the Hammer to remove one player-planted bush of each type and confirm
+    each returns exactly five matching berries when native access and ward
+    rules allow removal;
+  - confirm naturally spawned bushes cannot be removed with the Hammer and the
+    Cultivator removes no planted or naturally spawned berry bush;
+  - reload the save and confirm persistence; and
+  - in multiplayer, confirm shared placement and harvesting, creator ownership,
+    and reconnect behavior.
+- **Portal labels:** Installed `0.1.80` displayed and updated portal tags, but
+  its world lettering was not readable enough against scenery. On wooden and
+  stone portals, confirm that each corrected label remains fixed just above its
+  portal and uses the same high-contrast overlay treatment as Perfect Parry
+  feedback. Confirm that it exactly matches the current non-empty tag, is
+  visible at 30 meters but not beyond, hides when line of sight is blocked, and
+  updates after a rename. Give a portal an empty tag and confirm no label appears.
+- **Club + Lunge Affinity:** Confirm that the Affinity tab shows Forge level `1`
+  in the native station-requirement slot and keeps Wood in the following
+  material slot. Spend 1 Wood to apply Lunge to an eligible Club that does not
+  already have Lunge. In the ordinary inventory, confirm that the weapon title is
+  `Club · Lunge` and its hover description preserves the native Club text while
+  adding Lunge's behavior and persistent bias. Switch from Affinity back to
+  Craft and Upgrade and confirm that each native tab returns unchanged. Move,
+  equip, store, and drop the Club, then reconnect. Confirm that the same Club
+  retains Lunge after every action. Grounded Club swings must remain native.
+  If a compatible peer is available, confirm that the peer sees the Lunge
+  movement.
+- **Developer probes:** Run `bhwatch` and confirm that `spawns` is enabled by
+  default and `colliders` is disabled by default. Confirm that `spawns` records
+  the registered Leech rule, bounded population changes, cap transitions, and a
+  low-frequency
+  heartbeat without changing spawn behavior. Enable `colliders` before each
+  independent cleanup check. Then test `off`, `default`, world exit, and logout.
+  Confirm that every path removes all overlay objects. Confirm that the default
+  state is disabled.

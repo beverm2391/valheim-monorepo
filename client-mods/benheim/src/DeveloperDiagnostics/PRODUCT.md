@@ -6,8 +6,8 @@ diagnostics, local NDJSON, and Axiom delivery. It does not add a second logger,
 schema, database, or remote destination.
 
 The normal workflow is low-friction: core events and inexpensive event probes
-already provide bounded evidence. A developer enables probes that ship off
-only when this evidence cannot answer the question.
+already provide bounded evidence. A developer enables probes that are disabled
+by default only when this evidence cannot answer the question.
 
 ## Evidence Model
 
@@ -28,10 +28,10 @@ core events. Event probes share one registry. Code registers each probe's name
 and shipped default. During a session, the registry owns its `on`, `off`, or
 `default` override and reports its effective state.
 
-Low-cost, bounded event probes should normally ship on. Expensive, verbose, or
-high-volume event probes normally ship off. Relaunching Benheim clears session
-overrides and restores shipped defaults. Probe state is not saved to the
-character or world.
+Low-cost, bounded event probes should normally be enabled by default. Expensive,
+verbose, or high-volume event probes should normally be disabled by default.
+Relaunching Benheim clears session overrides and restores shipped defaults.
+Probe state is not saved to the character or world.
 
 ### Snapshots
 
@@ -44,9 +44,9 @@ through normal diagnostics.
 ### Visual probes
 
 A visual probe temporarily renders information in the game, such as collider
-overlays or a short rendering experiment. Visual probes normally ship off.
-They remove every object and runtime hook they create when disabled, when the
-world exits, when the player logs out, and when the plugin resets.
+overlays or a short rendering experiment. Visual probes are normally disabled
+by default. They remove every object and runtime hook they create when disabled,
+when the world exits, when the player logs out, and when the plugin resets.
 
 ## Registry And Commands
 
@@ -74,8 +74,8 @@ evidence remains typed and queryable in local NDJSON and Axiom.
 
 The first event probe is `spawns`. It observes only native spawn rules that a
 feature explicitly registers; it does not log every creature or scan the whole
-world. It ships on because its work is bounded and answers balance questions
-that successful-spawn events alone cannot answer.
+world. It is enabled by default because its work is bounded and answers balance
+questions that successful-spawn events alone cannot answer.
 
 For each registered rule, the probe records the effective rule configuration
 when the rule becomes available and whenever it changes. This includes the
@@ -92,7 +92,7 @@ events.
 The initial probe does not instrument every rejection branch inside Valheim's
 native spawn loop. If configuration, population, cap transitions, and success
 events cannot explain a result, a later verbose event probe may add narrowly
-scoped rejection evidence and ship off by default.
+scoped rejection evidence and be disabled by default.
 
 ## Boundaries
 
@@ -111,10 +111,10 @@ scoped rejection evidence and ship off by default.
 
 ## Current Candidate
 
-The installed `0.1.80` candidate contains the first registry slice: runtime
-catalogs, the comfort snapshot, and the `colliders` visual probe. It does not
-yet contain the generic event-probe registry or the `spawns` probe described
-above.
+Installed `0.1.80` contains runtime catalogs, the comfort snapshot, and the
+`colliders` visual probe. The `0.1.81` candidate adds the generic event-probe
+registry and the bounded `spawns` probe described above. `spawns` is enabled by
+default. `colliders` remains disabled by default.
 
 Live `0.1.80` testing accepted the comfort snapshot's mechanics. Calculated
 comfort and cached comfort were both `9`, and typed diagnostics contained

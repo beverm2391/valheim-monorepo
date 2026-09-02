@@ -53,8 +53,9 @@ internal static partial class ShortcutOverlay
                 new Entry("Left Shift + (1 / 3 / 5 / 7 / 9)", "Choose the planting grid while the Cultivator picker is open"),
                 new Entry("Left Shift + plant", $"Plant the centered selected grid (defaults to {FarmingSettings.DefaultGridSize}x{FarmingSettings.DefaultGridSize} each time the picker opens)"),
                 new Entry("Cultivator berries", $"Plant native Raspberry, Blueberry, and Cloudberry bushes for {PlantableBerries.BerryCost} matching berries each"),
+                new Entry("Hammer berries", $"Remove a player-planted berry bush when native access and ward rules allow it; receive {PlantableBerries.BerryCost} matching berries"),
             },
-            "Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Apart from the selected odd grid dimensions and stamina cost, all other planting behavior stays native. Berry bushes need ordinary ground. They do not need cultivated ground or a matching biome. Newly planted bushes start empty until their native growth cycle completes. Every grid uses each native bush's collider footprint for spacing."),
+            $"Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Apart from the selected odd grid dimensions and stamina cost, all other planting behavior stays native. Berry bushes need ordinary ground. They do not need cultivated ground or a matching biome. Newly planted bushes start empty. Benheim assigns native Raspberry, Blueberry, and Cloudberry bushes a new {PlantableBerries.BerryRespawnMinimumSeconds:N0} to {PlantableBerries.BerryRespawnMaximumSeconds:N0} second wait before each yield. Naturally spawned bushes cannot be removed with the Hammer, and the Cultivator removes no berry bushes. Every grid uses each native bush's collider footprint for spacing."),
     };
 
     private static readonly Section[] FeatureSections =
@@ -80,7 +81,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Glowing signs", "Existing sign letters have a soft, warm portal-amber glow. The wooden board stays unchanged"),
                 new Entry(
                     "Portal labels",
-                    $"Show each portal's exact non-empty tag above it when the portal is within {WorldLabelVisibility.PortalMaxDistanceMeters:0} m and in the player's line of sight"),
+                    $"Show each portal's exact non-empty tag in high-contrast text above it when the portal is within {WorldLabelVisibility.PortalMaxDistanceMeters:0} m and in the player's line of sight"),
                 new Entry(
                     "Ship Sprint",
                     $"Hold Run at the helm for ×{ShipSprintTuning.ThrustMultiplier:0.#} native thrust at paddle, half sail, and full sail; the helm readout shows planar speed and marks SPRINT while requested"),
@@ -113,7 +114,7 @@ internal static partial class ShortcutOverlay
             {
                 new Entry(
                     "Club + Lunge",
-                    $"At a Forge, spend {AffinityApplication.TestResourceAmount} Wood to bind Lunge to one exact max-quality Club; the Affinity stays with that item"),
+                    $"At a level-1 Forge, spend {AffinityApplication.TestResourceAmount} Wood to bind Lunge to one exact max-quality Club; the Affinity stays with that item and appears in its inventory title and hover text"),
                 new Entry(
                     "Airborne swing",
                     $"A primary swing while airborne adds {LungeRuntime.DefaultForce:0.#} m/s forward and raises vertical velocity to at least +{LungeRuntime.MinimumVerticalVelocity:0.#} m/s; grounded Club swings stay native"),

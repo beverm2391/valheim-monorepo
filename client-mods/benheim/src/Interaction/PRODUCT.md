@@ -25,11 +25,11 @@ fire requirements, the Rested calculation, persistence, or networking.
 
 ## In Development
 
-The `0.1.77` candidate prints a readable summary in the console. The summary
-includes the calculated comfort and **Counted**, **Ignored**, and **Just outside
-range** sections. The command still records the complete diagnostic in its
-structured form and writes the evidence to the log. The summary needs live
-console proof.
+The uninstalled `0.1.81` candidate prints a readable summary in the console.
+The summary includes the calculated comfort and **Counted**, **Ignored**, and
+**Just outside range** sections. The command still records the complete
+diagnostic in its structured form and writes the evidence to the log. The
+summary needs live console proof.
 
 Benheim doubles only the build-piece placement coverage resolved from native
 Workbench and Stonecutter stations. In installed Valheim `0.221.12`, both
@@ -44,25 +44,27 @@ interaction, crafting, repair, upgrade attachment, comfort, Workbench suppressio
 enemy spawning, wards, other crafting stations, persistence, networking, or world
 data.
 
-The `0.1.77` candidate still needs gameplay proof for:
+Installed `0.1.80` still needs gameplay proof for:
 
 - the native 20-meter boundary at each level-1 station;
 - the extended area beyond 20 meters and through 40 meters;
 - the area beyond 40 meters; and
 - each station's native crafting, repair, upgrade, and interaction behavior.
 
-Players can manually collect native Tar while the collectible is submerged in
-a native tar pit. This exception applies only to native Tar and only during
-manual interaction. Native interaction range, ownership, pickup requests,
-inventory capacity, carry weight, effects, and ordinary failure behavior still
-apply.
+Live `0.1.80` testing proved that players can manually collect native Tar while
+it is submerged in a native tar pit. It also showed that other submerged items
+remain stuck and auto-pickup does not work there.
 
-Submerged Tar does not auto-pick up; its native behavior remains unchanged.
-Other submerged items remain stuck. Benheim does not:
+The uninstalled `0.1.81` candidate contains the approved correction, which
+removes the tar-pit pickup block for every item.
+Submerged items support both ordinary manual pickup and Valheim's normal
+auto-pickup. Native interaction and auto-pickup range, ownership, pickup
+requests, inventory capacity, carry weight, effects, and ordinary failure
+behavior still apply. Benheim does not:
 
 - move Tar or change its status hazards;
 - drain or mutate the pit;
 - change terrain or locations; or
 - write new world or character state.
 
-This behavior needs gameplay proof.
+The corrected behavior needs gameplay proof.

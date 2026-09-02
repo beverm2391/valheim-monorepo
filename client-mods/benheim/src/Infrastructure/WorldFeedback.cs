@@ -57,12 +57,24 @@ internal static class WorldFeedback
             return false;
         }
 
-        object? instance = AddBonusText(
-            damageText,
-            worldTexts,
-            worldPosition,
-            0f,
-            string.Empty);
+        UnityEngine.Random.State randomState = UnityEngine.Random.state;
+        object? instance;
+        try
+        {
+            instance = AddBonusText(
+                damageText,
+                worldTexts,
+                worldPosition,
+                0f,
+                string.Empty);
+        }
+        finally
+        {
+            // Native DamageText adds a random positional offset. Persistent
+            // portal labels replace that transient motion, so their creation
+            // must not advance Unity's shared gameplay random stream.
+            UnityEngine.Random.state = randomState;
+        }
         if (instance == null)
         {
             return false;

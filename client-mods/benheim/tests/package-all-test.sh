@@ -54,12 +54,15 @@ for package in "$mac_package" "$windows_package"; do
   test "$(shasum -a 256 "$extracted/BenheimQoL.dll" | awk '{print $1}')" = "$expected_hash"
   cmp -s "$expected_version" "$extracted/VERSION"
   test ! -e "$extracted/PRIVATE-TEST-DIAGNOSTICS.cfg"
+  test ! -e "$extracted/SOURCE_COMMIT"
 done
 
 sentinel_token='private-test-token-sentinel'
+fixture_commit="0123456789abcdef0123456789abcdef01234567"
 private_output="$(
   BENHEIM_AXIOM_DATASET=benheim-diagnostics \
   BENHEIM_AXIOM_INGEST_TOKEN="$sentinel_token" \
+  BENHEIM_QOL_SOURCE_COMMIT="$fixture_commit" \
     "$scripts/package-private-test.sh"
 )"
 private_mac="$fixture/dist/Benheim-PRIVATE-TEST-macOS-$version.zip"
@@ -79,6 +82,7 @@ for package in "$private_mac" "$private_windows"; do
   grep -Fxq 'dataset=benheim-diagnostics' "$private_config"
   grep -Fxq "token=$sentinel_token" "$private_config"
   grep -Fxq "build_id=sha256:$expected_hash" "$private_config"
+  grep -Fxq "$fixture_commit" "$private_root/SOURCE_COMMIT"
 done
 
 ! grep -R -Fq "$sentinel_token" "$fixture/src" "$scripts"

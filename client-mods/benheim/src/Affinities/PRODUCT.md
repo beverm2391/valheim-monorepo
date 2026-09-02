@@ -24,6 +24,11 @@ identity, quality, durability, upgrades, and ordinary repair behavior. The
 affinity stays with that item through storage, dropping, trading, death,
 logout, and server saves.
 
+In the ordinary inventory, an affinity-bearing weapon appends the affinity name
+to its native title, such as `Club · Lunge`. Its hover description preserves
+the native weapon description and appends a short Affinity section that
+explains the new behavior and persistent bias.
+
 The MVP has these boundaries:
 
 - Each eligible weapon has one affinity slot.
@@ -112,8 +117,10 @@ separate Benheim window.
 
 The Affinity tab lists each eligible weapon item in the player's inventory and
 the affinities available for that exact item. Selecting Lunge for a Club shows
-that Club, Lunge's new behavior, its persistent drawback, and the complete
-resource cost. Before applying Lunge to a Club that does not already have
+that Club, Lunge's new behavior, its persistent bias, and the complete
+resource cost. For the first playable slice, the native station-requirement
+slot shows the Forge at level `1`, and the following native material slot shows
+`1 Wood`. Before applying Lunge to a Club that does not already have
 Lunge, the player must confirm that the resources will not be refunded. If
 Lunge replaces a different affinity, the player must also confirm that the old
 affinity and all materials previously spent on it will be lost. The application
@@ -183,10 +190,11 @@ lightning hits start another chain.
 
 ## Status
 
-The first Affinity slice is implemented as an unproven playable candidate. It
-uses a max-quality base-game Club, a Forge Affinity tab, versioned item state, a
-temporary cost of 1 Wood, and a diagonal Lunge impulse. Static proof covers
-only:
+The first Affinity slice is implemented as a playable candidate. Live `0.1.80`
+testing accepted Lunge's movement and feel, the basic Forge-tab presentation,
+and the disabled same-affinity action. It uses a max-quality base-game Club, a
+Forge Affinity tab, versioned item state, a temporary cost of 1 Wood, and a
+diagonal Lunge impulse. Static proof also covers:
 
 - guards for the selected item and resources;
 - rejection of the affinity already installed on the exact item;
@@ -199,12 +207,12 @@ only:
 
 Live product review must still prove:
 
-- the Affinity tab's layout, weapon list, affinity details, resource
-  requirements, input behavior, sounds, and restoration of the native Craft
-  and Upgrade tabs;
+- the Forge level `1` requirement display and ordinary inventory title and
+  hover description;
+- the Affinity tab's input behavior, sounds, and restoration of the native
+  Craft and Upgrade tabs;
 - persistence through native item paths;
 - movement ownership and smoothing in multiplayer;
-- whether the 10 m/s forward impulse and +3 m/s minimum vertical velocity
-  create meaningful power with a felt loss of flexibility; and
-- whether Valheim's short grounded grace period immediately after takeoff
-  affects Lunge timing and feel.
+- grounded Club swings remain native; and
+- whether Valheim continues to treat the player as grounded for a short period
+  after takeoff and, if so, whether that changes Lunge timing or feel.

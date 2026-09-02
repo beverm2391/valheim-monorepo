@@ -6,6 +6,7 @@ version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs"
 dll="${BENHEIM_QOL_DLL:-$root/src/bin/Release/netstandard2.1/BenheimQoL.dll}"
 dist="${BENHEIM_QOL_DIST:-$root/dist}"
 private_diagnostics_config="${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG:-}"
+source_commit="${BENHEIM_QOL_SOURCE_COMMIT:-}"
 package_name="Benheim-Windows-$version"
 if [[ -n "$private_diagnostics_config" ]]; then
   package_name="Benheim-PRIVATE-TEST-Windows-$version"
@@ -14,6 +15,10 @@ if [[ -n "$private_diagnostics_config" ]]; then
     echo "The private-test diagnostics config is missing or invalid." >&2
     exit 1
   fi
+fi
+if [[ -n "$source_commit" && ! "$source_commit" =~ ^[0-9a-f]{40,64}$ ]]; then
+  echo "BENHEIM_QOL_SOURCE_COMMIT must be an exact Git commit." >&2
+  exit 1
 fi
 stage="$dist/$package_name"
 
@@ -41,6 +46,9 @@ install -m 0644 "$dll" "$stage/BenheimQoL.dll"
 printf '%s\n' "$version" > "$stage/VERSION"
 if [[ -n "$private_diagnostics_config" ]]; then
   install -m 0600 "$private_diagnostics_config" "$stage/PRIVATE-TEST-DIAGNOSTICS.cfg"
+fi
+if [[ -n "$source_commit" ]]; then
+  printf '%s\n' "$source_commit" > "$stage/SOURCE_COMMIT"
 fi
 
 (

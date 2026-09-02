@@ -24,6 +24,11 @@ public sealed class Player
     public static Player? m_localPlayer;
 }
 
+public sealed class ZNetScene
+{
+    public static ZNetScene? instance;
+}
+
 public sealed class Terminal
 {
     public delegate object ConsoleEventFailable(ConsoleEventArgs args);

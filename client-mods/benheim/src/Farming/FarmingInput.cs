@@ -39,6 +39,14 @@ internal static class FarmingInput
             PlantingPreview.DestroyGhosts();
         }
 
+        // Text entry suppresses the shortcut without pretending the native
+        // picker closed. Chat and other transient text fields can take focus
+        // while the Cultivator picker remains visible.
+        if (InputState.IsTextEntryActive())
+        {
+            return;
+        }
+
         bool leftShiftHeld = IsLeftShiftHeld();
         bool anotherModifierHeld = IsAnotherModifierHeld();
         if (!pickerOpen
@@ -81,7 +89,6 @@ internal static class FarmingInput
     private static bool IsCultivatorPieceSelectionOpen(Player player)
     {
         if (Player.m_localPlayer != player
-            || InputState.IsTextEntryActive()
             || !Hud.IsPieceSelectionVisible())
         {
             return false;

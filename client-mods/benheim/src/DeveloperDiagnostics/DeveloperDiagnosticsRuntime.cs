@@ -103,7 +103,7 @@ internal static partial class DeveloperDiagnosticsRuntime
     internal static void Update()
     {
         EnsureBuiltInsRegistered();
-        SynchronizeWorld(Player.m_localPlayer != null);
+        SynchronizeWorld(IsWorldReady());
         foreach (RegisteredProbe probe in Probes.Values)
         {
             if (!probe.Active)
@@ -241,7 +241,7 @@ internal static partial class DeveloperDiagnosticsRuntime
     private static object ExecuteWatcher(Terminal.ConsoleEventArgs args)
     {
         EnsureBuiltInsRegistered();
-        SynchronizeWorld(Player.m_localPlayer != null);
+        SynchronizeWorld(IsWorldReady());
         if (args.Args.Length == 1)
         {
             foreach (string name in ProbeNames())
@@ -295,6 +295,15 @@ internal static partial class DeveloperDiagnosticsRuntime
                     DiagnosticProbeCleanupReason.WorldExit);
             }
         }
+    }
+
+    private static bool IsWorldReady()
+    {
+        // Valheim destroys and recreates the local Player during ordinary
+        // death and respawn while the loaded world and SpawnSystem remain.
+        // ZNetScene owns the actual world lifetime, so only its teardown may
+        // trigger WorldExit cleanup and discard registered world probes.
+        return ZNetScene.instance != null;
     }
 
     private static void Reconcile(RegisteredProbe probe, Terminal? context)

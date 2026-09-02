@@ -4,9 +4,14 @@ using BenheimQoL.Farming;
 FarmingGridSelection.Reset();
 Require(FarmingGridSelection.CurrentSize == 9, "reset must restore 9x9");
 Require(FarmingGridSelection.UpdatePickerSession(pickerOpen: true), "opening the picker must begin a selection session");
-Require(!FarmingGridSelection.UpdatePickerSession(pickerOpen: true), "an open picker must not restart its own session");
 Require(FarmingGridSelection.TrySelect(3), "the open picker session must allow a selection");
 Require(FarmingGridSelection.CurrentSize == 3, "the open picker session must retain its selection");
+Require(
+    !FarmingGridSelection.UpdatePickerSession(pickerOpen: true),
+    "text focus while the picker remains open must not restart its session");
+Require(
+    FarmingGridSelection.CurrentSize == 3,
+    "opening and closing chat inside one picker session must preserve its selection");
 Require(!FarmingGridSelection.UpdatePickerSession(pickerOpen: false), "closing the picker must only end its session");
 Require(FarmingGridSelection.CurrentSize == 3, "closing the picker must preserve the selected planting grid");
 Require(FarmingGridSelection.UpdatePickerSession(pickerOpen: true), "reopening the picker must begin a new selection session");

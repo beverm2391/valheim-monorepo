@@ -77,6 +77,12 @@ grep -Fq 'HaveStamina(rightItem.m_shared.m_attack.m_attackStamina)' <<<"$placeme
 grep -Fq 'Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved' "$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 grep -Fq 'Skipped, failed, and rejected placements cost no stamina' "$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 
+picker_detection="$(sed -n '/private static bool IsCultivatorPieceSelectionOpen/,/^    }/p' "$root/src/Farming/FarmingInput.cs")"
+if grep -Fq 'IsTextEntryActive' <<<"$picker_detection"; then
+  printf 'text entry must suppress grid shortcuts without ending the Cultivator picker session\n' >&2
+  exit 1
+fi
+
 # Grid placement reaches its only stamina debit after every rejection and after
 # the successful placement call. Skipped, failed, and rejected positions are free.
 test "$(grep -Fc 'player.UseStamina(staminaCost);' "$mass_planting")" -eq 1
