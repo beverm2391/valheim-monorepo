@@ -40,6 +40,9 @@ internal static class ComfortDiagnosticCommand
             snapshot.Candidates,
             ComfortDiagnosticDecision.Contributed,
             ComfortDiagnosticDecision.ContributedZero);
+        IReadOnlyList<string> summary = ComfortDiagnosticSummary.Format(
+            snapshot,
+            contributorCount);
 
         Diagnostics.Emit(
             DiagnosticEvent.Create("Comfort", "comfort_debug_summary")
@@ -76,11 +79,6 @@ internal static class ComfortDiagnosticCommand
             snapshot.RadiusExclusions,
             snapshot.RadiusExclusions.Count);
 
-        IReadOnlyList<string> summary = ComfortDiagnosticSummary.Format(
-            snapshot,
-            token => Localization.instance != null
-                ? Localization.instance.Localize(token)
-                : token);
         for (int index = 0; index < summary.Count; index++)
         {
             output(summary[index]);
