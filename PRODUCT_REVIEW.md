@@ -8,7 +8,8 @@ ledger and who can accept its items.
 ## Release state
 
 - Packaged version: private-test `0.1.83` for Mac and Windows from source commit
-  `cc75d53f25e5d8f42aed20ca1e255fb11e4152f1`. Neither package is installed.
+  `cc75d53f25e5d8f42aed20ca1e255fb11e4152f1`. The Mac package is installed;
+  Windows installation and startup remain unproven.
   The macOS package SHA-256 is
   `3a25295e5e6a646e415396807ed7b059df07bfbb93f62e6a76bfded8c226bdae`.
   The Windows package SHA-256 is
@@ -17,31 +18,35 @@ ledger and who can accept its items.
   `eada436029928e4903569c93d7ae5867aac6b93b3690a3a29a96e6563a2004d3`.
   Their private-diagnostics build IDs match that DLL. Both archives and their
   private-diagnostics configurations have owner-only permissions. Canonical
-  verification passed; startup and gameplay proof for `0.1.83` remain pending.
-- Installed version: private-test `0.1.82` on Ben's Mac, unchanged by `0.1.83`
-  packaging. It came from source commit
-  `4bf61c24e9be8ef1bf764861dfbc8d22bdac6375` and macOS package SHA-256
-  `b3659e7c51da0693ff2f03408bec79cd51b65a6d80c95ee3e8232918e1117ab8`.
-  The installed DLL SHA-256 is
-  `58dbd71f2a413271258381ee6ce7bbc511d3131a6ea3cc3bb7ecabcba566baf0`.
-  The installed private-diagnostics build ID matches the installed DLL. The
-  installed private-diagnostics configuration remains readable only by the
-  owner.
-- Installed `0.1.82` startup proof: The managed Benheim launcher started Valheim
-  `0.221.12` with the exact installed `0.1.82` package and reached the real main menu. The main
-  menu was visually confirmed. The fresh log contained the expected version,
-  session-start, chainloader-complete, menu-music, and clean session-end
-  markers. The log contained no Harmony cleanup marker, core-disablement
-  marker, gameplay-disabled marker, or world-load marker. No world was entered.
-  The task quit only the Valheim process that it launched, and no Valheim
-  process remained.
+  verification passed. Mac startup proof passed; gameplay proof remains pending.
+- Installed version: private-test `0.1.83` on Ben's Mac, installed through the
+  exact Mac package's shipped installer on September 2, 2026. The previous
+  installed version was verified as `0.1.82`. The installed DLL SHA-256 matches
+  the packaged DLL above. The installed version, managed launcher, and private
+  diagnostics configuration match the package. The diagnostics build ID matches
+  the installed DLL, and the configuration has owner-only `0600` permissions.
+  The task removed its temporary private-package extraction.
+- Installed `0.1.83` startup proof passed. The managed launcher reached Valheim
+  `0.221.12`'s real main menu, which the task visually confirmed. The fresh log
+  contained the expected `0.1.83`, session-start, chainloader-complete,
+  menu-music, and clean session-end markers. The log contained no Harmony errors
+  or cleanup messages, core-disablement markers, gameplay-disabled markers, or
+  world-load markers. The task entered
+  no world and used the menu's Quit action to close only its process, PID
+  `95320`. No Valheim process remained afterward. Gameplay remains unproven.
+  The first attempt ended without menu proof; the task terminated only its
+  verified PID `85071` with `SIGTERM` after UI inspection and quit were
+  unavailable. Ben explicitly requested the successful retry after unlocking
+  his Mac and reported turning WARP off. The cause of the first stall remains
+  unknown. Checks for the managed game process and any other Valheim process
+  found none before installation and each launch. The task did not launch again
+  after success.
 - Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.83`
   require no change to that server component.
 
-## Test on packaged `0.1.83` after installation
+## Test on installed `0.1.83`
 
-These checks wait for installation and startup proof. They do not apply to the
-currently installed `0.1.82` client.
+These checks still require gameplay proof.
 
 - **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
   max-quality Huntsman Bow. Confirm its inventory title and description, the
@@ -62,8 +67,6 @@ currently installed `0.1.82` client.
 - **Wisp discovery:** Run `bhrun wispecho` in a loaded world. Confirm a bounded
   discovery summary and matching detailed diagnostics. This build adds no
   mead, Wisp Echo rendering, or cyan highlights.
-
-## Test on installed `0.1.82`
 
 - **Earned-state audio:** In multiplayer, trigger an earned combat state near
   one compatible player and far from another. The nearby player may hear the
@@ -109,7 +112,7 @@ currently installed `0.1.82` client.
 
 - **Farming and Cultivator grids:** Installed `0.1.81` did not select a grid
   when the player held `Left Shift` and pressed an odd-number key. In installed
-  `0.1.82`, open the Cultivator picker and confirm that each picker session
+  `0.1.83`, open the Cultivator picker and confirm that each picker session
   starts with 9x9 selected. Hold `Left Shift` and press each of `1`, `3`, `5`,
   `7`, and `9`. After each selection, confirm that the existing `Left Shift`
   mass-plant preview and placement both use the matching centered grid. Plain
