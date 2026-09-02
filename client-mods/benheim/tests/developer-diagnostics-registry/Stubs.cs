@@ -161,6 +161,7 @@ namespace BenheimQoL.EnemyTiers
         internal static int EnableCount { get; private set; }
         internal static int DisableCount { get; private set; }
         internal static int ResetCount { get; private set; }
+        internal static int UpdateCount { get; private set; }
         internal static int OwnedResourceCount { get; private set; }
         internal static bool ThrowOnUpdate { get; set; }
 
@@ -181,6 +182,7 @@ namespace BenheimQoL.EnemyTiers
 
         internal static void Update()
         {
+            UpdateCount++;
             if (ThrowOnUpdate)
             {
                 ThrowOnUpdate = false;
@@ -194,6 +196,79 @@ namespace BenheimQoL.EnemyTiers
             Active = false;
             OwnedResourceCount = 0;
             ResetCount++;
+        }
+    }
+}
+
+namespace BenheimQoL.Spawning
+{
+    using BenheimQoL.DeveloperDiagnostics;
+
+    internal static class SpawnPopulationProbe
+    {
+        private static bool registered;
+
+        internal static void Register()
+        {
+            if (registered)
+            {
+                return;
+            }
+
+            DeveloperDiagnosticsRuntime.RegisterEventProbe(
+                "spawns",
+                shippedDefault: true,
+                TestSpawnProbe.TrySetActive,
+                TestSpawnProbe.Update,
+                TestSpawnProbe.Cleanup);
+            registered = true;
+        }
+    }
+
+    internal static class TestSpawnProbe
+    {
+        internal static bool Active { get; private set; }
+        internal static bool RejectActivation { get; set; }
+        internal static bool ThrowOnUpdate { get; set; }
+        internal static int EnableCount { get; private set; }
+        internal static int DisableCount { get; private set; }
+        internal static int CleanupCount { get; private set; }
+
+        internal static bool TrySetActive(bool requested, out string failure)
+        {
+            failure = string.Empty;
+            Active = requested;
+            if (requested)
+            {
+                EnableCount++;
+            }
+            else
+            {
+                DisableCount++;
+            }
+            if (requested && RejectActivation)
+            {
+                failure = "activation rejected after allocation";
+                return false;
+            }
+            return true;
+        }
+
+        internal static void Update()
+        {
+            if (!ThrowOnUpdate)
+            {
+                return;
+            }
+
+            ThrowOnUpdate = false;
+            throw new InvalidOperationException("spawn probe exploded");
+        }
+
+        internal static void Cleanup(DiagnosticProbeCleanupReason _)
+        {
+            Active = false;
+            CleanupCount++;
         }
     }
 }

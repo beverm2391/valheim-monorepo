@@ -3,24 +3,16 @@ using System.Collections.Generic;
 using BenheimQoL.EnemyTiers;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.Interaction;
+using BenheimQoL.Spawning;
 
 namespace BenheimQoL.DeveloperDiagnostics;
 
-internal enum WatcherSessionSetting
-{
-    Default,
-    On,
-    Off,
-}
-
 /// <summary>
-/// Owns discovery, command execution, session state, and cleanup for Benheim's
-/// shipped developer-only snapshots and collider watcher.
+/// Owns discovery, command execution, session state, cleanup, and failure
+/// containment for Benheim's shipped developer diagnostics.
 /// </summary>
-internal static class DeveloperDiagnosticsRuntime
+internal static partial class DeveloperDiagnosticsRuntime
 {
-    private const bool ColliderShippedDefault = false;
-
     private static readonly Dictionary<string, Action<string[], Action<string>>> Catalogs =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -44,13 +36,33 @@ internal static class DeveloperDiagnosticsRuntime
             ["comfort"] = ComfortDiagnosticCommand.Run,
         };
 
+    private static readonly Dictionary<string, RegisteredProbe> Probes =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private static bool builtInsRegistered;
     private static bool commandRegistered;
     private static bool worldReady;
-    private static bool colliderActive;
-    private static WatcherSessionSetting colliderSetting;
+
+    internal static void RegisterEventProbe(
+        string name,
+        bool shippedDefault,
+        DiagnosticProbeActivation setActive,
+        Action update,
+        Action<DiagnosticProbeCleanupReason> cleanup)
+    {
+        RegisterProbe(
+            name,
+            DiagnosticProbeKind.Event,
+            shippedDefault,
+            setActive,
+            update,
+            cleanup);
+    }
 
     internal static void InitializeConsole()
     {
+        SpawnPopulationProbe.Register();
+        EnsureBuiltInsRegistered();
         if (commandRegistered)
         {
             return;
@@ -80,213 +92,55 @@ internal static class DeveloperDiagnosticsRuntime
             optionsFetcher: SnapshotNames);
         _ = new Terminal.ConsoleCommand(
             "bhwatch",
-            "inspect or change a session-only diagnostic watcher; run 'bhwatch' for status",
+            "inspect or change a session-only diagnostic probe; run 'bhwatch' for status",
             ExecuteWatcher,
             isCheat: false,
             isNetwork: false,
-            optionsFetcher: WatcherNames);
+            optionsFetcher: ProbeNames);
         commandRegistered = true;
     }
 
     internal static void Update()
     {
+        EnsureBuiltInsRegistered();
         SynchronizeWorld(Player.m_localPlayer != null);
-        if (!colliderActive)
+        foreach (RegisteredProbe probe in Probes.Values)
         {
-            return;
-        }
+            if (!probe.Active)
+            {
+                continue;
+            }
 
-        try
-        {
-            CharacterColliderOverlay.Update();
-        }
-        catch (Exception exception)
-        {
-            ResetCollider("update_cleanup");
-            ReportFailure("update", "colliders", exception.Message);
+            try
+            {
+                probe.Update();
+            }
+            catch (Exception exception)
+            {
+                Deactivate(
+                    probe,
+                    "update_cleanup",
+                    DiagnosticProbeCleanupReason.Failure);
+                ReportFailure("update", probe.Name, exception.Message);
+            }
         }
     }
 
     internal static void Reset()
     {
-        ResetCollider("session_cleanup");
-        colliderSetting = WatcherSessionSetting.Default;
+        EnsureBuiltInsRegistered();
+        foreach (RegisteredProbe probe in Probes.Values)
+        {
+            Deactivate(
+                probe,
+                "session_cleanup",
+                DiagnosticProbeCleanupReason.SessionReset);
+            probe.Override = ProbeSessionOverride.Default;
+        }
         worldReady = false;
     }
 
-    private static object ExecuteSnapshot(
-        string command,
-        string usage,
-        Dictionary<string, Action<string[], Action<string>>> probes,
-        Terminal.ConsoleEventArgs args)
-    {
-        if (args.Args.Length < 2 ||
-            !probes.TryGetValue(args.Args[1], out Action<string[], Action<string>>? run))
-        {
-            args.Context.AddString($"Usage: {usage}");
-            args.Context.AddString($"Available probes: {string.Join(", ", probes.Keys)}");
-            return true;
-        }
-
-        try
-        {
-            run(Tail(args.Args, 2), args.Context.AddString);
-        }
-        catch (Exception exception)
-        {
-            string reason = Flatten(exception.Message);
-            args.Context.AddString(
-                $"Benheim {command} {args.Args[1]} failed: {reason}");
-            ReportFailure(command, args.Args[1], reason);
-        }
-        return true;
-    }
-
-    private static object ExecuteWatcher(Terminal.ConsoleEventArgs args)
-    {
-        SynchronizeWorld(Player.m_localPlayer != null);
-        if (args.Args.Length == 1)
-        {
-            PrintColliderStatus(args.Context);
-            return true;
-        }
-
-        if (args.Args.Length < 2 || args.Args.Length > 3 ||
-            !string.Equals(args.Args[1], "colliders", StringComparison.OrdinalIgnoreCase))
-        {
-            PrintWatcherUsage(args.Context);
-            return true;
-        }
-
-        if (args.Args.Length == 3)
-        {
-            if (!TryParseSetting(args.Args[2], out colliderSetting))
-            {
-                PrintWatcherUsage(args.Context);
-                return true;
-            }
-            ReconcileCollider(args.Context);
-        }
-
-        PrintColliderStatus(args.Context);
-        return true;
-    }
-
-    private static void SynchronizeWorld(bool isWorldReady)
-    {
-        if (worldReady == isWorldReady)
-        {
-            return;
-        }
-
-        worldReady = isWorldReady;
-        if (worldReady)
-        {
-            ReconcileCollider(context: null);
-        }
-        else
-        {
-            ResetCollider("world_cleanup");
-        }
-    }
-
-    private static void ReconcileCollider(Terminal? context)
-    {
-        bool desired = colliderSetting switch
-        {
-            WatcherSessionSetting.On => true,
-            WatcherSessionSetting.Off => false,
-            _ => ColliderShippedDefault,
-        };
-        bool shouldBeActive = worldReady && desired;
-        if (shouldBeActive == colliderActive)
-        {
-            return;
-        }
-
-        try
-        {
-            if (CharacterColliderOverlay.TrySetActive(
-                    shouldBeActive,
-                    out string failure))
-            {
-                colliderActive = shouldBeActive;
-                return;
-            }
-
-            colliderActive = false;
-            string reason = Flatten(failure);
-            context?.AddString(
-                $"Benheim watcher colliders could not turn {(shouldBeActive ? "on" : "off")}: {reason}");
-            ReportFailure("watcher_state", "colliders", reason);
-            if (!shouldBeActive)
-            {
-                ResetCollider("state_cleanup");
-            }
-        }
-        catch (Exception exception)
-        {
-            colliderActive = false;
-            string reason = Flatten(exception.Message);
-            context?.AddString($"Benheim watcher colliders failed: {reason}");
-            ReportFailure("watcher_state", "colliders", reason);
-            ResetCollider("failure_cleanup");
-        }
-    }
-
-    private static void ResetCollider(string lifecycle)
-    {
-        try
-        {
-            CharacterColliderOverlay.Reset();
-        }
-        catch (Exception exception)
-        {
-            ReportFailure(lifecycle, "colliders", exception.Message);
-        }
-        colliderActive = false;
-    }
-
-    private static void PrintWatcherUsage(Terminal context)
-    {
-        context.AddString("Usage: bhwatch [<watcher> [on|off|default]]");
-        context.AddString("Available watchers: colliders");
-    }
-
-    private static void PrintColliderStatus(Terminal context)
-    {
-        context.AddString(
-            "Benheim watcher colliders: " +
-            $"shipped={StateName(ColliderShippedDefault)} " +
-            $"session={colliderSetting.ToString().ToLowerInvariant()} " +
-            $"effective={StateName(colliderActive)}");
-    }
-
-    private static bool TryParseSetting(
-        string value,
-        out WatcherSessionSetting setting)
-    {
-        if (string.Equals(value, "default", StringComparison.OrdinalIgnoreCase))
-        {
-            setting = WatcherSessionSetting.Default;
-            return true;
-        }
-        if (string.Equals(value, "on", StringComparison.OrdinalIgnoreCase))
-        {
-            setting = WatcherSessionSetting.On;
-            return true;
-        }
-        if (string.Equals(value, "off", StringComparison.OrdinalIgnoreCase))
-        {
-            setting = WatcherSessionSetting.Off;
-            return true;
-        }
-
-        setting = default;
-        return false;
-    }
-
-    private static void ReportFailure(
+    internal static void ReportFailure(
         string lifecycle,
         string probe,
         string reason)
@@ -308,23 +162,245 @@ internal static class DeveloperDiagnosticsRuntime
         }
     }
 
-    private static List<string> CatalogNames() => new(Catalogs.Keys);
-
-    private static List<string> SnapshotNames() => new(Snapshots.Keys);
-
-    private static List<string> WatcherNames() => new() { "colliders" };
-
-    private static string[] Tail(string[] arguments, int start)
+    private static void EnsureBuiltInsRegistered()
     {
-        string[] tail = new string[Math.Max(0, arguments.Length - start)];
-        Array.Copy(arguments, start, tail, 0, tail.Length);
-        return tail;
+        if (builtInsRegistered)
+        {
+            return;
+        }
+
+        builtInsRegistered = true;
+        RegisterProbe(
+            "colliders",
+            DiagnosticProbeKind.Visual,
+            shippedDefault: false,
+            CharacterColliderOverlay.TrySetActive,
+            CharacterColliderOverlay.Update,
+            _ => CharacterColliderOverlay.Reset());
     }
 
-    private static string StateName(bool state) => state ? "on" : "off";
+    private static void RegisterProbe(
+        string name,
+        DiagnosticProbeKind kind,
+        bool shippedDefault,
+        DiagnosticProbeActivation setActive,
+        Action update,
+        Action<DiagnosticProbeCleanupReason> cleanup)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("A diagnostic probe must have a name.", nameof(name));
+        }
+        if (Probes.ContainsKey(name))
+        {
+            throw new InvalidOperationException($"Diagnostic probe '{name}' is already registered.");
+        }
 
-    private static string Flatten(string value) =>
-        string.IsNullOrWhiteSpace(value)
-            ? "unknown failure"
-            : value.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        RegisteredProbe probe = new(
+            name,
+            kind,
+            shippedDefault,
+            setActive,
+            update,
+            cleanup);
+        Probes.Add(name, probe);
+        if (worldReady)
+        {
+            Reconcile(probe, context: null);
+        }
+    }
+
+    private static object ExecuteSnapshot(
+        string command,
+        string usage,
+        Dictionary<string, Action<string[], Action<string>>> snapshots,
+        Terminal.ConsoleEventArgs args)
+    {
+        if (args.Args.Length < 2 ||
+            !snapshots.TryGetValue(args.Args[1], out Action<string[], Action<string>>? run))
+        {
+            args.Context.AddString($"Usage: {usage}");
+            args.Context.AddString($"Available probes: {string.Join(", ", snapshots.Keys)}");
+            return true;
+        }
+
+        try
+        {
+            run(Tail(args.Args, 2), args.Context.AddString);
+        }
+        catch (Exception exception)
+        {
+            string reason = Flatten(exception.Message);
+            args.Context.AddString(
+                $"Benheim {command} {args.Args[1]} failed: {reason}");
+            ReportFailure(command, args.Args[1], reason);
+        }
+        return true;
+    }
+
+    private static object ExecuteWatcher(Terminal.ConsoleEventArgs args)
+    {
+        EnsureBuiltInsRegistered();
+        SynchronizeWorld(Player.m_localPlayer != null);
+        if (args.Args.Length == 1)
+        {
+            foreach (string name in ProbeNames())
+            {
+                PrintProbeStatus(args.Context, Probes[name]);
+            }
+            return true;
+        }
+
+        if (args.Args.Length < 2 || args.Args.Length > 3 ||
+            !Probes.TryGetValue(args.Args[1], out RegisteredProbe? probe))
+        {
+            PrintWatcherUsage(args.Context);
+            return true;
+        }
+
+        if (args.Args.Length == 3)
+        {
+            if (!TryParseOverride(args.Args[2], out ProbeSessionOverride requestedOverride))
+            {
+                PrintWatcherUsage(args.Context);
+                return true;
+            }
+            probe.Override = requestedOverride;
+            Reconcile(probe, args.Context);
+        }
+
+        PrintProbeStatus(args.Context, probe);
+        return true;
+    }
+
+    private static void SynchronizeWorld(bool isWorldReady)
+    {
+        if (worldReady == isWorldReady)
+        {
+            return;
+        }
+
+        worldReady = isWorldReady;
+        foreach (RegisteredProbe probe in Probes.Values)
+        {
+            if (worldReady)
+            {
+                Reconcile(probe, context: null);
+            }
+            else
+            {
+                Deactivate(
+                    probe,
+                    "world_cleanup",
+                    DiagnosticProbeCleanupReason.WorldExit);
+            }
+        }
+    }
+
+    private static void Reconcile(RegisteredProbe probe, Terminal? context)
+    {
+        bool configured = probe.Override switch
+        {
+            ProbeSessionOverride.On => true,
+            ProbeSessionOverride.Off => false,
+            _ => probe.ShippedDefault,
+        };
+        bool desired = worldReady && configured;
+        if (desired == probe.Active)
+        {
+            return;
+        }
+
+        try
+        {
+            if (probe.SetActive(desired, out string failure))
+            {
+                probe.Active = desired;
+                if (!desired)
+                {
+                    Cleanup(
+                        probe,
+                        "state_cleanup",
+                        DiagnosticProbeCleanupReason.Disabled);
+                }
+                return;
+            }
+
+            probe.Active = false;
+            string reason = Flatten(failure);
+            context?.AddString(
+                $"Benheim probe {probe.Name} could not turn {(desired ? "on" : "off")}: {reason}");
+            ReportFailure("probe_state", probe.Name, reason);
+            Cleanup(
+                probe,
+                "state_cleanup",
+                DiagnosticProbeCleanupReason.Failure);
+        }
+        catch (Exception exception)
+        {
+            probe.Active = false;
+            string reason = Flatten(exception.Message);
+            context?.AddString($"Benheim probe {probe.Name} failed: {reason}");
+            ReportFailure("probe_state", probe.Name, reason);
+            Cleanup(
+                probe,
+                "failure_cleanup",
+                DiagnosticProbeCleanupReason.Failure);
+        }
+    }
+
+    private static void Deactivate(
+        RegisteredProbe probe,
+        string lifecycle,
+        DiagnosticProbeCleanupReason reason)
+    {
+        if (probe.Active)
+        {
+            try
+            {
+                if (!probe.SetActive(false, out string failure))
+                {
+                    ReportFailure(lifecycle, probe.Name, failure);
+                }
+            }
+            catch (Exception exception)
+            {
+                ReportFailure(lifecycle, probe.Name, exception.Message);
+            }
+        }
+        probe.Active = false;
+        Cleanup(probe, lifecycle, reason);
+    }
+
+    private static void Cleanup(
+        RegisteredProbe probe,
+        string lifecycle,
+        DiagnosticProbeCleanupReason reason)
+    {
+        try
+        {
+            probe.Cleanup(reason);
+        }
+        catch (Exception exception)
+        {
+            ReportFailure(lifecycle, probe.Name, exception.Message);
+        }
+    }
+
+    private static void PrintWatcherUsage(Terminal context)
+    {
+        context.AddString("Usage: bhwatch [<probe> [on|off|default]]");
+        context.AddString($"Available probes: {string.Join(", ", ProbeNames())}");
+    }
+
+    private static void PrintProbeStatus(Terminal context, RegisteredProbe probe)
+    {
+        context.AddString(
+            $"Benheim probe {probe.Name}: " +
+            $"kind={probe.Kind.ToString().ToLowerInvariant()} " +
+            $"default={StateName(probe.ShippedDefault)} " +
+            $"override={probe.Override.ToString().ToLowerInvariant()} " +
+            $"effective={StateName(probe.Active)}");
+    }
+
 }

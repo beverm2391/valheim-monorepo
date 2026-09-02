@@ -111,14 +111,26 @@ internal static class LeechSpawnPatches
 
             foreach (SpawnSystem.SpawnData spawner in spawnList.m_spawners)
             {
-                if (spawner == null || spawner.m_prefab != prefab || !Adjusted.TryClaim(spawner))
+                if (spawner == null || spawner.m_prefab != prefab)
                 {
                     continue;
                 }
 
-                float nativeInterval = spawner.m_spawnInterval;
-                spawner.m_spawnInterval = LeechSpawnFrequency.AdjustInterval(nativeInterval);
-                LogAdjustmentOnce(nativeInterval, spawner.m_spawnInterval);
+                if (Adjusted.TryClaim(spawner))
+                {
+                    float nativeInterval = spawner.m_spawnInterval;
+                    spawner.m_spawnInterval = LeechSpawnFrequency.AdjustInterval(nativeInterval);
+                    LogAdjustmentOnce(nativeInterval, spawner.m_spawnInterval);
+                }
+
+                // Registration is a lifecycle operation, not part of the
+                // one-time mutation. A world transition clears probe targets,
+                // so an already-adjusted native rule must be able to register
+                // again without applying the interval multiplier twice.
+                SpawnPopulationProbe.RegisterRule(
+                    "base_world",
+                    LeechSpawnFrequency.PrefabName,
+                    spawner);
             }
         }
     }

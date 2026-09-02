@@ -10,5 +10,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Stubs.cs" />
     <Compile Include="../../src/DeveloperDiagnostics/DeveloperDiagnosticsRuntime.cs" Link="DeveloperDiagnosticsRuntime.cs" />
+    <Compile Include="../../src/DeveloperDiagnostics/DeveloperDiagnosticsRuntime.Helpers.cs" Link="DeveloperDiagnosticsRuntime.Helpers.cs" />
+    <Compile Include="../../src/DeveloperDiagnostics/DiagnosticProbeRegistration.cs" Link="DiagnosticProbeRegistration.cs" />
   </ItemGroup>
 </Project>

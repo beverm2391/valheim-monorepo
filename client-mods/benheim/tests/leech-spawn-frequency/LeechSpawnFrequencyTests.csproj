@@ -8,6 +8,8 @@
   <ItemGroup>
     <Compile Include="../../src/Spawning/LeechSpawnFrequency.cs" Link="LeechSpawnFrequency.cs" />
     <Compile Include="../../src/Spawning/LeechSpawnPatches.cs" Link="LeechSpawnPatches.cs" />
+    <Compile Include="../../src/Spawning/SpawnPopulationProbe.cs" Link="SpawnPopulationProbe.cs" />
+    <Compile Include="../../src/Spawning/SpawnPopulationProbeModels.cs" Link="SpawnPopulationProbeModels.cs" />
   </ItemGroup>
   <PropertyGroup>
     <BepInExCoreDir>$(HOME)/Library/Application Support/Steam/steamapps/common/Valheim/BepInEx/core</BepInExCoreDir>

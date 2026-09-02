@@ -21,6 +21,29 @@ namespace UnityEngine
 
     internal readonly struct Vector3
     {
+        internal static Vector3 zero => new();
+    }
+
+    internal static class Time
+    {
+        internal static float realtimeSinceStartup { get; set; }
+    }
+}
+
+internal static class Heightmap
+{
+    [Flags]
+    internal enum Biome
+    {
+        None = 0,
+        Swamp = 1,
+    }
+
+    [Flags]
+    internal enum BiomeArea
+    {
+        None = 0,
+        Everything = 1,
     }
 }
 
@@ -30,6 +53,15 @@ internal sealed class SpawnSystem : UnityEngine.Object
     {
         internal UnityEngine.GameObject m_prefab = null!;
         internal float m_spawnInterval;
+        internal float m_spawnChance;
+        internal int m_maxSpawned;
+        internal int m_groupSizeMin;
+        internal int m_groupSizeMax;
+        internal float m_spawnDistance;
+        internal Heightmap.Biome m_biome;
+        internal Heightmap.BiomeArea m_biomeArea;
+        internal float m_minAltitude;
+        internal float m_maxAltitude;
     }
 
     internal static bool m_nospawn;
@@ -42,6 +74,8 @@ internal sealed class SpawnSystem : UnityEngine.Object
     internal List<SpawnSystemList> m_spawnLists { get; } = new();
     internal int SuccessfulSpawns { get; private set; }
     internal bool ThrowOnSpawn { get; set; }
+    internal static int LoadedInstances { get; set; }
+    internal static bool ThrowOnCount { get; set; }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void Awake()
@@ -74,6 +108,20 @@ internal sealed class SpawnSystem : UnityEngine.Object
     internal void InvokeSpawn(SpawnData spawner, bool eventSpawner)
     {
         Spawn(spawner, new UnityEngine.Vector3(), eventSpawner);
+    }
+
+    internal static int GetNrOfInstances(
+        UnityEngine.GameObject prefab,
+        UnityEngine.Vector3 center,
+        float maxRange,
+        bool eventCreaturesOnly = false,
+        bool procreationOnly = false)
+    {
+        if (ThrowOnCount)
+        {
+            throw new InvalidOperationException("native population count failed");
+        }
+        return LoadedInstances;
     }
 }
 
@@ -155,6 +203,18 @@ namespace BenheimQoL.Infrastructure
             Fields.Add(name, value);
             return this;
         }
+
+        internal DiagnosticEvent Integer(string name, int value)
+        {
+            Fields.Add(name, value);
+            return this;
+        }
+
+        internal DiagnosticEvent Boolean(string name, bool value)
+        {
+            Fields.Add(name, value);
+            return this;
+        }
     }
 
     internal static class Diagnostics
@@ -174,5 +234,37 @@ namespace BenheimQoL.Infrastructure
         {
             Emitted.Clear();
         }
+    }
+}
+
+namespace BenheimQoL.DeveloperDiagnostics
+{
+    internal static class DeveloperDiagnosticsRuntime
+    {
+        internal static List<string> Failures { get; } = new();
+
+        internal static void RegisterEventProbe(
+            string name,
+            bool shippedDefault,
+            DiagnosticProbeActivation setActive,
+            Action update,
+            Action<DiagnosticProbeCleanupReason> cleanup)
+        {
+        }
+
+        internal static void ReportFailure(string lifecycle, string probe, string reason)
+        {
+            Failures.Add($"{lifecycle}:{probe}:{reason}");
+        }
+    }
+
+    internal delegate bool DiagnosticProbeActivation(bool active, out string failure);
+
+    internal enum DiagnosticProbeCleanupReason
+    {
+        Disabled,
+        WorldExit,
+        SessionReset,
+        Failure,
     }
 }
