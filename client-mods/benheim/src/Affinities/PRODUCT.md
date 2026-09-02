@@ -157,15 +157,39 @@ application validation, resource consumption, writing and loading stored state,
 and accepted or rejected Lunge attempts. A successful Lunge attempt records
 velocity before the impulse, the applied impulse, and velocity afterward.
 
-## Later candidate: Snipe
+## Next playable slice: Snipe
 
-Snipe remains the first Bow candidate after the Lunge slice proves the system.
-It applies to an existing base-game bow rather than creating a separate bow.
-Drawing a Snipe bow always uses Snipe's deliberate long-range presentation and
-handling. Snipe rewards precision and skilled headshots at long range, while
-poor close-range flexibility provides its persistent bias. Its exact unlock,
-recipe, scope presentation, range benefit, handling cost, and headshot behavior
-remain open.
+Snipe specializes an existing bow for deliberate long-range headshots. The first
+test supports only a max-quality base-game Huntsman Bow. Support for every
+base-game bow remains the intended expansion, not part of this slice. The
+player applies Snipe through the existing Affinity tab at a level-1 Forge for
+the temporary cost of 1 Wood. This test has no boss unlock. The shared
+application, persistence, presentation, and same-affinity rejection rules apply.
+
+Drawing a Snipe bow automatically gives the player 3x optical zoom. The zoom
+changes field of view while preserving the native crosshair, third-person
+camera position, and look sensitivity. The camera zooms in and out smoothly.
+Snipe adds no scope toggle, vignette, or range predictor. Snipe zoom remains
+active when optional Bow Focus cosmetics are disabled. Ending the draw restores the
+camera's normal field of view.
+
+Drawing a Snipe bow takes 25% longer to reach full draw than the native bow,
+after Valheim's skill adjustment. This applies at every range. Partial draws
+and stamina use remain native. There is no additional movement penalty or flat
+damage penalty.
+
+A Snipe arrow's total headshot multiplier is 1.25x at distances up to 20 m. It
+rises linearly to 2.25x at 60 m and stays at 2.25x beyond that distance. The
+multiplier is 1.75x at 40 m. This replaces the ordinary Benheim headshot
+multiplier rather than multiplying it again. Body shots, native WeakSpots, and
+ammunition effects remain unchanged. The headshot benefit does not require a
+full draw. An arrow keeps its Snipe behavior if the player switches weapons
+before impact.
+
+These values are approved starting tuning, not accepted gameplay balance.
+Live review must establish that the zoom is useful, the slower draw creates a
+felt close-range tradeoff, and long-range headshots reward precision. Final
+progression costs and the boss unlock remain open.
 
 ## Later candidate: Chain Lightning
 
