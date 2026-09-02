@@ -17,8 +17,8 @@ namespace BenheimQoL.Farming;
 internal static class PlantableBerries
 {
     internal const int BerryCost = 5;
-    internal const float PlantedRespawnMinimumSeconds = 4000f;
-    internal const float PlantedRespawnMaximumSeconds = 5000f;
+    internal const float BerryRespawnMinimumSeconds = 4000f;
+    internal const float BerryRespawnMaximumSeconds = 5000f;
 
     private static readonly BerryDefinition[] Definitions =
     {
@@ -88,13 +88,12 @@ internal static class PlantableBerries
     }
 
     /// <summary>
-    /// Gives only player-created native berry bushes a crop-length respawn.
+    /// Gives each native berry bush a crop-length respawn after it is picked.
     /// The cycle is deterministic from the native ZDO position and picked
-    /// timestamp, so every peer and world reload resolves the same duration
-    /// without another persisted field. Pickable still owns the timestamp,
-    /// respawn check, RPC, and visible picked state.
+    /// timestamp, so every peer and world reload resolves the same duration.
+    /// Pickable still owns the timestamp, respawn check, RPC, and visible state.
     /// </summary>
-    internal static bool TryApplyPlantedRespawn(Pickable pickable)
+    internal static bool TryApplyBerryRespawn(Pickable pickable)
     {
         ZNetView? netView = pickable.GetComponent<ZNetView>();
         if (!IsBerryBush(pickable.gameObject)
@@ -106,16 +105,16 @@ internal static class PlantableBerries
 
         ZDO zdo = netView.GetZDO();
         long pickedTime = zdo.GetLong(ZDOVars.s_pickedTime, 0L);
-        if (zdo.GetLong(ZDOVars.s_creator, 0L) == 0L || pickedTime <= 1L)
+        if (pickedTime <= 1L)
         {
             return false;
         }
 
-        pickable.m_respawnTimeMinutes = ResolvePlantedRespawnSeconds(zdo.GetPosition(), pickedTime) / 60f;
+        pickable.m_respawnTimeMinutes = ResolveBerryRespawnSeconds(zdo.GetPosition(), pickedTime) / 60f;
         return true;
     }
 
-    internal static float ResolvePlantedRespawnSeconds(Vector3 position, long pickedTime)
+    internal static float ResolveBerryRespawnSeconds(Vector3 position, long pickedTime)
     {
         int seed = unchecked(
             BitConverter.SingleToInt32Bits(position.x)
@@ -126,8 +125,8 @@ internal static class PlantableBerries
         UnityEngine.Random.State previousState = UnityEngine.Random.state;
         UnityEngine.Random.InitState(seed);
         float seconds = Mathf.Lerp(
-            PlantedRespawnMinimumSeconds,
-            PlantedRespawnMaximumSeconds,
+            BerryRespawnMinimumSeconds,
+            BerryRespawnMaximumSeconds,
             UnityEngine.Random.value);
         UnityEngine.Random.state = previousState;
         return seconds;
@@ -386,11 +385,11 @@ internal static class PlantableBerryPlacementPatch
 }
 
 [HarmonyPatch(typeof(Pickable), "ShouldRespawn")]
-internal static class PlantedBerryRespawnPatch
+internal static class BerryRespawnPatch
 {
     [HarmonyPrefix]
     internal static void Prefix(Pickable __instance)
     {
-        PlantableBerries.TryApplyPlantedRespawn(__instance);
+        PlantableBerries.TryApplyBerryRespawn(__instance);
     }
 }

@@ -146,17 +146,17 @@ foreach (GameObject bush in new[] { raspberry, blueberry, cloudberry })
     UnityEngine.Random.State randomStateBeforeCadence = UnityEngine.Random.state;
     RequireNear(pickable.m_respawnTimeMinutes, 300f,
         $"newly planted {bush.name} must begin with its native prefab duration");
-    PlantedBerryRespawnPatch.Prefix(pickable);
+    BerryRespawnPatch.Prefix(pickable);
     float firstRespawnSeconds = pickable.m_respawnTimeMinutes * 60f;
     Require(
-        firstRespawnSeconds >= PlantableBerries.PlantedRespawnMinimumSeconds
-            && firstRespawnSeconds <= PlantableBerries.PlantedRespawnMaximumSeconds,
+        firstRespawnSeconds >= PlantableBerries.BerryRespawnMinimumSeconds
+            && firstRespawnSeconds <= PlantableBerries.BerryRespawnMaximumSeconds,
         $"newly planted {bush.name} must produce its first yield within the crop cadence");
     Require(UnityEngine.Random.state.Value == randomStateBeforeCadence.Value,
         "cadence selection must preserve Unity's shared random state");
 
     Vector3 persistedPosition = netView.GetZDO().GetPosition();
-    float persistedRespawnSeconds = PlantableBerries.ResolvePlantedRespawnSeconds(
+    float persistedRespawnSeconds = PlantableBerries.ResolveBerryRespawnSeconds(
         persistedPosition,
         pickable.PickedTime);
     RequireNear(persistedRespawnSeconds, firstRespawnSeconds,
@@ -164,13 +164,13 @@ foreach (GameObject bush in new[] { raspberry, blueberry, cloudberry })
 
     netView.GetZDO().m_uid = new ZDOID(1L, 900000u);
     pickable.m_respawnTimeMinutes = 300f;
-    PlantedBerryRespawnPatch.Prefix(pickable);
+    BerryRespawnPatch.Prefix(pickable);
     RequireNear(pickable.m_respawnTimeMinutes * 60f, firstRespawnSeconds,
         $"{bush.name} must preserve its deadline when a world reload remaps its ZDO ID");
     Require(!pickable.ShouldRespawn(new DateTime(pickable.PickedTime).AddSeconds(3999)),
-        $"{bush.name} must remain empty before the minimum planted-bush cadence");
+        $"{bush.name} must remain empty before the minimum berry cadence");
     Require(pickable.ShouldRespawn(new DateTime(pickable.PickedTime).AddSeconds(5001)),
-        $"{bush.name} must be ready after the maximum planted-bush cadence");
+        $"{bush.name} must be ready after the maximum berry cadence");
     Require(!pickable.ShouldRespawn(new DateTime(pickable.PickedTime).AddSeconds(firstRespawnSeconds - 1)),
         $"{bush.name} must remain empty before its selected native deadline");
     Require(pickable.ShouldRespawn(new DateTime(pickable.PickedTime).AddSeconds(firstRespawnSeconds + 1)),
@@ -179,14 +179,14 @@ foreach (GameObject bush in new[] { raspberry, blueberry, cloudberry })
     ZNet.instance.Time = ZNet.instance.Time.AddSeconds(10);
     pickable.SetPicked(true);
     pickable.m_respawnTimeMinutes = 300f;
-    PlantedBerryRespawnPatch.Prefix(pickable);
+    BerryRespawnPatch.Prefix(pickable);
     float repeatedRespawnSeconds = pickable.m_respawnTimeMinutes * 60f;
     Require(
-        repeatedRespawnSeconds >= PlantableBerries.PlantedRespawnMinimumSeconds
-            && repeatedRespawnSeconds <= PlantableBerries.PlantedRespawnMaximumSeconds,
+        repeatedRespawnSeconds >= PlantableBerries.BerryRespawnMinimumSeconds
+            && repeatedRespawnSeconds <= PlantableBerries.BerryRespawnMaximumSeconds,
         $"harvested {bush.name} must regrow within the crop cadence");
     RequireNear(
-        PlantableBerries.ResolvePlantedRespawnSeconds(netView.GetZDO().GetPosition(), pickable.PickedTime),
+        PlantableBerries.ResolveBerryRespawnSeconds(netView.GetZDO().GetPosition(), pickable.PickedTime),
         repeatedRespawnSeconds,
         $"{bush.name} regrowth must preserve its deadline across reconnect");
     Require(!pickable.ShouldRespawn(new DateTime(pickable.PickedTime).AddSeconds(repeatedRespawnSeconds - 1)),
@@ -207,24 +207,57 @@ remoteBush.GetComponent<ZNetView>()!.Owner = false;
 Require(!PlantableBerries.IsNewOwnedBerryPlacement(remoteBush.GetComponent<Piece>()!),
     "a non-owner must not initialize persistent picked state");
 
-var wildBush = CreateBush("RaspberryBush", CreateBerryItem("WildRaspberry"));
-Pickable wildPickable = wildBush.GetComponent<Pickable>()!;
-wildPickable.SetPicked(true);
-Require(!PlantableBerries.TryApplyPlantedRespawn(wildPickable),
-    "a wild berry bush must not use the planted-bush cadence");
-RequireNear(wildPickable.m_respawnTimeMinutes, 300f,
-    "a wild berry bush must retain its native 300-minute respawn");
-PlantedBerryRespawnPatch.Prefix(wildPickable);
-Require(!wildPickable.ShouldRespawn(new DateTime(wildPickable.PickedTime).AddSeconds(5001)),
-    "a wild berry bush must not become ready on the planted-bush cadence");
-Require(wildPickable.ShouldRespawn(new DateTime(wildPickable.PickedTime).AddMinutes(300).AddSeconds(1)),
-    "a wild berry bush must become ready after its native 300-minute respawn");
+foreach (GameObject wildBush in new[]
+{
+    CreateBush("RaspberryBush", CreateBerryItem("WildRaspberry")),
+    CreateBush("BlueberryBush", CreateBerryItem("WildBlueberry")),
+    CreateBush("CloudberryBush", CreateBerryItem("WildCloudberry")),
+})
+{
+    Pickable wildPickable = wildBush.GetComponent<Pickable>()!;
+    ZNetView wildNetView = wildBush.GetComponent<ZNetView>()!;
+    Require(!wildPickable.Picked, $"natural {wildBush.name} must keep its initial visible berries");
+    RequireNear(wildPickable.m_respawnTimeMinutes, 300f,
+        $"unpicked natural {wildBush.name} must retain the native prefab duration");
+
+    wildPickable.SetPicked(true);
+    BerryRespawnPatch.Prefix(wildPickable);
+    float wildRespawnSeconds = wildPickable.m_respawnTimeMinutes * 60f;
+    Require(
+        wildRespawnSeconds >= PlantableBerries.BerryRespawnMinimumSeconds
+            && wildRespawnSeconds <= PlantableBerries.BerryRespawnMaximumSeconds,
+        $"harvested natural {wildBush.name} must use the berry cadence");
+    Require(!wildPickable.ShouldRespawn(new DateTime(wildPickable.PickedTime).AddSeconds(wildRespawnSeconds - 1)),
+        $"natural {wildBush.name} must remain empty before its selected deadline");
+    Require(wildPickable.ShouldRespawn(new DateTime(wildPickable.PickedTime).AddSeconds(wildRespawnSeconds + 1)),
+        $"natural {wildBush.name} must become ready after its selected deadline");
+
+    wildNetView.GetZDO().m_uid = new ZDOID(1L, 800000u);
+    wildPickable.m_respawnTimeMinutes = 300f;
+    BerryRespawnPatch.Prefix(wildPickable);
+    RequireNear(wildPickable.m_respawnTimeMinutes * 60f, wildRespawnSeconds,
+        $"natural {wildBush.name} must preserve its deadline across world reload");
+
+    ZNet.instance.Time = ZNet.instance.Time.AddSeconds(10);
+    wildPickable.SetPicked(true);
+    wildPickable.m_respawnTimeMinutes = 300f;
+    BerryRespawnPatch.Prefix(wildPickable);
+    float repeatedWildRespawnSeconds = wildPickable.m_respawnTimeMinutes * 60f;
+    Require(
+        repeatedWildRespawnSeconds >= PlantableBerries.BerryRespawnMinimumSeconds
+            && repeatedWildRespawnSeconds <= PlantableBerries.BerryRespawnMaximumSeconds,
+        $"natural {wildBush.name} must use the berry cadence after every harvest");
+    Require(!wildPickable.ShouldRespawn(new DateTime(wildPickable.PickedTime).AddSeconds(repeatedWildRespawnSeconds - 1)),
+        $"natural {wildBush.name} must remain empty before its repeated deadline");
+    Require(wildPickable.ShouldRespawn(new DateTime(wildPickable.PickedTime).AddSeconds(repeatedWildRespawnSeconds + 1)),
+        $"natural {wildBush.name} must become ready after its repeated deadline");
+}
 
 var unrelatedPickable = CreateBush("Pickable_Mushroom", CreateBerryItem("Mushroom"));
 unrelatedPickable.AddComponent<Piece>().SetCreator(12345L);
 Pickable unrelated = unrelatedPickable.GetComponent<Pickable>()!;
 unrelated.SetPicked(true);
-PlantedBerryRespawnPatch.Prefix(unrelated);
+BerryRespawnPatch.Prefix(unrelated);
 RequireNear(unrelated.m_respawnTimeMinutes, 300f,
     "an unrelated Pickable must retain its native respawn");
 

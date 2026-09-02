@@ -27,17 +27,21 @@ grep -Fq 'piece.GetCreator() == 0L' "$registration"
 grep -Fq 'netView.IsOwner()' "$registration"
 grep -Fq 'piece.GetCreator() == 0L' "$registration"
 grep -Fq 'netView.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", true);' "$registration"
-grep -Fq 'internal const float PlantedRespawnMinimumSeconds = 4000f;' "$registration"
-grep -Fq 'internal const float PlantedRespawnMaximumSeconds = 5000f;' "$registration"
+grep -Fq 'internal const float BerryRespawnMinimumSeconds = 4000f;' "$registration"
+grep -Fq 'internal const float BerryRespawnMaximumSeconds = 5000f;' "$registration"
 grep -Fq '[HarmonyPatch(typeof(Pickable), "ShouldRespawn")]' "$registration"
-grep -Fq 'PlantableBerries.TryApplyPlantedRespawn(__instance);' "$registration"
-grep -Fq 'zdo.GetLong(ZDOVars.s_creator, 0L) == 0L' "$registration"
+grep -Fq 'PlantableBerries.TryApplyBerryRespawn(__instance);' "$registration"
+grep -Fq 'IsBerryBush(pickable.gameObject)' "$registration"
 grep -Fq 'zdo.GetLong(ZDOVars.s_pickedTime, 0L)' "$registration"
-grep -Fq 'ResolvePlantedRespawnSeconds(zdo.GetPosition(), pickedTime) / 60f' "$registration"
+grep -Fq 'ResolveBerryRespawnSeconds(zdo.GetPosition(), pickedTime) / 60f' "$registration"
 grep -Fq 'UnityEngine.Random.State previousState = UnityEngine.Random.state;' "$registration"
 grep -Fq 'UnityEngine.Random.state = previousState;' "$registration"
+if grep -Fq 'zdo.GetLong(ZDOVars.s_creator' "$registration"; then
+  printf 'native berry cadence must not distinguish planted and natural bushes\n' >&2
+  exit 1
+fi
 if grep -Fq 'zdo.m_uid' "$registration"; then
-  printf 'planted berry cadence must not depend on ZDO IDs that world loading remaps\n' >&2
+  printf 'berry cadence must not depend on ZDO IDs that world loading remaps\n' >&2
   exit 1
 fi
 
