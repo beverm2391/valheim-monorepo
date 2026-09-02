@@ -46,7 +46,8 @@ The MVP has these boundaries:
   resources. It does not modify the weapon or report a replacement attempt.
 - The player cannot remove an affinity to recover a native weapon or toggle the
   affinity off in the field.
-- Affinities have fixed behavior. They do not roll random values.
+- Applying an affinity does not roll random item stats. An affinity's combat
+  behavior may include explicitly designed randomness.
 - Affinities have no levels, XP, maintenance cost, or separate mastery tree.
 - Uninstalling Benheim makes the stored affinity dormant, and the weapon uses
   its base-game behavior. Reinstalling Benheim restores the stored affinity and
@@ -168,25 +169,39 @@ remain open.
 
 ## Later candidate: Chain Lightning
 
-Chain Lightning is the first melee candidate after Lunge. A successful direct
-melee contact starts one readable sequence of lightning jumps through nearby
-hostile creatures. The chain must not hit one creature twice, retrigger itself,
-or jump through terrain and building pieces. It must preserve Valheim's native
-damage ownership and resistance behavior.
+Chain Lightning specializes a melee weapon for groups at the expense of direct
+damage against isolated enemies. The weapon remains usable between chains and
+when finishing survivors. Against clustered enemies, spreading lightning can
+more than compensate for that disadvantage. Group control comes from spreading
+damage and pressure; the candidate does not add separate stun or slow effects.
 
-The first tuning candidate reduces the weapon's direct damage to `75%`, then
-jumps to as many as three additional targets within eight meters of the prior
-target. These numbers are test inputs, not accepted balance. The eligible
-weapon, lightning damage curve, blocking and dodging behavior, stagger, target
-ordering, and final persistent bias remain open. A later ranged version may
-reuse the product concept, but it is not part of the first melee candidate.
+Each distinct enemy struck directly by one swing starts its own chain.
+Lightning can jump and fork between nearby hostile creatures. Players improve
+their chances by gathering enemies closely and striking several with one swing,
+without controlling the exact path or outcome. Most activations should produce
+a modest chain; some should grow into spectacular branching cascades.
 
-Research in the original source of public Valheim mods and the installed
-Valheim runtime found no suitable mod to adopt as a dependency. Native Valheim
-damage routing and chain effects provide the smallest implementation path.
-During one Chain Lightning activation, the implementation must remember every
-target already hit. It must prevent repeated targets and must not let generated
-lightning hits start another chain.
+Flying enemies are eligible. Landing a melee hit on a reachable enemy can send
+lightning into nearby airborne enemies, including mixed ground-and-air groups.
+The player does not need to reach every target with the weapon. This gives the
+affinity a role against groups of Deathsquitos and flying Mistlands enemies,
+without guaranteeing that every nearby enemy will be hit.
+
+Each jump uses three-dimensional distance from the enemy it leaves. Random
+target selection favors nearby enemies, and reach shrinks as the chain
+progresses. Solid terrain and building pieces block jumps. A creature hit by
+any branch cannot be hit again by that same chain.
+Lightning hits continue their existing chain rather than starting
+independent chains. Native damage ownership and resistance behavior remain
+intact. A fast, followable sequence of effects shows successful jumps and forks.
+
+The first test uses a max-quality Club. Direct damage at 75% of normal remains
+a starting tuning candidate, not accepted balance. Exact jump damage, branch
+probabilities, distance and continuation curves, and total-hit limits remain
+open. Whether independent chains may share secondary targets, and how blocked
+or dodged direct hits affect activation, also remain open. A ranged version is
+outside this first slice. Implementation remains paused while these product
+decisions are scoped.
 
 ## Status
 
