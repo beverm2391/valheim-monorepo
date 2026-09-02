@@ -21,15 +21,35 @@ internal static class FarmingInput
     }
 
     /// <summary>
-    /// Reads only literal number-key presses while the local player has the
-    /// Cultivator picker open. The frame marker lets the separate native
-    /// UseHotbarItem hook suppress only the matching keyboard action; controller
-    /// and rebound hotbar actions remain native.
+    /// Handles only Left Shift plus an odd-number key, with no other modifier
+    /// held, while the local player has the Cultivator picker open. It records
+    /// the current frame so the separate native UseHotbarItem hook suppresses
+    /// the same keyboard action. Every other number-key path remains native.
     /// </summary>
     internal static void UpdateGridSelection(Player player)
     {
-        if (!IsCultivatorPieceSelectionOpen(player)
-            || !TryGetPressedNumber(out int number))
+        if (Player.m_localPlayer != player)
+        {
+            return;
+        }
+
+        bool pickerOpen = IsCultivatorPieceSelectionOpen(player);
+        if (FarmingGridSelection.UpdatePickerSession(pickerOpen))
+        {
+            PlantingPreview.DestroyGhosts();
+        }
+
+        bool leftShiftHeld = IsLeftShiftHeld();
+        bool anotherModifierHeld = IsAnotherModifierHeld();
+        if (!pickerOpen
+            || !leftShiftHeld
+            || anotherModifierHeld
+            || !TryGetPressedGridSize(out int number)
+            || !FarmingGridSelection.ShouldHandleInput(
+                pickerOpen,
+                leftShiftHeld,
+                anotherModifierHeld,
+                number))
         {
             return;
         }
@@ -37,11 +57,7 @@ internal static class FarmingInput
         suppressedHotbarFrame = Time.frameCount;
         suppressedHotbarIndex = number <= 8 ? number : 0;
 
-        if (!FarmingGridSelection.TrySelect(number))
-        {
-            player.Message(MessageHud.MessageType.TopLeft, "Planting grid: use 1, 3, 5, 7, or 9");
-            return;
-        }
+        FarmingGridSelection.TrySelect(number);
 
         PlantingPreview.DestroyGhosts();
         player.Message(MessageHud.MessageType.TopLeft, $"Planting grid: {number}x{number}");
@@ -80,15 +96,15 @@ internal static class FarmingInput
             && object.ReferenceEquals(rightItem.m_shared.m_buildPieces, activePieces);
     }
 
-    private static bool TryGetPressedNumber(out int number)
+    private static bool TryGetPressedGridSize(out int number)
     {
         for (int candidate = FarmingSettings.MinimumGridSize;
              candidate <= FarmingSettings.MaximumGridSize;
-             candidate++)
+             candidate += 2)
         {
             KeyCode alpha = (KeyCode)((int)KeyCode.Alpha0 + candidate);
             KeyCode keypad = (KeyCode)((int)KeyCode.Keypad0 + candidate);
-            if (Input.GetKeyDown(alpha) || Input.GetKeyDown(keypad))
+            if (InputState.IsKeyDown(alpha) || InputState.IsKeyDown(keypad))
             {
                 number = candidate;
                 return true;
@@ -97,5 +113,43 @@ internal static class FarmingInput
 
         number = 0;
         return false;
+    }
+
+    private static bool IsLeftShiftHeld()
+    {
+        if (InputState.IsTextEntryActive())
+        {
+            return false;
+        }
+
+        return Input.GetKey(KeyCode.LeftShift) || ZInput.GetKey(KeyCode.LeftShift);
+    }
+
+    private static bool IsAnotherModifierHeld()
+    {
+        return Input.GetKey(KeyCode.RightShift)
+            || Input.GetKey(KeyCode.LeftAlt)
+            || Input.GetKey(KeyCode.RightAlt)
+            || Input.GetKey(KeyCode.LeftControl)
+            || Input.GetKey(KeyCode.RightControl)
+            || Input.GetKey(KeyCode.AltGr)
+            || Input.GetKey(KeyCode.LeftCommand)
+            || Input.GetKey(KeyCode.RightCommand)
+            || Input.GetKey(KeyCode.LeftMeta)
+            || Input.GetKey(KeyCode.RightMeta)
+            || Input.GetKey(KeyCode.LeftWindows)
+            || Input.GetKey(KeyCode.RightWindows)
+            || ZInput.GetKey(KeyCode.RightShift)
+            || ZInput.GetKey(KeyCode.LeftAlt)
+            || ZInput.GetKey(KeyCode.RightAlt)
+            || ZInput.GetKey(KeyCode.LeftControl)
+            || ZInput.GetKey(KeyCode.RightControl)
+            || ZInput.GetKey(KeyCode.AltGr)
+            || ZInput.GetKey(KeyCode.LeftCommand)
+            || ZInput.GetKey(KeyCode.RightCommand)
+            || ZInput.GetKey(KeyCode.LeftMeta)
+            || ZInput.GetKey(KeyCode.RightMeta)
+            || ZInput.GetKey(KeyCode.LeftWindows)
+            || ZInput.GetKey(KeyCode.RightWindows);
     }
 }

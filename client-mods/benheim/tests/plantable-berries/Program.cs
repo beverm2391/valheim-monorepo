@@ -29,7 +29,9 @@ static GameObject CreateBush(string name, GameObject berryItem)
     var bush = new GameObject(name);
     bush.AddComponent<ZNetView>();
     bush.AddComponent<Destructible>();
-    bush.AddComponent<Pickable>().m_itemPrefab = berryItem;
+    Pickable pickable = bush.AddComponent<Pickable>();
+    pickable.m_itemPrefab = berryItem;
+    pickable.m_respawnTimeMinutes = 300f;
     return bush;
 }
 
@@ -119,11 +121,39 @@ RequireNear(cloudberrySpacing, 0.73952f, "cloudberry spacing must include native
 foreach (GameObject bush in new[] { raspberry, blueberry, cloudberry })
 {
     Piece piece = bush.GetComponent<Piece>()!;
+    Pickable pickable = bush.GetComponent<Pickable>()!;
+    ZNetView netView = bush.GetComponent<ZNetView>()!;
     Require(piece.m_groundPiece && piece.m_groundOnly, "berry placement must remain ground-only");
     Require(!piece.m_cultivatedGroundOnly, "berry placement must not require cultivation");
     Require(piece.m_resources.Length == 1, "berry placement must use one matching resource");
     Require(piece.m_resources[0].m_amount == PlantableBerries.BerryCost, "berry placement must cost exactly five berries");
     Require(!piece.m_resources[0].m_recover, "berry placement cost must remain nonrecoverable");
+    RequireNear(pickable.m_respawnTimeMinutes, 300f, "registration must preserve the native growth and respawn duration");
+
+    bool placementState = PlantableBerries.IsNewOwnedBerryPlacement(piece);
+    Require(placementState, $"{bush.name} must meet the conditions for a new owned berry placement");
+    piece.SetCreator(12345L);
+    PlantableBerries.StartPlacedBerryEmpty(piece, placementState);
+
+    Require(piece.GetCreator() == 12345L, $"{bush.name} must preserve native creator ownership");
+    Require(pickable.Picked, $"newly planted {bush.name} must start empty");
+    Require(pickable.PickedTime > 0L, $"newly planted {bush.name} must start its native picked-time cycle");
+    Require(netView.Invocations.Count == 1, $"{bush.name} must request exactly one native state transition");
+    Require(netView.Invocations[0].Target == ZNetView.Everybody, $"{bush.name} empty state must replicate to every peer");
+    Require(netView.Invocations[0].Method == "RPC_SetPicked" && netView.Invocations[0].Value,
+        $"{bush.name} must use Pickable's native picked-state RPC");
+
+    bool repeatedState = PlantableBerries.IsNewOwnedBerryPlacement(piece);
+    piece.SetCreator(12345L);
+    PlantableBerries.StartPlacedBerryEmpty(piece, repeatedState);
+    Require(!repeatedState && netView.Invocations.Count == 1,
+        $"an already-created {bush.name} must never restart its growth cycle");
 }
+
+var remoteBush = CreateBush("RaspberryBush", CreateBerryItem("RemoteRaspberry"));
+remoteBush.AddComponent<Piece>();
+remoteBush.GetComponent<ZNetView>()!.Owner = false;
+Require(!PlantableBerries.IsNewOwnedBerryPlacement(remoteBush.GetComponent<Piece>()!),
+    "a non-owner must not initialize persistent picked state");
 
 Console.WriteLine("Plantable berry production registration tests passed");

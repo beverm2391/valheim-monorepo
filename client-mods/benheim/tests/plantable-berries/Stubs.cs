@@ -11,6 +11,9 @@ namespace HarmonyLib
 
     [AttributeUsage(AttributeTargets.Method)]
     internal sealed class HarmonyPostfix : Attribute { }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class HarmonyPrefix : Attribute { }
 }
 
 namespace UnityEngine
@@ -234,13 +237,44 @@ internal static class Utils
 }
 
 internal sealed class EffectList { }
-internal sealed class ZNetView : UnityEngine.Component { }
+internal sealed class ZNetView : UnityEngine.Component
+{
+    internal static readonly long Everybody = 0L;
+
+    internal bool Owner = true;
+    internal bool Valid = true;
+    internal readonly List<(long Target, string Method, bool Value)> Invocations = new();
+
+    internal bool IsOwner() => Owner;
+    internal bool IsValid() => Valid;
+
+    internal void InvokeRPC(long target, string method, bool value)
+    {
+        Invocations.Add((target, method, value));
+        if (method == "RPC_SetPicked")
+        {
+            gameObject.GetComponent<Pickable>()?.SetPicked(value);
+        }
+    }
+}
 internal sealed class Destructible : UnityEngine.Component { }
 internal sealed class Plant : UnityEngine.Component { }
 
 internal sealed class Pickable : UnityEngine.Component
 {
     internal UnityEngine.GameObject? m_itemPrefab;
+    internal float m_respawnTimeMinutes;
+    internal bool Picked { get; private set; }
+    internal long PickedTime { get; private set; }
+
+    internal void SetPicked(bool picked)
+    {
+        Picked = picked;
+        if (picked && m_respawnTimeMinutes > 0f)
+        {
+            PickedTime = 1L;
+        }
+    }
 }
 
 internal sealed class ItemDrop : UnityEngine.Component
@@ -288,6 +322,18 @@ internal sealed class Piece : UnityEngine.Component
     internal bool m_targetNonPlayerBuilt;
     internal EffectList m_placeEffect = new();
     internal Requirement[] m_resources = Array.Empty<Requirement>();
+
+    private long creator;
+
+    internal long GetCreator() => creator;
+
+    internal void SetCreator(long uid)
+    {
+        if (creator == 0L && gameObject.GetComponent<ZNetView>()?.IsOwner() == true)
+        {
+            creator = uid;
+        }
+    }
 }
 
 internal static class Heightmap

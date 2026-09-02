@@ -43,6 +43,44 @@ internal static class PlantableBerries
         return GridSpacingByPrefab.TryGetValue(Utils.GetPrefabName(prefab), out spacing);
     }
 
+    /// <summary>
+    /// Identifies an owned berry-bush placement before Piece.SetCreator assigns
+    /// the local player as creator. It excludes natural bushes and pieces that
+    /// already have a creator.
+    /// </summary>
+    internal static bool IsNewOwnedBerryPlacement(Piece piece)
+    {
+        ZNetView? netView = piece.GetComponent<ZNetView>();
+        return IsBerryBush(piece.gameObject)
+            && piece.GetCreator() == 0L
+            && netView
+            && netView.IsValid()
+            && netView.IsOwner();
+    }
+
+    /// <summary>
+    /// Uses Pickable's own replicated picked-state RPC after native placement
+    /// establishes creator ownership. Pickable then owns the persisted picked
+    /// timestamp and its ordinary respawn transition.
+    /// </summary>
+    internal static void StartPlacedBerryEmpty(Piece piece, bool wasNewOwnedBerryPlacement)
+    {
+        if (!wasNewOwnedBerryPlacement
+            || piece.GetCreator() == 0L
+            || !IsBerryBush(piece.gameObject))
+        {
+            return;
+        }
+
+        ZNetView? netView = piece.GetComponent<ZNetView>();
+        if (!netView || !netView.IsValid() || !netView.IsOwner())
+        {
+            return;
+        }
+
+        netView.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", true);
+    }
+
     internal static void TryRegister(ZNetScene scene)
     {
         try
@@ -276,5 +314,21 @@ internal static class PlantableBerryRegistrationPatch
     private static void Postfix(ZNetScene __instance)
     {
         PlantableBerries.TryRegister(__instance);
+    }
+}
+
+[HarmonyPatch(typeof(Piece), nameof(Piece.SetCreator))]
+internal static class PlantableBerryPlacementPatch
+{
+    [HarmonyPrefix]
+    private static void Prefix(Piece __instance, out bool __state)
+    {
+        __state = PlantableBerries.IsNewOwnedBerryPlacement(__instance);
+    }
+
+    [HarmonyPostfix]
+    private static void Postfix(Piece __instance, bool __state)
+    {
+        PlantableBerries.StartPlacedBerryEmpty(__instance, __state);
     }
 }
