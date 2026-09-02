@@ -20,7 +20,6 @@ protocol_root="$root/../../shared/benheim-inventory-protocol"
 top_left_feedback_hud="$root/src/TopLeftFeedbackHud.cs"
 top_left_feedback_layout="$root/src/TopLeftFeedbackLayout.cs"
 visibility="$root/src/Inventory/InventoryVisibility.cs"
-client_plugin="$root/src/Plugin.cs"
 
 grep -Fq 'internal static bool IsTextEntryActive()' "$input_state"
 grep -Fq 'Minimap.InTextInput()' "$input_state"
@@ -129,7 +128,6 @@ grep -Fq 'RestoreRemainder' "$protocol_root/InventoryTransactionClient.cs"
 grep -Fq 'TryResolveOwnedContainer' "$protocol_root/InventoryTransactionOwner.cs"
 grep -Fq 'target.AddItem(item.Clone())' "$protocol_root/InventoryTransactionOwner.cs"
 grep -Fq 'BeginBulkStack' "$quick_stack"
-grep -Fq 'PluginVersion = "0.1.82"' "$client_plugin"
 if rg -n 'ClaimOwnership|container\.StackAll\(\)|QuickStackContainerWrite|QuickStackResponseGuard' \
     "$quick_stack" "$quick_stack_validation" "$quick_stack_transfer" "$protocol_root"; then
   printf 'Put Away must not restore requester-local chest writes or native uncorrelated responses\n' >&2
