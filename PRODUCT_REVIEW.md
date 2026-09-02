@@ -1,52 +1,10 @@
 # Product Review
 
-This is the current release ledger and acceptance queue for Benheim client
-releases. Live acceptance applies to the client installed on Ben's Mac. The
-owning `PRODUCT.md` defines required behavior. `PROMPT.md` owns who updates this
-ledger and who can accept its items.
+Open product questions and remaining playtests for Benheim.
 
-## Release state
+Installed on Ben's Mac: **0.1.83**.
 
-- Packaged version: private-test `0.1.83` for Mac and Windows from source commit
-  `cc75d53f25e5d8f42aed20ca1e255fb11e4152f1`. The Mac package is installed;
-  Windows installation and startup remain unproven.
-  The macOS package SHA-256 is
-  `3a25295e5e6a646e415396807ed7b059df07bfbb93f62e6a76bfded8c226bdae`.
-  The Windows package SHA-256 is
-  `d0fc27b21786a1af3f274b83250fc7285ee47620f7bdc33de7f9cb85c6c663f5`.
-  Both archives contain DLL SHA-256
-  `eada436029928e4903569c93d7ae5867aac6b93b3690a3a29a96e6563a2004d3`.
-  Their private-diagnostics build IDs match that DLL. Both archives and their
-  private-diagnostics configurations have owner-only permissions. Canonical
-  verification passed. Mac startup proof passed; gameplay proof remains pending.
-- Installed version: private-test `0.1.83` on Ben's Mac, installed through the
-  exact Mac package's shipped installer on September 2, 2026. The previous
-  installed version was verified as `0.1.82`. The installed DLL SHA-256 matches
-  the packaged DLL above. The installed version, managed launcher, and private
-  diagnostics configuration match the package. The diagnostics build ID matches
-  the installed DLL, and the configuration has owner-only `0600` permissions.
-  The task removed its temporary private-package extraction.
-- Installed `0.1.83` startup proof passed. The managed launcher reached Valheim
-  `0.221.12`'s real main menu, which the task visually confirmed. The fresh log
-  contained the expected `0.1.83`, session-start, chainloader-complete,
-  menu-music, and clean session-end markers. The log contained no Harmony errors
-  or cleanup messages, core-disablement markers, gameplay-disabled markers, or
-  world-load markers. The task entered
-  no world and used the menu's Quit action to close only its process, PID
-  `95320`. No Valheim process remained afterward. Gameplay remains unproven.
-  The first attempt ended without menu proof; the task terminated only its
-  verified PID `85071` with `SIGTERM` after UI inspection and quit were
-  unavailable. Ben explicitly requested the successful retry after unlocking
-  his Mac and reported turning WARP off. The cause of the first stall remains
-  unknown. Checks for the managed game process and any other Valheim process
-  found none before installation and each launch. The task did not launch again
-  after success.
-- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.83`
-  require no change to that server component.
-
-## Test on installed `0.1.83`
-
-These checks still require gameplay proof.
+## Remaining checks
 
 - **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
   max-quality Huntsman Bow. Confirm its inventory title and description, the
@@ -91,28 +49,23 @@ These checks still require gameplay proof.
   `bhrun`, and `bhwatch`. Run the effects, text, and UI catalog commands.
   Confirm that each snapshot returns a result within its defined limit and
   leaves no temporary state in the running game.
-- **Leech spawning:** The installed `0.1.81` build emitted a diagnostic for the
-  configured interval of ordinary base-world Leech spawns: 200 native seconds,
-  40 effective seconds, factor `5`. This proves the approved 5x opportunity
-  configuration, not a successful spawn. The spawn watcher observed loaded
-  counts only from 0 through 2. It never saturated the native cap of 10, so the
-  cap did not limit this session. The inspected log contained no
-  `leech_spawn_succeeded` event. A fresh successful adjusted spawn and a
-  zone-owner transfer remain unproven. Stay in an active Swamp zone until one
+- **Leech spawning:** The interval between Leech spawn opportunities is
+  confirmed at one-fifth of normal. A successful adjusted spawn and a
+  zone-owner transfer remain unproven.
+  Stay in an active Swamp zone until one logged
   success records source `base_world`, prefab `Leech`, and multiplier `5`. Then
   transfer zone ownership to another compatible client and confirm that the
   same behavior continues.
 
-- **Tar-pit pickup:** Installed `0.1.80` proved manual pickup of submerged
-  native Tar but left other items stuck and did not auto-pick up. Drop native
+- **Tar-pit pickup:** Manual pickup of submerged Tar worked, but other items
+  remained stuck and auto-pickup failed. Retest the correction: drop native
   Tar, Stone, and one other ordinary item into a native tar pit. Confirm that
   each item supports normal manual pickup and normal auto-pickup. Confirm that
   native range, inventory-space, carry-weight, and ownership failures still
   block collection normally.
 
-- **Farming and Cultivator grids:** Installed `0.1.81` did not select a grid
-  when the player held `Left Shift` and pressed an odd-number key. In installed
-  `0.1.83`, open the Cultivator picker and confirm that each picker session
+- **Farming and Cultivator grids:** Retest grid selection after the input fix.
+  Open the Cultivator picker and confirm that each picker session
   starts with 9x9 selected. Hold `Left Shift` and press each of `1`, `3`, `5`,
   `7`, and `9`. After each selection, confirm that the existing `Left Shift`
   mass-plant preview and placement both use the matching centered grid. Plain
@@ -121,18 +74,16 @@ These checks still require gameplay proof.
   invalid cells. Each successful normal or grid-cell placement must cost 25%
   of the native stamina cost after Valheim applies the Farming skill adjustment.
   A failed, skipped, or rejected placement must cost no stamina.
-- **Comfort summary:** Installed `0.1.80` accepted the Comfort calculation and
-  typed evidence but flooded Valheim's non-scrollable console. Run
+- **Comfort summary:** The Comfort calculation is accepted. Test the shorter
+  output for Valheim's non-scrollable console. Run
   `bhrun comfort`. Confirm that the console shows a short readable summary with
   calculated comfort and counts for **Counted**, **Ignored**, and **Just outside
   range**.
   Confirm that complete per-piece evidence remains in typed diagnostics.
-- **Berry planting:** Installed `0.1.80` proved ordinary Raspberry placement
-  but exposed the initial-growth failure: the new bush did not start empty.
-  In live `0.1.81` testing, Ben removed one player-planted Raspberry bush with
-  the Hammer and received exactly five Raspberries. Ben accepted this tested
-  case.
-  Retest Raspberry, Blueberry, and Cloudberry after the correction:
+- **Berry planting:** Raspberry placement worked. Ben accepted Hammer removal
+  with a five-berry refund. The new bush previously started with berries. We
+  still need to confirm that newly planted bushes start empty. Test the
+  remaining berry behavior:
 
   - confirm ordinary Blueberry and Cloudberry placement and centered 9x9
     placement for all three bushes;

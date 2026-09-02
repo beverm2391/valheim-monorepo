@@ -10,11 +10,12 @@ for live acceptance.
 
 ## Product review
 
-`../../PRODUCT_REVIEW.md` is the live release ledger and acceptance queue. The
-integration lead for each client release records the exact packaged version,
-exact installed version, and concise remaining live checks. When the packaged
-version is not installed, keep its checks separate from the installed-client
-queue. The integration lead may add unproven items.
+`../../PRODUCT_REVIEW.md` supports Ben's product review: expected behavior,
+open product questions, and remaining playtests. The integration lead adds
+unproven product checks and updates the installed version when installation
+changes what Ben can test. Include technical references when they help run a
+product check or interpret its result. Keep development and release records
+out of Product Review; query their sources when needed.
 
 Ben and the Project Lead own acceptance judgments. An integration lead must
 not:
