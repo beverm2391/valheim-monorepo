@@ -1,3 +1,4 @@
+using BenheimQoL.Infrastructure;
 using TMPro;
 using UnityEngine;
 
@@ -6,13 +7,13 @@ namespace BenheimQoL.WorldLabels;
 internal sealed class PortalLabelController : MonoBehaviour
 {
     private const float LabelClearanceMeters = 0.35f;
-    private const float CanvasScale = 0.005f;
 
     private TeleportWorld portal = null!;
     private GameObject? labelRoot;
-    private Canvas? labelCanvas;
-    private TextMeshProUGUI? label;
+    private TMP_Text? label;
+    private Vector3 labelWorldPosition;
     private string? currentTag;
+    private bool visibleByPolicy;
     private bool disposed;
 
     internal void Initialize(TeleportWorld source)
@@ -40,6 +41,7 @@ internal sealed class PortalLabelController : MonoBehaviour
 
         if (label == null && !TryBuildLabel())
         {
+            WorldLabelRuntime.LogPortalPresentationPending();
             return;
         }
 
@@ -63,68 +65,55 @@ internal sealed class PortalLabelController : MonoBehaviour
             distanceSquared,
             hasLineOfSight);
 
-        if (labelRoot!.activeSelf != visible)
-        {
-            labelRoot.SetActive(visible);
-        }
-
-        if (visible)
-        {
-            labelCanvas!.worldCamera = camera;
-        }
+        visibleByPolicy = visible;
+        UpdatePlacement(camera);
     }
 
     private bool TryBuildLabel()
     {
-        if (!WorldLabelRuntime.TryGetNativeTextDonor(out NativeTextDonor donor))
+        float top = portal.m_model != null
+            ? portal.m_model.bounds.max.y
+            : portal.transform.position.y + 3.5f;
+        labelWorldPosition = new Vector3(
+            portal.transform.position.x,
+            top + LabelClearanceMeters,
+            portal.transform.position.z);
+        if (!WorldFeedback.TryCreatePersistentBonusText(
+                labelWorldPosition,
+                out GameObject createdRoot,
+                out TMP_Text createdText))
         {
             return false;
         }
 
-        labelRoot = new GameObject(
-            "Benheim Portal Tag Label",
-            typeof(RectTransform),
-            typeof(Canvas),
-            typeof(Billboard));
-        labelRoot.hideFlags = HideFlags.DontSave;
-
-        float top = portal.m_model != null
-            ? portal.m_model.bounds.max.y
-            : portal.transform.position.y + 3.5f;
-        labelRoot.transform.position = new Vector3(
-            portal.transform.position.x,
-            top + LabelClearanceMeters,
-            portal.transform.position.z);
-        labelRoot.transform.SetParent(portal.transform, worldPositionStays: true);
-
-        RectTransform rootRect = (RectTransform)labelRoot.transform;
-        rootRect.sizeDelta = new Vector2(640f, 110f);
-        rootRect.localScale = Vector3.one * CanvasScale;
-
-        labelCanvas = labelRoot.GetComponent<Canvas>()!;
-        labelCanvas.renderMode = RenderMode.WorldSpace;
-
-        Billboard billboard = labelRoot.GetComponent<Billboard>()!;
-        billboard.m_vertical = true;
-        billboard.m_invert = true;
-
-        label = labelRoot.AddComponent<TextMeshProUGUI>();
-        label.font = donor.Font;
-        label.fontSharedMaterial = donor.Material;
-        label.color = WorldLabelStyle.PortalAmber;
-        label.fontSize = 64f;
-        label.alignment = TextAlignmentOptions.Center;
-        label.textWrappingMode = TextWrappingModes.NoWrap;
-        label.richText = false;
-        label.raycastTarget = false;
-        labelRoot.SetActive(false);
+        labelRoot = createdRoot;
+        label = createdText;
         WorldLabelRuntime.LogPortalLabelCreated(portal);
         return true;
     }
 
+    private void LateUpdate()
+    {
+        if (!disposed && labelRoot != null && visibleByPolicy)
+        {
+            UpdatePlacement(Utils.GetMainCamera());
+        }
+    }
+
+    private void UpdatePlacement(Camera? camera)
+    {
+        bool visible = visibleByPolicy &&
+            camera != null &&
+            WorldFeedback.PlacePersistentText(labelRoot!, labelWorldPosition, camera);
+        if (labelRoot!.activeSelf != visible)
+        {
+            labelRoot.SetActive(visible);
+        }
+    }
+
     private bool HasLineOfSight(Camera camera)
     {
-        Vector3 target = labelRoot!.transform.position;
+        Vector3 target = labelWorldPosition;
         if (!Physics.Linecast(
                 camera.transform.position,
                 target,
@@ -159,7 +148,6 @@ internal sealed class PortalLabelController : MonoBehaviour
         {
             Destroy(labelRoot);
             labelRoot = null;
-            labelCanvas = null;
             label = null;
         }
     }

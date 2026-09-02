@@ -1,14 +1,90 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
 
-public sealed class ZNetScene
+namespace HarmonyLib
 {
-    public static ZNetScene? instance;
-    public readonly List<GameObject> m_prefabs = new List<GameObject>();
-    public readonly List<GameObject> m_nonNetViewPrefabs = new List<GameObject>();
+    public static class AccessTools
+    {
+        public static MethodInfo? DeclaredMethod(Type type, string name, Type[] parameters) =>
+            type.GetMethod(
+                name,
+                BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
+                binder: null,
+                parameters,
+                modifiers: null);
+
+        public static FieldInfo? Field(Type? type, string name) =>
+            type?.GetField(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+        public static Type? Inner(Type type, string name) =>
+            type.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic);
+    }
+}
+
+public sealed class DamageText : MonoBehaviour
+{
+    public enum TextType
+    {
+        Normal,
+        Resistant,
+        Weak,
+        Immune,
+        Heal,
+        TooHard,
+        Blocked,
+        Bonus
+    }
+
+    private sealed class WorldTextInstance
+    {
+        public GameObject m_gui = null!;
+        public TMP_Text m_textField = null!;
+        public float m_duration = 0f;
+    }
+
+    public static DamageText instance = null!;
+    public int m_largeFontSize = 16;
+    public int m_smallFontSize = 8;
+    public float m_smallFontDistance = 10f;
+    public GameObject m_worldTextBase = null!;
+
+    private readonly List<WorldTextInstance> m_worldTexts = new List<WorldTextInstance>();
+
+    public int ActiveWorldTextCount => m_worldTexts.Count;
+    public int CreatedBonusTextCount { get; private set; }
+    public float LastWorldTextDuration => m_worldTexts[^1].m_duration;
+    public string LastWorldText => m_worldTexts[^1].m_textField.text;
+
+    private void AddInworldText(TextType type, Vector3 position, float distance, string text, bool mySelf)
+    {
+        GameObject gui = UnityEngine.Object.Instantiate(m_worldTextBase, transform);
+        TMP_Text textField = gui.GetComponent<TMP_Text>()!;
+        textField.color = type == TextType.Bonus
+            ? new Color(1f, 0.63f, 0.24f, 1f)
+            : new Color(1f, 1f, 1f, 1f);
+        textField.fontSize = distance > m_smallFontDistance ? m_smallFontSize : m_largeFontSize;
+        if (type == TextType.Bonus)
+        {
+            textField.fontSize *= 1.5f;
+            CreatedBonusTextCount++;
+        }
+
+        textField.text = text;
+        m_worldTexts.Add(new WorldTextInstance
+        {
+            m_gui = gui,
+            m_textField = textField,
+        });
+    }
+}
+
+public static class Hud
+{
+    public static bool IsUserHidden() => false;
 }
 
 public sealed class Sign : MonoBehaviour
@@ -32,12 +108,6 @@ public static class Utils
 {
     public static Camera? MainCamera { get; set; }
     public static Camera? GetMainCamera() => MainCamera;
-}
-
-public sealed class Billboard : MonoBehaviour
-{
-    public bool m_vertical;
-    public bool m_invert;
 }
 
 public static class Plugin
@@ -89,40 +159,28 @@ namespace BenheimQoL.WorldLabels
 
         private void OnDestroy() => WorldLabelRuntime.Forget(this);
     }
-
-    internal static class WorldLabelStyle
-    {
-        internal static Color PortalAmber => new Color(1f, 0.5f, 0.1f, 1f);
-    }
 }
 
 namespace TMPro
 {
-    public enum TextAlignmentOptions
-    {
-        Center
-    }
-
-    public enum TextWrappingModes
-    {
-        NoWrap
-    }
-
     public sealed class TMP_FontAsset : UnityEngine.Object
     {
     }
 
-    public sealed class TextMeshProUGUI : Component
+    public class TMP_Text : Component
     {
         public TMP_FontAsset? font;
         public Material? fontSharedMaterial;
         public Color color;
         public float fontSize;
-        public TextAlignmentOptions alignment;
-        public TextWrappingModes textWrappingMode;
         public bool richText = true;
         public bool raycastTarget = true;
         public string text = string.Empty;
+        public string StyleMarker = string.Empty;
+    }
+
+    public sealed class TextMeshProUGUI : TMP_Text
+    {
     }
 }
 
@@ -146,6 +204,7 @@ namespace UnityEngine
         }
 
         public static bool operator !=(Object? left, Object? right) => !(left == right);
+        public static implicit operator bool(Object? value) => value != null;
         public override bool Equals(object? value) => this == value as Object;
         public override int GetHashCode() => InstanceId;
 
@@ -166,6 +225,9 @@ namespace UnityEngine
                 gameObject.SetActive(false);
             }
         }
+
+        public static GameObject Instantiate(GameObject original, Transform parent) =>
+            original.Clone(parent);
     }
 
     public class Component : Object
@@ -186,25 +248,12 @@ namespace UnityEngine
     {
         private readonly Dictionary<Type, Component> components =
             new Dictionary<Type, Component>();
-        private readonly Dictionary<Type, int> componentLookups =
-            new Dictionary<Type, int>();
 
-        public GameObject(string name = "", params Type[] componentTypes)
+        public GameObject(string name = "")
         {
             this.name = name;
-            transform = Array.Exists(componentTypes, type => type == typeof(RectTransform))
-                ? new RectTransform()
-                : new Transform();
+            transform = new Transform();
             Attach(transform);
-            foreach (Type type in componentTypes)
-            {
-                if (type == typeof(Transform) || type == typeof(RectTransform))
-                {
-                    continue;
-                }
-
-                Attach((Component)Activator.CreateInstance(type)!);
-            }
         }
 
         public bool activeSelf { get; private set; } = true;
@@ -221,16 +270,30 @@ namespace UnityEngine
         public T? GetComponent<T>() where T : Component
         {
             Type type = typeof(T);
-            componentLookups[type] = GetComponentLookupCount<T>() + 1;
-            return components.TryGetValue(typeof(T), out Component? component)
-                ? (T)component
-                : null;
+            return components.Values.FirstOrDefault(component => type.IsAssignableFrom(component.GetType())) as T;
         }
 
-        public int GetComponentLookupCount<T>() where T : Component =>
-            componentLookups.TryGetValue(typeof(T), out int count) ? count : 0;
-
         public void SetActive(bool active) => activeSelf = active;
+
+        internal GameObject Clone(Transform parent)
+        {
+            GameObject clone = new GameObject(name + "(Clone)");
+            TMP_Text? sourceText = GetComponent<TMP_Text>();
+            if (sourceText != null)
+            {
+                TextMeshProUGUI clonedText = clone.AddComponent<TextMeshProUGUI>();
+                clonedText.font = sourceText.font;
+                clonedText.fontSharedMaterial = sourceText.fontSharedMaterial;
+                clonedText.color = sourceText.color;
+                clonedText.fontSize = sourceText.fontSize;
+                clonedText.richText = sourceText.richText;
+                clonedText.raycastTarget = sourceText.raycastTarget;
+                clonedText.StyleMarker = sourceText.StyleMarker;
+            }
+
+            clone.transform.SetParent(parent, worldPositionStays: false);
+            return clone;
+        }
 
         private void Attach(Component component)
         {
@@ -243,7 +306,6 @@ namespace UnityEngine
     public class Transform : Component
     {
         public Vector3 position;
-        public Vector3 localScale;
         public Transform? parent { get; private set; }
 
         public void SetParent(Transform newParent, bool worldPositionStays) => parent = newParent;
@@ -262,24 +324,10 @@ namespace UnityEngine
         }
     }
 
-    public sealed class RectTransform : Transform
-    {
-        public Vector2 sizeDelta;
-    }
-
-    public sealed class Canvas : MonoBehaviour
-    {
-        public RenderMode renderMode;
-        public Camera? worldCamera;
-    }
-
-    public enum RenderMode
-    {
-        WorldSpace
-    }
-
     public sealed class Camera : MonoBehaviour
     {
+        public Vector3 ScreenPoint { get; set; } = new Vector3(960f, 540f, 1f);
+        public Vector3 WorldToScreenPointScaled(Vector3 position) => ScreenPoint;
     }
 
     public sealed class MeshRenderer : Object
@@ -312,18 +360,6 @@ namespace UnityEngine
         public readonly float a;
     }
 
-    public readonly struct Vector2
-    {
-        public Vector2(float x, float y)
-        {
-            this.x = x;
-            this.y = y;
-        }
-
-        public readonly float x;
-        public readonly float y;
-    }
-
     public readonly struct Vector3
     {
         public Vector3(float x, float y, float z)
@@ -334,13 +370,17 @@ namespace UnityEngine
         }
 
         public static Vector3 zero => new Vector3();
-        public static Vector3 one => new Vector3(1f, 1f, 1f);
+        public static Vector3 up => new Vector3(0f, 1f, 0f);
         public float sqrMagnitude => x * x + y * y + z * z;
+        public static float Distance(Vector3 left, Vector3 right) =>
+            (left - right).Magnitude;
+        private float Magnitude => MathF.Sqrt(sqrMagnitude);
+        public static Vector3 operator +(Vector3 left, Vector3 right) =>
+            new Vector3(left.x + right.x, left.y + right.y, left.z + right.z);
         public static Vector3 operator -(Vector3 left, Vector3 right) =>
             new Vector3(left.x - right.x, left.y - right.y, left.z - right.z);
         public static Vector3 operator *(Vector3 value, float scale) =>
             new Vector3(value.x * scale, value.y * scale, value.z * scale);
-
         public readonly float x;
         public readonly float y;
         public readonly float z;
@@ -377,5 +417,11 @@ namespace UnityEngine
     public enum HideFlags
     {
         DontSave
+    }
+
+    public static class Screen
+    {
+        public static int width = 1920;
+        public static int height = 1080;
     }
 }

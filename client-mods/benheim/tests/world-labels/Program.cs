@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using BenheimQoL.Infrastructure;
 using BenheimQoL.WorldLabels;
 using TMPro;
 using UnityEngine;
@@ -36,9 +37,10 @@ internal static class Program
     {
         WorldLabelRuntime.Reset();
         Plugin.Log.Clear();
-        ZNetScene.instance = null;
+        DamageText.instance = null!;
         Player.m_localPlayer = CreatePlayer(Vector3.zero);
-        Utils.MainCamera = CreateCamera(Vector3.zero);
+        Camera camera = CreateCamera(Vector3.zero);
+        Utils.MainCamera = camera;
 
         TeleportWorld portal = CreatePortal(new Vector3(0f, 0f, 30f), "home");
         WorldLabelRuntime.Attach(portal);
@@ -50,34 +52,37 @@ internal static class Program
         InvokeRefresh(controller);
         InvokeRefresh(controller);
         Assert(GetLabelRoot(controller) == null,
-            "a portal must wait when the native donor lifecycle is not ready");
+            "a portal must wait when native Bonus world text is not ready");
         Assert(Plugin.Log.Warnings.Count == 1 &&
-            Plugin.Log.Warnings[0].Contains("ZNetScene is not ready", StringComparison.Ordinal),
+            Plugin.Log.Warnings[0].Contains("Bonus world-text presentation", StringComparison.Ordinal),
             "the pending boundary must be readable and logged once");
 
-        ZNetScene missingDonorScene = new ZNetScene();
-        ZNetScene.instance = missingDonorScene;
-        GameObject unrelatedPrefab = new GameObject("unrelated");
-        missingDonorScene.m_prefabs.Add(unrelatedPrefab);
-        InvokeRefresh(controller);
-        InvokeRefresh(controller);
-        Assert(unrelatedPrefab.GetComponentLookupCount<Sign>() == 1,
-            "one ZNetScene without a donor must be scanned only once");
-
-        ZNetScene readyScene = new ZNetScene();
-        ZNetScene.instance = readyScene;
-        readyScene.m_prefabs.Add(CreateSignPrefab("sign_wood"));
+        TMP_FontAsset nativeFont = new TMP_FontAsset();
+        Material nativeMaterial = new Material();
+        DamageText damageText = CreateDamageText(nativeFont, nativeMaterial);
+        DamageText.instance = damageText;
 
         InvokeRefresh(controller);
         GameObject labelRoot = GetLabelRoot(controller)
-            ?? throw new InvalidOperationException("registered native Sign did not create a label");
-        TextMeshProUGUI label = GetLabel(controller)
-            ?? throw new InvalidOperationException("created label has no native text component");
+            ?? throw new InvalidOperationException("native Bonus world text did not create a label");
+        TMP_Text label = GetLabel(controller)
+            ?? throw new InvalidOperationException("created label has no TMP text component");
         Assert(label.text == "home", "the initial portal tag must be copied exactly");
         Assert(labelRoot.activeSelf, "the unobstructed 30-meter label must be visible");
-        Assert(Plugin.Log.Infos.Any(message =>
-                message.Contains("registered Sign prefab 'sign_wood'", StringComparison.Ordinal)),
-            "donor resolution must identify the actual registered native Sign");
+        Assert(ReferenceEquals(label.font, nativeFont) &&
+            ReferenceEquals(label.fontSharedMaterial, nativeMaterial) &&
+            label.StyleMarker == "native-high-contrast",
+            "portal labels must retain the exact native overlay font, material, and treatment");
+        Assert(label.color.r == 1f && label.color.g == 0.63f &&
+            label.color.b == 0.24f && label.color.a == 1f && label.fontSize == 24f,
+            "portal labels must use native Bonus color and large-font sizing");
+        Assert(damageText.ActiveWorldTextCount == 0,
+            "persistent labels must detach from native transient animation and lifetime tracking");
+        Assert(ReferenceEquals(labelRoot.transform.parent, damageText.transform),
+            "persistent labels must stay in the existing native world-text overlay hierarchy");
+        Assert(labelRoot.transform.position.x == camera.ScreenPoint.x &&
+            labelRoot.transform.position.y == camera.ScreenPoint.y,
+            "the portal's world anchor must be projected into the native overlay");
         Assert(Plugin.Log.Infos.Count(message =>
                 message.Contains("Portal label created", StringComparison.Ordinal)) == 1,
             "one controller must create exactly one label");
@@ -89,7 +94,9 @@ internal static class Program
             ?? throw new InvalidOperationException("second portal controller was not attached");
         InvokeRefresh(secondController);
         Assert(GetLabelRoot(secondController) != null,
-            "a second portal must create its own label from the cached donor");
+            "a second portal must create its own persistent Bonus overlay");
+        Assert(damageText.CreatedBonusTextCount == 2 && damageText.ActiveWorldTextCount == 0,
+            "each portal must own one detached Bonus overlay and no transient entry");
         Assert(Plugin.Log.Infos.Count(message =>
                 message.Contains("Portal label created", StringComparison.Ordinal)) == 1,
             "label creation evidence must remain one-shot across portal instances");
@@ -121,6 +128,20 @@ internal static class Program
         InvokeRefresh(controller, preserveLinecast: true);
         Assert(labelRoot.activeSelf, "the portal's own collider must not hide its label");
 
+        camera.ScreenPoint = new Vector3(700f, 300f, 1f);
+        InvokeLateUpdate(controller);
+        Assert(labelRoot.activeSelf &&
+            labelRoot.transform.position.x == 700f &&
+            labelRoot.transform.position.y == 300f,
+            "the stationary world anchor must follow camera projection without transient motion");
+
+        camera.ScreenPoint = new Vector3(700f, 300f, -1f);
+        InvokeLateUpdate(controller);
+        Assert(!labelRoot.activeSelf, "labels behind the camera must stay hidden");
+        camera.ScreenPoint = new Vector3(700f, 300f, 1f);
+        InvokeRefresh(controller);
+        Assert(labelRoot.activeSelf, "an on-screen visible label must reappear");
+
         InvokeRefresh(controller);
         Assert(ReferenceEquals(labelRoot, GetLabelRoot(controller)),
             "refresh must reuse the existing label instead of duplicating it");
@@ -128,41 +149,40 @@ internal static class Program
                 message.Contains("Portal label created", StringComparison.Ordinal)) == 1,
             "refresh must not log or create a duplicate label");
 
+        WorldFeedback.ShowAbovePlayer(Player.m_localPlayer!, "Perfect parry +10");
+        Assert(damageText.ActiveWorldTextCount == 1 &&
+            damageText.LastWorldText == "Perfect parry +10" &&
+            damageText.LastWorldTextDuration == 3f,
+            "the shared refactor must preserve existing transient Perfect Parry feedback");
+
         WorldLabelRuntime.Reset();
         Assert(labelRoot.Destroyed, "runtime reset must destroy the unsaved label visual");
         Assert(controller.Destroyed, "runtime reset must remove the portal controller");
 
         Plugin.Log.Clear();
-        ZNetScene.instance = null;
-        TeleportWorld retryPortal = CreatePortal(Vector3.zero, "retry");
-        WorldLabelRuntime.Attach(retryPortal);
-        PortalLabelController retryController =
-            retryPortal.GetComponent<PortalLabelController>()
-            ?? throw new InvalidOperationException("retry controller was not attached");
-        InvokeRefresh(retryController);
-
         Sign loadedSign = CreateSignPrefab("loaded sign").GetComponent<Sign>()!;
         Material originalMaterial = loadedSign.m_textWidget.fontSharedMaterial!;
         WorldLabelRuntime.Attach(loadedSign);
         Material glowMaterial = loadedSign.m_textWidget.fontSharedMaterial!;
         Assert(!ReferenceEquals(originalMaterial, glowMaterial),
             "the runtime-shaped Sign Glow stub must replace the widget material");
-        InvokeRefresh(retryController);
-        TextMeshProUGUI retryLabel = GetLabel(retryController)
-            ?? throw new InvalidOperationException("retrying portal did not create a label");
-        Assert(GetLabelRoot(retryController) != null,
-            "a later loaded Sign must unblock the existing retrying portal");
-        Assert(ReferenceEquals(retryLabel.fontSharedMaterial, originalMaterial),
-            "the portal must snapshot the native material before Sign Glow mutates the widget");
-        Assert(Plugin.Log.Infos.Any(message =>
-                message.Contains("loaded Sign 'loaded sign'", StringComparison.Ordinal)),
-            "loaded Sign resolution must be readable");
         loadedSign.GetComponent<SignGlowController>()!.RestoreAndRemove();
         Assert(glowMaterial.Destroyed && !originalMaterial.Destroyed,
             "Sign Glow cleanup must destroy only its cloned material");
-        Assert(ReferenceEquals(retryLabel.fontSharedMaterial, originalMaterial),
-            "a streamed-out donor sign must not invalidate an existing portal label");
         WorldLabelRuntime.Reset();
+    }
+
+    private static DamageText CreateDamageText(TMP_FontAsset font, Material material)
+    {
+        GameObject damageTextObject = new GameObject("DamageText");
+        DamageText damageText = damageTextObject.AddComponent<DamageText>();
+        GameObject template = new GameObject("WorldTextBase");
+        TextMeshProUGUI templateText = template.AddComponent<TextMeshProUGUI>();
+        templateText.font = font;
+        templateText.fontSharedMaterial = material;
+        templateText.StyleMarker = "native-high-contrast";
+        damageText.m_worldTextBase = template;
+        return damageText;
     }
 
     private static TeleportWorld CreatePortal(Vector3 position, string tag)
@@ -215,13 +235,18 @@ internal static class Program
             .Invoke(controller, null);
     }
 
+    private static void InvokeLateUpdate(PortalLabelController controller) =>
+        typeof(PortalLabelController)
+            .GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(controller, null);
+
     private static GameObject? GetLabelRoot(PortalLabelController controller) =>
         (GameObject?)typeof(PortalLabelController)
             .GetField("labelRoot", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(controller);
 
-    private static TextMeshProUGUI? GetLabel(PortalLabelController controller) =>
-        (TextMeshProUGUI?)typeof(PortalLabelController)
+    private static TMP_Text? GetLabel(PortalLabelController controller) =>
+        (TMP_Text?)typeof(PortalLabelController)
             .GetField("label", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(controller);
 
