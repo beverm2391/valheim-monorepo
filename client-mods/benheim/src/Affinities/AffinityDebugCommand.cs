@@ -25,14 +25,25 @@ internal static class AffinityDebugCommand
             return true;
         }
         if (arguments.Length == 5
-            && string.Equals(arguments[3], "apply", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(arguments[4], "lunge", StringComparison.OrdinalIgnoreCase))
+            && string.Equals(arguments[3], "apply", StringComparison.OrdinalIgnoreCase))
         {
-            AffinityApplicationResult result = AffinityApplication.ApplyLunge(
-                player, weapon, requireForge: false, consumeResources: false, source: "debug_apply");
+            AffinityLoadResult selected = arguments[4].ToLowerInvariant() switch
+            {
+                "lunge" => AffinityLoadResult.Lunge,
+                "snipe" => AffinityLoadResult.Snipe,
+                _ => AffinityLoadResult.None,
+            };
+            if (selected == AffinityLoadResult.None)
+            {
+                PrintUsage(context);
+                return true;
+            }
+            string name = AffinityPresentation.NameFor(selected);
+            AffinityApplicationResult result = AffinityApplication.Apply(
+                player, weapon, selected, requireForge: false, consumeResources: false, source: "debug_apply");
             context.AddString(result.Applied
-                ? "Applied Lunge to the equipped Club for development testing."
-                : $"Could not apply Lunge: {result.Reason}.");
+                ? $"Applied {name} to the equipped item for development testing."
+                : $"Could not apply {name}: {result.Reason}.");
             return true;
         }
         if (arguments.Length == 4
@@ -82,6 +93,7 @@ internal static class AffinityDebugCommand
     {
         context.AddString("  bh debug affinity inspect");
         context.AddString("  bh debug affinity apply lunge");
+        context.AddString("  bh debug affinity apply snipe");
         context.AddString("  bh debug affinity clear");
         context.AddString("  bh debug affinity lunge-force <0.01-30>");
     }
@@ -92,10 +104,15 @@ internal static class AffinityDebugCommand
         string stored = AffinityState.StoredValue(weapon);
         context.AddString($"Equipped prefab: {AffinityState.ItemPrefab(weapon)}");
         context.AddString($"Eligible max-quality base-game Club: {AffinityState.IsEligibleClub(weapon)}");
+        context.AddString($"Eligible max-quality base-game Huntsman Bow: {AffinityState.IsEligibleSnipeBow(weapon)}");
         context.AddString($"Stored Affinity: {state.ToString().ToLowerInvariant()}");
         context.AddString($"Stored identity/version: {(string.IsNullOrEmpty(stored) ? "<none>" : stored)}");
-        context.AddString($"Supported identity/version: {AffinityState.LungeValue}");
-        context.AddString($"Active runtime behavior: {(state == AffinityLoadResult.Lunge ? "lunge" : "native")}");
+        context.AddString($"Supported identity/version: {AffinityState.LungeValue}, {AffinityState.SnipeValue}");
+        string active = HealthReporting.GameplayActionsEnabled
+            && state != AffinityLoadResult.None && AffinityState.AvailableFor(weapon) == state
+                ? state.ToString().ToLowerInvariant()
+                : "native";
+        context.AddString($"Active runtime behavior: {active}");
         context.AddString($"Session Lunge force: {LungeRuntime.Force.ToString("0.##", CultureInfo.InvariantCulture)}");
     }
 }

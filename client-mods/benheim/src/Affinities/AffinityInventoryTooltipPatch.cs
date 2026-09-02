@@ -15,11 +15,11 @@ internal static class AffinityInventoryTooltipPatch
         UITooltip tooltip)
     {
         AffinityLoadResult affinity = AffinityState.Read(item);
-        if (affinity != AffinityLoadResult.Lunge) return;
+        if (affinity != AffinityLoadResult.Lunge && affinity != AffinityLoadResult.Snipe) return;
 
         // Rebuild only this hovered item's native tooltip. SharedData belongs
         // to the prefab, so mutating its name or description would rename every
-        // Club instead of following the exact item that owns custom affinity data.
+        // weapon instead of following the exact item that owns custom affinity data.
         tooltip.Set(
             AffinityPresentation.InventoryTitle(item.m_shared.m_name, affinity),
             AffinityPresentation.InventoryTooltip(

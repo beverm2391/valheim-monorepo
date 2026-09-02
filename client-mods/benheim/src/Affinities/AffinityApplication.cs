@@ -25,9 +25,8 @@ internal sealed class AffinityApplicationResult
 
 internal static class AffinityApplication
 {
-    internal static AffinityRequirementSpec LungeRequirement =>
-        AffinityPresentation.RequirementsFor(AffinityLoadResult.Lunge);
-    internal static int TestResourceAmount => LungeRequirement.MaterialAmount;
+    internal static int TestResourceAmount =>
+        AffinityPresentation.RequirementsFor(AffinityLoadResult.Lunge).MaterialAmount;
 
     internal static bool IsAtBaseGameForge(Player? player)
     {
@@ -35,23 +34,24 @@ internal static class AffinityApplication
         return station != null
             && string.Equals(
                 station.m_name,
-                LungeRequirement.StationNameToken,
+                AffinityPresentation.ForgeNameToken,
                 StringComparison.Ordinal);
     }
 
-    internal static AffinityApplicationResult ApplyLunge(
+    internal static AffinityApplicationResult Apply(
         Player? player,
         ItemDrop.ItemData? target,
+        AffinityLoadResult selected,
         bool requireForge,
         bool consumeResources,
         string source)
     {
-        AffinityRequirementSpec requirement = LungeRequirement;
-        string validation = Validate(player, target, requireForge, consumeResources);
+        string validation = Validate(player, target, selected, requireForge, consumeResources);
         bool valid = string.Equals(validation, "valid", StringComparison.Ordinal);
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "affinity_application_validation")
                 .String("source", source)
+                .String("affinity", selected.ToString().ToLowerInvariant())
                 .Boolean("valid", valid)
                 .String("reason", validation)
                 .Boolean("forge_required", requireForge)
@@ -62,6 +62,7 @@ internal static class AffinityApplication
             return AffinityApplicationResult.Rejected(validation);
         }
 
+        AffinityRequirementSpec requirement = AffinityPresentation.RequirementsFor(selected);
         Inventory inventory = player.GetInventory();
         bool replacing = AffinityState.Load(target, source + "_prewrite") != AffinityLoadResult.None;
         string resourceName = string.Empty;
@@ -72,7 +73,7 @@ internal static class AffinityApplication
         {
             if (consumeResources)
             {
-                resourceName = ResourceName();
+                resourceName = ResourceName(requirement);
                 resourcesBefore = inventory.CountItems(resourceName);
                 consumptionAttempted = true;
                 inventory.RemoveItem(resourceName, requirement.MaterialAmount);
@@ -80,14 +81,14 @@ internal static class AffinityApplication
                 consumed = AffinityRules.CountConsumed(resourcesBefore, after);
                 if (consumed != requirement.MaterialAmount)
                 {
-                    bool restored = TryRestoreResources(inventory, consumed);
-                    EmitConsumption(source, consumed, restored ? "rolled_back" : "restore_failed");
+                    bool restored = TryRestoreResources(inventory, requirement, consumed);
+                    EmitConsumption(source, requirement, consumed, restored ? "rolled_back" : "restore_failed");
                     return AffinityApplicationResult.Rejected("resource_consumption_mismatch");
                 }
-                EmitConsumption(source, consumed, "consumed");
+                EmitConsumption(source, requirement, consumed, "consumed");
             }
 
-            AffinityState.WriteLunge(target, source, replacing);
+            AffinityState.Write(target, selected, source, replacing);
             NotifyInventoryChanged(inventory);
             return AffinityApplicationResult.Success(replacing);
         }
@@ -111,9 +112,10 @@ internal static class AffinityApplication
             }
             if (consumed > 0)
             {
-                bool restored = TryRestoreResources(inventory, consumed);
+                bool restored = TryRestoreResources(inventory, requirement, consumed);
                 EmitConsumption(
                     source,
+                    requirement,
                     consumed,
                     restored ? "restored_after_failure" : "restore_failed");
             }
@@ -130,9 +132,9 @@ internal static class AffinityApplication
         }
     }
 
-    internal static string ResourceName()
+    internal static string ResourceName(AffinityRequirementSpec requirement)
     {
-        GameObject? prefab = ObjectDB.instance?.GetItemPrefab(LungeRequirement.MaterialPrefab);
+        GameObject? prefab = ObjectDB.instance?.GetItemPrefab(requirement.MaterialPrefab);
         ItemDrop? drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
         return drop?.m_itemData?.m_shared?.m_name ?? string.Empty;
     }
@@ -145,6 +147,7 @@ internal static class AffinityApplication
     private static string Validate(
         Player? player,
         ItemDrop.ItemData? target,
+        AffinityLoadResult selected,
         bool requireForge,
         bool consumeResources)
     {
@@ -152,8 +155,9 @@ internal static class AffinityApplication
         if (target == null) return "no_item";
         Inventory inventory = player.GetInventory();
         if (!inventory.ContainsItem(target)) return "item_moved";
-        if (!AffinityState.IsEligibleClub(target)) return "ineligible_item";
-        if (AffinityRules.IsSameAffinity(AffinityState.Read(target), AffinityLoadResult.Lunge))
+        if (selected != AffinityLoadResult.Lunge && selected != AffinityLoadResult.Snipe) return "unsupported_affinity";
+        if (AffinityState.AvailableFor(target) != selected) return "ineligible_item";
+        if (AffinityRules.IsSameAffinity(AffinityState.Read(target), selected))
         {
             return "affinity_already_installed";
         }
@@ -164,20 +168,21 @@ internal static class AffinityApplication
         }
         if (!consumeResources) return "valid";
 
-        string resourceName = ResourceName();
+        AffinityRequirementSpec requirement = AffinityPresentation.RequirementsFor(selected);
+        string resourceName = ResourceName(requirement);
         if (string.IsNullOrEmpty(resourceName)) return "test_resource_unavailable";
-        return inventory.CountItems(resourceName) >= LungeRequirement.MaterialAmount
+        return inventory.CountItems(resourceName) >= requirement.MaterialAmount
             ? "valid"
             : "missing_resources";
     }
 
-    private static bool TryRestoreResources(Inventory inventory, int amount)
+    private static bool TryRestoreResources(Inventory inventory, AffinityRequirementSpec requirement, int amount)
     {
         if (amount <= 0) return true;
         try
         {
             ItemDrop.ItemData? restored = inventory.AddItem(
-                LungeRequirement.MaterialPrefab,
+                requirement.MaterialPrefab,
                 amount,
                 1,
                 0,
@@ -192,7 +197,7 @@ internal static class AffinityApplication
         }
 
         LogError(
-            $"Affinity resource restoration failed for {amount} {LungeRequirement.MaterialPrefab}.");
+            $"Affinity resource restoration failed for {amount} {requirement.MaterialPrefab}.");
         return false;
     }
 
@@ -228,12 +233,12 @@ internal static class AffinityApplication
         }
     }
 
-    private static void EmitConsumption(string source, int amount, string outcome)
+    private static void EmitConsumption(string source, AffinityRequirementSpec requirement, int amount, string outcome)
     {
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "affinity_resources_consumed")
                 .String("source", source)
-                .String("resource_prefab", LungeRequirement.MaterialPrefab)
+                .String("resource_prefab", requirement.MaterialPrefab)
                 .Integer("amount", amount)
                 .String("outcome", outcome));
     }

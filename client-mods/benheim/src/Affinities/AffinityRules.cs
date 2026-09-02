@@ -7,12 +7,12 @@ internal static class AffinityRules
     internal static AffinityLoadResult ReadStoredValue(string? value)
     {
         if (string.IsNullOrEmpty(value)) return AffinityLoadResult.None;
-        return string.Equals(value, AffinityState.LungeValue, StringComparison.Ordinal)
-            ? AffinityLoadResult.Lunge
-            : AffinityLoadResult.Unsupported;
+        if (string.Equals(value, AffinityState.LungeValue, StringComparison.Ordinal)) return AffinityLoadResult.Lunge;
+        if (string.Equals(value, AffinityState.SnipeValue, StringComparison.Ordinal)) return AffinityLoadResult.Snipe;
+        return AffinityLoadResult.Unsupported;
     }
 
-    internal static bool IsEligibleClub(bool canonicalPrefab, int quality, int maximumQuality)
+    internal static bool IsEligibleWeapon(bool canonicalPrefab, int quality, int maximumQuality)
     {
         return canonicalPrefab && quality == maximumQuality;
     }

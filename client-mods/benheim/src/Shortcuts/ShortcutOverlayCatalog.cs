@@ -117,8 +117,20 @@ internal static partial class ShortcutOverlay
                 new Entry(
                     "Airborne swing",
                     $"A primary swing while airborne adds {LungeRuntime.DefaultForce:0.#} m/s forward and raises vertical velocity to at least +{LungeRuntime.MinimumVerticalVelocity:0.#} m/s; grounded Club swings stay native"),
+                new Entry(
+                    "Huntsman Bow + Snipe",
+                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Snipe).MaterialAmount} Wood to bind Snipe to one exact max-quality base-game Huntsman Bow"),
+                new Entry(
+                    "Automatic scope",
+                    $"Drawing a Snipe bow smoothly gives {SnipeRules.OpticalZoom:0.#}x optical zoom by changing field of view. Soft edge darkening grows with the draw while the center stays clear. Both remain active with Bow Focus or Benheim FX off and clear almost instantly on release or cancel. Crosshair, camera position, and look sensitivity stay native. No toggle, circle mask, or range predictor"),
+                new Entry(
+                    "Slower draw",
+                    $"Snipe takes {(SnipeRules.DrawDurationMultiplier - 1f) * 100f:0.#}% longer to reach full draw after skill adjustment at every range. Partial draws and stamina use stay native; no extra movement or flat damage penalty"),
+                new Entry(
+                    "Snipe headshots",
+                    $"Total multiplier is ×{SnipeRules.NearMultiplier:0.##} through {SnipeRules.NearDistanceMeters:0.#} m, rising linearly to ×{SnipeRules.CapMultiplier:0.##} at {SnipeRules.CapDistanceMeters:0.#} m and beyond (×{(SnipeRules.NearMultiplier + SnipeRules.CapMultiplier) / 2f:0.##} at {(SnipeRules.NearDistanceMeters + SnipeRules.CapDistanceMeters) / 2f:0.#} m). This replaces the ordinary headshot multiplier. Full draw is not required; fired arrows keep Snipe after switching weapons. Body shots, native WeakSpots, and ammunition effects stay native"),
             },
-            "Replacing an Affinity consumes the new cost and destroys the old Affinity and its prior investment without a refund."),
+            "Affinities stay with the exact item through saves, transfers, and drops, and appear in its inventory title and hover text. They cannot be toggled off or removed in the field. Benheim removal leaves them dormant; reinstalling restores them. Applying or replacing an Affinity requires confirmation and a nonrefundable cost; replacement destroys the old Affinity and its prior investment without a refund. The already-installed Affinity cannot be applied again. The 1 Wood recipes are temporary test costs with no boss unlock."),
         new(
             "Combat",
             new Color(1f, 0.48f, 0.54f, 1f),
@@ -126,7 +138,7 @@ internal static partial class ShortcutOverlay
             {
                 new Entry(
                     "Headshots",
-                    $"Bow arrows deal ×{HeadshotRules.NearMultiplier:0.##} through {HeadshotRules.NearDistanceMeters:0.#} m, scaling to ×{HeadshotRules.CapMultiplier:0.##} at {HeadshotRules.CapDistanceMeters:0.#} m"),
+                    $"Ordinary Bow arrows deal ×{HeadshotRules.NearMultiplier:0.##} through {HeadshotRules.NearDistanceMeters:0.#} m, scaling to ×{HeadshotRules.CapMultiplier:0.##} at {HeadshotRules.CapDistanceMeters:0.#} m; Snipe uses the total curve in Affinities"),
                 new Entry(
                     "Perfect Impact",
                     $"While airborne, descend at least {-AirborneMeleeTuning.DescentThreshold:0.#} m/s and approach the contact horizontally at {AirborneMeleeTuning.ApproachSpeedThreshold:0.#} m/s: ×{AirborneMeleeTuning.DamageMultiplier:0.##} damage and ×{AirborneMeleeTuning.StaggerMultiplier:0.#} stagger"),

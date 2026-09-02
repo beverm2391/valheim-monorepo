@@ -66,7 +66,7 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         affinityTab.interactable = false;
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "affinity_menu_discovered")
-                .String("station", AffinityApplication.LungeRequirement.StationNameToken)
+                .String("station", AffinityPresentation.ForgeNameToken)
                 .String("tab", "affinity"));
         Refresh(focusSelection: true);
     }
@@ -108,15 +108,15 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
             for (int index = 0; index < inventoryItems.Count; index++)
             {
                 ItemDrop.ItemData item = inventoryItems[index];
-                GameObject? canonicalClub = ObjectDB.instance?.GetItemPrefab(AffinityState.ClubPrefab);
-                bool canonical = item.m_dropPrefab != null
-                    && canonicalClub != null
-                    && ReferenceEquals(item.m_dropPrefab, canonicalClub);
-                bool eligible = canonical && AffinityState.IsEligibleClub(item);
+                bool canonical = AffinityState.IsCanonicalPrefab(item, AffinityState.ClubPrefab)
+                    || AffinityState.IsCanonicalPrefab(item, AffinityState.SnipeBowPrefab);
                 if (!canonical) continue;
+                AffinityLoadResult available = AffinityState.AvailableFor(item);
+                bool eligible = available != AffinityLoadResult.None;
                 AffinityDiagnostics.Emit(
                     DiagnosticEvent.Create("Affinity", "affinity_eligibility")
                         .String("source", "forge_menu")
+                        .String("affinity", available.ToString().ToLowerInvariant())
                         .String("item_prefab", AffinityState.ItemPrefab(item))
                         .Boolean("eligible", eligible)
                         .Integer("quality", item.m_quality)
@@ -152,14 +152,15 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
 
         Player? player = Player.m_localPlayer;
         ItemDrop.ItemData? item = SelectedItem();
-        if (player == null || item == null)
+        AffinityLoadResult selectedAffinity = AffinityState.AvailableFor(item);
+        if (player == null || item == null || selectedAffinity == AffinityLoadResult.None)
         {
             gui.m_recipeIcon.enabled = false;
             gui.m_recipeName.enabled = true;
-            gui.m_recipeName.text = "No eligible Clubs";
+            gui.m_recipeName.text = "No eligible weapons";
             gui.m_recipeDecription.enabled = true;
             gui.m_recipeDecription.text =
-                "Only a max-quality base-game Club can receive an Affinity.";
+                "Use a max-quality base-game Club for Lunge or Huntsman Bow for Snipe.";
             gui.m_itemCraftType.gameObject.SetActive(false);
             gui.m_craftButton.interactable = false;
             HideRequirements();
@@ -167,47 +168,47 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         }
 
         AffinityLoadResult existing = AffinityState.Read(item);
+        string affinityName = AffinityPresentation.NameFor(selectedAffinity);
         gui.m_recipeIcon.enabled = true;
         gui.m_recipeIcon.sprite = item.GetIcon();
         gui.m_recipeName.enabled = true;
-        gui.m_recipeName.text = $"{Localize(item.m_shared.m_name)} · Lunge";
+        gui.m_recipeName.text = $"{Localize(item.m_shared.m_name)} · {affinityName}";
         gui.m_recipeDecription.enabled = true;
         gui.m_recipeDecription.text =
-            "Airborne primary Club swings dash 10 m/s forward and raise you to at least +3 m/s vertically. " +
-            "Each later airborne primary swing can Lunge again. Grounded swings remain native.\n\n" +
-            "Candidate bias: every airborne primary swing commits to forward movement, reducing aerial precision and flexibility.\n\n" +
-            "TEMPORARY TEST COST: 1 Wood. This is not final balance.\n\n" +
-            "Replacement destroys the old Affinity and all prior investment. No refund.";
+            AffinityPresentation.BehaviorDescription(
+                selectedAffinity, LungeRuntime.Force, LungeRuntime.MinimumVerticalVelocity) +
+            "\n\nTEMPORARY TEST COST: 1 Wood. This is not final balance.\n\n" +
+            "The Affinity stays with this item. Replacement destroys the old Affinity and all prior investment. No refund.";
         gui.m_itemCraftType.gameObject.SetActive(true);
         gui.m_itemCraftType.text =
-            $"Exact Club: quality {item.m_quality}, slot {item.m_gridPos.x + 1},{item.m_gridPos.y + 1}";
+            $"Exact item: quality {item.m_quality}, slot {item.m_gridPos.x + 1},{item.m_gridPos.y + 1}";
         gui.m_variantButton.gameObject.SetActive(false);
         gui.m_qualityPanel.gameObject.SetActive(false);
         gui.m_craftProgressPanel.gameObject.SetActive(false);
         gui.m_craftButton.gameObject.SetActive(true);
 
-        AffinityRequirementSpec requirement = AffinityApplication.LungeRequirement;
+        AffinityRequirementSpec requirement = AffinityPresentation.RequirementsFor(selectedAffinity);
         int owned = ShowRequirements(player, requirement);
         bool canApply = AffinityApplication.IsAtBaseGameForge(player)
             && player.GetInventory().ContainsItem(item)
-            && AffinityState.IsEligibleClub(item)
-            && !AffinityRules.IsSameAffinity(existing, AffinityLoadResult.Lunge)
+            && selectedAffinity != AffinityLoadResult.None
+            && !AffinityRules.IsSameAffinity(existing, selectedAffinity)
             && owned >= requirement.MaterialAmount;
         gui.m_craftButton.interactable = canApply;
         gui.m_craftButton.GetComponentInChildren<TMP_Text>().text =
-            AffinityRules.IsSameAffinity(existing, AffinityLoadResult.Lunge)
-                ? "Lunge Applied"
+            AffinityRules.IsSameAffinity(existing, selectedAffinity)
+                ? $"{affinityName} Applied"
                 : existing == AffinityLoadResult.None
-                    ? "Apply Lunge"
-                    : "Replace with Lunge";
+                    ? $"Apply {affinityName}"
+                    : $"Replace with {affinityName}";
         UITooltip? tooltip = gui.m_craftButton.GetComponent<UITooltip>();
         if (tooltip != null)
         {
             tooltip.m_text = canApply
                 ? string.Empty
-                : AffinityRules.IsSameAffinity(existing, AffinityLoadResult.Lunge)
-                    ? "This exact Club already has Lunge."
-                    : "Requires the exact Club, the Forge, and 1 Wood.";
+                : AffinityRules.IsSameAffinity(existing, selectedAffinity)
+                    ? $"This exact item already has {affinityName}."
+                    : "Requires the exact eligible item, the Forge, and 1 Wood.";
         }
     }
 
@@ -236,16 +237,19 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         ItemDrop.ItemData? captured = SelectedItem();
         if (captured == null || UnifiedPopup.IsVisible()) return;
 
+        AffinityLoadResult selectedAffinity = AffinityState.AvailableFor(captured);
+        if (selectedAffinity == AffinityLoadResult.None) return;
+
         // The disabled button is the visible guard. Recheck here so indirect
         // invocation cannot turn the same Affinity into a replacement attempt.
-        if (AffinityRules.IsSameAffinity(AffinityState.Read(captured), AffinityLoadResult.Lunge))
+        if (AffinityRules.IsSameAffinity(AffinityState.Read(captured), selectedAffinity))
         {
             return;
         }
 
         bool replacing = AffinityState.Load(captured, "forge_confirmation") != AffinityLoadResult.None;
         string body =
-            $"Apply Lunge to this exact {Localize(captured.m_shared.m_name)} for the temporary test cost of 1 Wood?\n\n" +
+            $"Apply {AffinityPresentation.NameFor(selectedAffinity)} to this exact {Localize(captured.m_shared.m_name)} for the temporary test cost of 1 Wood?\n\n" +
             "The cost is nonrefundable." +
             (replacing
                 ? " The old Affinity and every material previously spent on it will be destroyed with no refund."
@@ -256,18 +260,19 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
             delegate
             {
                 UnifiedPopup.Pop();
-                CompleteApply(captured);
+                CompleteApply(captured, selectedAffinity);
             },
             UnifiedPopup.Pop,
             localizeText: false));
         UnifiedPopup.SetFocus();
     }
 
-    private void CompleteApply(ItemDrop.ItemData captured)
+    private void CompleteApply(ItemDrop.ItemData captured, AffinityLoadResult selectedAffinity)
     {
-        AffinityApplicationResult result = AffinityApplication.ApplyLunge(
+        AffinityApplicationResult result = AffinityApplication.Apply(
             Player.m_localPlayer,
             captured,
+            selectedAffinity,
             requireForge: true,
             consumeResources: true,
             source: "forge");
@@ -288,8 +293,8 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
             player.Message(
                 MessageHud.MessageType.Center,
                 result.Replacing
-                    ? "Lunge replaced. Previous Affinity investment was not refunded."
-                    : "Lunge applied. The 1 Wood cost is nonrefundable.");
+                    ? $"{AffinityPresentation.NameFor(selectedAffinity)} replaced the previous Affinity. Prior investment was not refunded."
+                    : $"{AffinityPresentation.NameFor(selectedAffinity)} applied. The 1 Wood cost is nonrefundable.");
         }
         Refresh();
     }
@@ -304,7 +309,7 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         rowRect.anchoredPosition = new Vector2(0f, index * -gui.m_recipeListSpace);
         row.transform.Find("icon").GetComponent<Image>().sprite = item.GetIcon();
         TMP_Text name = row.transform.Find("name").GetComponent<TMP_Text>();
-        name.text = $"{Localize(item.m_shared.m_name)} · Lunge";
+        name.text = $"{Localize(item.m_shared.m_name)} · {AffinityPresentation.NameFor(AffinityState.AvailableFor(item))}";
         name.color = Color.white;
         GuiBar durability = row.transform.Find("Durability").GetComponent<GuiBar>();
         bool showDurability = item.m_shared.m_useDurability

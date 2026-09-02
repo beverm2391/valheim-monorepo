@@ -1,4 +1,5 @@
 using System;
+using BenheimQoL.Affinities;
 using BenheimQoL.CombatFeedback;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
@@ -113,7 +114,10 @@ internal static class HeadshotLogic
             return;
         }
 
-        float multiplier = HeadshotRules.DistanceMultiplier(distance);
+        bool snipe = SnipeRuntime.IsSnipeShot(projectile);
+        float multiplier = snipe
+            ? SnipeRules.DistanceMultiplier(distance)
+            : HeadshotRules.DistanceMultiplier(distance);
         hit.m_damage.Modify(multiplier);
         // Native target-owner stagger is computed from modified physical /
         // lightning damage multiplied by this field. Inverting it preserves
@@ -132,7 +136,7 @@ internal static class HeadshotLogic
                 WorldFeedback.ShowAbove(
                     target.transform,
                     hitPoint - target.transform.position,
-                    $"HEADSHOT · {Mathf.RoundToInt(distance)}m · ×{multiplier:0.00}");
+                    $"{(snipe ? "SNIPE HEADSHOT" : "HEADSHOT")} · {Mathf.RoundToInt(distance)}m · ×{multiplier:0.00}");
             }
             catch (Exception exception)
             {
@@ -170,7 +174,7 @@ internal static class HeadshotLogic
             "Headshots",
             "applied",
             $"target={Describe(target)} collider={Describe(collider)} "
-            + $"distance_m={distance:0.##} multiplier={multiplier:0.00} "
+            + $"distance_m={distance:0.##} multiplier={multiplier:0.00} snipe={Diagnostics.Bool(snipe)} "
             + $"head_distance_m={headDistance:0.###} tolerance={tolerance:0.###} "
             + $"qualification_path={(directHeadCollider ? "head_collider" : "fallback")} "
             + $"head_collider={Diagnostics.Bool(directHeadCollider)} "
