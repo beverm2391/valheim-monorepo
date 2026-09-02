@@ -104,7 +104,7 @@ internal static class WorldLabelRuntime
 
         nativeSignWarningLogged = true;
         Plugin.Log.LogWarning(
-            "Portal sign boards are waiting for Valheim's native piece_sign visual.");
+            "Portal sign boards are waiting for Valheim's native $piece_sign piece.");
     }
 
     internal static void LogPortalLabelCreated(TeleportWorld portal)
@@ -153,16 +153,13 @@ internal static class WorldLabelRuntime
         }
 
         nativeSignResolutionLogged = true;
-        Plugin.Log.LogInfo("Portal sign-board donor resolved from Valheim's native piece_sign visual.");
+        Plugin.Log.LogInfo("Portal sign-board donor resolved from Valheim's native $piece_sign piece.");
     }
 
     private static bool IsUsableNativeWoodenSign(Sign? sign) =>
         sign != null &&
-        IsNativeWoodenSignName(sign.gameObject.name) &&
+        sign.GetComponent<Piece>()?.m_name == "$piece_sign" &&
         PortalSignVisualFactory.HasUsableVisual(sign);
-
-    private static bool IsNativeWoodenSignName(string name) =>
-        name == "piece_sign" || name.StartsWith("piece_sign(Clone)");
 
     internal static void Forget(PortalLabelController controller)
     {

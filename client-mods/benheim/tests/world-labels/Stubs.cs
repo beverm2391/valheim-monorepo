@@ -11,6 +11,11 @@ public sealed class Sign : MonoBehaviour
     public TextMeshProUGUI m_textWidget = null!;
 }
 
+public sealed class Piece : MonoBehaviour
+{
+    public string m_name = string.Empty;
+}
+
 public sealed class TeleportWorld : MonoBehaviour
 {
     public MeshRenderer? m_model;

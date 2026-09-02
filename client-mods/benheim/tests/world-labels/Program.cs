@@ -20,18 +20,18 @@ internal static class Program
         Plugin.Log.Clear();
         ZNetScene.instance = new ZNetScene();
 
-        Sign decorativeSign = CreateNativeSign("piece_sign_darkwood");
+        Sign decorativeSign = CreateNativeSign("sign_darkwood", "$piece_sign_darkwood");
         ZNetScene.instance.m_prefabs.Add(decorativeSign.gameObject);
         Assert(!WorldLabelRuntime.TryGetNativeWoodenSign(out _),
             "a different Sign prefab must not become the wooden-board donor");
 
-        Sign woodenSign = CreateNativeSign("piece_sign");
+        Sign woodenSign = CreateNativeSign("sign", "$piece_sign");
         ZNetScene.instance.m_prefabs.Add(woodenSign.gameObject);
         Assert(WorldLabelRuntime.TryGetNativeWoodenSign(out Sign resolved) &&
             ReferenceEquals(resolved, woodenSign),
-            "the runtime must resolve the exact native piece_sign donor");
+            "the runtime must resolve the installed native sign prefab by its Piece contract");
         Assert(Plugin.Log.Infos.Count(message =>
-                message.Contains("piece_sign visual", StringComparison.Ordinal)) == 1,
+                message.Contains("$piece_sign piece", StringComparison.Ordinal)) == 1,
             "native donor resolution must be logged once");
     }
 
@@ -58,9 +58,9 @@ internal static class Program
         InvokeRefresh(controller);
         InvokeRefresh(controller);
         Assert(GetRoot(controller) == null && Plugin.Log.Warnings.Count == 1,
-            "a non-empty tag must wait for piece_sign and log that boundary once");
+            "a non-empty tag must wait for the native $piece_sign piece and log that boundary once");
 
-        Sign donor = CreateNativeSign("piece_sign");
+        Sign donor = CreateNativeSign("sign(Clone)", "$piece_sign");
         ZNetScene.instance.m_prefabs.Add(donor.gameObject);
         InvokeRefresh(controller);
 
@@ -125,9 +125,10 @@ internal static class Program
             "runtime reset must clean up the portal visual and controller");
     }
 
-    private static Sign CreateNativeSign(string name)
+    private static Sign CreateNativeSign(string name, string pieceName)
     {
         GameObject root = new(name);
+        root.AddComponent<Piece>().m_name = pieceName;
         Sign sign = root.AddComponent<Sign>();
         MeshFilter filter = root.AddComponent<MeshFilter>();
         filter.sharedMesh = new Mesh

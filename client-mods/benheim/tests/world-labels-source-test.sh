@@ -22,7 +22,11 @@ grep -Fq '[HarmonyPatch(typeof(TeleportWorld), "Awake")]' "$module/WorldLabelPat
 grep -Fq 'TryGetNativeWoodenSign(out Sign donor)' "$module/PortalLabelController.cs"
 grep -Fq 'TryFindNativeWoodenSign(scene.m_prefabs, out sign)' "$module/WorldLabelRuntime.cs"
 grep -Fq 'TryFindNativeWoodenSign(scene.m_nonNetViewPrefabs, out sign)' "$module/WorldLabelRuntime.cs"
-grep -Fq 'name == "piece_sign" || name.StartsWith("piece_sign(Clone)")' "$module/WorldLabelRuntime.cs"
+grep -Fq 'sign.GetComponent<Piece>()?.m_name == "$piece_sign"' "$module/WorldLabelRuntime.cs"
+if grep -Fq 'IsNativeWoodenSignName' "$module/WorldLabelRuntime.cs"; then
+  printf 'portal sign donor must use the native Piece contract instead of the unstable prefab root name\n' >&2
+  exit 1
+fi
 grep -Fq 'BoardClearanceMeters = 0.25f' "$module/PortalSignVisualFactory.cs"
 grep -Fq 'CopyRenderHierarchy(donor.transform, root.transform)' "$module/PortalSignVisualFactory.cs"
 grep -Fq 'target.AddComponent<MeshFilter>().sharedMesh = sourceFilter.sharedMesh;' "$module/PortalSignVisualFactory.cs"
