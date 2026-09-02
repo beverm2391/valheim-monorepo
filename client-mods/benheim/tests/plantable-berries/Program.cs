@@ -35,6 +35,30 @@ static GameObject CreateBush(string name, GameObject berryItem)
     return bush;
 }
 
+static (bool Removed, int RefundAmount, string? RefundItem) TryNativeHammerRemoval(
+    Piece piece,
+    long removingPlayerId,
+    PieceTable toolPieces,
+    bool wardAccess)
+{
+    _ = removingPlayerId;
+    if (!toolPieces.m_canRemovePieces || !piece.m_canBeRemoved || !wardAccess || piece.Removed)
+    {
+        return (false, 0, null);
+    }
+
+    bool canRemove = piece.CanBeRemoved();
+    PlantableBerryRemovalPatch.Postfix(piece, ref canRemove);
+    if (!canRemove)
+    {
+        return (false, 0, null);
+    }
+
+    (int amount, string? itemName) = piece.DropResources();
+    piece.Destroy();
+    return (true, amount, itemName);
+}
+
 static SphereCollider AddSphere(GameObject parent, string name, float radius, Vector3 position, Vector3 scale)
 {
     var child = new GameObject(name);
@@ -58,7 +82,8 @@ static CapsuleCollider AddCapsule(GameObject parent, string name, float radius, 
     return collider;
 }
 
-var pieceTable = new PieceTable();
+var pieceTable = new PieceTable { m_canRemovePieces = false };
+var hammerPieceTable = new PieceTable { m_canRemovePieces = true };
 var nativePlant = new GameObject("sapling_carrot");
 nativePlant.AddComponent<Plant>();
 nativePlant.AddComponent<Piece>().m_placeEffect = new EffectList();
@@ -127,13 +152,22 @@ foreach (GameObject bush in new[] { raspberry, blueberry, cloudberry })
     Require(!piece.m_cultivatedGroundOnly, "berry placement must not require cultivation");
     Require(piece.m_resources.Length == 1, "berry placement must use one matching resource");
     Require(piece.m_resources[0].m_amount == PlantableBerries.BerryCost, "berry placement must cost exactly five berries");
-    Require(!piece.m_resources[0].m_recover, "berry placement cost must remain nonrecoverable");
+    Require(piece.m_canBeRemoved, "berry pieces must reach the native Hammer removal eligibility check");
+    Require(piece.m_resources[0].m_recover, "native Hammer removal must refund the placement cost");
     RequireNear(pickable.m_respawnTimeMinutes, 300f, "registration must preserve the native growth and respawn duration");
+
+    bool naturalCanRemove = piece.CanBeRemoved();
+    PlantableBerryRemovalPatch.Postfix(piece, ref naturalCanRemove);
+    Require(!naturalCanRemove, $"naturally spawned {bush.name} must not be Hammer-removable");
 
     bool placementState = PlantableBerries.IsNewOwnedBerryPlacement(piece);
     Require(placementState, $"{bush.name} must meet the conditions for a new owned berry placement");
     piece.SetCreator(12345L);
     PlantableBerries.StartPlacedBerryEmpty(piece, placementState);
+
+    bool plantedCanRemove = piece.CanBeRemoved();
+    PlantableBerryRemovalPatch.Postfix(piece, ref plantedCanRemove);
+    Require(plantedCanRemove, $"player-planted {bush.name} must be Hammer-removable");
 
     Require(piece.GetCreator() == 12345L, $"{bush.name} must preserve native creator ownership");
     Require(pickable.Picked, $"newly planted {bush.name} must start empty");
@@ -253,12 +287,55 @@ foreach (GameObject wildBush in new[]
         $"natural {wildBush.name} must become ready after its repeated deadline");
 }
 
+Piece removableRaspberry = raspberry.GetComponent<Piece>()!;
+(bool wardRemoved, int wardRefund, _) = TryNativeHammerRemoval(
+    removableRaspberry,
+    removingPlayerId: 67890L,
+    toolPieces: hammerPieceTable,
+    wardAccess: false);
+Require(!wardRemoved && wardRefund == 0 && removableRaspberry.DropResourcesCalls == 0,
+    "native ward denial must block planted-bush removal and refund");
+
+(bool cultivatorRemoved, int cultivatorRefund, _) = TryNativeHammerRemoval(
+    removableRaspberry,
+    removingPlayerId: 67890L,
+    toolPieces: pieceTable,
+    wardAccess: true);
+Require(!cultivatorRemoved && cultivatorRefund == 0 && removableRaspberry.DropResourcesCalls == 0,
+    "the Cultivator must not gain a removal path");
+
+(bool peerRemoved, int peerRefund, string? peerRefundItem) = TryNativeHammerRemoval(
+    removableRaspberry,
+    removingPlayerId: 67890L,
+    toolPieces: hammerPieceTable,
+    wardAccess: true);
+Require(peerRemoved, "a ward-permitted peer must remove a bush planted by another player");
+Require(peerRefund == PlantableBerries.BerryCost && peerRefundItem == "Raspberry",
+    "native Hammer removal must refund exactly five matching berries");
+Require(removableRaspberry.DropResourcesCalls == 1,
+    "successful native removal must drop resources exactly once");
+
+(bool duplicateRemoved, int duplicateRefund, _) = TryNativeHammerRemoval(
+    removableRaspberry,
+    removingPlayerId: 67890L,
+    toolPieces: hammerPieceTable,
+    wardAccess: true);
+Require(!duplicateRemoved && duplicateRefund == 0 && removableRaspberry.DropResourcesCalls == 1,
+    "a duplicate removal attempt must not destroy or refund twice");
+
 var unrelatedPickable = CreateBush("Pickable_Mushroom", CreateBerryItem("Mushroom"));
-unrelatedPickable.AddComponent<Piece>().SetCreator(12345L);
+Piece unrelatedPiece = unrelatedPickable.AddComponent<Piece>();
+unrelatedPiece.SetCreator(12345L);
 Pickable unrelated = unrelatedPickable.GetComponent<Pickable>()!;
 unrelated.SetPicked(true);
 BerryRespawnPatch.Prefix(unrelated);
 RequireNear(unrelated.m_respawnTimeMinutes, 300f,
     "an unrelated Pickable must retain its native respawn");
+bool unrelatedNativeDenial = false;
+PlantableBerryRemovalPatch.Postfix(unrelatedPiece, ref unrelatedNativeDenial);
+Require(!unrelatedNativeDenial, "an unrelated Piece must preserve a native removal denial");
+bool unrelatedNativeApproval = true;
+PlantableBerryRemovalPatch.Postfix(unrelatedPiece, ref unrelatedNativeApproval);
+Require(unrelatedNativeApproval, "an unrelated Piece must preserve a native removal approval");
 
 Console.WriteLine("Plantable berry production registration tests passed");

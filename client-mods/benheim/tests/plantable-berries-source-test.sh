@@ -5,6 +5,22 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 registration="$root/src/Farming/PlantableBerries.cs"
 mass_planting="$root/src/Farming/MassPlanting.cs"
+behavior="$root/tests/plantable-berries/Program.cs"
+
+# UnityPy 1.25.0 plus TypeTreeGeneratorAPI 0.0.10 resolves the installed
+# _CultivatorPieceTable.prefab in this pinned soft-reference bundle with
+# m_canRemovePieces=0. Pinning the bundle makes the behavioral fixture fail
+# closed when installed prefab data changes.
+# shellcheck source=../scripts/valheim-source-lib.sh
+source "$root/scripts/valheim-source-lib.sh"
+valheim_source_resolve_assembly
+valheim_data="$(dirname "$(dirname "$VALHEIM_SOURCE_ASSEMBLY_PATH")")"
+softref_manifest="$valheim_data/StreamingAssets/SoftRef/manifest_extended"
+cultivator_bundle="$valheim_data/StreamingAssets/SoftRef/Bundles/c4210710"
+grep -Fq 'path in bundle: Assets/GameElements/Pieces/_CultivatorPieceTable.prefab' "$softref_manifest"
+test "$(valheim_source_sha256_file "$cultivator_bundle")" = '2d1e17fa941213747868face6b8fb13e23332292454007255c42562119e31448'
+grep -Fq 'var pieceTable = new PieceTable { m_canRemovePieces = false };' "$behavior"
+grep -Fq '!toolPieces.m_canRemovePieces' "$behavior"
 
 grep -Fq 'CurrentVersion { get; } = new GameVersion(0, 221, 12);' "$source_tree/Version.cs"
 
@@ -56,9 +72,16 @@ grep -Fq 'piece.m_groundPiece = true;' "$registration"
 grep -Fq 'piece.m_groundOnly = true;' "$registration"
 grep -Fq 'piece.m_cultivatedGroundOnly = false;' "$registration"
 grep -Fq 'piece.m_onlyInBiome = Heightmap.Biome.None;' "$registration"
-grep -Fq 'piece.m_canBeRemoved = false;' "$registration"
+grep -Fq 'piece.m_canBeRemoved = true;' "$registration"
 grep -Fq 'm_amount = BerryCost,' "$registration"
-grep -Fq 'm_recover = false,' "$registration"
+grep -Fq 'm_recover = true,' "$registration"
+grep -Fq '[HarmonyPatch(typeof(Piece), nameof(Piece.CanBeRemoved))]' "$registration"
+grep -Fq '__result = PlantableBerries.CanRemoveBerryBush(__instance, __result);' "$registration"
+grep -Fq 'nativeCanRemove && piece.GetCreator() != 0L' "$registration"
+if grep -Fq 'HarmonyPatch(typeof(Player)' "$registration"; then
+  printf 'berry removal must stay on the native Hammer removal path\n' >&2
+  exit 1
+fi
 
 # Grid spacing and collision rejection come from each native bush's collider
 # shape data. Unity reports empty world-space bounds for inactive prefabs, so
@@ -91,9 +114,31 @@ grep -Fq 'timeSpan.TotalMinutes <= (double)m_respawnTimeMinutes' "$source_tree/P
 grep -Fq 'm_nview.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", false);' "$source_tree/Pickable.cs"
 grep -Fq 'if (!(m_nview == null) && m_nview.IsOwner() && GetCreator() == 0L)' "$source_tree/Piece.cs"
 grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_creator, uid);' "$source_tree/Piece.cs"
+grep -Fq 'return GetCreator() != 0;' "$source_tree/Piece.cs"
+grep -Fq 'if (requirement.m_resItem == null || !requirement.m_recover)' "$source_tree/Piece.cs"
+grep -Fq 'int dropCount = requirement.m_amount;' "$source_tree/Piece.cs"
+grep -Fq 'if (!IsPlacedByPlayer())' "$source_tree/Piece.cs"
 grep -Fq 'UnityEngine.Random.InitState(m_seed);' "$source_tree/Plant.cs"
 grep -Fq 'return Mathf.Lerp(m_growTime, m_growTimeMax, value);' "$source_tree/Plant.cs"
 grep -Fq 'm_uid.SetID(++ZDOID.m_loadID);' "$source_tree/ZDO.cs"
+
+# Hammer removal owns authorization, the one refund call, and destruction.
+# Berry provenance only narrows Piece.CanBeRemoved after those native gates.
+remove_source="$source_tree/Player.cs"
+removable_line="$(grep -nF 'if (!piece.m_canBeRemoved)' "$remove_source" | cut -d: -f1)"
+ward_line="$(grep -nF 'if (!PrivateArea.CheckAccess(piece.transform.position))' "$remove_source" | cut -d: -f1)"
+station_line="$(grep -nF 'if (!CheckCanRemovePiece(piece))' "$remove_source" | cut -d: -f1)"
+piece_gate_line="$(grep -nF 'if (!piece.CanBeRemoved())' "$remove_source" | cut -d: -f1)"
+claim_line="$(grep -nF 'component.ClaimOwnership();' "$remove_source" | cut -d: -f1)"
+refund_line="$(grep -nF 'piece.DropResources();' "$remove_source" | cut -d: -f1)"
+destroy_line="$(grep -nF 'ZNetScene.instance.Destroy(piece.gameObject);' "$remove_source" | cut -d: -f1)"
+test "$removable_line" -lt "$ward_line"
+test "$ward_line" -lt "$station_line"
+test "$station_line" -lt "$piece_gate_line"
+test "$piece_gate_line" -lt "$claim_line"
+test "$claim_line" -lt "$refund_line"
+test "$refund_line" -lt "$destroy_line"
+test "$(grep -Fc 'piece.DropResources();' "$remove_source")" -eq 1
 
 test "$(grep -Fc 'pickable.m_respawnTimeMinutes =' "$registration")" -eq 1
 if grep -Eq 'm_defaultPicked\s*=|m_itemPrefab\s*=' "$registration"; then

@@ -50,6 +50,19 @@ internal static class PlantableBerries
     }
 
     /// <summary>
+    /// Keeps Valheim's native removal decision for unrelated pieces. Native
+    /// berry bushes additionally require a creator marker, which distinguishes
+    /// player-planted instances from world-spawned bushes without identifying
+    /// which permitted player is holding the Hammer.
+    /// </summary>
+    internal static bool CanRemoveBerryBush(Piece piece, bool nativeCanRemove)
+    {
+        return !IsBerryBush(piece.gameObject)
+            ? nativeCanRemove
+            : nativeCanRemove && piece.GetCreator() != 0L;
+    }
+
+    /// <summary>
     /// Identifies an owned berry-bush placement before Piece.SetCreator assigns
     /// the local player as creator. It excludes natural bushes and pieces that
     /// already have a creator.
@@ -234,7 +247,7 @@ internal static class PlantableBerries
         piece.m_groundOnly = true;
         piece.m_cultivatedGroundOnly = false;
         piece.m_onlyInBiome = Heightmap.Biome.None;
-        piece.m_canBeRemoved = false;
+        piece.m_canBeRemoved = true;
         piece.m_targetNonPlayerBuilt = false;
         piece.m_placeEffect = placeEffect;
         piece.m_resources = new[]
@@ -243,7 +256,7 @@ internal static class PlantableBerries
             {
                 m_resItem = berry.ItemDrop,
                 m_amount = BerryCost,
-                m_recover = false,
+                m_recover = true,
             },
         };
     }
@@ -391,5 +404,15 @@ internal static class BerryRespawnPatch
     internal static void Prefix(Pickable __instance)
     {
         PlantableBerries.TryApplyBerryRespawn(__instance);
+    }
+}
+
+[HarmonyPatch(typeof(Piece), nameof(Piece.CanBeRemoved))]
+internal static class PlantableBerryRemovalPatch
+{
+    [HarmonyPostfix]
+    internal static void Postfix(Piece __instance, ref bool __result)
+    {
+        __result = PlantableBerries.CanRemoveBerryBush(__instance, __result);
     }
 }

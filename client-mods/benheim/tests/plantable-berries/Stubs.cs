@@ -291,6 +291,7 @@ internal sealed class ItemDrop : UnityEngine.Component
 internal sealed class PieceTable
 {
     internal List<UnityEngine.GameObject> m_pieces = new();
+    internal bool m_canRemovePieces;
 }
 
 internal sealed class Piece : UnityEngine.Component
@@ -316,10 +317,34 @@ internal sealed class Piece : UnityEngine.Component
     internal bool m_targetNonPlayerBuilt;
     internal EffectList m_placeEffect = new();
     internal Requirement[] m_resources = Array.Empty<Requirement>();
+    internal bool Removed { get; private set; }
+    internal int DropResourcesCalls { get; private set; }
 
     private long creator;
 
     internal long GetCreator() => creator;
+    internal bool CanBeRemoved() => true;
+
+    internal (int Amount, string? ItemName) DropResources()
+    {
+        DropResourcesCalls++;
+        int amount = 0;
+        string? itemName = null;
+        foreach (Requirement requirement in m_resources)
+        {
+            if (requirement.m_resItem == null || !requirement.m_recover)
+            {
+                continue;
+            }
+
+            amount += requirement.m_amount;
+            itemName = requirement.m_resItem.gameObject.name;
+        }
+
+        return (amount, itemName);
+    }
+
+    internal void Destroy() => Removed = true;
 
     internal void SetCreator(long uid)
     {
