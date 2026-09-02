@@ -19,6 +19,9 @@ to obtain without increasing native drop counts.
 
 ## In Development
 
+- Each final ordinary Wood drop from a native Pine log becomes Finewood.
+  Native Core Wood drops remain unchanged. The conversion keeps each Pine
+  log's native item count unchanged.
 - Cleave unlocks at Wood Cutting 25 for local-player axe hits against standing
   trees and fallen logs.
 - Cleave chance increases from 30% at Wood Cutting 25 to 85% at Wood Cutting

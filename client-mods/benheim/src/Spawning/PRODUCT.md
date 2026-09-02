@@ -26,6 +26,13 @@ Valheim's existing zone ownership.
   or leaves the cap under the current configuration. That evidence must include
   the effective configuration, loaded population, saturation, and cap
   transitions.
+- Live `0.1.81` diagnostics proved the configured interval for ordinary
+  base-world Leech spawns: 200 native seconds, 40 effective seconds, factor
+  `5`. During that session, the spawn watcher observed loaded counts only from
+  0 through 2. It never saturated the native cap of 10, so the cap did not limit
+  that session. The inspected log contained no `leech_spawn_succeeded` event,
+  so a fresh successful adjusted spawn remains unproven. A zone-owner transfer
+  also remains unproven.
 - Valheim performs ordinary base-world spawning on the client that owns each
   zone. The adjusted 5x Leech opportunity rate stays consistent only when all
   active zone owners use mutually compatible Benheim versions for the Spawning

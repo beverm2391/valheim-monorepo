@@ -42,11 +42,17 @@ ledger and who can accept its items.
   `bhrun`, and `bhwatch`. Run the effects, text, and UI catalog commands.
   Confirm that each snapshot returns a result within its defined limit and
   leaves no temporary state in the running game.
-- **Leech spawning:** With compatible clients owning active Swamp zones, confirm
-  ordinary base-world Leech opportunities use the 5x rate. Confirm each
-  successful adjusted spawn records one event with source `base_world`, prefab
-  `Leech`, and multiplier `5`. Transfer zone ownership and confirm the same
-  behavior continues.
+- **Leech spawning:** The installed `0.1.81` build emitted a diagnostic for the
+  configured interval of ordinary base-world Leech spawns: 200 native seconds,
+  40 effective seconds, factor `5`. This proves the approved 5x opportunity
+  configuration, not a successful spawn. The spawn watcher observed loaded
+  counts only from 0 through 2. It never saturated the native cap of 10, so the
+  cap did not limit this session. The inspected log contained no
+  `leech_spawn_succeeded` event. A fresh successful adjusted spawn and a
+  zone-owner transfer remain unproven. Stay in an active Swamp zone until one
+  success records source `base_world`, prefab `Leech`, and multiplier `5`. Then
+  transfer zone ownership to another compatible client and confirm that the
+  same behavior continues.
 
 - **Tar-pit pickup:** Installed `0.1.80` proved manual pickup of submerged
   native Tar but left other items stuck and did not auto-pick up. Drop native
@@ -55,8 +61,11 @@ ledger and who can accept its items.
   native range, inventory-space, carry-weight, and ownership failures still
   block collection normally.
 
-- **Farming and Cultivator grids:** Installed `0.1.80` exposed an input-boundary
-  failure. Open the Cultivator picker and confirm that each picker session
+- **Farming and Cultivator grids:** In the live test of installed `0.1.81`,
+  holding `Left Shift` and pressing an odd-number key did not select a grid. No
+  top-left confirmation or typed `Farming.plant_grid_selected` event appeared.
+  Do not retest grid selection until a corrected build is installed. After that
+  correction, open the Cultivator picker and confirm that each picker session
   starts with 9x9 selected. Hold `Left Shift` and press each of `1`, `3`, `5`,
   `7`, and `9`. After each selection, confirm that the existing `Left Shift`
   mass-plant preview and placement both use the matching centered grid. Plain
@@ -73,6 +82,9 @@ ledger and who can accept its items.
   Confirm that complete per-piece evidence remains in typed diagnostics.
 - **Berry planting:** Installed `0.1.80` proved ordinary Raspberry placement
   but exposed the initial-growth failure: the new bush did not start empty.
+  In live `0.1.81` testing, Ben removed one player-planted Raspberry bush with
+  the Hammer and received exactly five Raspberries. Ben accepted this tested
+  case.
   Retest Raspberry, Blueberry, and Cloudberry after the correction:
 
   - confirm ordinary Blueberry and Cloudberry placement and centered 9x9
@@ -83,9 +95,9 @@ ledger and who can accept its items.
     of 4,000 to 5,000 seconds before each yield, including the first yield of a
     planted bush;
   - confirm unrelated `Pickable` objects keep native timing;
-  - use the Hammer to remove one player-planted bush of each type and confirm
-    each returns exactly five matching berries when native access and ward
-    rules allow removal;
+  - use the Hammer to remove one player-planted Blueberry bush and one
+    player-planted Cloudberry bush; confirm that each returns exactly five
+    matching berries when native access and ward rules allow removal;
   - confirm naturally spawned bushes cannot be removed with the Hammer and the
     Cultivator removes no planted or naturally spawned berry bush;
   - reload the save and confirm persistence; and

@@ -25,7 +25,12 @@ fire requirements, the Rested calculation, persistence, or networking.
 
 ## In Development
 
-The uninstalled `0.1.81` candidate prints a readable summary in the console.
+Benheim extends only feast targeting and eating from Valheim's native 2-meter
+range to Benheim's existing 8-meter interaction range. Food eligibility,
+remaining portions, owner-authoritative requests, effects, and all other feast
+behavior remain native.
+
+The installed `0.1.81` build prints a readable summary in the console.
 The summary includes the calculated comfort and **Counted**, **Ignored**, and
 **Just outside range** sections. The command still records the complete
 diagnostic in its structured form and writes the evidence to the log. The
@@ -44,7 +49,7 @@ interaction, crafting, repair, upgrade attachment, comfort, Workbench suppressio
 enemy spawning, wards, other crafting stations, persistence, networking, or world
 data.
 
-Installed `0.1.80` still needs gameplay proof for:
+Installed `0.1.81` still needs gameplay proof for:
 
 - the native 20-meter boundary at each level-1 station;
 - the extended area beyond 20 meters and through 40 meters;
@@ -55,7 +60,7 @@ Live `0.1.80` testing proved that players can manually collect native Tar while
 it is submerged in a native tar pit. It also showed that other submerged items
 remain stuck and auto-pickup does not work there.
 
-The uninstalled `0.1.81` candidate contains the approved correction, which
+The installed `0.1.81` build contains the approved correction, which
 removes the tar-pit pickup block for every item.
 Submerged items support both ordinary manual pickup and Valheim's normal
 auto-pickup. Native interaction and auto-pickup range, ownership, pickup

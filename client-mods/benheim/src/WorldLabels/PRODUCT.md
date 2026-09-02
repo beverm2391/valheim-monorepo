@@ -12,21 +12,23 @@ Neither feature has a setting or saved state.
 
 ## In Development
 
-- Each wooden or stone portal with a non-empty tag shows a label fixed in place
-  just above it. The label uses the same high-contrast overlay treatment as
-  Perfect Parry feedback, so it stays readable against scenery. It exactly
-  matches the portal's current tag and updates when that tag changes. An empty
-  tag has no label.
-- Portal labels appear at distances of 30 meters or less when nothing blocks
-  the player's view of the portal. Walls and closed structures block the
-  labels.
+- Each wooden or stone portal with a non-empty tag shows Valheim's wooden sign
+  board floating 20 to 30 centimeters above the portal. The board stays fixed
+  to the portal's position and rotation. It does not turn toward the camera.
+- The board shows the portal tag on both sides with the existing glowing
+  letters used on signs. The displayed text exactly matches the current portal
+  tag and updates when the tag changes. A portal with an empty tag shows no
+  board.
+- The board behaves like scene geometry. Walls and structures hide it, and it
+  does not appear through them as overlay text.
 - Sign glow and portal labels are client-only visuals. They do not write to the
   network, world, portal, or sign state.
 
-The remaining live test must judge label placement on existing wooden and stone
-portals. It must also confirm that:
+The remaining live test must evaluate the sign board's placement on existing
+wooden and stone portals. It must also confirm that:
 
-- labels are visible at 30 meters but not beyond;
-- walls hide labels;
-- empty tags have no labels; and
-- labels update after a player renames a portal.
+- the sign board stays fixed above each portal instead of facing the camera;
+- the tag is readable from both portal sides;
+- walls hide the board;
+- empty tags have no board; and
+- the board updates after a player renames a portal.

@@ -78,8 +78,10 @@ Valheim's normal farming restrictions.
 - Live `0.1.80` proved ordinary Raspberry placement. It also showed that newly
   planted Raspberry bushes did not start empty and that Cultivator grid-size
   selection intercepted keys outside the required `Left Shift` combinations.
-  The fixes and all other single-player behavior remain unproven. Testing must
-  confirm:
+- Live `0.1.81` testing proved one case: Ben removed one player-planted
+  Raspberry bush with the Hammer and received exactly five Raspberries. All
+  other removal cases, fixes, and remaining single-player behavior remain
+  unproven. Testing must confirm:
   - ordinary Blueberry and Cloudberry placement
   - centered 9x9 grid placement
   - exact berry costs
@@ -93,7 +95,7 @@ Valheim's normal farming restrictions.
     harvest
   - unrelated `Pickable` objects retain their native timing
   - Hammer removal returns exactly five matching berries for one player-planted
-    bush of each type
+    Blueberry bush and one player-planted Cloudberry bush
   - one naturally spawned bush of each type cannot be removed with the Hammer
   - the Cultivator cannot remove a planted or naturally spawned bush of any type
   - berry-bush state persists after a save reload
@@ -113,3 +115,7 @@ Valheim's normal farming restrictions.
   - reconnect behavior
 - The corrected selectable planting grids remain unproven until Ben tests them
   in Valheim.
+- In the live test of installed `0.1.81`, holding `Left Shift` and pressing an
+  odd-number key did not select a grid. No top-left confirmation or typed
+  `Farming.plant_grid_selected` event appeared. Do not retest grid selection
+  until a corrected build is installed.
