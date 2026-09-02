@@ -205,6 +205,14 @@ namespace BenheimQoL.EnemyTiers
     }
 }
 
+namespace BenheimQoL.WispEcho
+{
+    internal static class WispEchoDiscovery
+    {
+        internal static void Run(string[] arguments, Action<string> output) { }
+    }
+}
+
 namespace BenheimQoL.Spawning
 {
     using BenheimQoL.DeveloperDiagnostics;

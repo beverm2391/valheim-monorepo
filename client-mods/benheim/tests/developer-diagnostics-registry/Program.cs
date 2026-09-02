@@ -11,7 +11,7 @@ DeveloperDiagnosticsRuntime.InitializeConsole();
 
 Expect(Terminal.Commands.Count == 3, "initialization registers each command once");
 ExpectOptions("bhcatalog", "effects", "text", "ui");
-ExpectOptions("bhrun", "comfort");
+ExpectOptions("bhrun", "comfort", "wispecho");
 ExpectOptions("bhwatch", "colliders", "spawns");
 
 Terminal catalogOutput = Run("bhcatalog", "effects", " bronze ");

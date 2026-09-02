@@ -4,6 +4,7 @@ using BenheimQoL.EnemyTiers;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.Interaction;
 using BenheimQoL.Spawning;
+using BenheimQoL.WispEcho;
 
 namespace BenheimQoL.DeveloperDiagnostics;
 
@@ -34,6 +35,7 @@ internal static partial class DeveloperDiagnosticsRuntime
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["comfort"] = ComfortDiagnosticCommand.Run,
+            ["wispecho"] = WispEchoDiscovery.Run,
         };
 
     private static readonly Dictionary<string, RegisteredProbe> Probes =
@@ -84,7 +86,7 @@ internal static partial class DeveloperDiagnosticsRuntime
             "run one developer diagnostic snapshot; run 'bhrun' for choices",
             args => ExecuteSnapshot(
                 "bhrun",
-                "bhrun <comfort>",
+                $"bhrun <{string.Join("|", SnapshotNames())}>",
                 Snapshots,
                 args),
             isCheat: false,
