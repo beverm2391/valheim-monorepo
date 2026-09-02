@@ -223,14 +223,14 @@ Club's primary attack while airborne, Lunge adds one 10 m/s forward impulse
 and raises vertical velocity to at least +3 m/s. Grounded Club swings remain
 native.
 
-The exact `0.1.80` macOS private-test package was installed byte-for-byte and
-launched through the managed Benheim launcher on installed Valheim `0.221.12`.
-It reached Valheim's real main menu. The fresh log contained the expected
+The exact `0.1.81` macOS private-test package was installed byte-for-byte. The
+managed Benheim launcher then started Valheim `0.221.12` with that installed
+build and reached the real main menu. The fresh log contained the expected
 version, session-start, chainloader-complete, and clean session-end markers. It
-contained no Harmony, partial-patch cleanup, core-disablement,
-gameplay-disabled, or world-load marker. No world was loaded. This proves
-packaged startup only. The module documents and the root Product Review own
-the remaining live gameplay gates.
+contained no Harmony cleanup, partial-patch cleanup, core-disablement,
+gameplay-disabled, or world-load marker. No world was entered. This proves only
+that the exact packaged build starts after installation. The module documents
+and the root Product Review own the remaining live gameplay gates.
 
 The candidate doubles only native Workbench and Stonecutter build-piece
 placement coverage. In installed Valheim `0.221.12`, both level-1 stations have
