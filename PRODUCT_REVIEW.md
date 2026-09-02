@@ -7,9 +7,9 @@ ledger and who can accept its items.
 
 ## Release state
 
-- Packaged version: private-test `0.1.81` for Mac and Windows. Both packages
-  remain uninstalled.
-- Installed version: private-test `0.1.80` on Ben's Mac, installed from the
+- Packaged version: private-test `0.1.81` for Mac and Windows. The Windows
+  package remains uninstalled.
+- Installed version: private-test `0.1.81` on Ben's Mac, installed from the
   exact private-test macOS package.
 - Startup proof: The latest proof applies only to installed `0.1.80`. The
   managed Benheim launcher started that exact package and reached the real main
@@ -18,12 +18,12 @@ ledger and who can accept its items.
   chainloader-complete, and clean session-end markers. The log contained no
   Harmony cleanup marker, core-disablement marker, gameplay-disabled marker,
   or world-load marker. No world was entered. The task quit only the Valheim
-  process that it launched, and no Valheim process remained. Packaged `0.1.81`
-  has no install or startup proof.
+  process that it launched, and no Valheim process remained. Installed `0.1.81`
+  has no startup proof.
 - Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.81`
   require no change to that server component.
 
-## Test on installed `0.1.80`
+## Test on installed `0.1.81`
 
 - **Earned-state audio:** In multiplayer, trigger an earned combat state near
   one compatible player and far from another. The nearby player may hear the
@@ -49,8 +49,6 @@ ledger and who can accept its items.
   successful adjusted spawn records one event with source `base_world`, prefab
   `Leech`, and multiplier `5`. Transfer zone ownership and confirm the same
   behavior continues.
-
-## Test after private-test `0.1.81` is installed
 
 - **Tar-pit pickup:** Installed `0.1.80` proved manual pickup of submerged
   native Tar but left other items stuck and did not auto-pick up. Drop native
