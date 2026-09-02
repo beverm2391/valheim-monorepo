@@ -74,7 +74,7 @@ internal static partial class ShortcutOverlay
             TravelAccent,
             new[]
             {
-                new Entry("Extended reach", "Use interactable objects from up to 8 m; open containers stay available to 10 m"),
+                new Entry("Extended reach", "Use Feasts and other interactable objects at up to 8 m. Open containers remain available at up to 10 m"),
                 new Entry("Tar-pit pickup", "Manually pick up ordinary items submerged in native tar pits, or collect them with Valheim's normal auto-pickup"),
                 new Entry("Portal travel", "Finish the transition sooner after the destination is ready"),
                 new Entry("Glowing signs", "Existing sign letters have a soft, warm portal-amber glow. The wooden board stays unchanged"),
