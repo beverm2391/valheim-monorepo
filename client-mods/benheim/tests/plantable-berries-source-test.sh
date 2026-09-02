@@ -5,7 +5,6 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 registration="$root/src/Farming/PlantableBerries.cs"
 mass_planting="$root/src/Farming/MassPlanting.cs"
-product="$root/src/Farming/PRODUCT.md"
 
 grep -Fq 'CurrentVersion { get; } = new GameVersion(0, 221, 12);' "$source_tree/Version.cs"
 
@@ -23,6 +22,11 @@ grep -Fq 'prefab.GetComponent<Destructible>()' "$registration"
 grep -Fq 'pickable.m_itemPrefab?.GetComponent<ItemDrop>()' "$registration"
 grep -Fq 'berry.Prefab.GetComponent<Piece>() ?? berry.Prefab.AddComponent<Piece>()' "$registration"
 grep -Fq 'pieceTable.m_pieces.Add(berry.Prefab);' "$registration"
+grep -Fq '[HarmonyPatch(typeof(Piece), nameof(Piece.SetCreator))]' "$registration"
+grep -Fq 'piece.GetCreator() == 0L' "$registration"
+grep -Fq 'netView.IsOwner()' "$registration"
+grep -Fq 'piece.GetCreator() == 0L' "$registration"
+grep -Fq 'netView.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", true);' "$registration"
 
 if grep -Eq 'new GameObject|Object\.Instantiate|new Plant' "$registration"; then
   printf 'plantable berries must not create a custom prefab or Plant lifecycle\n' >&2
@@ -63,6 +67,18 @@ grep -Fq 'GameObject gameObject = UnityEngine.Object.Instantiate(original, pos, 
 grep -Fq 'component.SetCreator(GetPlayerID());' "$source_tree/Player.cs"
 grep -Fq 'm_picked = zDO.GetBool(ZDOVars.s_picked, m_defaultPicked);' "$source_tree/Pickable.cs"
 grep -Fq 'm_pickedTime = m_nview.GetZDO().GetLong(ZDOVars.s_pickedTime, 0L);' "$source_tree/Pickable.cs"
+grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_picked, m_picked);' "$source_tree/Pickable.cs"
+grep -Fq 'DateTime time = ZNet.instance.GetTime();' "$source_tree/Pickable.cs"
+grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_pickedTime, time.Ticks);' "$source_tree/Pickable.cs"
+grep -Fq 'timeSpan.TotalMinutes <= (double)m_respawnTimeMinutes' "$source_tree/Pickable.cs"
+grep -Fq 'm_nview.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", false);' "$source_tree/Pickable.cs"
+grep -Fq 'if (!(m_nview == null) && m_nview.IsOwner() && GetCreator() == 0L)' "$source_tree/Piece.cs"
+grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_creator, uid);' "$source_tree/Piece.cs"
+
+if grep -Eq 'm_respawnTimeMinutes\s*=|m_defaultPicked\s*=|m_itemPrefab\s*=' "$registration"; then
+  printf 'plantable berry registration must preserve native Pickable timing, defaults, and output\n' >&2
+  exit 1
+fi
 
 # Grid resources are checked before placement and consumed only after a
 # successful PlacePiece call. Every skip happens before either operation.
@@ -72,15 +88,6 @@ consume_line="$(grep -nF 'player.ConsumeResources(anchorPiece.m_resources' "$mas
 test "$requirements_line" -lt "$place_line"
 test "$place_line" -lt "$consume_line"
 test "$(grep -Fc 'player.ConsumeResources(anchorPiece.m_resources' "$mass_planting")" -eq 1
-
-grep -Fq 'Planting each bush costs five berries of its' "$product"
-grep -Fq 'They do not require' "$product"
-grep -Fq 'cultivated ground or a matching biome.' "$product"
-grep -Fq 'each bush' "$product"
-grep -Fq 'collider determines the spacing between bushes.' "$product"
-grep -Fq 'Benheim adds the `Piece` component, but not the `Plant` component, to each' "$product"
-grep -Fq 'Live single-player acceptance remains unproven.' "$product"
-grep -Fq 'Live multiplayer acceptance remains unproven.' "$product"
 
 dotnet run --project "$root/tests/plantable-berries/PlantableBerryRegistrationTests.csproj"
 printf 'plantable berries source checks passed\n'

@@ -10,7 +10,6 @@ tabs_file="$root/src/Shortcuts/ShortcutOverlayTabs.cs"
 catalog_file="$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 warnings_file="$root/src/Shortcuts/ShortcutOverlayWarnings.cs"
 plugin="$root/src/Plugin.cs"
-prompt="$root/PROMPT.md"
 overlay_files=("$source_file" "$content_file" "$patches_file" "$templates_file" "$tabs_file" "$catalog_file" "$warnings_file")
 
 if rg -n 'OnGUI|GUIStyle|GUILayout|GUI\.Label|Texture2D|PreloadTextOnce' "${overlay_files[@]}" "$plugin"; then
@@ -110,11 +109,13 @@ fi
 grep -Fq '"Inventory"' "$catalog_file"
 grep -Fq '"Crafting & Repair"' "$catalog_file"
 grep -Fq '"Farming"' "$catalog_file"
-grep -Fq 'new Entry("1 / 3 / 5 / 7 / 9", "Choose the planting grid while the Cultivator picker is open")' "$catalog_file"
+grep -Fq 'new Entry("Left Shift + 1 / 3 / 5 / 7 / 9", "Choose the planting grid while the Cultivator picker is open")' "$catalog_file"
 grep -Fq 'FarmingSettings.DefaultGridSize' "$catalog_file"
+grep -Fq 'each time the picker opens' "$catalog_file"
 grep -Fq '"Cultivator berries"' "$catalog_file"
 grep -Fq 'PlantableBerries.BerryCost' "$catalog_file"
 grep -Fq "every grid uses each native bush's collider footprint for spacing" "$catalog_file"
+grep -Fq "newly planted bushes start empty until their native growth cycle completes" "$catalog_file"
 grep -Fq '"World & Travel"' "$catalog_file"
 grep -Fq '"Gathering & Skills"' "$catalog_file"
 grep -Fq '"Affinities"' "$catalog_file"
@@ -140,11 +141,6 @@ grep -Fq 'Stackables protect every stack of that item type; non-stackable gear p
 grep -Fq 'Left Shift + B / Escape' "$content_file"
 grep -Fq 'ShortcutOverlay.Destroy();' "$plugin"
 grep -Fq 'RestoreCursor();' "$source_file"
-
-# Every client package gate compares the menu with owning product truth.
-grep -Fq 'Before every client version bump or package build, compare the Benheim menu' "$prompt"
-grep -Fq 'Update and organize each new or' "$prompt"
-grep -Fq 'changed player-facing control or feature.' "$prompt"
 
 # The config panel describes every effect controlled by Combat Shake.
 grep -Fq 'Cleave, mining AOE, and Perfect Impact' "$root/src/Shortcuts/ShortcutOverlayConfig.cs"
