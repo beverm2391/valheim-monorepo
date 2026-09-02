@@ -26,7 +26,7 @@ SOFTWARE.
 
 The BenheimQoL World Labels module adapts Better Portal's proven method for
 attaching a client component in `TeleportWorld.Awake`, as implemented in commit
-`4b1b73e34bbc604781e534772b5d3448acc68f01`. Better Portal is available under
+`42aa1866393813ffcb8ddfbd85f1313f597c866c`. Better Portal is available under
 the MIT License.
 
 Copyright (c) 2022 EideeHi

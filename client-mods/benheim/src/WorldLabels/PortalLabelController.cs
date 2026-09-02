@@ -1,4 +1,3 @@
-using BenheimQoL.Infrastructure;
 using TMPro;
 using UnityEngine;
 
@@ -6,14 +5,13 @@ namespace BenheimQoL.WorldLabels;
 
 internal sealed class PortalLabelController : MonoBehaviour
 {
-    private const float LabelClearanceMeters = 0.35f;
-
     private TeleportWorld portal = null!;
     private GameObject? labelRoot;
-    private TMP_Text? label;
-    private Vector3 labelWorldPosition;
+    private TextMeshProUGUI? frontLabel;
+    private TextMeshProUGUI? backLabel;
+    private Material? frontGlowMaterial;
+    private Material? backGlowMaterial;
     private string? currentTag;
-    private bool visibleByPolicy;
     private bool disposed;
 
     internal void Initialize(TeleportWorld source)
@@ -22,11 +20,18 @@ internal sealed class PortalLabelController : MonoBehaviour
         InvokeRepeating(
             nameof(Refresh),
             0f,
-            WorldLabelVisibility.PortalRefreshIntervalSeconds);
+            PortalSignVisualFactory.RefreshIntervalSeconds);
     }
 
     internal void DisposeAndRemove()
     {
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
+        CancelInvoke(nameof(Refresh));
         DisposeVisual();
         enabled = false;
         Destroy(this);
@@ -39,94 +44,50 @@ internal sealed class PortalLabelController : MonoBehaviour
             return;
         }
 
-        if (label == null && !TryBuildLabel())
+        string tag = portal.GetText();
+        if (string.IsNullOrEmpty(tag))
         {
-            WorldLabelRuntime.LogPortalPresentationPending();
+            currentTag = tag;
+            DisposeVisual();
             return;
         }
 
-        string tag = portal.GetText();
-        if (tag != currentTag)
+        if (labelRoot == null && !TryBuildLabel(tag))
         {
-            currentTag = tag;
-            label!.text = tag;
+            WorldLabelRuntime.LogNativeSignPending();
+            return;
         }
 
-        Player? viewer = Player.m_localPlayer;
-        Camera? camera = Utils.GetMainCamera();
-        bool hasViewer = viewer != null && camera != null;
-        float distanceSquared = hasViewer
-            ? (viewer!.transform.position - portal.transform.position).sqrMagnitude
-            : float.PositiveInfinity;
-        bool hasLineOfSight = hasViewer && HasLineOfSight(camera!);
-        bool visible = WorldLabelVisibility.ShouldShowPortalTag(
-            tag,
-            hasViewer,
-            distanceSquared,
-            hasLineOfSight);
+        if (tag == currentTag)
+        {
+            return;
+        }
 
-        visibleByPolicy = visible;
-        UpdatePlacement(camera);
+        currentTag = tag;
+        frontLabel!.text = tag;
+        backLabel!.text = tag;
     }
 
-    private bool TryBuildLabel()
+    private bool TryBuildLabel(string tag)
     {
-        float top = portal.m_model != null
-            ? portal.m_model.bounds.max.y
-            : portal.transform.position.y + 3.5f;
-        labelWorldPosition = new Vector3(
-            portal.transform.position.x,
-            top + LabelClearanceMeters,
-            portal.transform.position.z);
-        if (!WorldFeedback.TryCreatePersistentBonusText(
-                labelWorldPosition,
-                out GameObject createdRoot,
-                out TMP_Text createdText))
+        if (!WorldLabelRuntime.TryGetNativeWoodenSign(out Sign donor) ||
+            !PortalSignVisualFactory.TryCreate(
+                portal,
+                donor,
+                tag,
+                out PortalSignVisual visual))
         {
             return false;
         }
 
-        labelRoot = createdRoot;
-        label = createdText;
+        labelRoot = visual.Root;
+        frontLabel = visual.FrontLabel;
+        backLabel = visual.BackLabel;
+        frontGlowMaterial = visual.FrontGlowMaterial;
+        backGlowMaterial = visual.BackGlowMaterial;
+        currentTag = tag;
         WorldLabelRuntime.LogPortalLabelCreated(portal);
         return true;
-    }
-
-    private void LateUpdate()
-    {
-        if (!disposed && labelRoot != null && visibleByPolicy)
-        {
-            UpdatePlacement(Utils.GetMainCamera());
-        }
-    }
-
-    private void UpdatePlacement(Camera? camera)
-    {
-        bool visible = visibleByPolicy &&
-            camera != null &&
-            WorldFeedback.PlacePersistentText(labelRoot!, labelWorldPosition, camera);
-        if (labelRoot!.activeSelf != visible)
-        {
-            labelRoot.SetActive(visible);
-        }
-    }
-
-    private bool HasLineOfSight(Camera camera)
-    {
-        Vector3 target = labelWorldPosition;
-        if (!Physics.Linecast(
-                camera.transform.position,
-                target,
-                out RaycastHit hit,
-                Physics.DefaultRaycastLayers,
-                QueryTriggerInteraction.Ignore))
-        {
-            return true;
-        }
-
-        Transform? hitTransform = hit.transform;
-        return hitTransform != null &&
-            (hitTransform == portal.transform || hitTransform.IsChildOf(portal.transform));
     }
 
     private void OnDestroy()
@@ -137,18 +98,24 @@ internal sealed class PortalLabelController : MonoBehaviour
 
     private void DisposeVisual()
     {
-        if (disposed)
-        {
-            return;
-        }
-
-        disposed = true;
-        CancelInvoke(nameof(Refresh));
         if (labelRoot != null)
         {
             Destroy(labelRoot);
             labelRoot = null;
-            label = null;
+            frontLabel = null;
+            backLabel = null;
+        }
+
+        if (frontGlowMaterial != null)
+        {
+            Destroy(frontGlowMaterial);
+            frontGlowMaterial = null;
+        }
+
+        if (backGlowMaterial != null)
+        {
+            Destroy(backGlowMaterial);
+            backGlowMaterial = null;
         }
     }
 }

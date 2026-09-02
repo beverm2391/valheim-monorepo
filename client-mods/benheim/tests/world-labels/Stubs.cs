@@ -4,89 +4,7 @@ using System.Linq;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
-
-namespace HarmonyLib
-{
-    public static class AccessTools
-    {
-        public static MethodInfo? DeclaredMethod(Type type, string name, Type[] parameters) =>
-            type.GetMethod(
-                name,
-                BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
-                binder: null,
-                parameters,
-                modifiers: null);
-
-        public static FieldInfo? Field(Type? type, string name) =>
-            type?.GetField(name, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-
-        public static Type? Inner(Type type, string name) =>
-            type.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic);
-    }
-}
-
-public sealed class DamageText : MonoBehaviour
-{
-    public enum TextType
-    {
-        Normal,
-        Resistant,
-        Weak,
-        Immune,
-        Heal,
-        TooHard,
-        Blocked,
-        Bonus
-    }
-
-    private sealed class WorldTextInstance
-    {
-        public GameObject m_gui = null!;
-        public TMP_Text m_textField = null!;
-        public float m_duration = 0f;
-    }
-
-    public static DamageText instance = null!;
-    public int m_largeFontSize = 16;
-    public int m_smallFontSize = 8;
-    public float m_smallFontDistance = 10f;
-    public GameObject m_worldTextBase = null!;
-
-    private readonly List<WorldTextInstance> m_worldTexts = new List<WorldTextInstance>();
-
-    public int ActiveWorldTextCount => m_worldTexts.Count;
-    public int CreatedBonusTextCount { get; private set; }
-    public float LastWorldTextDuration => m_worldTexts[^1].m_duration;
-    public string LastWorldText => m_worldTexts[^1].m_textField.text;
-
-    private void AddInworldText(TextType type, Vector3 position, float distance, string text, bool mySelf)
-    {
-        _ = UnityEngine.Random.insideUnitSphere;
-        GameObject gui = UnityEngine.Object.Instantiate(m_worldTextBase, transform);
-        TMP_Text textField = gui.GetComponent<TMP_Text>()!;
-        textField.color = type == TextType.Bonus
-            ? new Color(1f, 0.63f, 0.24f, 1f)
-            : new Color(1f, 1f, 1f, 1f);
-        textField.fontSize = distance > m_smallFontDistance ? m_smallFontSize : m_largeFontSize;
-        if (type == TextType.Bonus)
-        {
-            textField.fontSize *= 1.5f;
-            CreatedBonusTextCount++;
-        }
-
-        textField.text = text;
-        m_worldTexts.Add(new WorldTextInstance
-        {
-            m_gui = gui,
-            m_textField = textField,
-        });
-    }
-}
-
-public static class Hud
-{
-    public static bool IsUserHidden() => false;
-}
+using UnityEngine.Rendering;
 
 public sealed class Sign : MonoBehaviour
 {
@@ -100,30 +18,28 @@ public sealed class TeleportWorld : MonoBehaviour
     public string GetText() => Tag;
 }
 
-public sealed class Player : MonoBehaviour
+public sealed class ZNetView : MonoBehaviour
 {
-    public static Player? m_localPlayer;
 }
 
-public static class Utils
+public sealed class ZNetScene
 {
-    public static Camera? MainCamera { get; set; }
-    public static Camera? GetMainCamera() => MainCamera;
+    public static ZNetScene? instance;
+    public List<GameObject> m_prefabs { get; } = new();
+    public List<GameObject> m_nonNetViewPrefabs { get; } = new();
 }
 
 public static class Plugin
 {
-    public static TestLogger Log { get; } = new TestLogger();
+    public static TestLogger Log { get; } = new();
 }
 
 public sealed class TestLogger
 {
-    public List<string> Infos { get; } = new List<string>();
-    public List<string> Warnings { get; } = new List<string>();
-
+    public List<string> Infos { get; } = new();
+    public List<string> Warnings { get; } = new();
     public void LogInfo(string message) => Infos.Add(message);
     public void LogWarning(string message) => Warnings.Add(message);
-
     public void Clear()
     {
         Infos.Clear();
@@ -135,53 +51,9 @@ namespace BenheimQoL.WorldLabels
 {
     internal sealed class SignGlowController : MonoBehaviour
     {
-        private Sign sign = null!;
-        private Material originalMaterial = null!;
-        private Material glowMaterial = null!;
-
-        internal void Initialize(Sign source)
-        {
-            sign = source;
-            originalMaterial = source.m_textWidget.fontSharedMaterial!;
-            glowMaterial = new Material();
-            source.m_textWidget.fontSharedMaterial = glowMaterial;
-        }
-
-        internal void RestoreAndRemove()
-        {
-            if (sign.m_textWidget.fontSharedMaterial == glowMaterial)
-            {
-                sign.m_textWidget.fontSharedMaterial = originalMaterial;
-            }
-
-            Destroy(glowMaterial);
-            Destroy(this);
-        }
-
+        internal void Initialize(Sign sign) { }
+        internal void RestoreAndRemove() => Destroy(this);
         private void OnDestroy() => WorldLabelRuntime.Forget(this);
-    }
-}
-
-namespace TMPro
-{
-    public sealed class TMP_FontAsset : UnityEngine.Object
-    {
-    }
-
-    public class TMP_Text : Component
-    {
-        public TMP_FontAsset? font;
-        public Material? fontSharedMaterial;
-        public Color color;
-        public float fontSize;
-        public bool richText = true;
-        public bool raycastTarget = true;
-        public string text = string.Empty;
-        public string StyleMarker = string.Empty;
-    }
-
-    public sealed class TextMeshProUGUI : TMP_Text
-    {
     }
 }
 
@@ -189,13 +61,11 @@ namespace UnityEngine
 {
     public class Object
     {
-        private static int nextInstanceId;
-
+        private static int nextId;
         public string name = string.Empty;
+        public HideFlags hideFlags { get; set; }
         public bool Destroyed { get; private set; }
-        private int InstanceId { get; } = ++nextInstanceId;
-
-        public int GetInstanceID() => InstanceId;
+        private int InstanceId { get; } = ++nextId;
 
         public static bool operator ==(Object? left, Object? right)
         {
@@ -217,18 +87,21 @@ namespace UnityEngine
             }
 
             value.Destroyed = true;
+            if (value is GameObject gameObject)
+            {
+                foreach (Component component in gameObject.Components.ToArray())
+                {
+                    Destroy(component);
+                }
+                gameObject.SetActive(false);
+                return;
+            }
+
             MethodInfo? onDestroy = value.GetType().GetMethod(
                 "OnDestroy",
                 BindingFlags.Instance | BindingFlags.NonPublic);
             onDestroy?.Invoke(value, null);
-            if (value is GameObject gameObject)
-            {
-                gameObject.SetActive(false);
-            }
         }
-
-        public static GameObject Instantiate(GameObject original, Transform parent) =>
-            original.Clone(parent);
     }
 
     public class Component : Object
@@ -236,6 +109,20 @@ namespace UnityEngine
         public GameObject gameObject { get; internal set; } = null!;
         public Transform transform => gameObject.transform;
         public T? GetComponent<T>() where T : Component => gameObject.GetComponent<T>();
+        public T? GetComponentInParent<T>() where T : Component
+        {
+            for (Transform? current = transform; current != null; current = current.parent)
+            {
+                T? component = current.gameObject.GetComponent<T>();
+                if (component != null)
+                {
+                    return component;
+                }
+            }
+            return null;
+        }
+        public T[] GetComponentsInChildren<T>(bool includeInactive = false) where T : Component =>
+            gameObject.GetComponentsInChildren<T>(includeInactive);
     }
 
     public class MonoBehaviour : Component
@@ -247,182 +134,298 @@ namespace UnityEngine
 
     public sealed class GameObject : Object
     {
-        private readonly Dictionary<Type, Component> components =
-            new Dictionary<Type, Component>();
+        private readonly List<Component> components = new();
 
-        public GameObject(string name = "")
+        public GameObject(string name = "", params Type[] componentTypes)
         {
             this.name = name;
-            transform = new Transform();
+            Type transformType = componentTypes.Contains(typeof(RectTransform))
+                ? typeof(RectTransform)
+                : typeof(Transform);
+            transform = (Transform)Activator.CreateInstance(transformType)!;
             Attach(transform);
+            foreach (Type type in componentTypes.Where(type => type != typeof(Transform) && type != typeof(RectTransform)))
+            {
+                AddComponent(type);
+            }
         }
 
         public bool activeSelf { get; private set; } = true;
-        public HideFlags hideFlags { get; set; }
         public Transform transform { get; }
+        internal IEnumerable<Component> Components => components;
 
-        public T AddComponent<T>() where T : Component
+        public T AddComponent<T>() where T : Component => (T)AddComponent(typeof(T));
+        public Component AddComponent(Type type)
         {
-            T component = (T)Activator.CreateInstance(typeof(T), nonPublic: true)!;
+            Component component = (Component)Activator.CreateInstance(type, nonPublic: true)!;
             Attach(component);
             return component;
         }
 
-        public T? GetComponent<T>() where T : Component
+        public T? GetComponent<T>() where T : Component =>
+            components.OfType<T>().FirstOrDefault();
+
+        public T[] GetComponentsInChildren<T>(bool includeInactive = false) where T : Component
         {
-            Type type = typeof(T);
-            return components.Values.FirstOrDefault(component => type.IsAssignableFrom(component.GetType())) as T;
+            List<T> result = new();
+            Collect(this, result, includeInactive);
+            return result.ToArray();
         }
 
         public void SetActive(bool active) => activeSelf = active;
 
-        internal GameObject Clone(Transform parent)
+        private static void Collect<T>(GameObject current, List<T> result, bool includeInactive)
+            where T : Component
         {
-            GameObject clone = new GameObject(name + "(Clone)");
-            TMP_Text? sourceText = GetComponent<TMP_Text>();
-            if (sourceText != null)
+            if (includeInactive || current.activeSelf)
             {
-                TextMeshProUGUI clonedText = clone.AddComponent<TextMeshProUGUI>();
-                clonedText.font = sourceText.font;
-                clonedText.fontSharedMaterial = sourceText.fontSharedMaterial;
-                clonedText.color = sourceText.color;
-                clonedText.fontSize = sourceText.fontSize;
-                clonedText.richText = sourceText.richText;
-                clonedText.raycastTarget = sourceText.raycastTarget;
-                clonedText.StyleMarker = sourceText.StyleMarker;
+                result.AddRange(current.components.OfType<T>());
             }
-
-            clone.transform.SetParent(parent, worldPositionStays: false);
-            return clone;
+            for (int index = 0; index < current.transform.childCount; index++)
+            {
+                Collect(current.transform.GetChild(index).gameObject, result, includeInactive);
+            }
         }
 
         private void Attach(Component component)
         {
             component.gameObject = this;
             component.name = name;
-            components[component.GetType()] = component;
+            components.Add(component);
         }
     }
 
     public class Transform : Component
     {
-        public Vector3 position;
-        public Transform? parent { get; private set; }
+        private readonly List<Transform> children = new();
+        private Transform? parentValue;
+        public Vector3 localPosition;
+        public Quaternion localRotation = Quaternion.identity;
+        public Vector3 localScale = Vector3.one;
+        public Transform? parent => parentValue;
+        public int childCount => children.Count;
 
-        public void SetParent(Transform newParent, bool worldPositionStays) => parent = newParent;
-
-        public bool IsChildOf(Transform possibleParent)
+        public Vector3 position
         {
-            for (Transform? current = parent; current != null; current = current.parent)
-            {
-                if (current == possibleParent)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            get => parent == null
+                ? localPosition
+                : parent.position + parent.rotation * Scale(localPosition, parent.lossyScale);
+            set => localPosition = parent == null
+                ? value
+                : Divide(Quaternion.Inverse(parent.rotation) * (value - parent.position), parent.lossyScale);
         }
+
+        public Quaternion rotation
+        {
+            get => parent == null ? localRotation : parent.rotation * localRotation;
+            set => localRotation = parent == null ? value : Quaternion.Inverse(parent.rotation) * value;
+        }
+
+        public Vector3 lossyScale => parent == null ? localScale : Scale(localScale, parent.lossyScale);
+
+        public void SetParent(Transform newParent, bool worldPositionStays)
+        {
+            Vector3 oldPosition = position;
+            Quaternion oldRotation = rotation;
+            parentValue?.children.Remove(this);
+            parentValue = newParent;
+            newParent.children.Add(this);
+            if (worldPositionStays)
+            {
+                position = oldPosition;
+                rotation = oldRotation;
+            }
+        }
+
+        public Transform GetChild(int index) => children[index];
+        public Vector3 InverseTransformPoint(Vector3 point) =>
+            Divide(Quaternion.Inverse(rotation) * (point - position), lossyScale);
+
+        private static Vector3 Scale(Vector3 left, Vector3 right) =>
+            new(left.x * right.x, left.y * right.y, left.z * right.z);
+        private static Vector3 Divide(Vector3 left, Vector3 right) =>
+            new(left.x / right.x, left.y / right.y, left.z / right.z);
     }
 
-    public sealed class Camera : MonoBehaviour
+    public sealed class RectTransform : Transform
     {
-        public Vector3 ScreenPoint { get; set; } = new Vector3(960f, 540f, 1f);
-        public Vector3 WorldToScreenPointScaled(Vector3 position) => ScreenPoint;
+        public Vector2 sizeDelta;
+        public Vector2 pivot = new(0.5f, 0.5f);
+        public Rect rect => new(sizeDelta.x, sizeDelta.y);
     }
 
-    public sealed class MeshRenderer : Object
+    public sealed class Mesh
     {
         public Bounds bounds;
     }
 
+    public sealed class MeshFilter : Component
+    {
+        public Mesh? sharedMesh;
+    }
+
+    public class Renderer : Component
+    {
+        public bool enabled = true;
+        public ShadowCastingMode shadowCastingMode;
+        public bool receiveShadows;
+        public LightProbeUsage lightProbeUsage;
+        public ReflectionProbeUsage reflectionProbeUsage;
+        public MotionVectorGenerationMode motionVectorGenerationMode;
+        public bool allowOcclusionWhenDynamic;
+    }
+
+    public sealed class MeshRenderer : Renderer
+    {
+        public Material[] sharedMaterials = Array.Empty<Material>();
+        public Bounds? ExplicitBounds { get; set; }
+        public Bounds bounds
+        {
+            get
+            {
+                if (ExplicitBounds.HasValue)
+                {
+                    return ExplicitBounds.Value;
+                }
+                Bounds local = GetComponent<MeshFilter>()?.sharedMesh?.bounds ?? new Bounds(Vector3.zero, Vector3.zero);
+                return new Bounds(local.min + transform.position, local.max + transform.position);
+            }
+        }
+    }
+
+    public class Collider : Component
+    {
+    }
+
+    public sealed class Canvas : Component
+    {
+        public RenderMode renderMode;
+        public int sortingLayerID;
+        public int sortingOrder;
+    }
+
+    public sealed class CanvasRenderer : Component
+    {
+    }
+
+    public enum RenderMode { WorldSpace }
+
     public sealed class Material : Object
     {
+        public Material() { }
+        public Material(Material source) => name = source.name;
+        public void EnableKeyword(string keyword) { }
+        public bool HasProperty(string property) => true;
+        public void SetColor(string property, Color value) { }
+        public void SetFloat(string property, float value) { }
     }
 
-    public readonly struct Bounds
+    public static class Mathf
     {
-        public Vector3 max { get; init; }
+        public static float Max(float left, float right) => MathF.Max(left, right);
     }
 
-    public readonly struct Color
+    public struct Bounds
     {
-        public Color(float r, float g, float b, float a)
+        public Bounds(Vector3 min, Vector3 max)
         {
-            this.r = r;
-            this.g = g;
-            this.b = b;
-            this.a = a;
+            this.min = min;
+            this.max = max;
         }
+        public Vector3 min;
+        public Vector3 max;
+        public void Encapsulate(Bounds bounds)
+        {
+            min = new Vector3(
+                MathF.Min(min.x, bounds.min.x),
+                MathF.Min(min.y, bounds.min.y),
+                MathF.Min(min.z, bounds.min.z));
+            max = new Vector3(
+                MathF.Max(max.x, bounds.max.x),
+                MathF.Max(max.y, bounds.max.y),
+                MathF.Max(max.z, bounds.max.z));
+        }
+    }
 
-        public readonly float r;
-        public readonly float g;
-        public readonly float b;
-        public readonly float a;
+    public readonly struct Quaternion
+    {
+        public Quaternion(float yDegrees) => this.yDegrees = Normalize(yDegrees);
+        public readonly float yDegrees;
+        public static Quaternion identity => new(0f);
+        public static Quaternion Euler(float x, float y, float z) => new(y);
+        public static Quaternion Inverse(Quaternion value) => new(-value.yDegrees);
+        public static Quaternion operator *(Quaternion left, Quaternion right) =>
+            new(left.yDegrees + right.yDegrees);
+        public static Vector3 operator *(Quaternion rotation, Vector3 vector)
+        {
+            float radians = rotation.yDegrees * MathF.PI / 180f;
+            float cosine = MathF.Cos(radians);
+            float sine = MathF.Sin(radians);
+            return new Vector3(
+                vector.x * cosine + vector.z * sine,
+                vector.y,
+                -vector.x * sine + vector.z * cosine);
+        }
+        public static bool operator ==(Quaternion left, Quaternion right) =>
+            MathF.Abs(left.yDegrees - right.yDegrees) < 0.0001f;
+        public static bool operator !=(Quaternion left, Quaternion right) => !(left == right);
+        public override bool Equals(object? value) => value is Quaternion other && this == other;
+        public override int GetHashCode() => yDegrees.GetHashCode();
+        private static float Normalize(float value)
+        {
+            value %= 360f;
+            return value < 0f ? value + 360f : value;
+        }
+    }
+
+    public readonly struct Vector2
+    {
+        public Vector2(float x, float y) { this.x = x; this.y = y; }
+        public readonly float x;
+        public readonly float y;
     }
 
     public readonly struct Vector3
     {
-        public Vector3(float x, float y, float z)
-        {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-
-        public static Vector3 zero => new Vector3();
-        public static Vector3 up => new Vector3(0f, 1f, 0f);
-        public float sqrMagnitude => x * x + y * y + z * z;
-        public static float Distance(Vector3 left, Vector3 right) =>
-            (left - right).Magnitude;
-        private float Magnitude => MathF.Sqrt(sqrMagnitude);
-        public static Vector3 operator +(Vector3 left, Vector3 right) =>
-            new Vector3(left.x + right.x, left.y + right.y, left.z + right.z);
-        public static Vector3 operator -(Vector3 left, Vector3 right) =>
-            new Vector3(left.x - right.x, left.y - right.y, left.z - right.z);
-        public static Vector3 operator *(Vector3 value, float scale) =>
-            new Vector3(value.x * scale, value.y * scale, value.z * scale);
+        public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
+        public static Vector3 zero => new(0f, 0f, 0f);
+        public static Vector3 one => new(1f, 1f, 1f);
+        public static Vector3 up => new(0f, 1f, 0f);
         public readonly float x;
         public readonly float y;
         public readonly float z;
+        public static Vector3 operator +(Vector3 left, Vector3 right) => new(left.x + right.x, left.y + right.y, left.z + right.z);
+        public static Vector3 operator -(Vector3 left, Vector3 right) => new(left.x - right.x, left.y - right.y, left.z - right.z);
+        public static Vector3 operator *(Vector3 value, float scale) => new(value.x * scale, value.y * scale, value.z * scale);
     }
 
-    public enum QueryTriggerInteraction
+    public readonly struct Vector4
     {
-        Ignore
+        public Vector4(float x, float y, float z, float w) { }
     }
 
-    public struct RaycastHit
+    public readonly struct Rect
     {
-        public Transform? transform;
+        public Rect(float width, float height) { this.width = width; this.height = height; }
+        public readonly float width;
+        public readonly float height;
+        public Vector2 size => new(width, height);
     }
 
-    public static class Physics
+    public readonly struct Color
     {
-        public const int DefaultRaycastLayers = -5;
-        public static bool NextLinecastHit { get; set; }
-        public static Transform? NextHitTransform { get; set; }
-
-        public static bool Linecast(
-            Vector3 start,
-            Vector3 end,
-            out RaycastHit hit,
-            int layerMask,
-            QueryTriggerInteraction queryTriggerInteraction)
-        {
-            hit = new RaycastHit { transform = NextHitTransform };
-            return NextLinecastHit;
-        }
+        public Color(float r, float g, float b, float a) { this.r = r; this.g = g; this.b = b; this.a = a; }
+        public static Color white => new(1f, 1f, 1f, 1f);
+        public readonly float r;
+        public readonly float g;
+        public readonly float b;
+        public readonly float a;
+        public static bool operator ==(Color left, Color right) =>
+            left.r == right.r && left.g == right.g && left.b == right.b && left.a == right.a;
+        public static bool operator !=(Color left, Color right) => !(left == right);
+        public override bool Equals(object? value) => value is Color other && this == other;
+        public override int GetHashCode() => HashCode.Combine(r, g, b, a);
     }
 
-    public enum HideFlags
-    {
-        DontSave
-    }
-
-    public static class Screen
-    {
-        public static int width = 1920;
-        public static int height = 1080;
-    }
+    public enum HideFlags { DontSave }
 }
