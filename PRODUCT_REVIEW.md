@@ -7,29 +7,61 @@ ledger and who can accept its items.
 
 ## Release state
 
-- Packaged version: private-test `0.1.82` for Mac and Windows from source commit
-  `4bf61c24e9be8ef1bf764861dfbc8d22bdac6375`. The Windows package remains
-  uninstalled. The macOS package SHA-256 is
-  `b3659e7c51da0693ff2f03408bec79cd51b65a6d80c95ee3e8232918e1117ab8`.
+- Packaged version: private-test `0.1.83` for Mac and Windows from source commit
+  `cc75d53f25e5d8f42aed20ca1e255fb11e4152f1`. Neither package is installed.
+  The macOS package SHA-256 is
+  `3a25295e5e6a646e415396807ed7b059df07bfbb93f62e6a76bfded8c226bdae`.
   The Windows package SHA-256 is
-  `22a2415e53ce8e20ed3ed8c34fd9a04681ecdf3a8087ac6855b066b47a639848`.
-- Installed version: private-test `0.1.82` on Ben's Mac, installed from that
-  exact private-test macOS package. The packaged DLL and installed DLL have the
-  same SHA-256:
+  `d0fc27b21786a1af3f274b83250fc7285ee47620f7bdc33de7f9cb85c6c663f5`.
+  Both archives contain DLL SHA-256
+  `eada436029928e4903569c93d7ae5867aac6b93b3690a3a29a96e6563a2004d3`.
+  Their private-diagnostics build IDs match that DLL. Both archives and their
+  private-diagnostics configurations have owner-only permissions. Canonical
+  verification passed; startup and gameplay proof for `0.1.83` remain pending.
+- Installed version: private-test `0.1.82` on Ben's Mac, unchanged by `0.1.83`
+  packaging. It came from source commit
+  `4bf61c24e9be8ef1bf764861dfbc8d22bdac6375` and macOS package SHA-256
+  `b3659e7c51da0693ff2f03408bec79cd51b65a6d80c95ee3e8232918e1117ab8`.
+  The installed DLL SHA-256 is
   `58dbd71f2a413271258381ee6ce7bbc511d3131a6ea3cc3bb7ecabcba566baf0`.
   The installed private-diagnostics build ID matches the installed DLL. The
   installed private-diagnostics configuration remains readable only by the
   owner.
-- Startup proof: The managed Benheim launcher started Valheim `0.221.12` with
-  the exact installed `0.1.82` package and reached the real main menu. The main
+- Installed `0.1.82` startup proof: The managed Benheim launcher started Valheim
+  `0.221.12` with the exact installed `0.1.82` package and reached the real main menu. The main
   menu was visually confirmed. The fresh log contained the expected version,
   session-start, chainloader-complete, menu-music, and clean session-end
   markers. The log contained no Harmony cleanup marker, core-disablement
   marker, gameplay-disabled marker, or world-load marker. No world was entered.
   The task quit only the Valheim process that it launched, and no Valheim
   process remained.
-- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.82`
+- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.83`
   require no change to that server component.
+
+## Test on packaged `0.1.83` after installation
+
+These checks wait for installation and startup proof. They do not apply to the
+currently installed `0.1.82` client.
+
+- **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
+  max-quality Huntsman Bow. Confirm its inventory title and description, the
+  disabled same-affinity action, and persistence after storage and reconnect.
+  Lower-quality Huntsman Bows and other bows must remain ineligible.
+- **Snipe handling:** Draw, fire, and cancel with Bow Focus and Benheim FX off.
+  Confirm useful 3x zoom, soft edges that darken with draw progress, a clear
+  center, and an immediate return to normal view. Compare with an ordinary
+  Huntsman Bow: Snipe should take 25% longer to reach full draw while keeping
+  native partial shots and stamina use. Check the close-range tradeoff by feel.
+- **Snipe headshots:** Land headshots near 20 m, 40 m, and 60 m. Confirm total
+  multipliers of 1.25x, 1.75x, and 2.25x, including a partial draw and an arrow
+  that hits after switching weapons. Body shots, native WeakSpots, and ammo
+  effects must retain their normal behavior.
+- **Cleave tree lifecycle:** Chop a standing tree and the new log and log
+  halves. Confirm normal primary and nearby Cleave hits without tree-lifecycle
+  errors.
+- **Wisp discovery:** Run `bhrun wispecho` in a loaded world. Confirm a bounded
+  discovery summary and matching detailed diagnostics. This build adds no
+  mead, Wisp Echo rendering, or cyan highlights.
 
 ## Test on installed `0.1.82`
 
