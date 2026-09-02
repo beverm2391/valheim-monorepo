@@ -1,95 +1,133 @@
 # Developer Diagnostics
 
-Developer Diagnostics keeps evidence from normal play available so a developer
-can explain what a feature did. It uses Benheim's existing typed diagnostics
-instead of adding a separate event system, log format, or remote destination.
+Developer Diagnostics lets Ben play normally while Benheim records structured
+evidence that a developer can query afterward. It uses Benheim's existing typed
+diagnostics, local NDJSON, and Axiom delivery. It does not add a second logger,
+schema, database, or remote destination.
 
-During normal play, Benheim records the evidence needed to explain important
-feature decisions and outcomes without a special debug build. A developer
-starts extra inspection only when needed. The inspection stops and cleans up
-when it ends.
+The normal workflow is low-friction: core events and inexpensive event probes
+already provide bounded evidence. A developer enables probes that ship off
+only when this evidence cannot answer the question.
 
-## Product Direction
+## Evidence Model
 
-Benheim always records gameplay events for important actions, decisions, state
-changes, results, and cleanup. These events do not record every frame or repeat
-unchanged state. The root [Benheim product](../../PRODUCT.md) defines how typed
-events appear in local logs, NDJSON, and Axiom, including the privacy
-guarantees.
+Developer Diagnostics distinguishes four kinds of evidence.
 
-A probe performs extra work only while a developer is inspecting the game. It
-can inspect one loaded Unity object, observe one named point in the game's
-behavior for a short time, or show a temporary debug overlay. Each probe must
-answer one specific question and limit its duration, output, and effect on
-performance.
+### Core events
 
-Developer Diagnostics supports two probe lifecycles:
+Feature modules own typed events for important actions, decisions, state
+changes, results, and cleanup. Core events remain enabled whenever their
+feature runs. They do not record every frame or repeat unchanged state. The
+root [Benheim product](../../PRODUCT.md) owns their local and remote delivery,
+schema, identity, and privacy boundaries.
 
-- A **snapshot** runs once, emits a limited result, and cleans up immediately.
-  The runtime UI catalog, effect catalog, and comfort calculation diagnostic
-  are snapshots.
-- A **watcher** observes one named point in the game's behavior until a
-  developer turns it off or the session ends. Collider overlays and short
-  render experiments are watchers.
+### Event probes
 
-Each watcher ships with a default state. During the current session, a
-developer can set the watcher to `on`, `off`, or `default`. Relaunching Benheim
-clears this session setting and restores the shipped default. The status view
-must show the shipped default, the session setting, and the effective state so
-a developer can tell what evidence is active.
+An event probe is a named typed diagnostic stream that adds bounded evidence to
+core events. Event probes share one registry. Code registers each probe's name
+and shipped default. During a session, the registry owns its `on`, `off`, or
+`default` override and reports its effective state.
 
-## Command Experience
+Low-cost, bounded event probes should normally ship on. Expensive, verbose, or
+high-volume event probes normally ship off. Relaunching Benheim clears session
+overrides and restores shipped defaults. Probe state is not saved to the
+character or world.
 
-Developer Diagnostics uses short, discoverable commands instead of a deep
-`bh debug ...` tree. Valheim's native console completion must show each command
-name and the available choices for its first argument.
+### Snapshots
 
-The command families are:
+A snapshot inspects one bounded piece of current runtime state, emits a limited
+result, and cleans up immediately. Runtime UI catalogs, effect catalogs, and
+comfort inspection are snapshots. A large snapshot may write detailed records
+to a bounded local artifact, but it still emits typed run and result evidence
+through normal diagnostics.
 
-- `bhcatalog` lists a limited catalog from the running game.
-- `bhrun` runs a snapshot once.
-- `bhwatch` shows watcher state and changes session settings.
+### Visual probes
 
-The commands define their exact syntax and available probe names. Through
-native completion, a player can discover the commands, see which watchers are
-active, and restore a watcher to its shipped default without relaunching.
+A visual probe temporarily renders information in the game, such as collider
+overlays or a short rendering experiment. Visual probes normally ship off.
+They remove every object and runtime hook they create when disabled, when the
+world exits, when the player logs out, and when the plugin resets.
+
+## Registry And Commands
+
+One registry owns discovery, command dispatch, cleanup, and failure containment
+for event probes, snapshots, and visual probes. For event and visual probes, it
+also owns shipped defaults, session overrides, and effective state. Snapshots
+run once and expose no persistent on/off state. Feature modules may register a
+probe or emit through a registered event probe; they do not create competing
+command or state systems.
+
+Developer Diagnostics uses short commands because Valheim's native console can
+complete command names and their first argument:
+
+- `bhcatalog <effects|text|ui> [filter]` lists a bounded runtime catalog.
+- `bhrun <snapshot>` runs one snapshot.
+- `bhwatch` lists registered event and visual probes with their kind, shipped
+  default, session override, and effective state.
+- `bhwatch <probe> [on|off|default]` reports or changes one probe for the
+  current session.
+
+Console output is a compact operator surface, not the evidence store. Detailed
+evidence remains typed and queryable in local NDJSON and Axiom.
+
+## Spawn Population Probe
+
+The first event probe is `spawns`. It observes only native spawn rules that a
+feature explicitly registers; it does not log every creature or scan the whole
+world. It ships on because its work is bounded and answers balance questions
+that successful-spawn events alone cannot answer.
+
+For each registered rule, the probe records the effective rule configuration
+when the rule becomes available and whenever it changes. This includes the
+source, prefab, effective spawn interval and chance, loaded-population cap,
+group size, spacing, biome, and altitude constraints.
+
+While the rule is active, the probe records bounded population state. It emits
+when the loaded count changes, when the population enters or leaves its cap,
+and at a low-frequency heartbeat so an unchanged saturated or sparse state
+remains observable. Population evidence includes the current loaded count,
+cap, and saturation state. Existing feature-owned success events remain core
+events.
+
+The initial probe does not instrument every rejection branch inside Valheim's
+native spawn loop. If configuration, population, cap transitions, and success
+events cannot explain a result, a later verbose event probe may add narrowly
+scoped rejection evidence and ship off by default.
 
 ## Boundaries
 
+- A probe must answer one specific question and bound its duration, output,
+  cardinality, and performance cost.
+- Enabled probes must not record every frame. They may repeat unchanged state
+  only through a bounded, low-frequency heartbeat.
+- Probe failure must not disable gameplay or interrupt the behavior being
+  observed.
 - A probe must not mutate world or character state unless its named purpose is
   to exercise that mutation in a bounded developer test.
-- A visual probe must remove every object and runtime hook that it created.
-- Probe failure must not disable gameplay or interrupt the behavior under test.
-- Always-on events and enabled probes must not cause noticeable slowdown during
-  normal play.
-- A large snapshot must limit its output. It may write the full result to a
-  local artifact instead of sending every record through normal diagnostics.
-  It must still emit a typed event that identifies the run and records its
-  result.
-- Probe availability is a developer surface. It does not belong in the normal
-  player menu unless the behavior becomes a supported player feature.
+- New native or Harmony observation seams still require a new Benheim build.
+  Runtime controls attach or detach only code already present in that build.
+- Probe controls are developer surfaces and do not belong in the normal player
+  menu unless the behavior becomes a supported player feature.
 
-## In Development
+## Current Candidate
 
-The first candidate puts the runtime catalogs, comfort snapshot, and collider
-overlay in one registry. `bhcatalog` lists the effects, text, and UI catalogs.
-`bhrun comfort` captures one comfort snapshot. `bhwatch colliders` reports the
-default setting in the shipped build, the current session setting, and whether
-the watcher is active.
+The installed `0.1.80` candidate contains the first registry slice: runtime
+catalogs, the comfort snapshot, and the `colliders` visual probe. It does not
+yet contain the generic event-probe registry or the `spawns` probe described
+above.
 
-The collider watcher is off by default. A developer can set the watcher to
-`on`, `off`, or `default` for the current session. The watcher removes its
-overlay when the player exits a world, logs out, or resets the plugin. If the
-session setting remains `on`, the watcher starts again when the next world
-loads.
+Live `0.1.80` testing accepted the comfort snapshot's mechanics. Calculated
+comfort and cached comfort were both `9`, and typed diagnostics contained
+complete per-piece evidence. Its console presentation did not pass because
+Valheim's non-scrollable console flooded and hid the useful result. The
+approved correction keeps one short summary visible while complete per-piece
+evidence remains typed and queryable.
 
-Focused tests show that the shipped registry exposes its snapshots and watcher
-through native first-argument completion. The tests cover snapshot dispatch,
-watcher status, lifecycle cleanup, and probe failures that must not interrupt
-gameplay. A live Valheim test still must show that the commands are visible,
-snapshots leave no temporary runtime state, watcher status is correct, and
-overlay cleanup is complete.
+The `colliders` visual probe is off by default. Live `0.1.80` testing accepted
+the overlay's appearance. Live review still must prove command visibility,
+snapshot cleanup, probe status, `off` and `default` transitions, and overlay
+cleanup on world exit and logout.
 
 The [Wisp Echo product](../WispEcho/PRODUCT.md) owns its render experiment and
-acceptance result. Developer Diagnostics owns only the watcher lifecycle,
+acceptance result. Developer Diagnostics owns only the shared probe lifecycle,
 status, bounded runtime work, and cleanup used to run that experiment.
