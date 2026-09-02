@@ -188,6 +188,37 @@ namespace UnityEngine
     internal static class Mathf
     {
         internal static float Max(float left, float right) => Math.Max(left, right);
+        internal static float Lerp(float left, float right, float amount) => left + ((right - left) * amount);
+    }
+
+    internal static class Random
+    {
+        internal struct State
+        {
+            internal uint Value;
+        }
+
+        private static uint current = 1u;
+
+        internal static State state
+        {
+            get => new() { Value = current };
+            set => current = value.Value;
+        }
+
+        internal static void InitState(int seed)
+        {
+            current = unchecked((uint)seed);
+        }
+
+        internal static float value
+        {
+            get
+            {
+                current = unchecked((current * 1664525u) + 1013904223u);
+                return (current & 0x00ffffffu) / 16777216f;
+            }
+        }
     }
 
     internal class Collider : Component
@@ -237,45 +268,8 @@ internal static class Utils
 }
 
 internal sealed class EffectList { }
-internal sealed class ZNetView : UnityEngine.Component
-{
-    internal static readonly long Everybody = 0L;
-
-    internal bool Owner = true;
-    internal bool Valid = true;
-    internal readonly List<(long Target, string Method, bool Value)> Invocations = new();
-
-    internal bool IsOwner() => Owner;
-    internal bool IsValid() => Valid;
-
-    internal void InvokeRPC(long target, string method, bool value)
-    {
-        Invocations.Add((target, method, value));
-        if (method == "RPC_SetPicked")
-        {
-            gameObject.GetComponent<Pickable>()?.SetPicked(value);
-        }
-    }
-}
 internal sealed class Destructible : UnityEngine.Component { }
 internal sealed class Plant : UnityEngine.Component { }
-
-internal sealed class Pickable : UnityEngine.Component
-{
-    internal UnityEngine.GameObject? m_itemPrefab;
-    internal float m_respawnTimeMinutes;
-    internal bool Picked { get; private set; }
-    internal long PickedTime { get; private set; }
-
-    internal void SetPicked(bool picked)
-    {
-        Picked = picked;
-        if (picked && m_respawnTimeMinutes > 0f)
-        {
-            PickedTime = 1L;
-        }
-    }
-}
 
 internal sealed class ItemDrop : UnityEngine.Component
 {
@@ -332,6 +326,7 @@ internal sealed class Piece : UnityEngine.Component
         if (creator == 0L && gameObject.GetComponent<ZNetView>()?.IsOwner() == true)
         {
             creator = uid;
+            gameObject.GetComponent<ZNetView>()!.GetZDO().Set(ZDOVars.s_creator, uid);
         }
     }
 }

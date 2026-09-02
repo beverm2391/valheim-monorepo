@@ -27,6 +27,19 @@ grep -Fq 'piece.GetCreator() == 0L' "$registration"
 grep -Fq 'netView.IsOwner()' "$registration"
 grep -Fq 'piece.GetCreator() == 0L' "$registration"
 grep -Fq 'netView.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", true);' "$registration"
+grep -Fq 'internal const float PlantedRespawnMinimumSeconds = 4000f;' "$registration"
+grep -Fq 'internal const float PlantedRespawnMaximumSeconds = 5000f;' "$registration"
+grep -Fq '[HarmonyPatch(typeof(Pickable), "ShouldRespawn")]' "$registration"
+grep -Fq 'PlantableBerries.TryApplyPlantedRespawn(__instance);' "$registration"
+grep -Fq 'zdo.GetLong(ZDOVars.s_creator, 0L) == 0L' "$registration"
+grep -Fq 'zdo.GetLong(ZDOVars.s_pickedTime, 0L)' "$registration"
+grep -Fq 'ResolvePlantedRespawnSeconds(zdo.GetPosition(), pickedTime) / 60f' "$registration"
+grep -Fq 'UnityEngine.Random.State previousState = UnityEngine.Random.state;' "$registration"
+grep -Fq 'UnityEngine.Random.state = previousState;' "$registration"
+if grep -Fq 'zdo.m_uid' "$registration"; then
+  printf 'planted berry cadence must not depend on ZDO IDs that world loading remaps\n' >&2
+  exit 1
+fi
 
 if grep -Eq 'new GameObject|Object\.Instantiate|new Plant' "$registration"; then
   printf 'plantable berries must not create a custom prefab or Plant lifecycle\n' >&2
@@ -74,9 +87,13 @@ grep -Fq 'timeSpan.TotalMinutes <= (double)m_respawnTimeMinutes' "$source_tree/P
 grep -Fq 'm_nview.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", false);' "$source_tree/Pickable.cs"
 grep -Fq 'if (!(m_nview == null) && m_nview.IsOwner() && GetCreator() == 0L)' "$source_tree/Piece.cs"
 grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_creator, uid);' "$source_tree/Piece.cs"
+grep -Fq 'UnityEngine.Random.InitState(m_seed);' "$source_tree/Plant.cs"
+grep -Fq 'return Mathf.Lerp(m_growTime, m_growTimeMax, value);' "$source_tree/Plant.cs"
+grep -Fq 'm_uid.SetID(++ZDOID.m_loadID);' "$source_tree/ZDO.cs"
 
-if grep -Eq 'm_respawnTimeMinutes\s*=|m_defaultPicked\s*=|m_itemPrefab\s*=' "$registration"; then
-  printf 'plantable berry registration must preserve native Pickable timing, defaults, and output\n' >&2
+test "$(grep -Fc 'pickable.m_respawnTimeMinutes =' "$registration")" -eq 1
+if grep -Eq 'm_defaultPicked\s*=|m_itemPrefab\s*=' "$registration"; then
+  printf 'plantable berries must preserve native Pickable defaults and output\n' >&2
   exit 1
 fi
 
