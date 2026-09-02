@@ -168,10 +168,16 @@ application, persistence, presentation, and same-affinity rejection rules apply.
 
 Drawing a Snipe bow automatically gives the player 3x optical zoom. The zoom
 changes field of view while preserving the native crosshair, third-person
-camera position, and look sensitivity. The camera zooms in and out smoothly.
-Snipe adds no scope toggle, vignette, or range predictor. Snipe zoom remains
-active when optional Bow Focus cosmetics are disabled. Ending the draw restores the
-camera's normal field of view.
+camera position, and look sensitivity. The camera zooms in smoothly. A soft
+vignette darkens the screen edges as draw progress increases, reaching its
+strongest intensity at full draw while keeping the center clear. Snipe adds no
+circular scope mask, scope toggle, or range predictor. The zoom and vignette
+remain active when optional Bow Focus cosmetics are disabled.
+
+Firing or canceling the draw clears the vignette and restores the normal field
+of view almost instantly. This exit should feel immediate, not like a slow
+return from aiming. The exact transition timing will be tuned by feel during
+gameplay testing.
 
 Drawing a Snipe bow takes 25% longer to reach full draw than the native bow,
 after Valheim's skill adjustment. This applies at every range. Partial draws
