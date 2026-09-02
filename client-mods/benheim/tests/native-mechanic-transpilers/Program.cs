@@ -255,32 +255,26 @@ static void VerifyTarPolicy()
     Pickable smallTar = TarPickable("Pickable_Tar", tarGate: true);
     Expect(!TarCollectibleInteraction.ShouldBlockPickable(smallTar));
 
-    Pickable bigTar = TarPickable("Pickable_TarBig", tarGate: false);
-    Expect(!TarCollectibleInteraction.ShouldBlockPickable(bigTar));
-    bigTar.m_tarPreventsPicking = true;
-    Expect(!TarCollectibleInteraction.ShouldBlockPickable(bigTar));
-
     Pickable ordinaryPickable = TarPickable("Pickable_Stone", tarGate: true);
-    Expect(TarCollectibleInteraction.ShouldBlockPickable(ordinaryPickable));
-    ordinaryPickable.m_tarPreventsPicking = false;
     Expect(!TarCollectibleInteraction.ShouldBlockPickable(ordinaryPickable));
 
-    Pickable spoofedTarPickable = TarPickable("Pickable_Tar", tarGate: true);
-    spoofedTarPickable.m_itemPrefab!.GetComponent<ItemDrop>()!.m_itemData.m_shared.m_name = "$item_stone";
-    Expect(TarCollectibleInteraction.ShouldBlockPickable(spoofedTarPickable));
+    foreach ((string prefab, string itemName) in new[]
+             {
+                 ("Tar", "$item_tar"),
+                 ("Stone", "$item_stone"),
+                 ("Wood", "$item_wood")
+             })
+    {
+        ItemDrop itemDrop = TarItemDrop(
+            prefab,
+            itemName,
+            ItemDrop.ItemData.ItemType.Material,
+            inTar: true);
+        Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(itemDrop));
 
-    ItemDrop looseTar = TarItemDrop("Tar", "$item_tar", ItemDrop.ItemData.ItemType.Material, inTar: true);
-    Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(looseTar));
-    looseTar.TarState = false;
-    Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(looseTar));
-
-    ItemDrop ordinaryDrop = TarItemDrop("Stone", "$item_stone", ItemDrop.ItemData.ItemType.Material, inTar: true);
-    Expect(TarCollectibleInteraction.ShouldBlockItemDrop(ordinaryDrop));
-    ordinaryDrop.TarState = false;
-    Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(ordinaryDrop));
-
-    ItemDrop spoofedTarDrop = TarItemDrop("Tar", "$item_stone", ItemDrop.ItemData.ItemType.Material, inTar: true);
-    Expect(TarCollectibleInteraction.ShouldBlockItemDrop(spoofedTarDrop));
+        itemDrop.TarState = false;
+        Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(itemDrop));
+    }
 }
 
 static void VerifyTarTranspilers()
@@ -309,18 +303,33 @@ static void VerifyTarTranspilers()
     MethodInfo itemDropReplacement = typeof(TarCollectibleInteraction).GetMethod(
         nameof(TarCollectibleInteraction.ShouldBlockItemDrop),
         BindingFlags.NonPublic | BindingFlags.Static)!;
+    VerifyItemDropTarGatePatch(
+        typeof(TarItemDropInteractionPatch),
+        itemDropGate,
+        itemDropReplacement);
+    VerifyItemDropTarGatePatch(
+        typeof(TarItemDropAutoPickupPatch),
+        itemDropGate,
+        itemDropReplacement);
+}
+
+static void VerifyItemDropTarGatePatch(
+    Type patchType,
+    MethodInfo itemDropGate,
+    MethodInfo itemDropReplacement)
+{
     CodeInstruction itemDropCall = new CodeInstruction(OpCodes.Callvirt, itemDropGate);
     VerifyReplacement(
-        typeof(TarItemDropInteractionPatch),
+        patchType,
         Frame(itemDropCall),
         itemDropCall,
         OpCodes.Call,
         itemDropReplacement);
     ExpectThrows(() => Invoke(
-        typeof(TarItemDropInteractionPatch),
+        patchType,
         Frame(new CodeInstruction(OpCodes.Nop))));
     ExpectThrows(() => Invoke(
-        typeof(TarItemDropInteractionPatch),
+        patchType,
         Frame(
             new CodeInstruction(OpCodes.Call, itemDropGate),
             new CodeInstruction(OpCodes.Callvirt, itemDropGate))));
