@@ -7,21 +7,31 @@ ledger and who can accept its items.
 
 ## Release state
 
-- Packaged version: private-test `0.1.81` for Mac and Windows. The Windows
-  package remains uninstalled.
-- Installed version: private-test `0.1.81` on Ben's Mac, installed from the
-  exact private-test macOS package.
+- Packaged version: private-test `0.1.82` for Mac and Windows from source commit
+  `4bf61c24e9be8ef1bf764861dfbc8d22bdac6375`. The Windows package remains
+  uninstalled. The macOS package SHA-256 is
+  `b3659e7c51da0693ff2f03408bec79cd51b65a6d80c95ee3e8232918e1117ab8`.
+  The Windows package SHA-256 is
+  `22a2415e53ce8e20ed3ed8c34fd9a04681ecdf3a8087ac6855b066b47a639848`.
+- Installed version: private-test `0.1.82` on Ben's Mac, installed from that
+  exact private-test macOS package. The packaged DLL and installed DLL have the
+  same SHA-256:
+  `58dbd71f2a413271258381ee6ce7bbc511d3131a6ea3cc3bb7ecabcba566baf0`.
+  The installed private-diagnostics build ID matches the installed DLL. The
+  installed private-diagnostics configuration remains readable only by the
+  owner.
 - Startup proof: The managed Benheim launcher started Valheim `0.221.12` with
-  the exact installed `0.1.81` package and reached the real main menu. The
-  fresh log contained the expected version, session-start,
-  chainloader-complete, and clean session-end markers. The log contained no
-  Harmony cleanup marker, core-disablement marker, gameplay-disabled marker,
-  or world-load marker. No world was entered. The task quit only the Valheim
-  process that it launched, and no Valheim process remained.
-- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.81`
+  the exact installed `0.1.82` package and reached the real main menu. The main
+  menu was visually confirmed. The fresh log contained the expected version,
+  session-start, chainloader-complete, menu-music, and clean session-end
+  markers. The log contained no Harmony cleanup marker, core-disablement
+  marker, gameplay-disabled marker, or world-load marker. No world was entered.
+  The task quit only the Valheim process that it launched, and no Valheim
+  process remained.
+- Benheim Server Support remains at `0.1.6`. Clients `0.1.75` through `0.1.82`
   require no change to that server component.
 
-## Test on installed `0.1.81`
+## Test on installed `0.1.82`
 
 - **Earned-state audio:** In multiplayer, trigger an earned combat state near
   one compatible player and far from another. The nearby player may hear the
@@ -31,6 +41,10 @@ ledger and who can accept its items.
   22 m and 38 m from an isolated level-1 Workbench. Confirm that placement fails
   beyond 40 m. Repeat with a Stonecutter-required piece. Station use, crafting,
   repair, and upgrades must keep their normal Valheim behavior.
+- **Feast range:** Stand between 3.5 m and 8 m from a native Feast, then use and
+  eat from it. Confirm that the Feast remains unavailable beyond 8 m. Confirm
+  that other interactable objects remain available up to 8 m and that open
+  containers remain available up to 10 m.
 - **Sailing:** While steering, confirm the upright speed gauge sits directly
   below Valheim's native wind UI on the right and follows that UI. It must show
   planar speed and disappear when you leave the helm. Hold Run at forward
@@ -61,11 +75,9 @@ ledger and who can accept its items.
   native range, inventory-space, carry-weight, and ownership failures still
   block collection normally.
 
-- **Farming and Cultivator grids:** In the live test of installed `0.1.81`,
-  holding `Left Shift` and pressing an odd-number key did not select a grid. No
-  top-left confirmation or typed `Farming.plant_grid_selected` event appeared.
-  Do not retest grid selection until a corrected build is installed. After that
-  correction, open the Cultivator picker and confirm that each picker session
+- **Farming and Cultivator grids:** Installed `0.1.81` did not select a grid
+  when the player held `Left Shift` and pressed an odd-number key. In installed
+  `0.1.82`, open the Cultivator picker and confirm that each picker session
   starts with 9x9 selected. Hold `Left Shift` and press each of `1`, `3`, `5`,
   `7`, and `9`. After each selection, confirm that the existing `Left Shift`
   mass-plant preview and placement both use the matching centered grid. Plain
@@ -103,13 +115,16 @@ ledger and who can accept its items.
   - reload the save and confirm persistence; and
   - in multiplayer, confirm shared placement and harvesting, creator ownership,
     and reconnect behavior.
-- **Portal labels:** Installed `0.1.80` displayed and updated portal tags, but
-  its world lettering was not readable enough against scenery. On wooden and
-  stone portals, confirm that each corrected label remains fixed just above its
-  portal and uses the same high-contrast overlay treatment as Perfect Parry
-  feedback. Confirm that it exactly matches the current non-empty tag, is
-  visible at 30 meters but not beyond, hides when line of sight is blocked, and
-  updates after a rename. Give a portal an empty tag and confirm no label appears.
+- **Portal labels:** On tagged wooden and stone portals, confirm that a
+  two-sided Valheim wooden sign board stays fixed 20 to 30 cm above the portal
+  instead of facing the player. Confirm that its glowing letters exactly match
+  the current tag, scene geometry occludes it normally, and renaming updates
+  both sides. Give a portal an empty tag and confirm that no board appears.
+- **Pine Finewood:** Destroy one native Pine log half. Confirm that it produces
+  15 native item drops. Confirm that none is ordinary Wood and that the drops
+  still include Core Wood. If a compatible peer is available, let a
+  non-owner deliver the final hit once and confirm the owner still converts the
+  drops.
 - **Club + Lunge Affinity:** Confirm that the Affinity tab shows Forge level `1`
   in the native station-requirement slot and keeps Wood in the following
   material slot. Spend 1 Wood to apply Lunge to an eligible Club that does not
