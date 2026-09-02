@@ -58,11 +58,11 @@ grep -Fq 'new Entry("R", "Swap hotbar loadout (replaces Hide weapons)")' "$catal
 grep -Fq 'new Entry("Rockbreaker"' "$catalog_file"
 grep -Fq 'new Entry("Cleave"' "$catalog_file"
 grep -Fq '"Finewood"' "$catalog_file"
-grep -Fq 'Native Birch and Oak logs convert each final ordinary Wood drop to Finewood' "$catalog_file"
+grep -Fq 'Native Birch, Oak, and Pine logs convert each final ordinary Wood drop to Finewood' "$catalog_file"
 grep -Fq "without changing each log's native item count or Valheim's spawn path" "$catalog_file"
 grep -Fq 'The compatible client that owns the log converts its drops' "$catalog_file"
 grep -Fq 'including when another compatible client attacks' "$catalog_file"
-grep -Fq 'Native Finewood and non-Wood drops, other logs, standing-tree drops, stumps, damage-type conversions, and unrelated destruction stay native.' "$catalog_file"
+grep -Fq 'Native Finewood, Core Wood, and other non-Wood drops, other logs, standing-tree drops, stumps, damage-type conversions, and unrelated destruction stay native.' "$catalog_file"
 grep -Fq '"Headshots"' "$catalog_file"
 grep -Fq '"Perfect Impact"' "$catalog_file"
 grep -Fq 'AirborneMeleeTuning.ApproachSpeedThreshold' "$catalog_file"
@@ -74,8 +74,11 @@ grep -Fq "Manually pick up ordinary items submerged in native tar pits, or colle
 grep -Fq '"Glowing signs"' "$catalog_file"
 grep -Fq 'Existing sign letters have a soft, warm portal-amber glow. The wooden board stays unchanged' "$catalog_file"
 grep -Fq '"Portal labels"' "$catalog_file"
-grep -Fq 'WorldLabelVisibility.PortalMaxDistanceMeters' "$catalog_file"
-grep -Fq "exact non-empty tag in high-contrast text" "$catalog_file"
+grep -Fq 'A visual-only Valheim wooden sign board floats 20–30 cm above each tagged wooden or stone portal, stays fixed to portal rotation instead of billboarding, shows the tag on both sides with glowing sign letters, and is naturally occluded by scene geometry' "$catalog_file"
+if grep -Fq 'WorldLabelVisibility' "$catalog_file"; then
+  printf 'shortcut catalog must not depend on retired world-text policy\n' >&2
+  exit 1
+fi
 grep -Fq '"Building"' "$catalog_file"
 grep -Fq '"Station coverage"' "$catalog_file"
 grep -Fq 'Workbench and Stonecutter build-piece placement coverage is 2× Valheim' "$catalog_file"

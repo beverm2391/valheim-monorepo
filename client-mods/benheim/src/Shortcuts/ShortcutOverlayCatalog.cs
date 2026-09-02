@@ -7,7 +7,6 @@ using BenheimQoL.PlayerCombat;
 using BenheimQoL.Repair;
 using BenheimQoL.ShipSprint;
 using BenheimQoL.WeaponRhythm;
-using BenheimQoL.WorldLabels;
 using UnityEngine;
 
 namespace BenheimQoL.Shortcuts;
@@ -81,7 +80,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Glowing signs", "Existing sign letters have a soft, warm portal-amber glow. The wooden board stays unchanged"),
                 new Entry(
                     "Portal labels",
-                    $"Show each portal's exact non-empty tag in high-contrast text above it when the portal is within {WorldLabelVisibility.PortalMaxDistanceMeters:0} m and in the player's line of sight"),
+                    "A visual-only Valheim wooden sign board floats 20–30 cm above each tagged wooden or stone portal, stays fixed to portal rotation instead of billboarding, shows the tag on both sides with glowing sign letters, and is naturally occluded by scene geometry"),
                 new Entry(
                     "Ship Sprint",
                     $"Hold Run at the helm for ×{ShipSprintTuning.ThrustMultiplier:0.#} native thrust at paddle, half sail, and full sail; the helm readout shows planar speed and marks SPRINT while requested"),
@@ -104,9 +103,9 @@ internal static partial class ShortcutOverlay
                 new Entry("Cleave", "After level 25, axe hits can add one half-damage hit to the same tree or log"),
                 new Entry(
                     "Finewood",
-                    "Native Birch and Oak logs convert each final ordinary Wood drop to Finewood without changing each log's native item count or Valheim's spawn path"),
+                    "Native Birch, Oak, and Pine logs convert each final ordinary Wood drop to Finewood without changing each log's native item count or Valheim's spawn path"),
             },
-            "The compatible client that owns the log converts its drops, including when another compatible client attacks. Native Finewood and non-Wood drops, other logs, standing-tree drops, stumps, damage-type conversions, and unrelated destruction stay native."),
+            "The compatible client that owns the log converts its drops, including when another compatible client attacks. Native Finewood, Core Wood, and other non-Wood drops, other logs, standing-tree drops, stumps, damage-type conversions, and unrelated destruction stay native."),
         new(
             "Affinities",
             new Color(0.86f, 0.54f, 1f, 1f),

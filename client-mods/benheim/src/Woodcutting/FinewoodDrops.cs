@@ -15,7 +15,9 @@ internal static class FinewoodDrops
             "Birch_log",
             "Birch_log_half",
             "Oak_log",
-            "Oak_log_half"
+            "Oak_log_half",
+            "PineTree_log",
+            "PineTree_log_half"
         },
         StringComparer.Ordinal);
 

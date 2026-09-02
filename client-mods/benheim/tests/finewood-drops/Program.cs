@@ -9,6 +9,7 @@ using UnityEngine;
 
 GameObject wood = new GameObject("Wood");
 GameObject finewood = new GameObject("FineWood");
+GameObject corewood = new GameObject("RoundLog");
 GameObject resin = new GameObject("Resin");
 ObjectDB objectDb = new ObjectDB();
 objectDb.Add(finewood);
@@ -19,12 +20,15 @@ foreach (string prefabName in new[]
              "Birch_log",
              "Birch_log_half",
              "Oak_log",
-             "Oak_log_half"
+             "Oak_log_half",
+             "PineTree_log",
+             "PineTree_log_half"
          })
 {
     TreeLog log = new TreeLog(prefabName);
     Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(wood, log), finewood));
     Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(finewood, log), finewood));
+    Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(corewood, log), corewood));
     Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(resin, log), resin));
 }
 
@@ -32,7 +36,8 @@ foreach (string prefabName in new[]
          {
              "beech_log",
              "FirTree_log",
-             "PineTree_log",
+             "PineTree_logOLD",
+             "PineTree_log_halfOLD",
              "BirchStub",
              "Oak1"
          })
