@@ -17,18 +17,6 @@ internal static class FarmingGridSelection
             && size % 2 == 1;
     }
 
-    internal static bool ShouldHandleInput(
-        bool cultivatorPickerOpen,
-        bool leftShiftHeld,
-        bool anotherModifierHeld,
-        int size)
-    {
-        return cultivatorPickerOpen
-            && leftShiftHeld
-            && !anotherModifierHeld
-            && IsAllowed(size);
-    }
-
     internal static bool TrySelect(int size)
     {
         if (!IsAllowed(size))

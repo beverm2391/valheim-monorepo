@@ -6,6 +6,8 @@
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/Farming/FarmingInput.cs" Link="FarmingInput.cs" />
+    <Compile Include="../../src/Farming/FarmingInputPatches.cs" Link="FarmingInputPatches.cs" />
     <Compile Include="../../src/Farming/FarmingSettings.cs" Link="FarmingSettings.cs" />
     <Compile Include="../../src/Farming/FarmingGridSelection.cs" Link="FarmingGridSelection.cs" />
   </ItemGroup>

@@ -5,8 +5,8 @@ namespace BenheimQoL.Farming;
 
 internal static class FarmingInput
 {
-    private static int suppressedHotbarFrame = -1;
     private static int suppressedHotbarIndex;
+    private static bool localPlayerUpdateActive;
 
     internal static bool IsMassActionHeld()
     {
@@ -21,15 +21,21 @@ internal static class FarmingInput
     }
 
     /// <summary>
-    /// Handles only Left Shift plus an odd-number key, with no other modifier
-    /// held, while the local player has the Cultivator picker open. It records
-    /// the current frame so the separate native UseHotbarItem hook suppresses
-    /// the same keyboard action. Every other number-key path remains native.
+    /// Runs immediately after Valheim updates ZInput. This keeps selection on
+    /// the same latched edge that Player.Update uses for native hotbar input;
+    /// sampling the low-level InputSystem edge from Player.Update is order-
+    /// dependent on platforms where ZInput performs its own system update.
     /// </summary>
-    internal static void UpdateGridSelection(Player player)
+    internal static void UpdateGridSelection(Player? player)
     {
-        if (Player.m_localPlayer != player)
+        // A handled hotbar edge stays suppressible until the next ZInput update.
+        // Whether Game.Update runs before or after Player.Update, the native
+        // UseHotbarItem call therefore sees the same edge exactly once.
+        suppressedHotbarIndex = 0;
+
+        if (player == null || Player.m_localPlayer != player)
         {
+            FarmingGridSelection.UpdatePickerSession(pickerOpen: false);
             return;
         }
 
@@ -52,18 +58,12 @@ internal static class FarmingInput
         if (!pickerOpen
             || !leftShiftHeld
             || anotherModifierHeld
-            || !TryGetPressedGridSize(out int number)
-            || !FarmingGridSelection.ShouldHandleInput(
-                pickerOpen,
-                leftShiftHeld,
-                anotherModifierHeld,
-                number))
+            || !TryGetPressedGridSize(out int number, out bool suppressHotbar))
         {
             return;
         }
 
-        suppressedHotbarFrame = Time.frameCount;
-        suppressedHotbarIndex = number <= 8 ? number : 0;
+        suppressedHotbarIndex = suppressHotbar ? number : 0;
 
         FarmingGridSelection.TrySelect(number);
 
@@ -74,15 +74,31 @@ internal static class FarmingInput
 
     internal static bool ShouldSuppressHotbarUse(Player player, int index)
     {
-        return Time.frameCount == suppressedHotbarFrame
-            && index == suppressedHotbarIndex
-            && IsCultivatorPieceSelectionOpen(player);
+        if (!localPlayerUpdateActive
+            || Player.m_localPlayer != player
+            || index != suppressedHotbarIndex)
+        {
+            return false;
+        }
+
+        suppressedHotbarIndex = 0;
+        return true;
+    }
+
+    internal static void BeginPlayerUpdate(Player player)
+    {
+        localPlayerUpdateActive = Player.m_localPlayer == player;
+    }
+
+    internal static void EndPlayerUpdate()
+    {
+        localPlayerUpdateActive = false;
     }
 
     internal static void ResetGridSelection()
     {
-        suppressedHotbarFrame = -1;
         suppressedHotbarIndex = 0;
+        localPlayerUpdateActive = false;
         FarmingGridSelection.Reset();
     }
 
@@ -94,32 +110,44 @@ internal static class FarmingInput
             return false;
         }
 
-        ItemDrop.ItemData? rightItem = FarmingReflection.GetRightItem(player);
-        PieceTable? activePieces = FarmingReflection.BuildPiecesField.GetValue(player) as PieceTable;
+        ItemDrop.ItemData? rightItem = player.RightItem;
         return rightItem != null
-            && rightItem.m_dropPrefab
+            && rightItem.m_dropPrefab != null
             && rightItem.m_dropPrefab.name == "Cultivator"
             && rightItem.m_shared.m_buildPieces != null
-            && object.ReferenceEquals(rightItem.m_shared.m_buildPieces, activePieces);
+            && player.InPlaceMode();
     }
 
-    private static bool TryGetPressedGridSize(out int number)
+    private static bool TryGetPressedGridSize(out int number, out bool suppressHotbar)
     {
-        for (int candidate = FarmingSettings.MinimumGridSize;
-             candidate <= FarmingSettings.MaximumGridSize;
-             candidate += 2)
+        int activeNumberCount = 0;
+        int activeTopRowNumber = -1;
+        for (int candidate = 0; candidate <= 9; candidate++)
         {
-            KeyCode alpha = (KeyCode)((int)KeyCode.Alpha0 + candidate);
-            KeyCode keypad = (KeyCode)((int)KeyCode.Keypad0 + candidate);
-            if (InputState.IsKeyDown(alpha) || InputState.IsKeyDown(keypad))
+            bool topRowActive = ZInput.GetKey((KeyCode)((int)KeyCode.Alpha0 + candidate));
+            bool keypadActive = ZInput.GetKey((KeyCode)((int)KeyCode.Keypad0 + candidate));
+            if (topRowActive)
             {
-                number = candidate;
-                return true;
+                activeNumberCount++;
+                activeTopRowNumber = candidate;
+            }
+
+            if (keypadActive)
+            {
+                activeNumberCount++;
             }
         }
 
-        number = 0;
-        return false;
+        bool allowedChord = activeNumberCount == 1
+            && FarmingGridSelection.IsAllowed(activeTopRowNumber);
+        bool selectionEdge = allowedChord && (activeTopRowNumber == 9
+            ? ZInput.GetKeyDown(KeyCode.Alpha9)
+            : ZInput.GetButtonDown($"Hotbar{activeTopRowNumber}"));
+
+        bool handle = allowedChord && selectionEdge;
+        number = handle ? activeTopRowNumber : 0;
+        suppressHotbar = handle && activeTopRowNumber <= 8;
+        return handle;
     }
 
     private static bool IsLeftShiftHeld()
@@ -129,24 +157,12 @@ internal static class FarmingInput
             return false;
         }
 
-        return Input.GetKey(KeyCode.LeftShift) || ZInput.GetKey(KeyCode.LeftShift);
+        return ZInput.GetKey(KeyCode.LeftShift);
     }
 
     private static bool IsAnotherModifierHeld()
     {
-        return Input.GetKey(KeyCode.RightShift)
-            || Input.GetKey(KeyCode.LeftAlt)
-            || Input.GetKey(KeyCode.RightAlt)
-            || Input.GetKey(KeyCode.LeftControl)
-            || Input.GetKey(KeyCode.RightControl)
-            || Input.GetKey(KeyCode.AltGr)
-            || Input.GetKey(KeyCode.LeftCommand)
-            || Input.GetKey(KeyCode.RightCommand)
-            || Input.GetKey(KeyCode.LeftMeta)
-            || Input.GetKey(KeyCode.RightMeta)
-            || Input.GetKey(KeyCode.LeftWindows)
-            || Input.GetKey(KeyCode.RightWindows)
-            || ZInput.GetKey(KeyCode.RightShift)
+        return ZInput.GetKey(KeyCode.RightShift)
             || ZInput.GetKey(KeyCode.LeftAlt)
             || ZInput.GetKey(KeyCode.RightAlt)
             || ZInput.GetKey(KeyCode.LeftControl)

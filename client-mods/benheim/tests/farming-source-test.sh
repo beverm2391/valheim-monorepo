@@ -6,6 +6,8 @@ source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_player="$source_tree/Player.cs"
 native_version="$source_tree/Version.cs"
 mass_planting="$root/src/Farming/MassPlanting.cs"
+valheim_assembly="${VALHEIM_ASSEMBLY_PATH:-${VALHEIM_GAME_DIR:-$HOME/Library/Application Support/Steam/steamapps/common/Valheim}/valheim.app/Contents/Resources/Data/Managed/assembly_valheim.dll}"
+utils_assembly="$(dirname "$valheim_assembly")/assembly_utils.dll"
 
 assert_source() {
   local pattern="$1"
@@ -23,22 +25,30 @@ assert_source 'new List<FarmingGridPoint>\(size \* size\)' 'src/Farming/FarmingG
 assert_source 'row == size / 2 && column == size / 2' 'src/Farming/FarmingGrid.cs'
 assert_source 'position \+= left' 'src/Farming/FarmingGrid.cs'
 assert_source 'rowOrigin \+= forward' 'src/Farming/FarmingGrid.cs'
-assert_source 'HarmonyPatch\(typeof\(Player\), "Update"\)' 'src/Farming/FarmingPatches.cs'
-assert_source 'UpdateGridSelection\(__instance\)' 'src/Farming/FarmingPatches.cs'
-assert_source 'HarmonyPatch\(typeof\(Player\), "UseHotbarItem"\)' 'src/Farming/FarmingPatches.cs'
-assert_source 'ShouldSuppressHotbarUse\(__instance, index\)' 'src/Farming/FarmingPatches.cs'
+assert_source 'HarmonyPatch\(typeof\(ZInput\), nameof\(ZInput\.Update\)\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'if \(!__runOriginal\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'UpdateGridSelection\(Player\.m_localPlayer\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'HarmonyPatch\(typeof\(Player\), "Update"\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'HarmonyPriority\(Priority\.Last\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'HarmonyPriority\(Priority\.First\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'BeginPlayerUpdate\(__instance\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'EndPlayerUpdate\(\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'HarmonyFinalizer' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'HarmonyPatch\(typeof\(Player\), "UseHotbarItem"\)' 'src/Farming/FarmingInputPatches.cs'
+assert_source 'ShouldSuppressHotbarUse\(__instance, index\)' 'src/Farming/FarmingInputPatches.cs'
 assert_source 'Hud\.IsPieceSelectionVisible\(\)' 'src/Farming/FarmingInput.cs'
 assert_source 'rightItem\.m_dropPrefab\.name == "Cultivator"' 'src/Farming/FarmingInput.cs'
-assert_source 'Time\.frameCount == suppressedHotbarFrame' 'src/Farming/FarmingInput.cs'
-assert_source 'InputState\.IsKeyDown\(alpha\)' 'src/Farming/FarmingInput.cs'
-assert_source 'candidate \+= 2' 'src/Farming/FarmingInput.cs'
+assert_source 'ZInput\.GetKey\(\(KeyCode\)\(\(int\)KeyCode\.Alpha0 \+ candidate\)\)' 'src/Farming/FarmingInput.cs'
+assert_source 'ZInput\.GetKey\(\(KeyCode\)\(\(int\)KeyCode\.Keypad0 \+ candidate\)\)' 'src/Farming/FarmingInput.cs'
+assert_source 'ZInput\.GetButtonDown\(\$"Hotbar\{activeTopRowNumber\}"\)' 'src/Farming/FarmingInput.cs'
+assert_source 'ZInput\.GetKeyDown\(KeyCode\.Alpha9\)' 'src/Farming/FarmingInput.cs'
+assert_source 'activeNumberCount == 1' 'src/Farming/FarmingInput.cs'
 assert_source 'IsAnotherModifierHeld\(\)' 'src/Farming/FarmingInput.cs'
 assert_source 'KeyCode\.AltGr' 'src/Farming/FarmingInput.cs'
 assert_source 'KeyCode\.LeftCommand' 'src/Farming/FarmingInput.cs'
 assert_source 'KeyCode\.RightCommand' 'src/Farming/FarmingInput.cs'
 assert_source 'KeyCode\.LeftWindows' 'src/Farming/FarmingInput.cs'
 assert_source 'KeyCode\.RightWindows' 'src/Farming/FarmingInput.cs'
-assert_source 'ShouldHandleInput\(' 'src/Farming/FarmingInput.cs'
 assert_source 'UpdatePickerSession\(pickerOpen\)' 'src/Farming/FarmingInput.cs'
 assert_source 'PlantingPreview\.DestroyGhosts\(\)' 'src/Farming/FarmingInput.cs'
 assert_source 'FarmingInput\.ResetGridSelection\(\)' 'src/Plugin.cs'
@@ -61,6 +71,15 @@ assert_source 'Left Shift \+ plant' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'MassFarming v1\.12' 'THIRD_PARTY_NOTICES.md'
 
 grep -Fq 'CurrentVersion { get; } = new GameVersion(0, 221, 12);' "$native_version"
+native_game="$source_tree/Game.cs"
+grep -Fq 'ZInput.Update(Time.unscaledDeltaTime);' "$native_game"
+zinput_source="$(VALHEIM_ASSEMBLY_PATH="$utils_assembly" "$root/scripts/decompile-valheim.sh" ZInput)"
+grep -Fq 'public static void Update(float dt)' <<<"$zinput_source"
+grep -Fq 'value.Tick(dt);' <<<"$zinput_source"
+grep -Fq 'pressed = !wasPressed & held;' <<<"$zinput_source"
+grep -Fq 'TryGetButtonState(name, (ButtonDef b) => b.Pressed)' <<<"$zinput_source"
+grep -Fq 'TryGetKeyStateLowLevel(key, (ButtonControl b) => b.isPressed' <<<"$zinput_source"
+grep -Fq 'TryGetKeyStateLowLevel(key, (ButtonControl b) => b.wasPressedThisFrame' <<<"$zinput_source"
 grep -Fq 'if (TryPlacePiece(selectedPiece))' "$native_player"
 grep -Fq 'UseStamina(GetBuildStamina());' "$native_player"
 grep -Fq 'private float GetBuildStamina()' "$native_player"
