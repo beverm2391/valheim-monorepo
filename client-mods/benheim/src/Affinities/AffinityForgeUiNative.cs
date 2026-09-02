@@ -18,6 +18,8 @@ internal sealed partial class AffinityForgeUi
     {
         gui = inventoryGui;
         ValidateDonors();
+        minStationLevelBaseColor = gui.m_minStationLevelText.color;
+        restoreMinStationLevelSprite = gui.m_minStationLevelIcon.sprite;
         GameObject tabObject = UnityEngine.Object.Instantiate(
             gui.m_tabUpgrade.gameObject,
             gui.m_tabUpgrade.transform.parent);
@@ -56,6 +58,8 @@ internal sealed partial class AffinityForgeUi
             || gui.m_recipeName == null
             || gui.m_recipeDecription == null
             || gui.m_itemCraftType == null
+            || gui.m_minStationLevelIcon == null
+            || gui.m_minStationLevelText == null
             || gui.m_craftButton == null)
         {
             throw new InvalidOperationException("Affinity requires native Forge UI donors.");

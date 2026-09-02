@@ -17,6 +17,8 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
     private bool active;
     private bool restoreCraftTab = true;
     private float restoreScrollValue = 1f;
+    private Color minStationLevelBaseColor;
+    private Sprite restoreMinStationLevelSprite = null!;
     private Navigation restoreUpgradeNavigation;
     private bool upgradeNavigationCaptured;
 
@@ -64,7 +66,7 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         affinityTab.interactable = false;
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "affinity_menu_discovered")
-                .String("station", AffinityApplication.ForgeNameToken)
+                .String("station", AffinityApplication.LungeRequirement.StationNameToken)
                 .String("tab", "affinity"));
         Refresh(focusSelection: true);
     }
@@ -181,16 +183,16 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
             $"Exact Club: quality {item.m_quality}, slot {item.m_gridPos.x + 1},{item.m_gridPos.y + 1}";
         gui.m_variantButton.gameObject.SetActive(false);
         gui.m_qualityPanel.gameObject.SetActive(false);
-        gui.m_minStationLevelIcon.gameObject.SetActive(false);
         gui.m_craftProgressPanel.gameObject.SetActive(false);
         gui.m_craftButton.gameObject.SetActive(true);
 
-        int owned = ShowTemporaryRequirement(player);
+        AffinityRequirementSpec requirement = AffinityApplication.LungeRequirement;
+        int owned = ShowRequirements(player, requirement);
         bool canApply = AffinityApplication.IsAtBaseGameForge(player)
             && player.GetInventory().ContainsItem(item)
             && AffinityState.IsEligibleClub(item)
             && !AffinityRules.IsSameAffinity(existing, AffinityLoadResult.Lunge)
-            && owned >= AffinityApplication.TestResourceAmount;
+            && owned >= requirement.MaterialAmount;
         gui.m_craftButton.interactable = canApply;
         gui.m_craftButton.GetComponentInChildren<TMP_Text>().text =
             AffinityRules.IsSameAffinity(existing, AffinityLoadResult.Lunge)
@@ -322,19 +324,27 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         rows.Add(row);
     }
 
-    private int ShowTemporaryRequirement(Player player)
+    private int ShowRequirements(Player player, AffinityRequirementSpec specification)
     {
-        ItemDrop? resource = AffinityApplication.ResourceDrop();
-        if (resource == null)
+        ItemDrop? resource = AffinityApplication.ResourceDrop(specification);
+        CraftingStation? station = player.GetCurrentCraftingStation();
+        if (resource == null || station == null)
         {
             HideRequirements();
             return 0;
         }
 
+        gui.m_minStationLevelIcon.sprite = station.m_icon;
+        gui.m_minStationLevelIcon.gameObject.SetActive(true);
+        gui.m_minStationLevelText.text = specification.StationLevel.ToString();
+        gui.m_minStationLevelText.color = station.GetLevel() >= specification.StationLevel
+            ? minStationLevelBaseColor
+            : Color.red;
+
         Piece.Requirement requirement = new Piece.Requirement
         {
             m_resItem = resource,
-            m_amount = AffinityApplication.TestResourceAmount,
+            m_amount = specification.MaterialAmount,
         };
         InventoryGui.SetupRequirement(
             gui.m_recipeRequirementList[0].transform,
@@ -347,8 +357,8 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         TMP_Text amount = gui.m_recipeRequirementList[0].transform
             .Find("res_amount")
             .GetComponent<TMP_Text>();
-        amount.text = $"{owned}/{AffinityApplication.TestResourceAmount}";
-        amount.color = owned >= AffinityApplication.TestResourceAmount ? Color.white : Color.red;
+        amount.text = $"{owned}/{specification.MaterialAmount}";
+        amount.color = owned >= specification.MaterialAmount ? Color.white : Color.red;
         for (int index = 1; index < gui.m_recipeRequirementList.Length; index++)
         {
             InventoryGui.HideRequirement(gui.m_recipeRequirementList[index].transform);
@@ -376,6 +386,7 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
 
     private void HideRequirements()
     {
+        gui.m_minStationLevelIcon.gameObject.SetActive(false);
         for (int index = 0; index < gui.m_recipeRequirementList.Length; index++)
         {
             InventoryGui.HideRequirement(gui.m_recipeRequirementList[index].transform);
@@ -384,13 +395,14 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
 
     private void RestoreNativeDisplayDefaults()
     {
+        gui.m_minStationLevelIcon.sprite = restoreMinStationLevelSprite;
+        gui.m_minStationLevelText.color = minStationLevelBaseColor;
         gui.m_recipeIcon.enabled = false;
         gui.m_recipeName.enabled = false;
         gui.m_recipeDecription.enabled = false;
         gui.m_itemCraftType.gameObject.SetActive(false);
         gui.m_variantButton.gameObject.SetActive(false);
         gui.m_qualityPanel.gameObject.SetActive(false);
-        gui.m_minStationLevelIcon.gameObject.SetActive(false);
         gui.m_craftProgressPanel.gameObject.SetActive(false);
         HideRequirements();
     }

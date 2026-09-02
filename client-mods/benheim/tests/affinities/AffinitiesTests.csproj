@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Affinities/AffinityRules.cs" Link="AffinityRules.cs" />
+    <Compile Include="../../src/Affinities/AffinityPresentation.cs" Link="AffinityPresentation.cs" />
   </ItemGroup>
 </Project>

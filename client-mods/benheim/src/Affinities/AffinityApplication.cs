@@ -25,15 +25,18 @@ internal sealed class AffinityApplicationResult
 
 internal static class AffinityApplication
 {
-    internal const string TestResourcePrefab = "Wood";
-    internal const int TestResourceAmount = 1;
-    internal const string ForgeNameToken = "$piece_forge";
+    internal static AffinityRequirementSpec LungeRequirement =>
+        AffinityPresentation.RequirementsFor(AffinityLoadResult.Lunge);
+    internal static int TestResourceAmount => LungeRequirement.MaterialAmount;
 
     internal static bool IsAtBaseGameForge(Player? player)
     {
         CraftingStation? station = player?.GetCurrentCraftingStation();
         return station != null
-            && string.Equals(station.m_name, ForgeNameToken, StringComparison.Ordinal);
+            && string.Equals(
+                station.m_name,
+                LungeRequirement.StationNameToken,
+                StringComparison.Ordinal);
     }
 
     internal static AffinityApplicationResult ApplyLunge(
@@ -43,6 +46,7 @@ internal static class AffinityApplication
         bool consumeResources,
         string source)
     {
+        AffinityRequirementSpec requirement = LungeRequirement;
         string validation = Validate(player, target, requireForge, consumeResources);
         bool valid = string.Equals(validation, "valid", StringComparison.Ordinal);
         AffinityDiagnostics.Emit(
@@ -71,10 +75,10 @@ internal static class AffinityApplication
                 resourceName = ResourceName();
                 resourcesBefore = inventory.CountItems(resourceName);
                 consumptionAttempted = true;
-                inventory.RemoveItem(resourceName, TestResourceAmount);
+                inventory.RemoveItem(resourceName, requirement.MaterialAmount);
                 int after = inventory.CountItems(resourceName);
                 consumed = AffinityRules.CountConsumed(resourcesBefore, after);
-                if (consumed != TestResourceAmount)
+                if (consumed != requirement.MaterialAmount)
                 {
                     bool restored = TryRestoreResources(inventory, consumed);
                     EmitConsumption(source, consumed, restored ? "rolled_back" : "restore_failed");
@@ -128,14 +132,14 @@ internal static class AffinityApplication
 
     internal static string ResourceName()
     {
-        GameObject? prefab = ObjectDB.instance?.GetItemPrefab(TestResourcePrefab);
+        GameObject? prefab = ObjectDB.instance?.GetItemPrefab(LungeRequirement.MaterialPrefab);
         ItemDrop? drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
         return drop?.m_itemData?.m_shared?.m_name ?? string.Empty;
     }
 
-    internal static ItemDrop? ResourceDrop()
+    internal static ItemDrop? ResourceDrop(AffinityRequirementSpec requirement)
     {
-        return ObjectDB.instance?.GetItemPrefab(TestResourcePrefab)?.GetComponent<ItemDrop>();
+        return ObjectDB.instance?.GetItemPrefab(requirement.MaterialPrefab)?.GetComponent<ItemDrop>();
     }
 
     private static string Validate(
@@ -162,7 +166,7 @@ internal static class AffinityApplication
 
         string resourceName = ResourceName();
         if (string.IsNullOrEmpty(resourceName)) return "test_resource_unavailable";
-        return inventory.CountItems(resourceName) >= TestResourceAmount
+        return inventory.CountItems(resourceName) >= LungeRequirement.MaterialAmount
             ? "valid"
             : "missing_resources";
     }
@@ -173,7 +177,7 @@ internal static class AffinityApplication
         try
         {
             ItemDrop.ItemData? restored = inventory.AddItem(
-                TestResourcePrefab,
+                LungeRequirement.MaterialPrefab,
                 amount,
                 1,
                 0,
@@ -188,7 +192,7 @@ internal static class AffinityApplication
         }
 
         LogError(
-            $"Affinity resource restoration failed for {amount} {TestResourcePrefab}.");
+            $"Affinity resource restoration failed for {amount} {LungeRequirement.MaterialPrefab}.");
         return false;
     }
 
@@ -229,7 +233,7 @@ internal static class AffinityApplication
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "affinity_resources_consumed")
                 .String("source", source)
-                .String("resource_prefab", TestResourcePrefab)
+                .String("resource_prefab", LungeRequirement.MaterialPrefab)
                 .Integer("amount", amount)
                 .String("outcome", outcome));
     }

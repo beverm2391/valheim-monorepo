@@ -6,6 +6,18 @@ static void Require(bool condition, string message)
     if (!condition) throw new InvalidOperationException(message);
 }
 
+static int Count(string value, string fragment)
+{
+    int count = 0;
+    int offset = 0;
+    while ((offset = value.IndexOf(fragment, offset, StringComparison.Ordinal)) >= 0)
+    {
+        count++;
+        offset += fragment.Length;
+    }
+    return count;
+}
+
 Require(AffinityRules.ReadStoredValue(null) == AffinityLoadResult.None, "missing state must stay native");
 Require(AffinityRules.ReadStoredValue("v1:lunge") == AffinityLoadResult.Lunge, "versioned Lunge must load");
 Require(AffinityRules.ReadStoredValue("v2:lunge") == AffinityLoadResult.Unsupported, "unknown versions must stay dormant");
@@ -21,6 +33,53 @@ Require(AffinityRules.CountConsumed(3, 4) == 0, "resource gains must never look 
 Require(AffinityRules.IsSameAffinity(AffinityLoadResult.Lunge, AffinityLoadResult.Lunge), "the installed Affinity must not replace itself");
 Require(!AffinityRules.IsSameAffinity(AffinityLoadResult.None, AffinityLoadResult.Lunge), "an empty slot must accept Lunge");
 Require(!AffinityRules.IsSameAffinity(AffinityLoadResult.Unsupported, AffinityLoadResult.Lunge), "a different stored Affinity may be replaced");
+
+AffinityRequirementSpec lungeRequirement = AffinityPresentation.RequirementsFor(AffinityLoadResult.Lunge);
+Require(lungeRequirement.StationNameToken == "$piece_forge", "Lunge must require the native Forge");
+Require(lungeRequirement.StationLevel == 1, "Lunge must require Forge level 1");
+Require(lungeRequirement.MaterialPrefab == "Wood" && lungeRequirement.MaterialAmount == 1, "Lunge must keep the temporary 1 Wood cost");
+
+const string nativeTitle = "Club";
+const string nativeTooltip = "$item_club_description\n$item_weight: <color=orange>2.0</color>";
+Require(
+    AffinityPresentation.InventoryTitle(nativeTitle, AffinityLoadResult.None) == nativeTitle,
+    "a native Club title must remain unchanged");
+Require(
+    AffinityPresentation.InventoryTooltip(nativeTooltip, AffinityLoadResult.None, 10f, 3f) == nativeTooltip,
+    "a native Club tooltip must remain unchanged");
+Require(
+    AffinityPresentation.InventoryTitle(nativeTitle, AffinityLoadResult.Unsupported) == nativeTitle,
+    "an item with unknown affinity data must keep its native title");
+Require(
+    AffinityPresentation.InventoryTooltip(nativeTooltip, AffinityLoadResult.Unsupported, 10f, 3f) == nativeTooltip,
+    "an item with unknown affinity data must keep its native tooltip");
+
+string affinityTitle = AffinityPresentation.InventoryTitle(nativeTitle, AffinityLoadResult.Lunge);
+Require(affinityTitle == "Club · Lunge", "the exact Lunge Club must identify its Affinity");
+Require(
+    AffinityPresentation.InventoryTitle(affinityTitle, AffinityLoadResult.Lunge) == affinityTitle,
+    "the Lunge title suffix must not repeat");
+
+string affinityTooltip = AffinityPresentation.InventoryTooltip(
+    nativeTooltip,
+    AffinityLoadResult.Lunge,
+    10f,
+    3f);
+Require(affinityTooltip.StartsWith(nativeTooltip, StringComparison.Ordinal), "the native Club tooltip must be preserved first");
+Require(affinityTooltip.Contains("Every airborne primary swing adds 10 m/s to your forward velocity", StringComparison.Ordinal), "the tooltip must state Lunge's actual movement");
+Require(affinityTooltip.Contains("at least +3 m/s", StringComparison.Ordinal), "the tooltip must state Lunge's vertical floor");
+Require(affinityTooltip.Contains("Persistent bias:", StringComparison.Ordinal), "the tooltip must state Lunge's persistent bias");
+Require(
+    AffinityPresentation.InventoryTooltip(nativeTooltip, AffinityLoadResult.Lunge, 12.5f, 3f)
+        .Contains("12.5 m/s to your forward velocity", StringComparison.Ordinal),
+    "the tooltip must reflect a session force override");
+string recomposedTooltip = AffinityPresentation.InventoryTooltip(
+    affinityTooltip,
+    AffinityLoadResult.Lunge,
+    10f,
+    3f);
+Require(recomposedTooltip == affinityTooltip, "the Affinity section must not repeat");
+Require(Count(recomposedTooltip, "Affinity: Lunge") == 1, "the Affinity heading must appear exactly once");
 
 Require(AffinityRules.ResolveLunge(true, true, true, false, false, false, false) == "accepted", "valid airborne attempt must apply");
 Require(AffinityRules.ResolveLunge(false, true, true, false, false, false, false) == "not_owner", "non-owner must be rejected");
