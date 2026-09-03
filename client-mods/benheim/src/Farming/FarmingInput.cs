@@ -26,7 +26,7 @@ internal static class FarmingInput
     /// sampling the low-level InputSystem edge from Player.Update is order-
     /// dependent on platforms where ZInput performs its own system update.
     /// </summary>
-    internal static void UpdateGridSelection(Player? player)
+    internal static string UpdateGridSelection(Player? player)
     {
         // A handled hotbar edge stays suppressible until the next ZInput update.
         // Whether Game.Update runs before or after Player.Update, the native
@@ -36,7 +36,7 @@ internal static class FarmingInput
         if (player == null || Player.m_localPlayer != player)
         {
             FarmingGridSelection.UpdatePickerSession(pickerOpen: false);
-            return;
+            return "not_local_player";
         }
 
         bool pickerOpen = IsCultivatorPieceSelectionOpen(player);
@@ -50,17 +50,17 @@ internal static class FarmingInput
         // while the Cultivator picker remains visible.
         if (InputState.IsTextEntryActive())
         {
-            return;
+            return "text_entry";
         }
 
         bool leftShiftHeld = IsLeftShiftHeld();
         bool anotherModifierHeld = IsAnotherModifierHeld();
-        if (!pickerOpen
-            || !leftShiftHeld
-            || anotherModifierHeld
-            || !TryGetPressedGridSize(out int number, out bool suppressHotbar))
+        if (!pickerOpen) return "picker_closed";
+        if (!leftShiftHeld) return "left_shift_required";
+        if (anotherModifierHeld) return "other_modifier";
+        if (!TryGetPressedGridSize(out int number, out bool suppressHotbar, out string reason))
         {
-            return;
+            return reason;
         }
 
         suppressedHotbarIndex = suppressHotbar ? number : 0;
@@ -69,7 +69,7 @@ internal static class FarmingInput
 
         PlantingPreview.DestroyGhosts();
         player.Message(MessageHud.MessageType.TopLeft, $"Planting grid: {number}x{number}");
-        Diagnostics.Event("Farming", "plant_grid_selected", $"grid={number}x{number}");
+        return "selected";
     }
 
     internal static bool ShouldSuppressHotbarUse(Player player, int index)
@@ -100,6 +100,7 @@ internal static class FarmingInput
         suppressedHotbarIndex = 0;
         localPlayerUpdateActive = false;
         FarmingGridSelection.Reset();
+        FarmingInputDiagnostics.Reset();
     }
 
     private static bool IsCultivatorPieceSelectionOpen(Player player)
@@ -118,7 +119,7 @@ internal static class FarmingInput
             && player.InPlaceMode();
     }
 
-    private static bool TryGetPressedGridSize(out int number, out bool suppressHotbar)
+    private static bool TryGetPressedGridSize(out int number, out bool suppressHotbar, out string reason)
     {
         int activeNumberCount = 0;
         int activeTopRowNumber = -1;
@@ -147,6 +148,9 @@ internal static class FarmingInput
         bool handle = allowedChord && selectionEdge;
         number = handle ? activeTopRowNumber : 0;
         suppressHotbar = handle && activeTopRowNumber <= 8;
+        reason = activeNumberCount != 1 ? "number_key_count"
+            : !allowedChord ? "unsupported_number_key"
+            : !selectionEdge ? "no_selection_edge" : "selected";
         return handle;
     }
 

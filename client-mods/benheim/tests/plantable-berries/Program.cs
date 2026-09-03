@@ -4,36 +4,7 @@ using BenheimQoL.Farming;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
 
-static void Require(bool condition, string message)
-{
-    if (!condition) throw new InvalidOperationException(message);
-}
-
-static void RequireNear(float actual, float expected, string message)
-{
-    if (Math.Abs(actual - expected) > 0.0001f)
-    {
-        throw new InvalidOperationException($"{message}: expected {expected}, got {actual}");
-    }
-}
-
-static GameObject CreateBerryItem(string name)
-{
-    var item = new GameObject(name);
-    item.AddComponent<ItemDrop>().m_itemData.Icon = new Sprite();
-    return item;
-}
-
-static GameObject CreateBush(string name, GameObject berryItem)
-{
-    var bush = new GameObject(name);
-    bush.AddComponent<ZNetView>();
-    bush.AddComponent<Destructible>();
-    Pickable pickable = bush.AddComponent<Pickable>();
-    pickable.m_itemPrefab = berryItem;
-    pickable.m_respawnTimeMinutes = 300f;
-    return bush;
-}
+using static BerryTestSupport;
 
 static (bool Removed, int RefundAmount, string? RefundItem) TryNativeHammerRemoval(
     Piece piece,
@@ -376,4 +347,6 @@ bool unrelatedNativeApproval = true;
 PlantableBerryRemovalPatch.Postfix(unrelatedPiece, ref unrelatedNativeApproval);
 Require(unrelatedNativeApproval, "an unrelated Piece must preserve a native removal approval");
 
-Console.WriteLine("Plantable berry production registration tests passed");
+BerryLifecycleEvidenceTests.Run(scene, pieceTable, new[] { raspberry, blueberry, cloudberry }, remoteBush, unrelated);
+
+Console.WriteLine("Plantable berry registration and typed lifecycle evidence tests passed");

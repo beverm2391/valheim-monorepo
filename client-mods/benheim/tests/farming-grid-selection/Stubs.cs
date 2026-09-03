@@ -218,8 +218,8 @@ namespace BenheimQoL.Infrastructure
 
     internal static class Diagnostics
     {
-        internal static int Events;
-        internal static string? Last;
+        internal static int Events => CoreEvents.FindAll(value => value.Name == "plant_grid_selected").Count;
+        internal static List<DiagnosticEvent> CoreEvents = new();
         internal static List<DiagnosticEvent> ProbeEvents = new();
         internal static bool ThrowOnProbeEmit;
 
@@ -227,14 +227,21 @@ namespace BenheimQoL.Infrastructure
         {
             if (ThrowOnProbeEmit) throw new System.InvalidOperationException("diagnostic sink failed");
             value.Prepare(System.DateTime.UtcNow, "test", "test");
-            ProbeEvents.Add(value);
+            if (value.Name.StartsWith("grid_input_probe", System.StringComparison.Ordinal)) ProbeEvents.Add(value);
+            else CoreEvents.Add(value);
         }
+    }
+}
 
-        internal static void Event(string domain, string name, string fields)
-        {
-            Events++;
-            Last = $"{domain}.{name} {fields}";
-        }
+namespace BenheimQoL
+{
+    internal static class Plugin
+    {
+        internal static readonly TestLogger Log = new();
+    }
+    internal sealed class TestLogger
+    {
+        internal void LogWarning(string message) { }
     }
 }
 

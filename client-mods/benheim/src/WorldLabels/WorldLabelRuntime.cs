@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BenheimQoL.Infrastructure;
 using UnityEngine;
 
 namespace BenheimQoL.WorldLabels;
@@ -8,9 +9,8 @@ internal static class WorldLabelRuntime
     private static readonly List<SignGlowController> SignGlows = new();
     private static readonly List<PortalLabelController> PortalLabels = new();
     private static Sign? nativeWoodenSign;
-    private static bool nativeSignWarningLogged;
     private static bool nativeSignResolutionLogged;
-    private static bool portalLabelCreationLogged;
+    internal static string NativeSignPendingReason { get; private set; } = "native_sign_not_loaded";
 
     internal static void Attach(Sign sign)
     {
@@ -68,9 +68,8 @@ internal static class WorldLabelRuntime
         }
 
         nativeWoodenSign = null;
-        nativeSignWarningLogged = false;
         nativeSignResolutionLogged = false;
-        portalLabelCreationLogged = false;
+        NativeSignPendingReason = "native_sign_not_loaded";
     }
 
     internal static bool TryGetNativeWoodenSign(out Sign sign)
@@ -83,6 +82,7 @@ internal static class WorldLabelRuntime
 
         nativeWoodenSign = null;
         ZNetScene? scene = ZNetScene.instance;
+        NativeSignPendingReason = scene == null ? "native_scene_missing" : "native_sign_not_loaded";
         if (scene != null &&
             (TryFindNativeWoodenSign(scene.m_prefabs, out sign) ||
              TryFindNativeWoodenSign(scene.m_nonNetViewPrefabs, out sign)))
@@ -95,30 +95,6 @@ internal static class WorldLabelRuntime
         return false;
     }
 
-    internal static void LogNativeSignPending()
-    {
-        if (nativeSignWarningLogged)
-        {
-            return;
-        }
-
-        nativeSignWarningLogged = true;
-        Plugin.Log.LogWarning(
-            "Portal sign boards are waiting for Valheim's native $piece_sign piece.");
-    }
-
-    internal static void LogPortalLabelCreated(TeleportWorld portal)
-    {
-        if (portalLabelCreationLogged)
-        {
-            return;
-        }
-
-        portalLabelCreationLogged = true;
-        Plugin.Log.LogInfo(
-            $"Portal sign board created for native portal '{portal.gameObject.name}'.");
-    }
-
     private static bool TryFindNativeWoodenSign(
         List<GameObject> prefabs,
         out Sign sign)
@@ -128,6 +104,11 @@ internal static class WorldLabelRuntime
             Sign? candidate = prefab != null ? prefab.GetComponent<Sign>() : null;
             if (!IsUsableNativeWoodenSign(candidate))
             {
+                if (prefab != null && prefab.GetComponent<Piece>()?.m_name == "$piece_sign")
+                {
+                    NativeSignPendingReason = "native_sign_" +
+                        PortalSignVisualFactory.GetVisualFailureReason(candidate!);
+                }
                 continue;
             }
 
@@ -153,7 +134,10 @@ internal static class WorldLabelRuntime
         }
 
         nativeSignResolutionLogged = true;
-        Plugin.Log.LogInfo("Portal sign-board donor resolved from Valheim's native $piece_sign piece.");
+        PortalLabelDiagnostics.Emit(
+            DiagnosticEvent.Create("WorldLabels", "portal_sign_donor_resolved")
+                .Integer("donor_instance", sign.GetInstanceID())
+                .String("font", sign.m_textWidget.font.name));
     }
 
     private static bool IsUsableNativeWoodenSign(Sign? sign) =>

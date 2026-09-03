@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using BenheimQoL.Infrastructure;
 using UnityEngine;
 
 namespace BenheimQoL.Farming;
@@ -37,10 +36,7 @@ internal static class MassPlanting
         Heightmap? heightmap = Heightmap.FindHeightmap(PlantingState.AnchorPosition);
         if (!heightmap)
         {
-            Diagnostics.Event(
-                "Farming",
-                "mass_plant_finished",
-                $"planted=1 extra_planted=0 reason=no_heightmap grid={PlantingState.GridSize}x{PlantingState.GridSize}");
+            PlantingDiagnostics.PlacementFinished(PlantingState.GridSize, 0, 0, 0, "no_heightmap");
             return;
         }
 
@@ -65,14 +61,12 @@ internal static class MassPlanting
             if (anchorPiece.m_cultivatedGroundOnly && !heightmap.IsCultivated(point.Position))
             {
                 notCultivated++;
-                LogSkipped(point, PlantingInvalidReason.NotCultivated);
                 continue;
             }
 
             if (!PlantingRules.HasGrowSpace(point.Position, anchorPiece.gameObject))
             {
                 blocked++;
-                LogSkipped(point, PlantingInvalidReason.BlockedGrowSpace);
                 continue;
             }
 
@@ -120,18 +114,7 @@ internal static class MassPlanting
             }
         }
 
-        Diagnostics.Event(
-            "Farming",
-            "mass_plant_finished",
-            $"planted={planted + 1} extra_planted={planted} skipped_not_cultivated={notCultivated} skipped_blocked={blocked} grid={PlantingState.GridSize}x{PlantingState.GridSize}");
-    }
-
-    private static void LogSkipped(FarmingGridPoint point, PlantingInvalidReason reason)
-    {
-        Diagnostics.Event(
-            "Farming",
-            "plant_position_skipped",
-            $"index={point.Index} row={point.Row} column={point.Column} reason={PlantingRules.Name(reason)}");
+        PlantingDiagnostics.PlacementFinished(PlantingState.GridSize, planted, notCultivated, blocked);
     }
 
     private static void LogStopped(
@@ -143,13 +126,7 @@ internal static class MassPlanting
         bool toolBroke = false)
     {
         string stopReason = toolBroke ? "tool_broke" : PlantingRules.Name(reason ?? PlantingInvalidReason.None);
-        Diagnostics.Event(
-            "Farming",
-            "plant_position_stopped",
-            $"index={point.Index} row={point.Row} column={point.Column} reason={stopReason}");
-        Diagnostics.Event(
-            "Farming",
-            "mass_plant_finished",
-            $"planted={planted + 1} extra_planted={planted} skipped_not_cultivated={notCultivated} skipped_blocked={blocked} stopped={stopReason} grid={PlantingState.GridSize}x{PlantingState.GridSize}");
+        PlantingDiagnostics.PlacementFinished(PlantingState.GridSize, planted, notCultivated,
+            blocked, stopReason, point.Index);
     }
 }

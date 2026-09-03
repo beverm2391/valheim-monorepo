@@ -24,7 +24,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.84";
+    public const string PluginVersion = "0.1.85";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -86,6 +86,7 @@ public sealed class Plugin : BaseUnityPlugin
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
         DeveloperDiagnosticsRuntime.Update();
+        FarmingInputDiagnostics.ObserveUpdate();
         if (!HealthReporting.GameplayActionsEnabled)
         {
             return;

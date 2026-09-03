@@ -18,10 +18,12 @@ internal static class FarmingInputPatches
         FarmingInputProbe.ObserveZInputPostfix(__runOriginal);
         if (!__runOriginal)
         {
+            FarmingInputDiagnostics.ObserveSelection("native_update_skipped");
             return;
         }
 
-        FarmingInput.UpdateGridSelection(Player.m_localPlayer);
+        string decision = FarmingInput.UpdateGridSelection(Player.m_localPlayer);
+        FarmingInputDiagnostics.ObserveSelection(decision);
     }
 
     [HarmonyPrefix]
@@ -54,6 +56,7 @@ internal static class FarmingInputPatches
     internal static bool UseHotbarItemPrefix(Player __instance, int index)
     {
         bool suppressed = FarmingInput.ShouldSuppressHotbarUse(__instance, index);
+        FarmingInputDiagnostics.ObserveHotbarUse(__instance, index, suppressed);
         FarmingInputProbe.ObserveHotbarUse(__instance, index, suppressed);
         return !suppressed;
     }

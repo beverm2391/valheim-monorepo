@@ -37,15 +37,37 @@ internal sealed class Pickable : UnityEngine.Component
     internal float m_respawnTimeMinutes;
     internal bool Picked { get; private set; }
     internal long PickedTime { get; private set; }
+    internal bool Enabled = true;
+    internal int NativeHarvests;
+
+    internal bool GetPicked() => Picked;
+    internal bool CanBePicked() => !Picked && Enabled;
+
+    internal void LoadPickedState(bool picked) => Picked = picked;
 
     internal void SetPicked(bool picked)
     {
+        BenheimQoL.Farming.BerryPickedDiagnosticPatch.Prefix(this, out var observation);
         Picked = picked;
-        if (picked && m_respawnTimeMinutes > 0f)
+        if (picked && m_respawnTimeMinutes > 0f && GetComponent<ZNetView>()!.IsOwner())
         {
             PickedTime = ZNet.instance.GetTime().Ticks;
             GetComponent<ZNetView>()!.GetZDO().Set(ZDOVars.s_pickedTime, PickedTime);
         }
+        BenheimQoL.Farming.BerryPickedDiagnosticPatch.Postfix(this, observation);
+    }
+
+    // Matches the inspected native RPC's owner/picked gates and synchronous
+    // local SetPicked ordering. This fixture does not simulate growth or drops.
+    internal void Harvest(long sender)
+    {
+        BenheimQoL.Farming.BerryHarvestDiagnosticPatch.Prefix(this, out var observation);
+        if (GetComponent<ZNetView>()!.IsOwner() && !Picked)
+        {
+            NativeHarvests++;
+            SetPicked(true);
+        }
+        BenheimQoL.Farming.BerryHarvestDiagnosticPatch.Postfix(this, sender, observation);
     }
 
     internal bool ShouldRespawn(DateTime now)
@@ -66,6 +88,7 @@ internal readonly struct ZDOID
 
     internal long UserID { get; }
     internal uint ID { get; }
+    public override string ToString() => $"{UserID}:{ID}";
 }
 
 internal sealed class ZDO
@@ -91,9 +114,14 @@ internal static class ZDOVars
     internal const int s_pickedTime = 2;
 }
 
-internal sealed class ZNet
+internal sealed class ZNet : UnityEngine.Object
 {
     internal static readonly ZNet instance = new();
     internal DateTime Time = new(638900000000000000L);
+    internal long WorldId = 123L;
+    internal bool FailWorldLookup;
     internal DateTime GetTime() => Time;
+    internal long GetWorldUID() => FailWorldLookup
+        ? throw new InvalidOperationException("test observation unavailable")
+        : WorldId;
 }

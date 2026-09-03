@@ -8,6 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Farming/PlantableBerries.cs" Link="PlantableBerries.cs" />
+    <Compile Include="../../src/Farming/BerryLifecycleDiagnostics.cs" Link="BerryLifecycleDiagnostics.cs" />
+    <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
     <Compile Include="../../src/Farming/PlantingRules.cs" Link="PlantingRules.cs" />
     <Compile Include="../../src/Farming/FarmingGrid.cs" Link="FarmingGrid.cs" />
     <Compile Include="../../src/Farming/FarmingGridSelection.cs" Link="FarmingGridSelection.cs" />

@@ -71,6 +71,7 @@ namespace UnityEngine
         public HideFlags hideFlags { get; set; }
         public bool Destroyed { get; private set; }
         private int InstanceId { get; } = ++nextId;
+        public int GetInstanceID() => InstanceId;
 
         public static bool operator ==(Object? left, Object? right)
         {
@@ -422,6 +423,10 @@ namespace UnityEngine
         public readonly float width;
         public readonly float height;
         public Vector2 size => new(width, height);
+        public float xMin => -width / 2f;
+        public float xMax => width / 2f;
+        public float yMin => -height / 2f;
+        public float yMax => height / 2f;
     }
 
     public readonly struct Color

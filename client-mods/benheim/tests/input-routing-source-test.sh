@@ -12,6 +12,7 @@ actual_raw_input_files="$({
 } | sed "s#^$root/##" | sort)"
 expected_raw_input_files="$(printf '%s\n' \
   'src/Farming/FarmingInput.cs' \
+  'src/Farming/FarmingInputDiagnostics.cs' \
   'src/Farming/FarmingInputProbe.cs' \
   'src/Infrastructure/InputState.cs' \
   'src/Inventory/LoadoutSwap.cs' \
@@ -26,9 +27,9 @@ if [[ "$actual_raw_input_files" != "$expected_raw_input_files" ]]; then
   exit 1
 fi
 
-# The default-off grid probe observes the raw edge and text-entry gate together;
-# it does not dispatch actions. Its time/record bounds and cleanup are exercised
-# by the farming input and developer registry behavior harnesses.
+# Core grid evidence and the detailed opt-in probe observe raw edges together
+# with their text-entry gate; neither dispatches actions. The farming behavior
+# harness covers unchanged-state suppression and probe bounds.
 
 test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 5
 grep -Fq 'ZInput.GetButton("Run") || ZInput.GetButton("JoyRun")' "$input_state"

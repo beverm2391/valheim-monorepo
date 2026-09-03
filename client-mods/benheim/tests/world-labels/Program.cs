@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
+using BenheimQoL.Infrastructure;
 using BenheimQoL.WorldLabels;
 using TMPro;
 using UnityEngine;
@@ -11,6 +13,7 @@ internal static class Program
     {
         VerifyNativeDonorBoundary();
         VerifyPortalBoardLifecycle();
+        VerifyPortalDiagnosticEvidence();
         Console.WriteLine("World Label runtime-shaped sign-board contract checks passed");
     }
 
@@ -18,6 +21,7 @@ internal static class Program
     {
         WorldLabelRuntime.Reset();
         Plugin.Log.Clear();
+        Diagnostics.Events.Clear();
         ZNetScene.instance = new ZNetScene();
 
         Sign decorativeSign = CreateNativeSign("sign_darkwood", "$piece_sign_darkwood");
@@ -30,15 +34,15 @@ internal static class Program
         Assert(WorldLabelRuntime.TryGetNativeWoodenSign(out Sign resolved) &&
             ReferenceEquals(resolved, woodenSign),
             "the runtime must resolve the installed native sign prefab by its Piece contract");
-        Assert(Plugin.Log.Infos.Count(message =>
-                message.Contains("$piece_sign piece", StringComparison.Ordinal)) == 1,
-            "native donor resolution must be logged once");
+        Assert(Diagnostics.Events.Count(record => record.Name == "portal_sign_donor_resolved") == 1,
+            "native donor resolution must emit one typed record");
     }
 
     private static void VerifyPortalBoardLifecycle()
     {
         WorldLabelRuntime.Reset();
         Plugin.Log.Clear();
+        Diagnostics.Events.Clear();
         ZNetScene.instance = new ZNetScene();
 
         TeleportWorld portal = CreatePortal("portal_wood", string.Empty);
@@ -57,8 +61,10 @@ internal static class Program
         portal.Tag = "home";
         InvokeRefresh(controller);
         InvokeRefresh(controller);
-        Assert(GetRoot(controller) == null && Plugin.Log.Warnings.Count == 1,
-            "a non-empty tag must wait for the native $piece_sign piece and log that boundary once");
+        Assert(GetRoot(controller) == null && Diagnostics.Events.Count(record =>
+                record.Name == "portal_label" && Json(record).GetProperty("state").GetString() ==
+                    "native_sign_not_loaded") == 1,
+            "a non-empty tag must emit its missing native donor boundary once");
 
         Sign donor = CreateNativeSign("sign(Clone)", "$piece_sign");
         ZNetScene.instance.m_prefabs.Add(donor.gameObject);
@@ -128,6 +134,113 @@ internal static class Program
         WorldLabelRuntime.Reset();
         Assert(stoneRoot.Destroyed && controller.Destroyed,
             "runtime reset must clean up the portal visual and controller");
+    }
+
+    private static void VerifyPortalDiagnosticEvidence()
+    {
+        WorldLabelRuntime.Reset();
+        Diagnostics.Events.Clear();
+        ZNetScene.instance = new ZNetScene();
+        Sign donor = CreateNativeSign("sign", "$piece_sign");
+        Material material = donor.m_textWidget.fontSharedMaterial!;
+        donor.m_textWidget.fontSharedMaterial = null;
+        ZNetScene.instance.m_prefabs.Add(donor.gameObject);
+        TeleportWorld portal = CreatePortal("portal_wood", "TRAVEL11");
+        WorldLabelRuntime.Attach(portal);
+        PortalLabelController controller = portal.GetComponent<PortalLabelController>()!;
+        InvokeRefresh(controller);
+        Assert(LastPortalRecord().GetProperty("state").GetString() == "native_sign_missing_material",
+            "a present but incomplete donor must be distinguishable from a missing donor");
+        donor.m_textWidget.fontSharedMaterial = material;
+        InvokeRefresh(controller);
+        JsonElement creation = LastPortalRecord();
+        Assert(creation.GetProperty("change").GetString() == "created" &&
+            creation.GetProperty("tag").GetString() == "TRAVEL11" &&
+            creation.GetProperty("front_outcome").GetString() == "no_visible_glyphs" &&
+            creation.GetProperty("back_outcome").GetString() == "no_visible_glyphs",
+            "creation must not claim fitting when TMP has supplied no visible geometry");
+        GameObject root = GetRoot(controller)!;
+        TextMeshProUGUI[] faces = root.GetComponentsInChildren<TextMeshProUGUI>(true);
+
+        // Feed observations at the TMP boundary, not a fabricated font engine.
+        // This verifies emitted classification and numbers; live TMP rendering
+        // remains the source of the measurements in the game.
+        foreach (TextMeshProUGUI face in faces)
+        {
+            face.textInfo.characterCount = 8;
+            face.textInfo.lineCount = 1;
+            face.textInfo.characterInfo = Enumerable.Range(0, 8)
+                .Select(_ => new TMP_CharacterInfo { isVisible = true }).ToArray();
+            face.textBounds = new Bounds(new Vector3(-5f, -2f, 0f), new Vector3(5f, 2f, 0f));
+        }
+        faces[1].textBounds = new Bounds(new Vector3(-5f, -5f, 0f), new Vector3(5f, 2f, 0f));
+        InvokeRefresh(controller);
+        JsonElement layout = LastPortalRecord();
+        Assert(layout.GetProperty("change").GetString() == "layout_changed" &&
+            layout.GetProperty("front_outcome").GetString() == "fit" &&
+            layout.GetProperty("back_outcome").GetString() == "overflow" &&
+            layout.GetProperty("back_text_bottom").GetSingle() == -5f &&
+            layout.GetProperty("back_fit_bottom").GetSingle() > -5f &&
+            layout.GetProperty("front_characters").GetInt32() == 8,
+            "each face must emit its observed geometry and independent containment result");
+        int records = Diagnostics.Events.Count;
+        int meshUpdates = faces.Sum(face => face.MeshUpdateCalls);
+        InvokeRefresh(controller);
+        InvokeRefresh(controller);
+        Assert(Diagnostics.Events.Count == records && faces.Sum(face => face.MeshUpdateCalls) == meshUpdates,
+            "unchanged refreshes must neither repeat evidence nor force TMP regeneration");
+
+        faces[0].havePropertiesChanged = true;
+        InvokeRefresh(controller);
+        Assert(LastPortalRecord().GetProperty("front_outcome").GetString() == "layout_pending",
+            "dirty TMP properties must not turn stale geometry into a successful fit claim");
+        faces[0].havePropertiesChanged = false;
+
+        faces[1].textBounds = faces[0].textBounds;
+        faces[1].isTextOverflowing = true;
+        InvokeRefresh(controller);
+        Assert(LastPortalRecord().GetProperty("back_outcome").GetString() == "overflow" &&
+            LastPortalRecord().GetProperty("back_tmp_overflow").GetBoolean(),
+            "TMP overflow must remain visible even when the supplied bounds fit");
+        faces[1].isTextOverflowing = false;
+        faces[0].fontSharedMaterial = null;
+        InvokeRefresh(controller);
+        Assert(LastPortalRecord().GetProperty("front_outcome").GetString() == "missing_material" &&
+            LastPortalRecord().GetProperty("back_outcome").GetString() == "fit",
+            "a missing component on one face must not suppress the other face's result");
+        faces[0].fontSharedMaterial = material;
+        faces[0].ThrowOnMeshUpdate = true;
+        portal.Tag = "TRAVEL12";
+        InvokeRefresh(controller);
+        Assert(LastPortalRecord().GetProperty("change").GetString() == "tag_changed" &&
+            LastPortalRecord().GetProperty("front_outcome").GetString() ==
+                "measurement_failed:InvalidOperationException" && faces.All(face => face.text == "TRAVEL12"),
+            "measurement failure must be typed without preventing the actual rename");
+        faces[0].ThrowOnMeshUpdate = false;
+        Diagnostics.ThrowOnEmit = true;
+        portal.Tag = "HOME";
+        InvokeRefresh(controller);
+        Diagnostics.ThrowOnEmit = false;
+        Assert(faces.All(face => face.text == "HOME") && ReferenceEquals(GetRoot(controller), root),
+            "an unavailable diagnostic sink must leave the existing board and rename behavior intact");
+        UnityEngine.Object.Destroy(faces[0]);
+        InvokeRefresh(controller);
+        Assert(LastPortalRecord().GetProperty("front_outcome").GetString() == "missing_text_widget",
+            "a destroyed face must be reported rather than throwing during observation");
+        portal.Tag = string.Empty;
+        InvokeRefresh(controller);
+        Assert(LastPortalRecord().GetProperty("state").GetString() == "empty_tag" && root.Destroyed,
+            "clearing the tag must report the hidden state and still remove the visual");
+        WorldLabelRuntime.Reset();
+    }
+
+    private static JsonElement LastPortalRecord() =>
+        Json(Diagnostics.Events.Last(record => record.Name == "portal_label"));
+
+    private static JsonElement Json(DiagnosticEvent record)
+    {
+        using JsonDocument document = JsonDocument.Parse(record.ToJsonLine());
+        return document.RootElement.Clone();
     }
 
     private static void VerifyFittingConfiguration(TextMeshProUGUI[] labels, TextMeshProUGUI donor)

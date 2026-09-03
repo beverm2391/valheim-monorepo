@@ -13,6 +13,7 @@ internal sealed class PortalLabelController : MonoBehaviour
     private Material? backGlowMaterial;
     private string? currentTag;
     private bool disposed;
+    private readonly PortalLabelDiagnostics diagnostics = new();
 
     internal void Initialize(TeleportWorld source)
     {
@@ -49,34 +50,41 @@ internal sealed class PortalLabelController : MonoBehaviour
         {
             currentTag = tag;
             DisposeVisual();
+            diagnostics.Observe(portal, tag, "empty_tag");
             return;
         }
 
         if (labelRoot == null && !TryBuildLabel(tag))
         {
-            WorldLabelRuntime.LogNativeSignPending();
             return;
         }
 
         if (tag == currentTag)
         {
+            ObserveLayout(tag, refreshMesh: false);
             return;
         }
 
         currentTag = tag;
-        frontLabel!.text = tag;
-        backLabel!.text = tag;
+        if (frontLabel != null) frontLabel.text = tag;
+        if (backLabel != null) backLabel.text = tag;
+        ObserveLayout(tag, refreshMesh: true);
     }
 
     private bool TryBuildLabel(string tag)
     {
-        if (!WorldLabelRuntime.TryGetNativeWoodenSign(out Sign donor) ||
-            !PortalSignVisualFactory.TryCreate(
+        if (!WorldLabelRuntime.TryGetNativeWoodenSign(out Sign donor))
+        {
+            diagnostics.Observe(portal, tag, WorldLabelRuntime.NativeSignPendingReason);
+            return false;
+        }
+        if (!PortalSignVisualFactory.TryCreate(
                 portal,
                 donor,
                 tag,
                 out PortalSignVisual visual))
         {
+            diagnostics.Observe(portal, tag, "visual_creation_failed");
             return false;
         }
 
@@ -86,8 +94,16 @@ internal sealed class PortalLabelController : MonoBehaviour
         frontGlowMaterial = visual.FrontGlowMaterial;
         backGlowMaterial = visual.BackGlowMaterial;
         currentTag = tag;
-        WorldLabelRuntime.LogPortalLabelCreated(portal);
+        ObserveLayout(tag, refreshMesh: true);
         return true;
+    }
+
+    private void ObserveLayout(string tag, bool refreshMesh)
+    {
+        string state = labelRoot == null ? "missing_board"
+            : labelRoot.GetComponentsInChildren<MeshRenderer>(includeInactive: true).Length == 0
+                ? "missing_board_mesh" : "visible";
+        diagnostics.Observe(portal, tag, state, frontLabel, backLabel, refreshMesh);
     }
 
     private void OnDestroy()

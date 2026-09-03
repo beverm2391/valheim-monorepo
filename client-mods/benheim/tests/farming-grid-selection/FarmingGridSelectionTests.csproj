@@ -9,6 +9,8 @@
     <Compile Include="../../src/Farming/FarmingInput.cs" Link="FarmingInput.cs" />
     <Compile Include="../../src/Farming/FarmingInputPatches.cs" Link="FarmingInputPatches.cs" />
     <Compile Include="../../src/Farming/FarmingInputProbe.cs" Link="FarmingInputProbe.cs" />
+    <Compile Include="../../src/Farming/FarmingInputDiagnostics.cs" Link="FarmingInputDiagnostics.cs" />
+    <Compile Include="../../src/Farming/PlantingDiagnostics.cs" Link="PlantingDiagnostics.cs" />
     <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
     <Compile Include="../../src/Farming/FarmingSettings.cs" Link="FarmingSettings.cs" />
     <Compile Include="../../src/Farming/FarmingGridSelection.cs" Link="FarmingGridSelection.cs" />

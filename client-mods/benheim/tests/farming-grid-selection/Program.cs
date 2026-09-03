@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Text.Json;
 using BenheimQoL.Farming;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
@@ -25,7 +27,8 @@ ZInput.ButtonDown.Add("Hotbar3");
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
 Require(FarmingGridSelection.CurrentSize == 3, "Left Shift+3 must select the 3x3 grid");
 Require(player.LastMessage.Contains("3x3", StringComparison.Ordinal), "selection must show immediate top-left confirmation");
-Require(Diagnostics.Last == "Farming.plant_grid_selected grid=3x3", "selection must emit the text diagnostic");
+Require(JsonDocument.Parse(Diagnostics.CoreEvents.Last().ToJsonLine()).RootElement
+    .GetProperty("selected_size").GetInt32() == 3, "selection must emit its actual resulting size as typed evidence");
 int selectedEventCount = Diagnostics.Events;
 ZInput.ResetTransient();
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: false);
@@ -158,6 +161,7 @@ FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
 Require(FarmingGridSelection.CurrentSize == 5, "another tool's picker must remain native");
 
 ProbeTests.Run();
+CoreEvidenceTests.Run(player);
 Console.WriteLine("farming production input boundary and bounded probe checks passed");
 
 static Player CultivatorPlayer() => new Player

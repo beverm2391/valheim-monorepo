@@ -380,30 +380,6 @@ internal sealed class ZNetScene
     internal UnityEngine.GameObject? GetPrefab(string name) => prefabs.TryGetValue(name, out UnityEngine.GameObject? prefab) ? prefab : null;
 }
 
-namespace BenheimQoL.Infrastructure
-{
-    internal static class Diagnostics
-    {
-        internal static readonly List<string> Events = new();
-        internal static string Flatten(string value) => value;
-        internal static void Event(string domain, string name, string fields) => Events.Add($"{domain}/{name}");
-    }
-}
-
-namespace BenheimQoL
-{
-    internal static class Plugin
-    {
-        internal static readonly TestLog Log = new();
-    }
-
-    internal sealed class TestLog
-    {
-        internal readonly List<string> Errors = new();
-        internal void LogError(object value) => Errors.Add(value.ToString() ?? "");
-    }
-}
-
 namespace UnityEngine
 {
     internal readonly struct Quaternion

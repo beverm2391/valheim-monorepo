@@ -10,17 +10,21 @@ internal static class PortalSignVisualFactory
     internal const float BoardClearanceMeters = 0.25f;
 
     internal static bool HasUsableVisual(Sign sign)
+        => GetVisualFailureReason(sign) == string.Empty;
+
+    internal static string GetVisualFailureReason(Sign sign)
     {
         if (sign == null)
         {
-            return false;
+            return "missing_sign_component";
         }
 
         TextMeshProUGUI? widget = sign.m_textWidget;
-        return widget != null &&
-            widget.font != null &&
-            widget.fontSharedMaterial != null &&
-            sign.GetComponentsInChildren<MeshRenderer>(includeInactive: true).Length > 0;
+        if (widget == null) return "missing_text_widget";
+        if (widget.font == null) return "missing_font";
+        if (widget.fontSharedMaterial == null) return "missing_material";
+        return sign.GetComponentsInChildren<MeshRenderer>(includeInactive: true).Length == 0
+            ? "missing_board_mesh" : string.Empty;
     }
 
     internal static bool TryCreate(

@@ -147,21 +147,29 @@ internal static class PlantableBerries
 
     internal static void TryRegister(ZNetScene scene)
     {
+        int registered;
         try
         {
-            Register(scene);
+            registered = Register(scene);
         }
         catch (Exception exception)
         {
-            Plugin.Log.LogError($"Plantable berries are unavailable: {exception}");
-            Diagnostics.Event(
-                "Farming",
-                "plantable_berries_registration_failed",
-                $"error={Diagnostics.Flatten(exception.Message)}");
+            try { Plugin.Log.LogError($"Plantable berries are unavailable: {exception}"); }
+            catch { }
+            BerryLifecycleDiagnostics.Emit(() => DiagnosticEvent.Create("Farming", "plantable_berries_registration_failed")
+                .String("error_type", exception.GetType().Name)
+                .String("error", exception.Message));
+            return;
         }
+
+        // Registration is already complete. A diagnostic destination failure
+        // must neither reclassify that outcome nor escape the startup hook.
+        BerryLifecycleDiagnostics.Emit(() => DiagnosticEvent.Create("Farming", "plantable_berries_registered")
+            .Integer("count", registered)
+            .Integer("cost", BerryCost));
     }
 
-    private static void Register(ZNetScene scene)
+    private static int Register(ZNetScene scene)
     {
         ObjectDB objectDb = ObjectDB.instance
             ?? throw new InvalidOperationException("ObjectDB was not ready when ZNetScene registered prefabs.");
@@ -212,10 +220,7 @@ internal static class PlantableBerries
             }
         }
 
-        Diagnostics.Event(
-            "Farming",
-            "plantable_berries_registered",
-            $"count={prepared.Count} cost={BerryCost}");
+        return prepared.Count;
     }
 
     private static EffectList FindNativePlantPlaceEffect(PieceTable pieceTable)
