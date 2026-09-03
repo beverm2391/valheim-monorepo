@@ -160,7 +160,7 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
             gui.m_recipeName.text = "No eligible weapons";
             gui.m_recipeDecription.enabled = true;
             gui.m_recipeDecription.text =
-                "Use a max-quality base-game Club for Lunge or Huntsman Bow for Snipe.";
+                "Playtest: use a base-game Club for Lunge or Huntsman Bow for Snipe at any native quality.";
             gui.m_itemCraftType.gameObject.SetActive(false);
             gui.m_craftButton.interactable = false;
             HideRequirements();

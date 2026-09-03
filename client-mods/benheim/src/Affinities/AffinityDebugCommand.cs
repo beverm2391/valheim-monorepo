@@ -103,8 +103,9 @@ internal static class AffinityDebugCommand
         AffinityLoadResult state = AffinityState.Load(weapon, "debug_inspect");
         string stored = AffinityState.StoredValue(weapon);
         context.AddString($"Equipped prefab: {AffinityState.ItemPrefab(weapon)}");
-        context.AddString($"Eligible max-quality base-game Club: {AffinityState.IsEligibleClub(weapon)}");
-        context.AddString($"Eligible max-quality base-game Huntsman Bow: {AffinityState.IsEligibleSnipeBow(weapon)}");
+        context.AddString($"Eligible base-game Club: {AffinityState.IsEligibleClub(weapon)}");
+        context.AddString($"Eligible base-game Huntsman Bow: {AffinityState.IsEligibleSnipeBow(weapon)}");
+        context.AddString("Playtest: any native quality. Upgrading may erase the affinity; reapply afterward.");
         context.AddString($"Stored Affinity: {state.ToString().ToLowerInvariant()}");
         context.AddString($"Stored identity/version: {(string.IsNullOrEmpty(stored) ? "<none>" : stored)}");
         context.AddString($"Supported identity/version: {AffinityState.LungeValue}, {AffinityState.SnipeValue}");

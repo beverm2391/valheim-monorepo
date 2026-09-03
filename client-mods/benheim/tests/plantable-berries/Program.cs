@@ -136,12 +136,50 @@ Require(pieceTable.m_pieces.Contains(raspberry), "raspberry bush must reach the 
 Require(pieceTable.m_pieces.Contains(blueberry), "blueberry bush must reach the Cultivator");
 Require(pieceTable.m_pieces.Contains(cloudberry), "cloudberry bush must reach the Cultivator");
 
-Require(PlantableBerries.TryGetGridSpacing(raspberry, out float raspberrySpacing), "raspberry spacing must be registered");
-Require(PlantableBerries.TryGetGridSpacing(blueberry, out float blueberrySpacing), "blueberry spacing must be registered");
-Require(PlantableBerries.TryGetGridSpacing(cloudberry, out float cloudberrySpacing), "cloudberry spacing must be registered");
+Require(PlantableBerries.TryGetFootprint(raspberry, out float raspberrySpacing), "raspberry spacing must be registered");
+Require(PlantableBerries.TryGetFootprint(blueberry, out float blueberrySpacing), "blueberry spacing must be registered");
+Require(PlantableBerries.TryGetFootprint(cloudberry, out float cloudberrySpacing), "cloudberry spacing must be registered");
 RequireNear(raspberrySpacing, 1.42f, "raspberry spacing must use its native viewblock sphere");
 RequireNear(blueberrySpacing, 1.6f, "blueberry spacing must use its native viewblock sphere");
 RequireNear(cloudberrySpacing, 0.73952f, "cloudberry spacing must include native child scale");
+
+// The registered footprint remains collision clearance; only the shared
+// preview/placement grid step doubles. Run the real grid builder at every size.
+foreach (var pair in new[] { (raspberry, 1.42f), (blueberry, 1.6f), (cloudberry, 0.73952f), (nativePlant, 1f) })
+{
+    bool crop = pair.Item1 == nativePlant;
+    float expectedSpacing = crop ? pair.Item2 : pair.Item2 * 2f;
+    Require(PlantingRules.TryGetGridSpacing(pair.Item1, out float spacing), "plant spacing must resolve");
+    RequireNear(spacing, expectedSpacing, "only berry grid spacing doubles");
+    Require(PlantingRules.HasGrowSpace(Vector3.zero, pair.Item1), "empty native clearance stays valid");
+    RequireNear(Physics.LastRadius, pair.Item2 * 0.5f, "placement clearance must not grow with the grid");
+    Physics.Nearby = new Collider[] { new SphereCollider() };
+    Require(!PlantingRules.HasGrowSpace(Vector3.zero, pair.Item1), "occupied clearance must still reject placement");
+    Physics.Nearby = Array.Empty<Collider>();
+    foreach (int size in new[] { 1, 3, 5, 7, 9 })
+    foreach (var rotation in new[] { Quaternion.identity, new Quaternion(0.7f) })
+    {
+        var origin = new Vector3(10f, 0f, 20f);
+        var points = FarmingGrid.Build(origin, spacing, rotation, size);
+        Require(points.Count == size * size, "grid must honor each selectable size");
+        int anchors = 0;
+        foreach (var point in points)
+        {
+            Vector3 expected = origin + rotation * new Vector3(
+                (size / 2 - point.Column) * expectedSpacing, 0f, (point.Row - size / 2) * expectedSpacing);
+            RequireNear(point.Position.x, expected.x, "grid column must use the requested spacing");
+            RequireNear(point.Position.z, expected.z, "grid row must use the requested spacing");
+            RequireNear(point.Position.y, ZoneSystem.instance.GetGroundHeight(point.Position), "each position follows terrain");
+            if (point.IsAnchor)
+            {
+                anchors++;
+                RequireNear(point.Position.x, origin.x, "anchor x stays centered");
+                RequireNear(point.Position.z, origin.z, "anchor z stays centered");
+            }
+        }
+        Require(anchors == 1, "every odd grid keeps one native anchor");
+    }
+}
 
 foreach (GameObject bush in new[] { raspberry, blueberry, cloudberry })
 {

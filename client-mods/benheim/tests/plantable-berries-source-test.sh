@@ -95,8 +95,15 @@ grep -Fq 'TryGetLocalShapeBounds(collider, out Bounds shapeBounds)' "$registrati
 grep -Fq 'prefab.transform.InverseTransformPoint(' "$registration"
 grep -Fq 'collider.transform.TransformPoint(localPoint)' "$registration"
 grep -Fq 'Mathf.Max(footprint.size.x, footprint.size.z)' "$registration"
-grep -Fq 'PlantableBerries.TryGetGridSpacing' "$root/src/Farming/PlantingRules.cs"
-grep -Fq 'radius = spacing * 0.5f;' "$root/src/Farming/PlantingRules.cs"
+grep -Fq 'PlantableBerries.TryGetFootprint' "$root/src/Farming/PlantingRules.cs"
+grep -Fq 'radius = footprint * 0.5f;' "$root/src/Farming/PlantingRules.cs"
+
+# Both callers must keep using the spacing resolver and grid builder exercised
+# by the behavioral fixture, so preview cannot drift from actual positions.
+for caller in PlantingPreview MassPlanting; do
+  grep -Fq 'PlantingRules.TryGetGridSpacing' "$root/src/Farming/$caller.cs"
+  grep -Fq 'FarmingGrid.Build(' "$root/src/Farming/$caller.cs"
+done
 
 # Installed Valheim owns the persistent/network path: ZNetScene resolves the
 # native prefab hash, Player clones that prefab and sets its creator, and

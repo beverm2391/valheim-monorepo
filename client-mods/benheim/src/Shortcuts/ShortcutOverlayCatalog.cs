@@ -54,7 +54,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Cultivator berries", $"Plant native Raspberry, Blueberry, and Cloudberry bushes for {PlantableBerries.BerryCost} matching berries each"),
                 new Entry("Hammer berries", $"Remove a player-planted berry bush when native access and ward rules allow it; receive {PlantableBerries.BerryCost} matching berries"),
             },
-            $"Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Apart from the selected odd grid dimensions and stamina cost, all other planting behavior stays native. Berry bushes need ordinary ground. They do not need cultivated ground or a matching biome. Newly planted bushes start empty. Benheim assigns native Raspberry, Blueberry, and Cloudberry bushes a new {PlantableBerries.BerryRespawnMinimumSeconds:N0} to {PlantableBerries.BerryRespawnMaximumSeconds:N0} second wait before each yield. Naturally spawned bushes cannot be removed with the Hammer, and the Cultivator removes no berry bushes. Every grid uses each native bush's collider footprint for spacing."),
+            $"Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Ordinary crop spacing and planting restrictions stay unchanged. Berry bushes need ordinary ground. They do not need cultivated ground or a matching biome. Newly planted bushes start empty. Benheim assigns native Raspberry, Blueberry, and Cloudberry bushes a new {PlantableBerries.BerryRespawnMinimumSeconds:N0} to {PlantableBerries.BerryRespawnMaximumSeconds:N0} second wait before each yield. Naturally spawned bushes cannot be removed with the Hammer, and the Cultivator removes no berry bushes. Berry grids give bushes twice the previous spacing in both preview and placement at every grid size. Existing bushes stay in place."),
     };
 
     private static readonly Section[] FeatureSections =
@@ -113,13 +113,13 @@ internal static partial class ShortcutOverlay
             {
                 new Entry(
                     "Club + Lunge",
-                    $"At a level-1 Forge, spend {AffinityApplication.TestResourceAmount} Wood to bind Lunge to one exact max-quality Club; the Affinity stays with that item and appears in its inventory title and hover text"),
+                    $"At a level-1 Forge, spend {AffinityApplication.TestResourceAmount} Wood to bind Lunge to one exact base-game Club at any native quality for this playtest"),
                 new Entry(
                     "Airborne swing",
                     $"A primary swing while airborne adds {LungeRuntime.DefaultForce:0.#} m/s forward and raises vertical velocity to at least +{LungeRuntime.MinimumVerticalVelocity:0.#} m/s; grounded Club swings stay native"),
                 new Entry(
                     "Huntsman Bow + Snipe",
-                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Snipe).MaterialAmount} Wood to bind Snipe to one exact max-quality base-game Huntsman Bow"),
+                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Snipe).MaterialAmount} Wood to bind Snipe to one exact base-game Huntsman Bow at any native quality for this playtest"),
                 new Entry(
                     "Automatic scope",
                     $"Drawing a Snipe bow smoothly gives {SnipeRules.OpticalZoom:0.#}x optical zoom by changing field of view. Soft edge darkening grows with the draw while the center stays clear. Both remain active with Bow Focus or Benheim FX off and clear almost instantly on release or cancel. Crosshair, camera position, and look sensitivity stay native. No toggle, circle mask, or range predictor"),
@@ -130,7 +130,7 @@ internal static partial class ShortcutOverlay
                     "Snipe headshots",
                     $"Total multiplier is ×{SnipeRules.NearMultiplier:0.##} through {SnipeRules.NearDistanceMeters:0.#} m, rising linearly to ×{SnipeRules.CapMultiplier:0.##} at {SnipeRules.CapDistanceMeters:0.#} m and beyond (×{(SnipeRules.NearMultiplier + SnipeRules.CapMultiplier) / 2f:0.##} at {(SnipeRules.NearDistanceMeters + SnipeRules.CapDistanceMeters) / 2f:0.#} m). This replaces the ordinary headshot multiplier. Full draw is not required; fired arrows keep Snipe after switching weapons. Body shots, native WeakSpots, and ammunition effects stay native"),
             },
-            "Affinities stay with the exact item through saves, transfers, and drops, and appear in its inventory title and hover text. They cannot be toggled off or removed in the field. Benheim removal leaves them dormant; reinstalling restores them. Applying or replacing an Affinity requires confirmation and a nonrefundable cost; replacement destroys the old Affinity and its prior investment without a refund. The already-installed Affinity cannot be applied again. The 1 Wood recipes are temporary test costs with no boss unlock."),
+            "Affinities stay with the exact item through saves, transfers, and drops, and appear in its inventory title and hover text. They cannot be toggled off or removed in the field. Benheim removal leaves them dormant; reinstalling restores them. Applying or replacing an Affinity requires confirmation and a nonrefundable cost; replacement destroys the old Affinity and its prior investment without a refund. The already-installed Affinity cannot be applied again. The 1 Wood recipes and any-native-quality eligibility are temporary playtest rules with no boss unlock. Native upgrades may erase the affinity; apply it again afterward."),
         new(
             "Combat",
             new Color(1f, 0.48f, 0.54f, 1f),

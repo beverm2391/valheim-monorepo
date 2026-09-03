@@ -27,7 +27,7 @@ internal static class PlantableBerries
         new BerryDefinition("CloudberryBush", "Cloudberry Bush", "Plant a native cloudberry bush."),
     };
 
-    private static readonly Dictionary<string, float> GridSpacingByPrefab =
+    private static readonly Dictionary<string, float> FootprintByPrefab =
         new Dictionary<string, float>(StringComparer.Ordinal);
 
     internal static bool IsBerryBush(GameObject prefab)
@@ -44,9 +44,9 @@ internal static class PlantableBerries
         return false;
     }
 
-    internal static bool TryGetGridSpacing(GameObject prefab, out float spacing)
+    internal static bool TryGetFootprint(GameObject prefab, out float footprint)
     {
-        return GridSpacingByPrefab.TryGetValue(Utils.GetPrefabName(prefab), out spacing);
+        return FootprintByPrefab.TryGetValue(Utils.GetPrefabName(prefab), out footprint);
     }
 
     /// <summary>
@@ -192,20 +192,20 @@ internal static class PlantableBerries
                 ?? throw new InvalidOperationException($"The native {definition.PrefabName} has no Pickable component.");
             ItemDrop berry = pickable.m_itemPrefab?.GetComponent<ItemDrop>()
                 ?? throw new InvalidOperationException($"The native {definition.PrefabName} has no berry ItemDrop.");
-            float gridSpacing = ColliderFootprint(prefab);
-            if (gridSpacing <= 0f)
+            float footprint = ColliderFootprint(prefab);
+            if (footprint <= 0f)
             {
                 throw new InvalidOperationException($"The native {definition.PrefabName} has no measurable collider footprint.");
             }
 
-            prepared.Add(new PreparedBerry(definition, prefab, berry, gridSpacing));
+            prepared.Add(new PreparedBerry(definition, prefab, berry, footprint));
         }
 
         foreach (PreparedBerry berry in prepared)
         {
             Piece piece = berry.Prefab.GetComponent<Piece>() ?? berry.Prefab.AddComponent<Piece>();
             ConfigurePiece(piece, berry, placeEffect);
-            GridSpacingByPrefab[berry.Definition.PrefabName] = berry.GridSpacing;
+            FootprintByPrefab[berry.Definition.PrefabName] = berry.Footprint;
             if (!pieceTable.m_pieces.Contains(berry.Prefab))
             {
                 pieceTable.m_pieces.Add(berry.Prefab);
@@ -356,18 +356,18 @@ internal static class PlantableBerries
             BerryDefinition definition,
             GameObject prefab,
             ItemDrop itemDrop,
-            float gridSpacing)
+            float footprint)
         {
             Definition = definition;
             Prefab = prefab;
             ItemDrop = itemDrop;
-            GridSpacing = gridSpacing;
+            Footprint = footprint;
         }
 
         internal BerryDefinition Definition { get; }
         internal GameObject Prefab { get; }
         internal ItemDrop ItemDrop { get; }
-        internal float GridSpacing { get; }
+        internal float Footprint { get; }
     }
 }
 

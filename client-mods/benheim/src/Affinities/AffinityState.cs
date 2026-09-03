@@ -31,6 +31,11 @@ internal static class AffinityState
         return IsEligiblePrefab(item, SnipeBowPrefab);
     }
 
+    internal static bool IsLunge(ItemDrop.ItemData? item)
+    {
+        return IsEligibleClub(item) && Read(item) == AffinityLoadResult.Lunge;
+    }
+
     internal static bool IsSnipe(ItemDrop.ItemData? item)
     {
         return IsEligibleSnipeBow(item) && Read(item) == AffinityLoadResult.Snipe;

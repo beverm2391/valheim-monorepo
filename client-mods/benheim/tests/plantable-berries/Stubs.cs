@@ -126,6 +126,10 @@ namespace UnityEngine
         internal float z;
         internal static Vector3 zero => new(0f, 0f, 0f);
         internal static Vector3 one => new(1f, 1f, 1f);
+        internal static Vector3 left => new(-1f, 0f, 0f);
+        internal static Vector3 forward => new(0f, 0f, 1f);
+        public static Vector3 operator -(Vector3 a, Vector3 b) => new(a.x-b.x, a.y-b.y, a.z-b.z);
+        public static Vector3 operator *(Vector3 a, float b) => new(a.x*b, a.y*b, a.z*b);
 
         internal float this[int index]
         {
@@ -269,7 +273,7 @@ internal static class Utils
 
 internal sealed class EffectList { }
 internal sealed class Destructible : UnityEngine.Component { }
-internal sealed class Plant : UnityEngine.Component { }
+internal sealed class Plant : UnityEngine.Component { internal float m_growRadius = 0.5f; }
 
 internal sealed class ItemDrop : UnityEngine.Component
 {
@@ -398,4 +402,36 @@ namespace BenheimQoL
         internal readonly List<string> Errors = new();
         internal void LogError(object value) => Errors.Add(value.ToString() ?? "");
     }
+}
+
+namespace UnityEngine
+{
+    internal readonly struct Quaternion
+    {
+        private readonly float radians;
+        internal Quaternion(float radians) { this.radians = radians; }
+        internal static Quaternion identity => new(0f);
+        public static Vector3 operator *(Quaternion rotation, Vector3 p) => new(
+            p.x * (float)Math.Cos(rotation.radians) + p.z * (float)Math.Sin(rotation.radians), p.y,
+            -p.x * (float)Math.Sin(rotation.radians) + p.z * (float)Math.Cos(rotation.radians));
+    }
+    internal static class LayerMask
+    {
+        internal static int GetMask(params string[] layers) => 1;
+    }
+    internal static class Physics
+    {
+        internal static float LastRadius;
+        internal static Collider[] Nearby = Array.Empty<Collider>();
+        internal static Collider[] OverlapSphere(Vector3 position, float radius, int mask)
+        {
+            LastRadius = radius;
+            return Nearby;
+        }
+    }
+}
+internal sealed class ZoneSystem
+{
+    internal static readonly ZoneSystem instance = new();
+    internal float GetGroundHeight(UnityEngine.Vector3 position) => position.x * 0.1f;
 }

@@ -24,7 +24,9 @@ Require(AffinityRules.ReadStoredValue("v2:lunge") == AffinityLoadResult.Unsuppor
 
 Require(AffinityRules.IsEligibleWeapon(true, 4, 4), "canonical max-quality Club must be eligible");
 Require(!AffinityRules.IsEligibleWeapon(false, 4, 4), "same-shaped noncanonical item must be rejected");
-Require(!AffinityRules.IsEligibleWeapon(true, 3, 4), "upgradable Club must be rejected");
+Require(AffinityRules.IsEligibleWeapon(true, 3, 4), "upgradable native quality must be eligible for the playtest");
+Require(!AffinityRules.IsEligibleWeapon(true, 0, 4), "quality below the native range must be rejected");
+Require(!AffinityRules.IsEligibleWeapon(true, 5, 4), "quality above the native range must be rejected");
 
 Require(AffinityRules.CountConsumed(4, 3) == 1, "resource delta must capture one consumed item");
 Require(AffinityRules.CountConsumed(4, 4) == 0, "unchanged resources must report no consumption");
@@ -136,7 +138,7 @@ Require(AffinityState.AvailableFor(club) == AffinityLoadResult.Lunge, "max-quali
 Require(!AffinityState.IsEligibleSnipeBow(otherBow) && !AffinityState.IsEligibleSnipeBow(spoofedBow),
     "another bow or same-named noncanonical prefab must never qualify");
 bow.m_quality = 3;
-Require(!AffinityState.IsEligibleSnipeBow(bow), "upgradable Huntsman must remain ineligible");
+Require(AffinityState.IsEligibleSnipeBow(bow), "upgradable Huntsman must be eligible for the playtest");
 bow.m_quality = 5;
 Require(!AffinityState.IsEligibleSnipeBow(bow), "above-max Huntsman must remain ineligible");
 bow.m_quality = 4;
@@ -146,6 +148,64 @@ Require(AffinityState.StoredValue(bow) == "v1:snipe" && AffinityState.IsSnipe(bo
     "Snipe writes versioned data on the exact eligible item");
 AffinityState.Write(spoofedBow, AffinityLoadResult.Snipe, "test", false);
 Require(!AffinityState.IsSnipe(spoofedBow), "stored Snipe alone must not activate on the wrong prefab");
+
+// Exercise the shared application path used by both Forge and debug, with
+// native boundaries stubbed and the actual eligibility/state/cost code linked.
+ObjectDB.instance.Prefabs.Add("Wood", new UnityEngine.GameObject("Wood")
+{
+    Drop = new ItemDrop { m_itemData = new ItemDrop.ItemData { m_shared = new ItemDrop.SharedData { m_name = "$item_wood" } } },
+});
+var applicant = new Player { Station = new CraftingStation() };
+Player.m_localPlayer = applicant;
+foreach (var pair in new[] { (clubPrefab, AffinityLoadResult.Lunge), (huntsmanPrefab, AffinityLoadResult.Snipe) })
+{
+    for (int quality = 1; quality <= 4; quality++)
+    {
+        foreach (bool forge in new[] { true, false })
+        {
+            var target = new ItemDrop.ItemData { m_dropPrefab = pair.Item1, m_quality = quality };
+            applicant.Inventory.Items.Add(target);
+            applicant.Inventory.Wood = 2;
+            applicant.Weapon = target;
+            var result = AffinityApplication.Apply(applicant, target, pair.Item2, forge, forge, "test");
+            Require(result.Applied, $"{pair.Item2} application at quality {quality}, forge={forge}");
+            Require(applicant.Inventory.Wood == (forge ? 1 : 2), "Forge spends one Wood; debug spends none");
+            Require(target.m_quality == quality, "application preserves native quality");
+            Require(AffinityState.AvailableFor(target) == pair.Item2, "Forge still offers the exact native weapon");
+            if (pair.Item2 == AffinityLoadResult.Lunge)
+                Require(AffinityState.IsLunge(target), "lower-quality Lunge must be active");
+            else
+                Require(SnipeRuntime.ClampDrawPercentage(1f, applicant) == 0.8f, "lower-quality Snipe must change draw behavior");
+            int calls = applicant.Inventory.RemoveCalls;
+            Require(AffinityApplication.Apply(applicant, target, pair.Item2, forge, forge, "test").Reason == "affinity_already_installed",
+                "same-affinity application must be rejected");
+            Require(applicant.Inventory.RemoveCalls == calls, "same-affinity rejection must not charge");
+        }
+    }
+}
+foreach (var target in new[] {
+    new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 0 },
+    new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 5 },
+    new ItemDrop.ItemData { m_dropPrefab = new UnityEngine.GameObject("Club") },
+    otherBow, spoofedBow })
+{
+    applicant.Inventory.Items.Add(target);
+    foreach (bool forge in new[] { true, false })
+    foreach (var affinity in new[] { AffinityLoadResult.Lunge, AffinityLoadResult.Snipe })
+        Require(AffinityApplication.Apply(applicant, target, affinity, forge, forge, "test").Reason == "ineligible_item",
+            "unsupported prefab and non-native quality must fail both application paths");
+    AffinityState.Write(target, AffinityLoadResult.Lunge, "test", false);
+    Require(!AffinityState.IsLunge(target), "stored Lunge must not activate on an unsupported item");
+}
+var unpaid = new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 1 };
+applicant.Inventory.Items.Add(unpaid);
+applicant.Station = null;
+Require(AffinityApplication.Apply(applicant, unpaid, AffinityLoadResult.Lunge, true, true, "test").Reason == "not_at_base_game_forge",
+    "lower quality must not bypass the Forge");
+applicant.Station = new CraftingStation();
+applicant.Inventory.Wood = 0;
+Require(AffinityApplication.Apply(applicant, unpaid, AffinityLoadResult.Lunge, true, true, "test").Reason == "missing_resources",
+    "lower quality must not bypass resource cost");
 
 var local = new Player { Weapon = bow };
 Player.m_localPlayer = local;

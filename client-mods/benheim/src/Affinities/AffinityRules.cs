@@ -14,7 +14,9 @@ internal static class AffinityRules
 
     internal static bool IsEligibleWeapon(bool canonicalPrefab, int quality, int maximumQuality)
     {
-        return canonicalPrefab && quality == maximumQuality;
+        // Temporary playtest exception: native upgrades may erase the affinity.
+        // Keep the canonical weapon boundary and reject non-native quality values.
+        return canonicalPrefab && quality >= 1 && quality <= maximumQuality;
     }
 
     internal static int CountConsumed(int before, int after)

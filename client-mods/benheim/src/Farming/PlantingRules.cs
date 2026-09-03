@@ -29,7 +29,10 @@ internal static class PlantingRules
             return true;
         }
 
-        return PlantableBerries.TryGetGridSpacing(prefab, out spacing);
+        // Spread the grid without enlarging collision clearance around each bush.
+        bool berry = PlantableBerries.TryGetFootprint(prefab, out spacing);
+        spacing *= 2f;
+        return berry;
     }
 
     internal static bool HasGrowSpace(Vector3 position, GameObject plantPrefab)
@@ -40,9 +43,9 @@ internal static class PlantingRules
         {
             radius = plant.m_growRadius;
         }
-        else if (PlantableBerries.TryGetGridSpacing(plantPrefab, out float spacing))
+        else if (PlantableBerries.TryGetFootprint(plantPrefab, out float footprint))
         {
-            radius = spacing * 0.5f;
+            radius = footprint * 0.5f;
         }
         else
         {
