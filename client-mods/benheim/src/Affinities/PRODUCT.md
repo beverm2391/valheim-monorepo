@@ -32,10 +32,13 @@ explains the new behavior and persistent bias.
 The MVP has these boundaries:
 
 - Each eligible weapon has one affinity slot.
-- Only a max-quality weapon can receive an affinity. Valheim upgrades replace
-  the weapon item and do not preserve affinity data. Requiring max quality
-  prevents a later upgrade from erasing the stored affinity, including while
-  Benheim is uninstalled.
+- The normal MVP requires a max-quality weapon because upgrading can erase
+  its affinity. For this temporary playtest, a base-game Club at any native
+  quality can receive Lunge. A base-game Huntsman Bow at any native quality can
+  receive Snipe. Upgrading a test weapon can erase its affinity; the player can
+  apply it again afterward.
+  This exception does not expand the supported weapon types or change native
+  upgrade behavior.
 - The player applies every affinity at the Forge, regardless of the weapon's
   original crafting station.
 - The player may replace an affinity at the Forge by paying the new affinity's
@@ -160,8 +163,8 @@ velocity before the impulse, the applied impulse, and velocity afterward.
 ## Next playable slice: Snipe
 
 Snipe specializes an existing bow for deliberate long-range headshots. The first
-test supports only a max-quality base-game Huntsman Bow. Support for every
-base-game bow remains the intended expansion, not part of this slice. The
+test supports only a base-game Huntsman Bow. Support for every base-game bow
+remains the intended expansion, not part of this slice. The
 player applies Snipe through the existing Affinity tab at a level-1 Forge for
 the temporary cost of 1 Wood. This test has no boss unlock. The shared
 application, persistence, presentation, and same-affinity rejection rules apply.
@@ -237,8 +240,8 @@ decisions are scoped.
 
 The first Affinity slice is implemented as a playable candidate. Live `0.1.80`
 testing accepted Lunge's movement and feel, the basic Forge-tab presentation,
-and the disabled same-affinity action. It uses a max-quality base-game Club, a
-Forge Affinity tab, versioned item state, a temporary cost of 1 Wood, and a
+and the disabled same-affinity action. That test used a max-quality base-game
+Club, a Forge Affinity tab, versioned item state, a temporary cost of 1 Wood, and a
 diagonal Lunge impulse. Static proof also covers:
 
 - guards for the selected item and resources;

@@ -31,8 +31,12 @@ Valheim's normal farming restrictions.
   CloudberryBush to the Cultivator. Planting each bush costs five berries of its
   matching type.
 - Berry bushes can be planted only on ordinary ground. They do not require
-  cultivated ground or a matching biome. In a 9x9 grid, each bush's native
-  collider determines the spacing between bushes.
+  cultivated ground or a matching biome. For the next playtest, berry-bush grid
+  spacing is twice the spacing derived from each bush's native collider
+  footprint. This gives bushes more room.
+  The preview and placement use the same spacing at every grid size. Ordinary
+  crop spacing and placement restrictions stay unchanged. Existing bushes do
+  not move.
 - Each newly planted bush uses its native network prefab and starts empty.
   Before its first yield, Benheim deterministically selects a new wait from
   4,000 to 5,000 seconds. After every harvest, Benheim deterministically
