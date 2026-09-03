@@ -2,14 +2,19 @@
 
 Open product questions and remaining playtests for Benheim.
 
-Installed on Ben's Mac: **0.1.83**.
+Installed on Ben's Mac: **0.1.86**.
+
+Grid selection, planting, berry cycles, and portal text fitting record
+diagnostics without enabling a probe.
 
 ## Remaining checks
 
 - **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
-  max-quality Huntsman Bow. Confirm its inventory title and description, the
-  disabled same-affinity action, and persistence after storage and reconnect.
-  Lower-quality Huntsman Bows and other bows must remain ineligible.
+  Huntsman Bow at any native quality. Confirm its inventory title and
+  description, the disabled same-affinity action, and persistence after storage
+  and reconnect.
+  Other bows must remain ineligible. Native upgrades may erase the affinity;
+  confirm that it can be applied again afterward.
 - **Snipe handling:** Draw, fire, and cancel with Bow Focus and Benheim FX off.
   Confirm useful 3x zoom, soft edges that darken with draw progress, a clear
   center, and an immediate return to normal view. Compare with an ordinary
@@ -54,18 +59,21 @@ Installed on Ben's Mac: **0.1.83**.
   same behavior continues.
 
 - **Tar-pit pickup:** Manual pickup of submerged Tar worked, but other items
-  remained stuck and auto-pickup failed. Retest the correction: drop native
-  Tar, Stone, and one other ordinary item into a native tar pit. Confirm that
-  each item supports normal manual pickup and normal auto-pickup. Confirm that
+  remained stuck and auto-pickup failed. Valheim disables auto-pickup for items
+  dropped from inventory. Use naturally dropped loot for auto-pickup checks.
+  Retest the correction with native Tar, Stone, and one other ordinary item in
+  a native tar pit. Confirm that each item supports normal manual pickup and
+  normal auto-pickup. Confirm that
   native range, inventory-space, carry-weight, and ownership failures still
   block collection normally.
 
-- **Farming and Cultivator grids:** Grid selection still fails in the installed
-  build.
-  After the diagnostic build is installed, try `Left Shift` plus an odd number
-  in the Cultivator picker. Without enabling a probe, logs must show the attempt,
-  any blocking condition, and the resulting size used by preview and placement.
-  Diagnostic coverage does not itself prove the selector is fixed.
+- **Farming and Cultivator grids:** Open the Cultivator picker and confirm that
+  5x5 is highlighted. Click each size: 1x1, 3x3, 5x5, 7x7, and 9x9. The picker
+  must stay open and highlight the chosen size. Close it, then hold `Left Shift`
+  to preview and plant the selected grid. Reopen the picker and confirm the
+  default returns to 5x5. The Hammer picker must have no grid-size row, and
+  number keys must keep their native behavior. Default-on logs must explain
+  each click, any rejection, and the size used by preview and placement.
   Planting stamina can still be tested: place one plant normally, then use
   `Left Shift` mass planting on an area containing valid and
   invalid cells. Each successful normal or grid-cell placement must cost 25%
@@ -84,15 +92,16 @@ Installed on Ben's Mac: **0.1.83**.
 
   - confirm ordinary Blueberry and Cloudberry placement and centered 9x9
     placement for all three bushes;
+  - confirm that preview and placement use the same roomier berry spacing at
+    every grid size;
   - confirm that each placement costs exactly five matching berries;
   - confirm that each newly planted bush starts empty;
   - confirm that Benheim assigns each planted or naturally spawned bush a wait
     of 4,000 to 5,000 seconds before each yield, including the first yield of a
     planted bush;
-  - after the diagnostic build is installed, use default-on logs to follow one
-    bush's cycle start, chosen duration, actual transition to harvestable, and
-    harvest; distinguish a state seen on loading from a transition observed
-    while the bush was loaded;
+  - use default-on logs to follow one bush's cycle start, chosen duration,
+    actual transition to harvestable, and harvest; distinguish a state seen on
+    loading from a transition observed while the bush was loaded;
   - confirm unrelated `Pickable` objects keep native timing;
   - use the Hammer to remove one player-planted Blueberry bush and one
     player-planted Cloudberry bush; confirm that each returns exactly five
@@ -103,12 +112,12 @@ Installed on Ben's Mac: **0.1.83**.
   - in multiplayer, confirm shared placement and harvesting, creator ownership,
     and reconnect behavior.
 - **Portal label text fitting:** The wooden sign style and placement are
-  accepted, but some tags wrap below the board. After the fix, check short and
+  accepted, but some tags wrapped below the board. Check short and
   long tags on both sides, then rename one portal. The complete text must stay
   readable inside the board without changing its style or placement.
-  After the diagnostic build is installed, default-on logs must report fitting
-  on both faces when a label is created or changed, including overflow or
-  missing components. Ben still judges readability and appearance.
+  Default-on logs must report fitting on both faces when a label is created or
+  changed, including overflow or missing components. Ben still judges
+  readability and appearance.
 - **Pine Finewood:** Destroy one native Pine log half. Confirm that it produces
   15 native item drops. Confirm that none is ordinary Wood and that the drops
   still include Core Wood. If a compatible peer is available, let a
@@ -116,9 +125,9 @@ Installed on Ben's Mac: **0.1.83**.
   drops.
 - **Club + Lunge Affinity:** Confirm that the Affinity tab shows Forge level `1`
   in the native station-requirement slot and keeps Wood in the following
-  material slot. Spend 1 Wood to apply Lunge to an eligible Club that does not
-  already have Lunge. In the ordinary inventory, confirm that the weapon title is
-  `Club · Lunge` and its hover description preserves the native Club text while
+  material slot. Choose a Club at any native quality without Lunge. Spend
+  1 Wood to apply Lunge. In the ordinary inventory, confirm that the weapon
+  title is `Club · Lunge` and its hover description preserves the native Club text while
   adding Lunge's behavior and persistent bias. Switch from Affinity back to
   Craft and Upgrade and confirm that each native tab returns unchanged. Move,
   equip, store, and drop the Club, then reconnect. Confirm that the same Club
