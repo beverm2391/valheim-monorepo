@@ -74,6 +74,7 @@ internal static class Program
         Assert(labels.All(label => label.color == WorldLabelStyle.PortalAmber &&
             label.fontSharedMaterial!.name == "Benheim Sign Letter Glow"),
             "both faces must use the existing glowing sign-letter treatment");
+        VerifyFittingConfiguration(labels, donor.m_textWidget);
         Assert(root.GetComponentsInChildren<MeshRenderer>(true).Length == 2,
             "the visual must copy every mesh in the native board hierarchy");
         Assert(root.GetComponentsInChildren<Sign>(true).Length == 0 &&
@@ -97,11 +98,15 @@ internal static class Program
             "the two text faces must point in opposite portal-relative directions");
 
         GameObject originalRoot = root;
-        portal.Tag = "<b>exact</b>";
-        InvokeRefresh(controller);
-        Assert(ReferenceEquals(originalRoot, GetRoot(controller)) &&
-            labels.All(label => label.text == "<b>exact</b>"),
-            "renaming must update both existing faces exactly without duplication");
+        foreach (string tag in new[] { "TRAVEL11", "TRAVEL12", "WWWWWWWWWW", "I", "<b>exact</b>" })
+        {
+            portal.Tag = tag;
+            InvokeRefresh(controller);
+            Assert(ReferenceEquals(originalRoot, GetRoot(controller)) &&
+                labels.All(label => label.text == tag),
+                "renaming must update both existing faces exactly without duplication");
+            VerifyFittingConfiguration(labels, donor.m_textWidget);
+        }
 
         Material[] glowMaterials = labels.Select(label => label.fontSharedMaterial!).ToArray();
         portal.Tag = string.Empty;
@@ -123,6 +128,32 @@ internal static class Program
         WorldLabelRuntime.Reset();
         Assert(stoneRoot.Destroyed && controller.Destroyed,
             "runtime reset must clean up the portal visual and controller");
+    }
+
+    private static void VerifyFittingConfiguration(TextMeshProUGUI[] labels, TextMeshProUGUI donor)
+    {
+        // These stubs prove the native TMP configuration survives creation and
+        // rename. They deliberately do not simulate TMP's glyph layout.
+        foreach (TextMeshProUGUI label in labels)
+        {
+            Assert(label.enableAutoSizing && label.fontSizeMin == donor.fontSizeMin &&
+                label.fontSizeMax == donor.fontSizeMax && label.fontSizeMin > 0f &&
+                label.fontSizeMin < label.fontSizeMax,
+                "each face must retain the native font's shrink range");
+            Assert(label.textWrappingMode == TextWrappingModes.NoWrap &&
+                label.overflowMode == TextOverflowModes.Overflow,
+                "TMP must fit the complete tag on one line without truncation");
+            Rect rect = label.rectTransform.rect;
+            Vector4 inset = label.margin;
+            Assert(inset.x > 0f && inset.y > 0f && inset.z > 0f && inset.w > 0f &&
+                inset.x + inset.z < rect.width && inset.y + inset.w < rect.height,
+                "the fit rectangle must leave space on every side inside the native text area");
+            Assert(rect.width == donor.rectTransform.rect.width &&
+                rect.height == donor.rectTransform.rect.height &&
+                label.transform.localScale.x == donor.transform.localScale.x &&
+                label.transform.localScale.y == donor.transform.localScale.y,
+                "fitting must preserve the accepted native text-face geometry");
+        }
     }
 
     private static Sign CreateNativeSign(string name, string pieceName)
@@ -159,12 +190,19 @@ internal static class Program
             typeof(TextMeshProUGUI));
         textObject.transform.SetParent(root.transform, worldPositionStays: false);
         textObject.transform.localPosition = new Vector3(0f, 0f, 0.06f);
+        textObject.transform.localScale = new Vector3(0.05f, 0.05f, 1f);
         TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
         text.font = new TMP_FontAsset();
         text.fontSharedMaterial = new Material { name = "Native Sign Text" };
-        text.fontSize = 2f;
+        // Installed wooden sign asset: native TMP autosizing was the setting
+        // the portal-face copy omitted when the wrapping regression occurred.
+        text.fontSize = 7.75f;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 1f;
+        text.fontSizeMax = 8f;
+        text.textWrappingMode = TextWrappingModes.Normal;
         text.color = Color.white;
-        ((RectTransform)textObject.transform).sizeDelta = new Vector2(1.1f, 0.4f);
+        ((RectTransform)textObject.transform).sizeDelta = new Vector2(18.2888f, 8.5506f);
         sign.m_textWidget = text;
         return sign;
     }

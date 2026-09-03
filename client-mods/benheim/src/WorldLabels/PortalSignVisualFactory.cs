@@ -186,11 +186,23 @@ internal static class PortalSignVisualFactory
         label.font = source.font;
         label.fontSharedMaterial = source.fontSharedMaterial;
         label.fontSize = source.fontSize;
+        // The native sign fits its text by shrinking the font. Copying only
+        // its current fontSize loses that behavior on these new TMP widgets.
+        // TMP also refits when the controller assigns a renamed portal tag.
+        label.enableAutoSizing = true;
+        label.fontSizeMin = source.fontSizeMin;
+        label.fontSizeMax = source.fontSizeMax;
         label.fontStyle = source.fontStyle;
         label.alignment = source.alignment;
-        label.textWrappingMode = source.textWrappingMode;
-        label.overflowMode = source.overflowMode;
-        label.margin = source.margin;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
+        label.overflowMode = TextOverflowModes.Overflow;
+        // The donor rectangle already sits inside the wooden mesh. Reserve
+        // another inset for the letter halo without changing either face's
+        // transform or cropping/ellipsizing the actual portal tag.
+        float horizontalInset = sourceRect.rect.width * 0.04f;
+        float verticalInset = sourceRect.rect.height * 0.08f;
+        label.margin = new Vector4(
+            horizontalInset, verticalInset, horizontalInset, verticalInset);
         label.characterSpacing = source.characterSpacing;
         label.wordSpacing = source.wordSpacing;
         label.lineSpacing = source.lineSpacing;

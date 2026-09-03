@@ -8,7 +8,7 @@ namespace TMPro
 
     public enum FontStyles { Normal }
     public enum TextAlignmentOptions { Center }
-    public enum TextWrappingModes { NoWrap }
+    public enum TextWrappingModes { NoWrap, Normal }
     public enum TextOverflowModes { Overflow }
 
     public sealed class TextMeshProUGUI : Component
@@ -16,6 +16,9 @@ namespace TMPro
         public TMP_FontAsset? font;
         public Material? fontSharedMaterial;
         public float fontSize;
+        public bool enableAutoSizing;
+        public float fontSizeMin;
+        public float fontSizeMax;
         public FontStyles fontStyle;
         public TextAlignmentOptions alignment;
         public TextWrappingModes textWrappingMode;
