@@ -23,12 +23,12 @@ Benheim does not change furniture comfort values or how Valheim resolves
 duplicate furniture and furniture groups. It also does not change shelter and
 fire requirements, the Rested calculation, persistence, or networking.
 
-## In Development
-
 Benheim extends only feast targeting and eating from Valheim's native 2-meter
 range to Benheim's existing 8-meter interaction range. Food eligibility,
 remaining portions, owner-authoritative requests, effects, and all other feast
-behavior remain native.
+behavior remain native. Ben accepted the extended Feast targeting in live play.
+
+## In Development
 
 The installed `0.1.81` build prints a readable summary in the console.
 The summary includes the calculated comfort and **Counted**, **Ignored**, and

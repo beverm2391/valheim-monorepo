@@ -34,10 +34,6 @@ Installed on Ben's Mac: **0.1.83**.
   22 m and 38 m from an isolated level-1 Workbench. Confirm that placement fails
   beyond 40 m. Repeat with a Stonecutter-required piece. Station use, crafting,
   repair, and upgrades must keep their normal Valheim behavior.
-- **Feast range:** Stand between 3.5 m and 8 m from a native Feast, then use and
-  eat from it. Confirm that the Feast remains unavailable beyond 8 m. Confirm
-  that other interactable objects remain available up to 8 m and that open
-  containers remain available up to 10 m.
 - **Sailing:** While steering, confirm the upright speed gauge sits directly
   below Valheim's native wind UI on the right and follows that UI. It must show
   planar speed and disappear when you leave the helm. Hold Run at forward
