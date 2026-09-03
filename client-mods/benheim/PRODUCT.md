@@ -172,8 +172,8 @@ player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.52` is the current stable client. Ben gameplay-tested this combined
-client and accepted it as stable. That session confirms only the behavior Ben
+Ben gameplay-tested the combined `0.1.52` client and accepted it as stable in
+that session. That session confirms only the behavior Ben
 exercised. It does not prove feature-specific multiplayer, ownership,
 installer, or rare failure paths that the session did not exercise.
 
@@ -196,41 +196,16 @@ readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-On installed Valheim `0.221.12`, Benheim `0.1.72` failed its startup check
-because the required planting-stamina hook did not attach. Because Benheim
-fails closed when this hook is missing, it disabled all gameplay actions.
-Benheim `0.1.80` remains installed on Ben's Mac. Benheim `0.1.81` is the
-current private-test candidate. It preserves the
-`0.1.73` startup correction. It adds the
-[Farming](src/Farming/PRODUCT.md) module's selectable 1x1, 3x3, 5x5, 7x7, and
-9x9 grids, corrected berry registration, and planting-stamina behavior. It
-also adds the [Woodcutting](src/Woodcutting/PRODUCT.md) module's
-Finewood behavior. It keeps the Kill Attribution V3 capability boundary and
-the 6/12 kill-chain thresholds from `0.1.66`. Server-confirmed qualifying
-hostile kills now advance the shared,
-untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
-for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
+[Product Review](../../PRODUCT_REVIEW.md) identifies the installed version and
+what Ben can test. The feature modules own candidate behavior and acceptance;
+this overview does not track package or installation history.
 
 The candidate also corrects the [Player Combat](src/PlayerCombat/PRODUCT.md)
 earned-state activation cue. Compatible nearby players may hear the cue, but
 distant players must not hear it.
 
-The candidate includes the [Affinities](src/Affinities/PRODUCT.md) module's
-first feature set ready for live testing. It still needs gameplay acceptance.
-For this candidate, a player can spend 1 Wood at a base-game Forge to bind
-Lunge to one specific max-quality base-game Club. When the player uses the
-Club's primary attack while airborne, Lunge adds one 10 m/s forward impulse
-and raises vertical velocity to at least +3 m/s. Grounded Club swings remain
-native.
-
-The exact `0.1.81` macOS private-test package was installed byte-for-byte. The
-managed Benheim launcher then started Valheim `0.221.12` with that installed
-build and reached the real main menu. The fresh log contained the expected
-version, session-start, chainloader-complete, and clean session-end markers. It
-contained no Harmony cleanup, partial-patch cleanup, core-disablement,
-gameplay-disabled, or world-load marker. No world was entered. This proves only
-that the exact packaged build starts after installation. The module documents
-and the root Product Review own the remaining live gameplay gates.
+[Affinities](src/Affinities/PRODUCT.md) owns weapon eligibility, application,
+playtest exceptions, and each affinity's mechanics and acceptance.
 
 The candidate doubles only native Workbench and Stonecutter build-piece
 placement coverage. In installed Valheim `0.221.12`, both level-1 stations have
