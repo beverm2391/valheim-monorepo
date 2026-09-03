@@ -30,6 +30,12 @@ behavior remain native. Ben accepted the extended Feast targeting in live play.
 
 ## In Development
 
+Nearby ordinary dropped items should support auto-pickup while submerged in
+water. The candidate must preserve normal pickup distance, inventory capacity,
+carry-weight limits, ownership, and the player's auto-pickup setting. It must
+not float items to the surface or retrieve distant seabed loot. This candidate
+still needs feasibility work and live acceptance.
+
 The installed `0.1.81` build prints a readable summary in the console.
 The summary includes the calculated comfort and **Counted**, **Ignored**, and
 **Just outside range** sections. The command still records the complete

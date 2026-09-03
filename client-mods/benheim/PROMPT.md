@@ -1,8 +1,11 @@
 # Benheim client workflow and rules
 
-Product behavior, controls, player feedback, acceptance meaning, and proof
-status belong in the owning `PRODUCT.md`. Keep implementation details in code
-or a deeper technical document.
+The owning `PRODUCT.md` defines lasting product behavior, controls, player
+feedback, and what acceptance means. It also records proof status. Current
+playtest questions and the evidence needed to resolve them belong in
+`PRODUCT_REVIEW.md`, not in feature product promises. Developer Diagnostics
+defines the shared rules for runtime evidence. Hooks, event schemas, and
+implementation proof belong in code, tests, or a deeper technical document.
 
 Keep loose ideas in `IDEAS.md`. Do not put an unimplemented candidate in
 `PRODUCT_REVIEW.md`; add it only after the candidate is packaged and installed
