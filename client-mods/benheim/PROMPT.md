@@ -115,8 +115,21 @@ proof, confirm that no Valheim process is running. Any Valheim process that was
 already running is a hard stop. Do not quit or kill it, install over it, or
 launch or relaunch around it. Wait for Ben's explicit instruction.
 
+Choose non-launching observations before starting the check. An inspection
+that can start or relaunch Valheim is a launch action, not passive verification.
+Computer Use's `get_app_state` starts a stopped app; do not use it to verify
+startup or exit. Use process queries to establish absence and confirm exit.
+If non-launching visual capture is unavailable, report that limitation instead
+of opening the app to obtain a screenshot.
+
 Install the exact packaged artifact that will be shared. Launch it through
-Benheim's managed path and reach Valheim's real main menu. Verify that the log
+Benheim's managed path and record the game process's PID and start time. Keep
+log and visual evidence tied to that process. If the process exits before
+validation or the observed PID or start time changes, stop the check. Report
+which evidence is missing. Do not launch another instance merely to replace
+inconclusive evidence.
+
+Reach Valheim's real main menu. Verify that the fresh log from that process
 shows the expected version, session start, and chainloader completion. Confirm
 that the log contains no Harmony, core-disablement, or gameplay-disabled
 markers. A task may quit only the Valheim process that it launched for this
