@@ -101,11 +101,10 @@ Installed on Ben's Mac: **0.1.83**.
   - reload the save and confirm persistence; and
   - in multiplayer, confirm shared placement and harvesting, creator ownership,
     and reconnect behavior.
-- **Portal labels:** On tagged wooden and stone portals, confirm that a
-  two-sided Valheim wooden sign board stays fixed 20 to 30 cm above the portal
-  instead of facing the player. Confirm that its glowing letters exactly match
-  the current tag, scene geometry occludes it normally, and renaming updates
-  both sides. Give a portal an empty tag and confirm that no board appears.
+- **Portal label text fitting:** The wooden sign style and placement are
+  accepted, but some tags wrap below the board. After the fix, check short and
+  long tags on both sides, then rename one portal. The complete text must stay
+  readable inside the board without changing its style or placement.
 - **Pine Finewood:** Destroy one native Pine log half. Confirm that it produces
   15 native item drops. Confirm that none is ordinary Wood and that the drops
   still include Core Wood. If a compatible peer is available, let a

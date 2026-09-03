@@ -10,8 +10,6 @@ Neither feature has a setting or saved state.
   The wooden board does not glow. The glow is static and adds no light source.
   It does not change the sign text.
 
-## In Development
-
 - Each wooden or stone portal with a non-empty tag shows Valheim's wooden sign
   board floating 20 to 30 centimeters above the portal. The board stays fixed
   to the portal's position and rotation. It does not turn toward the camera.
@@ -24,11 +22,11 @@ Neither feature has a setting or saved state.
 - Sign glow and portal labels are client-only visuals. They do not write to the
   network, world, portal, or sign state.
 
-The remaining live test must evaluate the sign board's placement on existing
-wooden and stone portals. It must also confirm that:
+Ben accepted the wooden sign style and placement in live play.
 
-- the sign board stays fixed above each portal instead of facing the camera;
-- the tag is readable from both portal sides;
-- walls hide the board;
-- empty tags have no board; and
-- the board updates after a player renames a portal.
+## In Development
+
+Some portal tags wrap below the wooden board. The complete tag must fit inside
+the board on both sides, with space around the letters. Text fitting must keep
+the accepted board style and placement. Live review must confirm readable tags
+without overflow, including after a tag is changed.
