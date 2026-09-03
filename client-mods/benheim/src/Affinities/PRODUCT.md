@@ -33,12 +33,7 @@ The MVP has these boundaries:
 
 - Each eligible weapon has one affinity slot.
 - The normal MVP requires a max-quality weapon because upgrading can erase
-  its affinity. For this temporary playtest, a base-game Club at any native
-  quality can receive Lunge. A base-game Huntsman Bow at any native quality can
-  receive Snipe. Upgrading a test weapon can erase its affinity; the player can
-  apply it again afterward.
-  This exception does not expand the supported weapon types or change native
-  upgrade behavior.
+  its affinity.
 - The player applies every affinity at the Forge, regardless of the weapon's
   original crafting station.
 - The player may replace an affinity at the Forge by paying the new affinity's
@@ -58,8 +53,10 @@ The MVP has these boundaries:
 
 ## Acquisition and application
 
-Defeating one designated boss unlocks the affinity system for the entire world.
-This unlock happens only once. The exact boss remains open.
+The affinity system does not use a separate boss or world-state unlock. The
+Affinity tab is available at the Forge. Each affinity requires materials from
+its intended stage of progression. The player can apply it only after finding
+those materials through ordinary exploration.
 
 The player applies an affinity in the Affinity tab at the Forge:
 
@@ -73,10 +70,11 @@ The player applies an affinity in the Affinity tab at the Forge:
    stores the selected specialization until the player pays to replace it.
 
 There is no Sigil or other intermediate affinity item. Each affinity has its
-own resource cost, which the menu consumes in full when the player applies it.
-Materials from harder biomes gate normal progression through ordinary
-exploration and resource gathering. The exact recipes may vary as the system
-expands. Every application and replacement happens at the Forge.
+own fixed resource cost, which the menu consumes in full when the player
+applies it. The affinity has the same cost for every eligible weapon.
+Later-game weapons already cost more to upgrade to maximum quality. The player
+can apply later affinities only after gathering their materials from harder
+biomes. Every application and replacement happens at the Forge.
 
 ## Power creates a loadout choice
 
@@ -107,9 +105,9 @@ Grounded swings retain the Club's base-game behavior. The persistent combat
 drawback remains open. The slice is not product-complete until Lunge has a
 meaningful advantage and a felt loss of flexibility.
 
-For this slice only, the normal boss unlock is absent and the resource cost is
-a temporary testing recipe. This exception exists to test the system quickly;
-it is not the final acquisition balance.
+Lunge is the inexpensive starter affinity. Its final resource cost should use
+early-game materials so players can apply it before obtaining the Feather
+Cape. Later, Lunge and the Feather Cape form a stronger traversal loadout.
 
 ## Native Forge experience
 
@@ -122,10 +120,10 @@ separate Benheim window.
 The Affinity tab lists each eligible weapon item in the player's inventory and
 the affinities available for that exact item. Selecting Lunge for a Club shows
 that Club, Lunge's new behavior, its persistent bias, and the complete
-resource cost. For the first playable slice, the native station-requirement
-slot shows the Forge at level `1`, and the following native material slot shows
-`1 Wood`. Before applying Lunge to a Club that does not already have
-Lunge, the player must confirm that the resources will not be refunded. If
+resource cost. For the first playable slice, the station requirement shows a
+level-1 Forge. The next material slot shows Lunge's current resource cost.
+Before applying Lunge to a Club that does not already have Lunge, the player
+must confirm that the resources will not be refunded. If
 Lunge replaces a different affinity, the player must also confirm that the old
 affinity and all materials previously spent on it will be lost. The application
 then revalidates the exact Club and listed resources, consumes the cost once,
@@ -135,25 +133,35 @@ The Affinity tab must handle application separately from native crafting and
 upgrading. Applying an affinity must not appear as a normal craft or upgrade or
 change the existing Craft and Upgrade tabs.
 
+## Built-in Test Affinity
+
+The Affinity tab always includes `Test Affinity` for development and
+troubleshooting. It costs `1 Wood` and works on a weapon of any native quality
+within a supported affinity family. It adds no gameplay mechanic or persistent
+bias. Its name and description must state that it has no gameplay power.
+
+Test Affinity uses the same Forge flow as a normal affinity. It requires
+confirmation, consumes its resource cost, persists on the item, rejects
+reapplication, and can be replaced only by paying the new affinity's cost.
+Normal builds include Test Affinity so developers can verify this shared flow
+without changing a real affinity's max-quality requirement or resource cost.
+
 ## Developer testing and diagnostics
 
-Only during development, the existing `bh debug` commands may bypass
-player-facing resource costs, Forge use, and replacement restrictions to
-isolate failures:
+During development, two `bh debug` commands bypass the player-facing Forge
+flow:
 
-- `bh debug affinity inspect` reports the equipped weapon's eligibility,
-  affinity identity and version, stored state, and active runtime behavior.
-- `bh debug affinity apply lunge` applies Lunge to an equipped eligible Club
-  without using the Forge, resources, or confirmation.
-- `bh debug affinity clear` removes only Benheim affinity state from the
-  equipped weapon so the same test can be repeated.
-- `bh debug affinity lunge-force <value>` changes propulsion for the current
-  session only. It does not modify the item or persist after the current
-  session.
+- `bh debug affinity apply <affinity>` applies the named affinity to an
+  eligible equipped weapon. It ignores the Forge, resource cost, confirmation,
+  max-quality requirement, and replacement restrictions.
+- `bh debug affinity remove` removes only Benheim affinity state from the
+  equipped weapon.
 
-These commands are developer escape hatches, not alternate player progression.
-The real acceptance path remains the Forge, the Affinity tab, full resource
-cost, confirmation, persistent application, and paid replacement at the Forge.
+These commands are developer escape hatches, not an alternative progression
+path. Developers use them to apply and remove affinities quickly during in-game
+mechanic tests. Changes to tuning values or code require a new build.
+Developers use Test Affinity to verify the shared Forge flow and real affinities
+to verify progression and balance.
 
 Diagnostics must use distinct event types for menu discovery, eligibility,
 application validation, resource consumption, writing and loading stored state,
@@ -165,9 +173,9 @@ velocity before the impulse, the applied impulse, and velocity afterward.
 Snipe specializes an existing bow for deliberate long-range headshots. The first
 test supports only a base-game Huntsman Bow. Support for every base-game bow
 remains the intended expansion, not part of this slice. The
-player applies Snipe through the existing Affinity tab at a level-1 Forge for
-the temporary cost of 1 Wood. This test has no boss unlock. The shared
-application, persistence, presentation, and same-affinity rejection rules apply.
+player applies Snipe through the existing Affinity tab at a level-1 Forge. Its
+temporary resource cost is `1 Wood`. The shared application, persistence,
+presentation, and same-affinity rejection rules apply.
 
 Drawing a Snipe bow automatically gives the player 3x optical zoom. The zoom
 changes field of view while preserving the native crosshair, third-person
@@ -198,7 +206,7 @@ before impact.
 These values are approved starting tuning, not accepted gameplay balance.
 Live review must establish that the zoom is useful, the slower draw creates a
 felt close-range tradeoff, and long-range headshots reward precision. Final
-progression costs and the boss unlock remain open.
+resource costs remain open.
 
 ## Later candidate: Chain Lightning
 
