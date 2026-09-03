@@ -64,13 +64,10 @@ Installed on Ben's Mac: **0.1.83**.
   native range, inventory-space, carry-weight, and ownership failures still
   block collection normally.
 
-- **Farming and Cultivator grids:** Retest grid selection after the input fix.
-  Open the Cultivator picker and confirm that each picker session
-  starts with 9x9 selected. Hold `Left Shift` and press each of `1`, `3`, `5`,
-  `7`, and `9`. After each selection, confirm that the existing `Left Shift`
-  mass-plant preview and placement both use the matching centered grid. Plain
-  number keys and every other number-key combination must keep native behavior.
-  Place one plant normally, then place a centered 9x9 grid containing valid and
+- **Farming and Cultivator grids:** Grid selection still fails in the installed
+  build. Pause selector testing until a corrected build is installed.
+  Planting stamina can still be tested: place one plant normally, then use
+  `Left Shift` mass planting on an area containing valid and
   invalid cells. Each successful normal or grid-cell placement must cost 25%
   of the native stamina cost after Valheim applies the Farming skill adjustment.
   A failed, skipped, or rejected placement must cost no stamina.

@@ -74,7 +74,7 @@ Valheim's normal farming restrictions.
   size. Benheim confirms the selection immediately. The selected size controls
   the existing `Left Shift` mass-plant preview and placement.
 - Each time the local player opens the Cultivator picker, the grid selection
-  resets to 9x9. Benheim does not carry a selection into the next picker
+  resets to 5x5. Benheim does not carry a selection into the next picker
   session.
 - Benheim does not intercept a number key unless the Cultivator picker is open,
   `Left Shift` is held, and the key is `1`, `3`, `5`, `7`, or `9`. Every other
@@ -103,7 +103,7 @@ Valheim's normal farming restrictions.
   - one naturally spawned bush of each type cannot be removed with the Hammer
   - the Cultivator cannot remove a planted or naturally spawned bush of any type
   - berry-bush state persists after a save reload
-  - each Cultivator-picker session starts with a 9x9 selection and does not
+  - each Cultivator-picker session starts with a 5x5 selection and does not
     restore the prior picker session's selection
   - `Left Shift` plus each odd number key produces immediate selection
     confirmation
@@ -121,5 +121,6 @@ Valheim's normal farming restrictions.
   in Valheim.
 - In the live test of installed `0.1.81`, holding `Left Shift` and pressing an
   odd-number key did not select a grid. No top-left confirmation or typed
-  `Farming.plant_grid_selected` event appeared. Do not retest grid selection
-  until a corrected build is installed.
+  `Farming.plant_grid_selected` event appeared. Ben reported that selection
+  still failed in `0.1.83`. The next candidate must restore the 5x5 default.
+  Grid selection remains unaccepted until a corrected build passes live review.

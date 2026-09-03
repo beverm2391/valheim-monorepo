@@ -273,9 +273,6 @@ weight, ownership, effects, and failure behavior remain unchanged.
 The [Interaction module](src/Interaction/PRODUCT.md) owns the exact behavior
 and live proof gate.
 
-While the Cultivator picker is open, holding `Left Shift` and pressing `1`,
-`3`, `5`, `7`, or `9` selects the matching centered grid. Each picker session
-starts with the 9x9 grid selected. Other number-key input remains native.
 Perfect Impact now qualifies only at the first `Character` contact authored for
 the attack. That contact requires horizontal approach speed of at least `5.5
 m/s`. A live Lox contact proved the `1.15x` native damage and `3x` native
