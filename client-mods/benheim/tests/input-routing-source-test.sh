@@ -12,8 +12,6 @@ actual_raw_input_files="$({
 } | sed "s#^$root/##" | sort)"
 expected_raw_input_files="$(printf '%s\n' \
   'src/Farming/FarmingInput.cs' \
-  'src/Farming/FarmingInputDiagnostics.cs' \
-  'src/Farming/FarmingInputProbe.cs' \
   'src/Infrastructure/InputState.cs' \
   'src/Inventory/LoadoutSwap.cs' \
   'src/Inventory/SplitStackPatches.cs' \
@@ -21,15 +19,11 @@ expected_raw_input_files="$(printf '%s\n' \
   'src/Shortcuts/ShortcutOverlay.cs')"
 
 if [[ "$actual_raw_input_files" != "$expected_raw_input_files" ]]; then
-  printf 'raw input calls must use the listed action-routing owners or bounded input observer\n' >&2
+  printf 'raw input calls must use the listed action-routing owners\n' >&2
   diff -u <(printf '%s\n' "$expected_raw_input_files") \
     <(printf '%s\n' "$actual_raw_input_files") >&2 || true
   exit 1
 fi
-
-# Core grid evidence and the detailed opt-in probe observe raw edges together
-# with their text-entry gate; neither dispatches actions. The farming behavior
-# harness covers unchanged-state suppression and probe bounds.
 
 test "$(grep -Fc 'if (IsTextEntryActive())' "$input_state")" -eq 5
 grep -Fq 'ZInput.GetButton("Run") || ZInput.GetButton("JoyRun")' "$input_state"

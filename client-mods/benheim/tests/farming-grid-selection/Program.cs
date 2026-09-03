@@ -7,195 +7,164 @@ using UnityEngine;
 
 Player player = CultivatorPlayer();
 Player.m_localPlayer = player;
+Hud.instance = new Hud();
 Hud.PickerVisible = true;
+FarmingGridPicker.Reset();
+FarmingGridPicker.Update();
+FarmingGridPickerView first = FarmingGridPickerView.Last!;
+Require(first.IsAlive && first.HighlightedSize == 5 && FarmingGridSelection.CurrentSize == 5,
+    "opening creates the row and highlights the default 5x5 choice");
+Require(Last().GetProperty("result").GetString() == "shown" && Last().GetProperty("row_visible").GetBoolean(),
+    "default-on evidence records the shown row");
+int events = Diagnostics.CoreEvents.Count;
+int creates = FarmingGridPickerView.CreateCount;
+for (int i = 0; i < 60; i++) FarmingGridPicker.Update();
+Require(Diagnostics.CoreEvents.Count == events && FarmingGridPickerView.CreateCount == creates,
+    "unchanged picker frames neither allocate duplicate rows nor repeat state evidence");
 
-FarmingInput.ResetGridSelection();
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 5, "opening the picker must start at 5x5");
-
-// Valheim 0.221.12 latches Hotbar1-8 during ZInput.Update. The production
-// boundary must use that latched button, not the lower-level key edge that can
-// be updated later than Player.Update.
-ZInput.Held.Add(KeyCode.LeftShift);
-ZInput.KeyDown.Add(KeyCode.Alpha3);
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 5, "a raw top-row edge must not bypass the native hotbar boundary");
-Require(Diagnostics.Events == 0, "the rejected raw edge must not emit selection evidence");
-
-ZInput.ResetTransient();
-ZInput.ButtonDown.Add("Hotbar3");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 3, "Left Shift+3 must select the 3x3 grid");
-Require(player.LastMessage.Contains("3x3", StringComparison.Ordinal), "selection must show immediate top-left confirmation");
-Require(JsonDocument.Parse(Diagnostics.CoreEvents.Last().ToJsonLine()).RootElement
-    .GetProperty("selected_size").GetInt32() == 3, "selection must emit its actual resulting size as typed evidence");
-int selectedEventCount = Diagnostics.Events;
-ZInput.ResetTransient();
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: false);
-Require(Diagnostics.Events == selectedEventCount, "a skipped ZInput.Update must not replay stale selection input");
-FarmingInputPatches.PlayerUpdatePrefix(player);
-Exception updateFailure = new Exception("simulated Player.Update failure");
-Require(ReferenceEquals(FarmingInputPatches.PlayerUpdateFinalizer(updateFailure), updateFailure), "the Player.Update finalizer must preserve native exceptions");
-Require(FarmingInputPatches.UseHotbarItemPrefix(player, 3), "a matching call outside native Player.Update must not consume suppression");
-Require(!NativeHotbarPatchAllows(player, 3), "the matching native hotbar action must be suppressed");
-Require(NativeHotbarPatchAllows(player, 3), "the suppression token must be single-use");
-
-foreach (int size in new[] { 1, 3, 5, 7 })
+foreach (int size in new[] { 1, 3, 5, 7, 9 })
 {
-    ZInput.ResetTransient();
-    ZInput.ButtonDown.Add($"Hotbar{size}");
-    FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-    Require(FarmingGridSelection.CurrentSize == size, $"Left Shift+{size} must select {size}x{size}");
-    Require(!NativeHotbarPatchAllows(player, size), $"Hotbar{size} must be consumed");
+    int invalidations = PlantingPreview.DestroyCalls;
+    first.Click(size);
+    Require(FarmingGridSelection.CurrentSize == size && first.HighlightedSize == size && Hud.PickerVisible,
+        "every allowed click selects and highlights its size without closing the native picker");
+    Require(PlantingPreview.DestroyCalls == invalidations + 1,
+        "selection invalidates the prior preview");
+    Require(Last().GetProperty("result").GetString() == "selected" &&
+        Last().GetProperty("highlighted_size").GetInt32() == size &&
+        Last().GetProperty("picker_visible").GetBoolean(),
+        "selection result records actual state after applying the choice");
+    Require(Diagnostics.CoreEvents[^2].Name == "plant_grid_choice_attempt",
+        "each result has a preceding click attempt even for repeated choices");
 }
+foreach (int size in new[] { -1, 0, 2, 4, 6, 8, 10, 11 })
+{
+    first.Click(size);
+    Require(FarmingGridSelection.CurrentSize == 9 && Reason() == "unsupported_size", "invalid choices do not mutate state");
+}
+InputState.TextEntryActive = true;
+FarmingGridPicker.Update();
+first.Click(3);
+Require(first.IsAlive && FarmingGridSelection.CurrentSize == 9 && Reason() == "text_entry",
+    "transient console or chat focus blocks a click without resetting its still-open picker");
+InputState.TextEntryActive = false;
 
-ZInput.ResetTransient();
-ZInput.KeyDown.Add(KeyCode.Alpha9);
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "Left Shift+9 must use the raw 9-key seam");
-Require(NativeHotbarPatchAllows(player, 9), "9 has no native Valheim hotbar action to suppress");
+Hud.PickerVisible = false;
+FarmingGridPicker.Update();
+Require(!first.IsAlive && FarmingGridSelection.CurrentSize == 9,
+    "closing removes the controls while preserving size for Shift preview and placement");
+first.Click(3);
+Require(FarmingGridSelection.CurrentSize == 9 && Reason() == "picker_closed", "closed picker callbacks cannot select");
+Hud.PickerVisible = true;
+FarmingGridPicker.Update();
+FarmingGridPickerView second = FarmingGridPickerView.Last!;
+Require(second != first && FarmingGridSelection.CurrentSize == 5 && second.HighlightedSize == 5,
+    "every reopening creates a fresh default-5 session");
+first.Click(9);
+Require(FarmingGridSelection.CurrentSize == 5 && Reason() == "stale_picker",
+    "a retained callback from the prior row cannot mutate a new same-player session");
+second.Click(3);
 
-ZInput.ResetTransient();
-ZInput.KeyDown.Add(KeyCode.Keypad5);
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "keypad input must remain native");
-Require(NativeHotbarPatchAllows(player, 5), "keypad input must not create a native hotbar suppression token");
+// Check the same boundary again at click time, before Update sees a tool swap.
+player.RightItem!.m_dropPrefab = new GameObject("Hammer");
+second.Click(7);
+Require(FarmingGridSelection.CurrentSize == 3 && Reason() == "other_tool", "equipment changes block stale clicks immediately");
+FarmingGridPicker.Update();
+Require(!second.IsAlive, "Hammer never retains the Cultivator row");
+events = Diagnostics.CoreEvents.Count;
+for (int i = 0; i < 60; i++) FarmingGridPicker.Update();
+Require(Diagnostics.CoreEvents.Count == events, "unrelated tool play does not emit picker spam");
+player.RightItem.m_dropPrefab = new GameObject("Cultivator");
+player.PlaceMode = false;
+FarmingGridPicker.Update();
+Require(FarmingGridPickerView.Last == second, "Cultivator outside place mode does not get a row");
+player.PlaceMode = true;
+player.RightItem.m_shared.m_buildPieces = null;
+FarmingGridPicker.Update();
+Require(FarmingGridPickerView.Last == second, "a tool without build pieces does not get a row");
+player.RightItem.m_shared.m_buildPieces = new PieceTable();
+FarmingGridPicker.Update();
+FarmingGridPickerView third = FarmingGridPickerView.Last!;
+Require(third != second && third.HighlightedSize == 5, "returning to the Cultivator starts at 5");
+third.Click(7);
+Player.m_localPlayer = CultivatorPlayer();
+FarmingGridPicker.Update();
+Require(!third.IsAlive && FarmingGridSelection.CurrentSize == 5, "player replacement cleans the old owner and resets choice");
+FarmingGridPickerView current = FarmingGridPickerView.Last!;
+Player.m_localPlayer = null;
+FarmingGridPicker.Update();
+Require(!current.IsAlive, "world exit/player absence removes the row");
+Player.m_localPlayer = player;
+FarmingGridPicker.Update();
+current = FarmingGridPickerView.Last!;
+HealthReporting.GameplayActionsEnabled = false;
+FarmingGridPicker.Update();
+Require(!current.IsAlive && Reason() == "gameplay_disabled", "disabled gameplay cleans controls before Plugin returns early");
+HealthReporting.GameplayActionsEnabled = true;
 
-ZInput.ResetTransient();
-ZInput.ButtonDown.Add("Hotbar7");
-ZInput.Held.Add(KeyCode.LeftControl);
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "another modifier must preserve the current selection");
-Require(NativeHotbarPatchAllows(player, 7), "a rejected chord must remain native");
+FarmingGridPickerView.MissingReason = "native_button_missing";
+FarmingGridPicker.Update();
+Require(Reason() == "native_button_missing" && !Last().GetProperty("row_visible").GetBoolean(),
+    "a missing donor reports unavailable rather than claiming a shown row");
+events = Diagnostics.CoreEvents.Count;
+creates = FarmingGridPickerView.CreateCount;
+for (int i = 0; i < 60; i++) FarmingGridPicker.Update();
+Require(FarmingGridPickerView.CreateCount == creates, "missing donors retry at a bounded rate");
+Time.realtimeSinceStartup += 2;
+FarmingGridPicker.Update();
+Require(Diagnostics.CoreEvents.Count == events, "unchanged missing-donor outcome is emitted only once");
+FarmingGridPickerView.MissingReason = string.Empty;
+Time.realtimeSinceStartup += 2;
+FarmingGridPicker.Update();
+Require(FarmingGridPickerView.Last!.IsAlive && Last().GetProperty("result").GetString() == "shown",
+    "late native donors recover through the same session without a new command");
+current = FarmingGridPickerView.Last!;
+current.ThrowOnHighlight = true;
+current.Click(9);
+Require(Last().GetProperty("result").GetString() == "failed" &&
+    Last().GetProperty("selected_size").GetInt32() == 9 &&
+    Last().GetProperty("highlighted_size").GetInt32() == 5,
+    "a rendering operation failure records the actual partial state, not a fabricated selected highlight");
+current.ThrowOnHighlight = false;
+Diagnostics.ThrowOnEmit = true;
+current.Click(3);
+Require(FarmingGridSelection.CurrentSize == 3 && current.HighlightedSize == 3,
+    "a throwing diagnostic sink cannot escape the click or interrupt selection");
+FarmingGridPicker.Reset();
+Require(!current.IsAlive && FarmingGridSelection.CurrentSize == 5, "reset cleans the row even with a failed sink");
+Diagnostics.ThrowOnEmit = false;
+FarmingGridPickerView.ThrowOnCreate = true;
+FarmingGridPicker.Update();
+Require(Last().GetProperty("result").GetString() == "failed", "creation exceptions are contained and recorded");
+FarmingGridPickerView.ThrowOnCreate = false;
+Time.realtimeSinceStartup += 2;
+FarmingGridPicker.Update();
+Require(FarmingGridPickerView.Last!.IsAlive, "creation failure can recover when the donor becomes usable");
+FarmingGridPicker.Reset();
 
-ZInput.ResetTransient();
+ZInput.Held.Add(KeyCode.LeftShift);
+Require(FarmingInput.IsMassActionHeld(), "the existing Shift planting/harvesting control remains available");
+InputState.TextEntryActive = true;
+Require(!FarmingInput.IsMassActionHeld(), "text entry still suppresses mass actions");
+InputState.TextEntryActive = false;
 ZInput.Held.Clear();
-ZInput.ButtonDown.Add("Hotbar1");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "plain number input must remain native");
-
-ZInput.ResetTransient();
-ZInput.Held.Add(KeyCode.LeftShift);
-ZInput.Held.Add(KeyCode.RightShift);
-ZInput.ButtonDown.Add("Hotbar7");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "Right Shift must reject a Left Shift chord");
-Require(NativeHotbarPatchAllows(player, 7), "the rejected dual-shift chord must remain native");
-
-ZInput.ResetTransient();
-ZInput.Held.Remove(KeyCode.RightShift);
-ZInput.ButtonDown.Add("Hotbar2");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "even number input must remain native");
-Require(NativeHotbarPatchAllows(player, 2), "an even hotbar action must not be consumed");
-
-ZInput.ResetTransient();
-ZInput.ButtonDown.Add("Hotbar1");
-ZInput.ButtonDown.Add("Hotbar3");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "simultaneous number keys must remain native");
-Require(NativeHotbarPatchAllows(player, 1), "the first simultaneous hotbar action must not be consumed");
-Require(NativeHotbarPatchAllows(player, 3), "the second simultaneous hotbar action must not be consumed");
-
-ZInput.ResetTransient();
-ZInput.KeyDown.Add(KeyCode.Alpha0);
-ZInput.ButtonDown.Add("Hotbar3");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "top-row 0 plus an allowed digit must remain native");
-Require(NativeHotbarPatchAllows(player, 3), "a hotbar action paired with top-row 0 must not be consumed");
-
-ZInput.ResetTransient();
-ZInput.Held.Add(KeyCode.Alpha2);
-ZInput.ButtonDown.Add("Hotbar3");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "a held top-row digit plus a newly pressed allowed digit must remain native");
-Require(NativeHotbarPatchAllows(player, 3), "a hotbar action paired with a held top-row digit must not be consumed");
-ZInput.Held.Remove(KeyCode.Alpha2);
-
-ZInput.ResetTransient();
-ZInput.Held.Add(KeyCode.Keypad5);
-ZInput.ButtonDown.Add("Hotbar3");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "a held keypad digit plus a newly pressed allowed digit must remain native");
-Require(NativeHotbarPatchAllows(player, 3), "a hotbar action paired with a held keypad digit must not be consumed");
-ZInput.Held.Remove(KeyCode.Keypad5);
-
-Hud.PickerVisible = false;
-ZInput.ResetTransient();
-ZInput.ButtonDown.Add("Hotbar1");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "picker-closed input must remain native");
-Require(NativeHotbarPatchAllows(player, 1), "picker-closed hotbar input must not be consumed");
-Hud.PickerVisible = true;
-ZInput.ResetTransient();
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 5, "reopening after the picker-closed check must reset to 5x5");
-
-ZInput.ResetTransient();
-ZInput.Held.Add(KeyCode.LeftShift);
-ZInput.ButtonDown.Add("Hotbar3");
-Require(NativeHotbarPatchAllows(player, 3), "Player.Update before ZInput.Update must see no premature suppression");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 3, "the test setup must create a pending suppression");
-Require(!NativeHotbarPatchAllows(player, 3), "the next Player.Update must consume a token created by later ZInput.Update");
-
-ZInput.ResetTransient();
-ZInput.ButtonDown.Add("Hotbar3");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 3, "the test setup must recreate a pending suppression");
-ZInput.ResetTransient();
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(NativeHotbarPatchAllows(player, 3), "an unused suppression must expire at the next ZInput update");
-
-Hud.PickerVisible = false;
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Hud.PickerVisible = true;
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 5, "each picker session must reset to 5x5");
-
-player.RightItem = Item("Hammer");
-ZInput.ResetTransient();
-ZInput.Held.Add(KeyCode.LeftShift);
-ZInput.ButtonDown.Add("Hotbar1");
-FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 5, "another tool's picker must remain native");
-
-ProbeTests.Run();
-CoreEvidenceTests.Run(player);
-Console.WriteLine("farming production input boundary and bounded probe checks passed");
+Input.Held.Add(KeyCode.JoystickButton4);
+Require(FarmingInput.IsMassActionHeld(), "the existing gamepad mass action is preserved");
+CoreEvidenceTests.Run();
+Console.WriteLine("farming picker session and core evidence checks passed");
 
 static Player CultivatorPlayer() => new Player
 {
-    RightItem = Item("Cultivator"),
     PlaceMode = true,
-};
-
-static ItemDrop.ItemData Item(string prefabName) => new ItemDrop.ItemData
-{
-    m_dropPrefab = new GameObject(prefabName),
-    m_shared = new ItemDrop.ItemData.SharedData
+    RightItem = new ItemDrop.ItemData
     {
-        m_buildPieces = new PieceTable(),
+        m_dropPrefab = new GameObject("Cultivator"),
+        m_shared = new ItemDrop.ItemData.SharedData { m_buildPieces = new PieceTable() },
     },
 };
-
-static bool NativeHotbarPatchAllows(Player player, int index)
-{
-    FarmingInputPatches.PlayerUpdatePrefix(player);
-    try
-    {
-        return FarmingInputPatches.UseHotbarItemPrefix(player, index);
-    }
-    finally
-    {
-        FarmingInputPatches.PlayerUpdatePostfix();
-    }
-}
-
+static JsonElement Last() => JsonDocument.Parse(Diagnostics.CoreEvents.Last().ToJsonLine()).RootElement;
+static string? Reason() => Last().GetProperty("reason").GetString();
 static void Require(bool condition, string message)
 {
-    if (!condition)
-    {
-        throw new InvalidOperationException(message);
-    }
+    if (!condition) throw new InvalidOperationException(message);
 }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using BenheimQoL.DeveloperDiagnostics;
 using BenheimQoL.EnemyTiers;
-using BenheimQoL.Farming;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.Interaction;
 using BenheimQoL.Spawning;
@@ -13,7 +12,7 @@ DeveloperDiagnosticsRuntime.InitializeConsole();
 Expect(Terminal.Commands.Count == 3, "initialization registers each command once");
 ExpectOptions("bhcatalog", "effects", "text", "ui");
 ExpectOptions("bhrun", "comfort", "wispecho");
-ExpectOptions("bhwatch", "colliders", "gridinput", "spawns");
+ExpectOptions("bhwatch", "colliders", "spawns");
 
 Terminal catalogOutput = Run("bhcatalog", "effects", " bronze ");
 Expect(RuntimePrimitiveCatalogCommand.RunCount == 1, "production catalog registration runs");
@@ -44,15 +43,6 @@ DeveloperDiagnosticsRuntime.Update();
 Expect(TestSpawnProbe.Active, "the production registration path activates a shipped-on event probe on world entry");
 Expect(TestSpawnProbe.EnableCount == 1, "world entry activates the event probe once");
 Terminal worldStatus = Run("bhwatch");
-ExpectLine(worldStatus.Lines,
-    "Benheim probe gridinput: kind=event default=off override=default effective=off");
-Run("bhwatch", "gridinput", "on");
-Expect(FarmingInputProbe.Active, "the capture command activates the default-off input probe");
-DeveloperDiagnosticsRuntime.DisableEventProbe("gridinput");
-Expect(!FarmingInputProbe.Active && FarmingInputProbe.CleanupCount == 1,
-    "capture completion uses the real registry cleanup transition");
-ExpectLine(Run("bhwatch", "gridinput").Lines,
-    "Benheim probe gridinput: kind=event default=off override=off effective=off");
 ExpectLine(
     worldStatus.Lines,
     "Benheim probe spawns: kind=event default=on override=default effective=on");
@@ -103,30 +93,17 @@ Expect(
     TestSpawnProbe.EnableCount == respawnEnableCount,
     "respawn does not reactivate an event probe that never left its world");
 
-Run("bhwatch", "gridinput", "on");
-FarmingInputProbe.CompleteSessionOnCleanup = true;
-int inputCleanupsBeforeExit = FarmingInputProbe.CleanupCount;
 ZNetScene.instance = null;
 Player.m_localPlayer = null;
 DeveloperDiagnosticsRuntime.Update();
 Expect(!CharacterColliderOverlay.Active, "world exit cleans the active visual probe");
 Expect(!TestSpawnProbe.Active, "world exit cleans the active event probe");
 Expect(TestSpawnProbe.CleanupCount > 0, "world exit invokes event-probe cleanup");
-Expect(!FarmingInputProbe.Active &&
-    FarmingInputProbe.CleanupCount == inputCleanupsBeforeExit + 1,
-    "early exit ends a bounded input capture without reentering its cleanup callback");
-ExpectLine(Run("bhwatch", "gridinput").Lines,
-    "Benheim probe gridinput: kind=event default=off override=off effective=off");
-
 ZNetScene.instance = new ZNetScene();
 Player.m_localPlayer = new Player();
 DeveloperDiagnosticsRuntime.Update();
 Expect(CharacterColliderOverlay.Active, "world entry restores the visual session override");
 Expect(TestSpawnProbe.Active, "world entry restores the event shipped default");
-Expect(!FarmingInputProbe.Active, "a completed bounded capture does not restart on world entry");
-Expect(FarmingInputProbe.CleanupCount == inputCleanupsBeforeExit + 1,
-    "world reentry leaves the completed capture untouched until another on command");
-
 Terminal colliderDefaultStatus = Run("bhwatch", "colliders", "default");
 Expect(!CharacterColliderOverlay.Active, "default restores the visual probe's shipped-off state");
 ExpectLine(

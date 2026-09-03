@@ -49,7 +49,7 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
-                new Entry("Left Shift + (1 / 3 / 5 / 7 / 9)", "Choose the planting grid while the Cultivator picker is open"),
+                new Entry("Click a grid size", "Choose 1x1, 3x3, 5x5, 7x7, or 9x9 in the Cultivator picker; the picker stays open and highlights your choice"),
                 new Entry("Left Shift + plant", $"Plant the centered selected grid (defaults to {FarmingSettings.DefaultGridSize}x{FarmingSettings.DefaultGridSize} each time the picker opens)"),
                 new Entry("Cultivator berries", $"Plant native Raspberry, Blueberry, and Cloudberry bushes for {PlantableBerries.BerryCost} matching berries each"),
                 new Entry("Hammer berries", $"Remove a player-planted berry bush when native access and ward rules allow it; receive {PlantableBerries.BerryCost} matching berries"),

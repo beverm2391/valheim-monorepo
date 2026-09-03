@@ -285,32 +285,3 @@ namespace BenheimQoL.Spawning
         }
     }
 }
-
-namespace BenheimQoL.Farming
-{
-    using BenheimQoL.DeveloperDiagnostics;
-
-    internal static class FarmingInputProbe
-    {
-        internal const string Name = "gridinput";
-        internal static bool Active;
-        internal static int CleanupCount;
-        internal static bool CompleteSessionOnCleanup;
-        internal static bool TrySetActive(bool requested, out string failure)
-        {
-            failure = string.Empty;
-            Active = requested;
-            return true;
-        }
-        internal static void Update() { }
-        internal static void Cleanup(DiagnosticProbeCleanupReason reason)
-        {
-            Active = false;
-            CleanupCount++;
-            if (CompleteSessionOnCleanup)
-            {
-                DeveloperDiagnosticsRuntime.DisableEventProbe(Name);
-            }
-        }
-    }
-}

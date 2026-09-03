@@ -114,7 +114,6 @@ fi
 grep -Fq '"Inventory"' "$catalog_file"
 grep -Fq '"Crafting & Repair"' "$catalog_file"
 grep -Fq '"Farming"' "$catalog_file"
-grep -Fq 'new Entry("Left Shift + (1 / 3 / 5 / 7 / 9)", "Choose the planting grid while the Cultivator picker is open")' "$catalog_file"
 grep -Fq 'FarmingSettings.DefaultGridSize' "$catalog_file"
 grep -Fq 'each time the picker opens' "$catalog_file"
 grep -Fq '"Cultivator berries"' "$catalog_file"

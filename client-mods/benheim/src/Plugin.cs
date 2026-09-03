@@ -24,7 +24,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.85";
+    public const string PluginVersion = "0.1.86";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -35,7 +35,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
         Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
-        FarmingInput.ResetGridSelection();
+        FarmingGridPicker.Reset();
         LungeRuntime.ResetSession();
         PlayerCombatRuntime.BeginSession();
         DiagnosticsSharingSettings.Initialize(Config);
@@ -86,7 +86,7 @@ public sealed class Plugin : BaseUnityPlugin
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
         DeveloperDiagnosticsRuntime.Update();
-        FarmingInputDiagnostics.ObserveUpdate();
+        FarmingGridPicker.Update();
         if (!HealthReporting.GameplayActionsEnabled)
         {
             return;
@@ -105,7 +105,7 @@ public sealed class Plugin : BaseUnityPlugin
         WorldLabelRuntime.Reset();
         ShipSprintRuntime.Reset("plugin_teardown");
         PlantingPreview.DestroyGhosts();
-        FarmingInput.ResetGridSelection();
+        FarmingGridPicker.Reset();
         CombatFeedbackController.Reset();
         TopLeftFeedbackHud.Destroy();
         WildernessDangerPresentation.Reset();
