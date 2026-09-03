@@ -15,6 +15,7 @@ internal static class FarmingInputPatches
     [HarmonyPatch(typeof(ZInput), nameof(ZInput.Update))]
     internal static void ZInputUpdatePostfix(bool __runOriginal)
     {
+        FarmingInputProbe.ObserveZInputPostfix(__runOriginal);
         if (!__runOriginal)
         {
             return;
@@ -52,6 +53,8 @@ internal static class FarmingInputPatches
     [HarmonyPatch(typeof(Player), "UseHotbarItem")]
     internal static bool UseHotbarItemPrefix(Player __instance, int index)
     {
-        return !FarmingInput.ShouldSuppressHotbarUse(__instance, index);
+        bool suppressed = FarmingInput.ShouldSuppressHotbarUse(__instance, index);
+        FarmingInputProbe.ObserveHotbarUse(__instance, index, suppressed);
+        return !suppressed;
     }
 }

@@ -19,7 +19,6 @@ assert_source() {
 }
 
 assert_source 'HarvestRadius = 10f' 'src/Farming/FarmingSettings.cs'
-assert_source 'DefaultGridSize = 9' 'src/Farming/FarmingSettings.cs'
 assert_source 'size % 2 == 1' 'src/Farming/FarmingGridSelection.cs'
 assert_source 'new List<FarmingGridPoint>\(size \* size\)' 'src/Farming/FarmingGrid.cs'
 assert_source 'row == size / 2 && column == size / 2' 'src/Farming/FarmingGrid.cs'

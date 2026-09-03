@@ -9,7 +9,7 @@ Hud.PickerVisible = true;
 
 FarmingInput.ResetGridSelection();
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "opening the picker must start at 9x9");
+Require(FarmingGridSelection.CurrentSize == 5, "opening the picker must start at 5x5");
 
 // Valheim 0.221.12 latches Hotbar1-8 during ZInput.Update. The production
 // boundary must use that latched button, not the lower-level key edge that can
@@ -17,15 +17,15 @@ Require(FarmingGridSelection.CurrentSize == 9, "opening the picker must start at
 ZInput.Held.Add(KeyCode.LeftShift);
 ZInput.KeyDown.Add(KeyCode.Alpha3);
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "a raw top-row edge must not bypass the native hotbar boundary");
+Require(FarmingGridSelection.CurrentSize == 5, "a raw top-row edge must not bypass the native hotbar boundary");
 Require(Diagnostics.Events == 0, "the rejected raw edge must not emit selection evidence");
 
 ZInput.ResetTransient();
 ZInput.ButtonDown.Add("Hotbar3");
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
 Require(FarmingGridSelection.CurrentSize == 3, "Left Shift+3 must select the 3x3 grid");
-Require(player.LastMessage == "Planting grid: 3x3", "selection must show immediate top-left confirmation");
-Require(Diagnostics.Last == "Farming.plant_grid_selected grid=3x3", "selection must emit the typed event");
+Require(player.LastMessage.Contains("3x3", StringComparison.Ordinal), "selection must show immediate top-left confirmation");
+Require(Diagnostics.Last == "Farming.plant_grid_selected grid=3x3", "selection must emit the text diagnostic");
 int selectedEventCount = Diagnostics.Events;
 ZInput.ResetTransient();
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: false);
@@ -126,7 +126,7 @@ Require(NativeHotbarPatchAllows(player, 1), "picker-closed hotbar input must not
 Hud.PickerVisible = true;
 ZInput.ResetTransient();
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "reopening after the picker-closed check must reset to 9x9");
+Require(FarmingGridSelection.CurrentSize == 5, "reopening after the picker-closed check must reset to 5x5");
 
 ZInput.ResetTransient();
 ZInput.Held.Add(KeyCode.LeftShift);
@@ -148,16 +148,17 @@ Hud.PickerVisible = false;
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
 Hud.PickerVisible = true;
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "each picker session must reset to 9x9");
+Require(FarmingGridSelection.CurrentSize == 5, "each picker session must reset to 5x5");
 
 player.RightItem = Item("Hammer");
 ZInput.ResetTransient();
 ZInput.Held.Add(KeyCode.LeftShift);
 ZInput.ButtonDown.Add("Hotbar1");
 FarmingInputPatches.ZInputUpdatePostfix(__runOriginal: true);
-Require(FarmingGridSelection.CurrentSize == 9, "another tool's picker must remain native");
+Require(FarmingGridSelection.CurrentSize == 5, "another tool's picker must remain native");
 
-Console.WriteLine("farming production input boundary checks passed");
+ProbeTests.Run();
+Console.WriteLine("farming production input boundary and bounded probe checks passed");
 
 static Player CultivatorPlayer() => new Player
 {

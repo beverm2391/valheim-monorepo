@@ -61,6 +61,7 @@ public static class ZInput
     public static readonly HashSet<string> ButtonDown = new HashSet<string>();
     public static readonly HashSet<UnityEngine.KeyCode> Held = new HashSet<UnityEngine.KeyCode>();
     public static readonly HashSet<UnityEngine.KeyCode> KeyDown = new HashSet<UnityEngine.KeyCode>();
+    public static bool ThrowOnKeyDown;
 
     public static bool GetButtonDown(string name) => ButtonDown.Contains(name);
     public static void Update(float deltaTime)
@@ -79,7 +80,11 @@ public static class ZInput
             && number <= 8
             && ButtonDown.Contains($"Hotbar{number}");
     }
-    public static bool GetKeyDown(UnityEngine.KeyCode key) => KeyDown.Contains(key);
+    public static bool GetKeyDown(UnityEngine.KeyCode key)
+    {
+        if (ThrowOnKeyDown) throw new System.InvalidOperationException("probe input read failed");
+        return KeyDown.Contains(key);
+    }
 
     public static void ResetTransient()
     {
@@ -90,6 +95,12 @@ public static class ZInput
 
 namespace UnityEngine
 {
+    public static class Time
+    {
+        public static float realtimeSinceStartup;
+        public static int frameCount;
+    }
+
     public enum KeyCode
     {
         Alpha0 = 48,
@@ -142,7 +153,10 @@ namespace UnityEngine
 
     public static class Input
     {
-        public static bool GetKey(KeyCode key) => false;
+        public static readonly HashSet<KeyCode> Held = new();
+        public static readonly HashSet<KeyCode> KeyDown = new();
+        public static bool GetKey(KeyCode key) => Held.Contains(key) || KeyDown.Contains(key);
+        public static bool GetKeyDown(KeyCode key) => KeyDown.Contains(key);
     }
 }
 
@@ -206,12 +220,43 @@ namespace BenheimQoL.Infrastructure
     {
         internal static int Events;
         internal static string? Last;
+        internal static List<DiagnosticEvent> ProbeEvents = new();
+        internal static bool ThrowOnProbeEmit;
+
+        internal static void Emit(DiagnosticEvent value)
+        {
+            if (ThrowOnProbeEmit) throw new System.InvalidOperationException("diagnostic sink failed");
+            value.Prepare(System.DateTime.UtcNow, "test", "test");
+            ProbeEvents.Add(value);
+        }
 
         internal static void Event(string domain, string name, string fields)
         {
             Events++;
             Last = $"{domain}.{name} {fields}";
         }
+    }
+}
+
+namespace BenheimQoL.DeveloperDiagnostics
+{
+    internal enum DiagnosticProbeCleanupReason { Disabled, WorldExit, SessionReset, Failure }
+
+    // Probe behavior is exercised here; actual registry state transitions are
+    // covered by the separate developer-diagnostics-registry harness.
+    internal static class DeveloperDiagnosticsRuntime
+    {
+        internal static int DisableCalls;
+        internal static int Failures;
+
+        internal static void DisableEventProbe(string name)
+        {
+            DisableCalls++;
+            BenheimQoL.Farming.FarmingInputProbe.TrySetActive(false, out _);
+            BenheimQoL.Farming.FarmingInputProbe.Cleanup(DiagnosticProbeCleanupReason.Disabled);
+        }
+
+        internal static void ReportFailure(string lifecycle, string name, string reason) => Failures++;
     }
 }
 

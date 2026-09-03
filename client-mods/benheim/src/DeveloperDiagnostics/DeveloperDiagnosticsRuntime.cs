@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using BenheimQoL.EnemyTiers;
+using BenheimQoL.Farming;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.Interaction;
 using BenheimQoL.Spawning;
@@ -59,6 +60,24 @@ internal static partial class DeveloperDiagnosticsRuntime
             setActive,
             update,
             cleanup);
+    }
+
+    internal static void DisableEventProbe(string name)
+    {
+        // Bounded captures finish through the owner of effective state, so a
+        // timed-out probe cannot keep reporting "on" or restart on world entry.
+        if (Probes.TryGetValue(name, out RegisteredProbe? probe) &&
+            probe.Kind == DiagnosticProbeKind.Event)
+        {
+            probe.Override = ProbeSessionOverride.Off;
+            // Cleanup callbacks may also end a one-shot session after world
+            // exit or failure. Active is already false then; do not reenter
+            // cleanup merely to update the remaining session override.
+            if (probe.Active)
+            {
+                Deactivate(probe, "capture_cleanup", DiagnosticProbeCleanupReason.Disabled);
+            }
+        }
     }
 
     internal static void InitializeConsole()
@@ -172,6 +191,12 @@ internal static partial class DeveloperDiagnosticsRuntime
         }
 
         builtInsRegistered = true;
+        RegisterEventProbe(
+            FarmingInputProbe.Name,
+            shippedDefault: false,
+            FarmingInputProbe.TrySetActive,
+            FarmingInputProbe.Update,
+            FarmingInputProbe.Cleanup);
         RegisterProbe(
             "colliders",
             DiagnosticProbeKind.Visual,
