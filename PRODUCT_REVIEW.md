@@ -61,7 +61,11 @@ Installed on Ben's Mac: **0.1.83**.
   block collection normally.
 
 - **Farming and Cultivator grids:** Grid selection still fails in the installed
-  build. Pause selector testing until a corrected build is installed.
+  build.
+  After the diagnostic build is installed, try `Left Shift` plus an odd number
+  in the Cultivator picker. Without enabling a probe, logs must show the attempt,
+  any blocking condition, and the resulting size used by preview and placement.
+  Diagnostic coverage does not itself prove the selector is fixed.
   Planting stamina can still be tested: place one plant normally, then use
   `Left Shift` mass planting on an area containing valid and
   invalid cells. Each successful normal or grid-cell placement must cost 25%
@@ -85,6 +89,10 @@ Installed on Ben's Mac: **0.1.83**.
   - confirm that Benheim assigns each planted or naturally spawned bush a wait
     of 4,000 to 5,000 seconds before each yield, including the first yield of a
     planted bush;
+  - after the diagnostic build is installed, use default-on logs to follow one
+    bush's cycle start, chosen duration, actual transition to harvestable, and
+    harvest; distinguish a state seen on loading from a transition observed
+    while the bush was loaded;
   - confirm unrelated `Pickable` objects keep native timing;
   - use the Hammer to remove one player-planted Blueberry bush and one
     player-planted Cloudberry bush; confirm that each returns exactly five
@@ -98,6 +106,9 @@ Installed on Ben's Mac: **0.1.83**.
   accepted, but some tags wrap below the board. After the fix, check short and
   long tags on both sides, then rename one portal. The complete text must stay
   readable inside the board without changing its style or placement.
+  After the diagnostic build is installed, default-on logs must report fitting
+  on both faces when a label is created or changed, including overflow or
+  missing components. Ben still judges readability and appearance.
 - **Pine Finewood:** Destroy one native Pine log half. Confirm that it produces
   15 native item drops. Confirm that none is ordinary Wood and that the drops
   still include Core Wood. If a compatible peer is available, let a

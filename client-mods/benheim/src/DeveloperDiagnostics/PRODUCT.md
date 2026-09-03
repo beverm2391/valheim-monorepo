@@ -17,7 +17,17 @@ Developer Diagnostics distinguishes four kinds of evidence.
 
 Feature modules own typed events for important actions, decisions, state
 changes, results, and cleanup. Core events remain enabled whenever their
-feature runs. They do not record every frame or repeat unchanged state. The
+feature runs. Normal play must leave enough evidence to explain whether a
+relevant action was observed, why it was accepted or blocked, and what actually
+happened. Success-only events are insufficient when failures occur before
+those events. A configured value or requested action is not evidence that its
+effect occurred.
+
+This applies to every feature, including visible controls and presentation.
+Logs support Ben's visual and feel judgments; they do not replace them.
+Core events do not record every frame, unrelated input, or repeated unchanged
+state. Detailed inspection uses registered probes when core events cannot
+answer the question. The
 root [Benheim product](../../PRODUCT.md) owns their local and remote delivery,
 schema, identity, and privacy boundaries.
 

@@ -155,18 +155,22 @@ For a gameplay change:
    readiness. Source names, decompiled code, and mocks are not runtime proof.
 3. Preserve the observed contract in focused tests. Rerun the probe against the
    candidate build.
-4. Add diagnostics only when acceptance depends on a result the player cannot
-   reliably see or a hidden, ambiguous, or destructive invariant. Reuse
-   evidence that already answers the product question.
+4. Use [Developer Diagnostics](src/DeveloperDiagnostics/PRODUCT.md) for every
+   feature's runtime evidence. Record relevant attempts, blocking decisions,
+   state changes, and actual outcomes through the shared typed pipeline.
+   Verify the behavior itself. Confirm that the evidence explains what happened,
+   including why actions were rejected. Reuse sufficient existing events;
+   reserve verbose inspection for registered probes.
 5. Bump the visible version and install while Valheim is fully quit.
 6. Relaunch, reproduce, and record what the player tried.
 7. Query `[diag]` events. Read the server journal only for server-owned behavior.
 8. Fix observed failures and repeat until gameplay and evidence agree.
 
-Diagnostic events use `[diag][Feature] action key=value`. Log actions,
-important decisions, and results, not every frame. Keep normal BepInEx warnings
-and errors. Benheim also writes each event to
-`BepInEx/BenheimEvents.ndjson`. Use
+Use `Diagnostics.Emit(DiagnosticEvent)` for feature evidence. It writes readable
+`[diag]` output and local `BepInEx/BenheimEvents.ndjson`, then routes the typed
+event to configured remote diagnostics. `Diagnostics.Event(...)` writes only
+text and does not satisfy this contract. Keep normal BepInEx warnings and errors.
+Use
 `client-mods/benheim/scripts/query-events.py --help` to stream current or
 archived events, filter fields, or find starts without a terminal event.
 
