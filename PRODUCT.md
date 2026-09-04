@@ -67,12 +67,11 @@ Johnny, and Ozi. Its current implementation is only a local writer's-room lab.
 It is not part of Benheim, the deployed server stack, or the live acceptance
 queue.
 
-[Valheim Dev](tools/valheim-dev/PRODUCT.md) is an agent-only stdio MCP server
-for an explicit local, single-player Lab session. Codex can apply self-contained
-C# experiments, read their persistent results and selected evidence, and
-compare variants without creating a new Benheim package, installing the
-package, or relaunching Valheim between variants. It is not a player feature or
-part of the deployed server stack.
+[Valheim Dev](tools/valheim-dev/PRODUCT.md) is Codex's live workbench for an
+authorized local, single-player Lab session. Codex can inspect and describe the
+running game, apply managed live changes, watch or capture their effects, and
+replace or remove them without rebuilding or reinstalling Benheim between
+variants. It is not a player feature or part of the deployed server stack.
 
 ## Acceptance Shape
 
