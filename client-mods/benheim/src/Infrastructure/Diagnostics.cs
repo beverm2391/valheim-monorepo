@@ -16,6 +16,7 @@ internal static class Diagnostics
     private static string sessionId = string.Empty;
     private static string benheimVersion = string.Empty;
     private static bool writeFailureLogged;
+    private static Action<DiagnosticEvent>? valheimDevObserver;
 
     internal static void BeginSession(string bepinExRootPath, string version)
     {
@@ -47,6 +48,7 @@ internal static class Diagnostics
         {
             eventWriter?.Dispose();
             eventWriter = null;
+            valheimDevObserver = null;
         }
     }
 
@@ -58,6 +60,7 @@ internal static class Diagnostics
 
     internal static void Emit(DiagnosticEvent diagnosticEvent)
     {
+        Action<DiagnosticEvent>? observer;
         lock (Gate)
         {
             diagnosticEvent.Prepare(DateTime.UtcNow, sessionId, benheimVersion);
@@ -75,12 +78,36 @@ internal static class Diagnostics
                     LogWriteFailure(exception);
                 }
             }
+            observer = valheimDevObserver;
         }
 
         // Local readable and NDJSON emission above is always complete before
         // independently selected optional destinations observe the same whole
         // typed event. Destinations own transport, not event definition.
         OptionalDestinations.Route(diagnosticEvent);
+        if (observer != null)
+        {
+            try
+            {
+                observer(diagnosticEvent);
+            }
+            catch (Exception exception)
+            {
+                Plugin.Log.LogWarning(
+                    $"Benheim Lab evidence observation failed: {Flatten(exception.Message)}");
+            }
+        }
+    }
+
+    // Valheim Dev owns one temporary, non-persisting selection route during an
+    // authorized apply operation. It observes the same prepared typed event;
+    // it does not define another schema, log, or reusable watcher registry.
+    internal static void SetValheimDevObserver(Action<DiagnosticEvent>? observer)
+    {
+        lock (Gate)
+        {
+            valheimDevObserver = observer;
+        }
     }
 
     private static bool SelectEveryTypedEvent(DiagnosticEvent _) => true;

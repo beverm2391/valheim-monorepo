@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DefineConstants>VALHEIM_DEV_TESTS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="fixtures/**/*.cs" />
+    <Compile Include="../../src/ValheimDev/ValheimDevJson.cs" Link="ValheimDevJson.cs" />
+    <Compile Include="../../src/ValheimDev/ValheimDevProtocol.cs" Link="ValheimDevProtocol.cs" />
+    <Compile Include="../../src/ValheimDev/ValheimDevExecution.cs" Link="ValheimDevExecution.cs" />
+    <Compile Include="../../src/ValheimDev/ValheimDevRuntime.cs" Link="ValheimDevRuntime.cs" />
+    <Compile Include="../../src/ValheimDev/ValheimDevRuntime.Operation.cs" Link="ValheimDevRuntime.Operation.cs" />
+    <Compile Include="../../src/ValheimDev/ValheimDevRuntime.Transport.cs" Link="ValheimDevRuntime.Transport.cs" />
+  </ItemGroup>
+</Project>

@@ -113,6 +113,7 @@ internal static class LungeRuntime
             impulseZ);
         body.AddForce(impulse, ForceMode.VelocityChange);
         player.StartCoroutine(EmitAcceptedAfterPhysics(
+            player,
             body,
             state.OperationId,
             state.Weapon,
@@ -122,6 +123,7 @@ internal static class LungeRuntime
     }
 
     private static IEnumerator EmitAcceptedAfterPhysics(
+        Player player,
         Rigidbody body,
         string operationId,
         ItemDrop.ItemData weapon,
@@ -130,6 +132,7 @@ internal static class LungeRuntime
         Vector3 impulse)
     {
         yield return new WaitForFixedUpdate();
+        bool playerAlive = player != null && player;
         Vector3 after = body != null ? body.linearVelocity : before + impulse;
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "lunge_attempt_accepted")
@@ -144,7 +147,11 @@ internal static class LungeRuntime
                 .Number("impulse_z", impulse.z)
                 .Number("velocity_after_x", after.x)
                 .Number("velocity_after_y", after.y)
-                .Number("velocity_after_z", after.z));
+                .Number("velocity_after_z", after.z)
+                .Boolean("grounded_after_physics", playerAlive && player!.IsOnGround())
+                .Boolean("swimming_after_physics", playerAlive && player!.IsSwimming())
+                .Boolean("flying_after_physics", playerAlive && player!.IsFlying())
+                .Boolean("attached_after_physics", playerAlive && player!.IsAttached()));
     }
 
     private static string Validate(
