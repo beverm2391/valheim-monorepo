@@ -16,6 +16,14 @@ remain outside the repository. After Ben enters that world and starts the
 explicit local, single-player Lab session, Valheim Dev connects only to that
 session. Valheim Dev has no save-management authority or tool.
 
+After Ben enters the disposable test world, he runs `bh lab on` in Valheim's
+console. This grants Lab authorization for that world session. While
+authorization is active, Codex may apply repeated experiments without Ben's
+approval for each operation. Running `bh lab off`, leaving the world, or
+quitting Valheim revokes the authorization immediately. Authorization applies
+only to the current world session and never persists. Valheim Dev cannot enable
+Lab mode or grant authorization.
+
 The first agent interface must support these outcomes:
 
 - Confirm the connected Lab session and its Valheim and Benheim builds.
@@ -55,6 +63,10 @@ An experiment may provide cleanup, but Valheim Dev does not promise that
 arbitrary runtime code can undo its changes. Restarting Valheim clears runtime
 patches, callbacks, coroutines, static state, and loaded objects. Deleting and
 recreating the local test world and character resets persistent state.
+
+Valheim Dev has no tool or authority to launch, quit, or restart Valheim. If an
+experiment leaves Valheim in a state that requires a restart, Valheim Dev
+reports the `restart_required` status. Ben decides when to restart Valheim.
 
 ## Relationship To Developer Diagnostics
 
