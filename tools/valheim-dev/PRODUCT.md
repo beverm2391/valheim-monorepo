@@ -10,7 +10,10 @@ dashboard.
 
 ## One Live Experiment Loop
 
-Ben starts the Lab session in the repository's synthetic Lab world.
+Ben starts an explicit local, single-player Lab session with one disposable
+local test character and one new disposable local test world. Both remain
+outside the repository. Ben can delete and recreate them when a clean state
+matters.
 
 The first agent interface must support these outcomes:
 
@@ -39,24 +42,18 @@ only selected effects, Valheim Dev must say so. It must not imply that the
 record includes every effect that followed the operation.
 
 The agent can read the ledger during the Lab session and after Valheim exits.
-The record must contain enough detail to reproduce an experiment and explain a
-failure.
+The record must identify the exact experiment that ran and explain a failure.
 
 ## The Lab State Is Disposable
 
-The repository contains one synthetic Lab world and one synthetic Lab
-character. Ben can run both directly. To restore a clean state, close Valheim
-and restore the committed world and character saves from Git.
-
-An explicit local, single-player Lab session may run unrestricted experiment
-code. Valheim Dev may attach only to that session. Valheim Dev must never
-attach to an ordinary Benheim session, the shared production world, or a
-dedicated server.
+The first Lab session may run unrestricted experiment code. Valheim Dev may
+attach only to that session. Valheim Dev must never attach to an ordinary
+Benheim session, the shared production world, or a dedicated server.
 
 An experiment may provide cleanup, but Valheim Dev does not promise that
 arbitrary runtime code can undo its changes. Restarting Valheim clears runtime
-patches, callbacks, coroutines, static state, and loaded objects. Restoring the
-committed Lab saves resets persistent world and character state.
+patches, callbacks, coroutines, static state, and loaded objects. Deleting and
+recreating the local test world and character resets persistent state.
 
 ## Relationship To Developer Diagnostics
 

@@ -36,12 +36,8 @@ Project Lead, including evidence that supports or challenges the contract.
 
 Follow the safety rules in `AGENTS.md`.
 
-- Do not commit secrets, passwords, tokens, private IPs, personal or production
-  world files, personal or production character files, Steam IDs, local save
-  paths, or generated backup archives.
-- Commit synthetic world or character files only when the owning product
-  contract defines them as test fixtures and the files contain no personal
-  identity or play data.
+- Do not commit secrets, passwords, tokens, private IPs, world files, character
+  files, Steam IDs, local save paths, or generated backup archives.
 - Keep `server.env` non-secret. It may contain operator settings, private
   hostnames, IPs, and local paths, so it remains ignored.
 - Secrets enter generic scripts only through the process environment. The
