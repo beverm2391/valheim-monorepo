@@ -117,13 +117,25 @@ Valheim interface. It reuses native-style weapon selection, item presentation,
 resource rows, input behavior, and confirmation feedback rather than opening a
 separate Benheim window.
 
-The Affinity tab lists each eligible weapon item in the player's inventory and
-the affinities available for that exact item. Selecting Lunge for a Club shows
-that Club, Lunge's new behavior, its persistent bias, and the complete
-resource cost. For the first playable slice, the station requirement shows a
-level-1 Forge. The next material slot shows Lunge's current resource cost.
-Before applying Lunge to a Club that does not already have Lunge, the player
-must confirm that the resources will not be refunded. If
+The left panel uses the list layout from Valheim's native Craft tab. It shows
+each unlocked weapon-and-affinity combination once, regardless of whether the
+player currently carries a matching weapon or the required materials. A
+combination appears after the player discovers its weapon type and the
+materials required by its affinity. Test Affinity appears for every supported
+weapon type the player has discovered.
+
+Selecting a combination shows the affinity's behavior, persistent bias, and
+complete resource cost. It also shows the exact weapon that will receive the
+affinity. The player can apply the affinity only while carrying every required
+material and an eligible weapon of the required quality. If the player carries
+several matching weapons, the player can choose the exact weapon. Before
+confirmation, the Forge must clearly identify the selected weapon because
+affinity state belongs to that individual weapon.
+
+For the first playable slice, the station requirement shows a level-1 Forge.
+The next material slot shows Lunge's current resource cost. Before applying
+Lunge to a Club that does not already have Lunge, the player must confirm that
+the resources will not be refunded. If
 Lunge replaces a different affinity, the player must also confirm that the old
 affinity and all materials previously spent on it will be lost. The application
 then revalidates the exact Club and listed resources, consumes the cost once,
