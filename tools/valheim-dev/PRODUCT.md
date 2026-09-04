@@ -10,10 +10,11 @@ dashboard.
 
 ## One Live Experiment Loop
 
-Ben starts an explicit local, single-player Lab session with one disposable
-local test character and one new disposable local test world. Both remain
-outside the repository. Ben can delete and recreate them when a clean state
-matters.
+Ben alone creates, selects, deletes, restores, and resets one disposable local
+test character and one new disposable local test world through Valheim. Both
+remain outside the repository. After Ben enters that world and starts the
+explicit local, single-player Lab session, Valheim Dev connects only to that
+session. Valheim Dev has no save-management authority or tool.
 
 The first agent interface must support these outcomes:
 
