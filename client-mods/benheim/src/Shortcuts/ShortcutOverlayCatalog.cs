@@ -122,7 +122,7 @@ internal static partial class ShortcutOverlay
                     $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Snipe).MaterialAmount} Wood to bind Snipe to one specific max-quality base-game Huntsman Bow"),
                 new Entry(
                     "Test Affinity",
-                    "At a level-1 Forge, spend 1 Wood to confirm that you can apply an Affinity to a supported weapon of any native quality. Test Affinity adds no gameplay power"),
+                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Test).MaterialAmount} Wood to confirm that you can apply an Affinity to a supported weapon of any native quality. Test Affinity adds no gameplay power"),
                 new Entry(
                     "Automatic scope",
                     $"Drawing a Snipe bow smoothly gives {SnipeRules.OpticalZoom:0.#}x optical zoom by changing field of view. Soft edge darkening grows with the draw while the center stays clear. Both remain active with Bow Focus or Benheim FX off and clear almost instantly on release or cancel. Crosshair, camera position, and look sensitivity stay native. No toggle, circle mask, or range predictor"),

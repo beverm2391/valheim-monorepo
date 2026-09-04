@@ -25,9 +25,6 @@ internal sealed class AffinityApplicationResult
 
 internal static class AffinityApplication
 {
-    internal static int TestResourceAmount =>
-        AffinityPresentation.RequirementsFor(AffinityLoadResult.Test).MaterialAmount;
-
     internal static bool IsAtBaseGameForge(Player? player)
     {
         CraftingStation? station = player?.GetCurrentCraftingStation();
