@@ -29,6 +29,13 @@ to its native title, such as `Club · Lunge`. Its hover description preserves
 the native weapon description and appends a short Affinity section that
 explains the new behavior and persistent bias.
 
+The same subtle animation appears directly on every affinity-bearing weapon's
+sprite in the inventory and hotbar. It uses no corner badge and cannot obscure
+any native slot indicator, including the hotbar number, quality, stack count,
+durability, selection, or equipped state. The animation shows only that the
+weapon has an affinity. The weapon's title and hover description name the
+specific affinity.
+
 The MVP has these boundaries:
 
 - Each eligible weapon has one affinity slot.
