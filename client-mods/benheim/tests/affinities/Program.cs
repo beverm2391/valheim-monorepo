@@ -21,12 +21,14 @@ static int Count(string value, string fragment)
 Require(AffinityRules.ReadStoredValue(null) == AffinityLoadResult.None, "missing state must stay native");
 Require(AffinityRules.ReadStoredValue("v1:lunge") == AffinityLoadResult.Lunge, "versioned Lunge must load");
 Require(AffinityRules.ReadStoredValue("v2:lunge") == AffinityLoadResult.Unsupported, "unknown versions must stay dormant");
+Require(AffinityRules.ReadStoredValue("v1:test") == AffinityLoadResult.Test, "versioned Test Affinity must load");
 
-Require(AffinityRules.IsEligibleWeapon(true, 4, 4), "canonical max-quality Club must be eligible");
-Require(!AffinityRules.IsEligibleWeapon(false, 4, 4), "same-shaped noncanonical item must be rejected");
-Require(AffinityRules.IsEligibleWeapon(true, 3, 4), "upgradable native quality must be eligible for the playtest");
-Require(!AffinityRules.IsEligibleWeapon(true, 0, 4), "quality below the native range must be rejected");
-Require(!AffinityRules.IsEligibleWeapon(true, 5, 4), "quality above the native range must be rejected");
+Require(AffinityRules.IsEligibleWeapon(true, 4, 4, AffinityLoadResult.Lunge), "real Affinities require max quality");
+Require(!AffinityRules.IsEligibleWeapon(true, 3, 4, AffinityLoadResult.Lunge), "real Affinities reject lower quality");
+Require(AffinityRules.IsEligibleWeapon(true, 3, 4, AffinityLoadResult.Test), "Test Affinity accepts any native quality");
+Require(!AffinityRules.IsEligibleWeapon(false, 4, 4, AffinityLoadResult.Test), "same-shaped noncanonical items stay unsupported");
+Require(!AffinityRules.IsNativeWeapon(true, 0, 4), "quality below the native range must be rejected");
+Require(!AffinityRules.IsNativeWeapon(true, 5, 4), "quality above the native range must be rejected");
 
 Require(AffinityRules.CountConsumed(4, 3) == 1, "resource delta must capture one consumed item");
 Require(AffinityRules.CountConsumed(4, 4) == 0, "unchanged resources must report no consumption");
@@ -40,6 +42,12 @@ AffinityRequirementSpec lungeRequirement = AffinityPresentation.RequirementsFor(
 Require(lungeRequirement.StationNameToken == "$piece_forge", "Lunge must require the native Forge");
 Require(lungeRequirement.StationLevel == 1, "Lunge must require Forge level 1");
 Require(lungeRequirement.MaterialPrefab == "Wood" && lungeRequirement.MaterialAmount == 1, "Lunge must keep the temporary 1 Wood cost");
+AffinityRequirementSpec testRequirement = AffinityPresentation.RequirementsFor(AffinityLoadResult.Test);
+Require(testRequirement.MaterialPrefab == "Wood" && testRequirement.MaterialAmount == 1,
+    "Test Affinity must permanently cost 1 Wood");
+Require(AffinityPresentation.BehaviorDescription(AffinityLoadResult.Test, 10f, 3f)
+        == "Gameplay power: none. Test Affinity only confirms that you can apply an Affinity at the Forge.\nPersistent bias: none.",
+    "Test Affinity must explicitly have no gameplay power or bias");
 
 const string nativeTitle = "Club";
 const string nativeTooltip = "$item_club_description\n$item_weight: <color=orange>2.0</color>";
@@ -125,20 +133,39 @@ Require(AffinityPresentation.InventoryTooltip(snipeTooltip, AffinityLoadResult.S
 // Use the real state and runtime. The native boundary only supplies prefab
 // identity, current equipment, and projectile lifetime; it makes no affinity decisions.
 ObjectDB.instance = new ObjectDB();
-var huntsmanPrefab = new UnityEngine.GameObject("BowHuntsman");
-var clubPrefab = new UnityEngine.GameObject("Club");
+var huntsmanPrefab = new UnityEngine.GameObject("BowHuntsman")
+{
+    Drop = new ItemDrop { m_itemData = new ItemDrop.ItemData { m_shared = new ItemDrop.SharedData { m_name = "$item_bow_huntsman" } } },
+};
+var clubPrefab = new UnityEngine.GameObject("Club")
+{
+    Drop = new ItemDrop { m_itemData = new ItemDrop.ItemData { m_shared = new ItemDrop.SharedData { m_name = "$item_club" } } },
+};
 ObjectDB.instance.Prefabs.Add("BowHuntsman", huntsmanPrefab);
 ObjectDB.instance.Prefabs.Add("Club", clubPrefab);
-var bow = new ItemDrop.ItemData { m_dropPrefab = huntsmanPrefab };
+ObjectDB.instance.Prefabs.Add("Wood", new UnityEngine.GameObject("Wood")
+{
+    Drop = new ItemDrop { m_itemData = new ItemDrop.ItemData { m_shared = new ItemDrop.SharedData { m_name = "$item_wood" } } },
+});
+var bow = new ItemDrop.ItemData
+{
+    m_dropPrefab = huntsmanPrefab,
+    m_shared = new ItemDrop.SharedData { m_name = "$item_bow_huntsman" },
+};
 var otherBow = new ItemDrop.ItemData { m_dropPrefab = new UnityEngine.GameObject("BowFineWood") };
 var spoofedBow = new ItemDrop.ItemData { m_dropPrefab = new UnityEngine.GameObject("BowHuntsman") };
-var club = new ItemDrop.ItemData { m_dropPrefab = clubPrefab };
-Require(AffinityState.AvailableFor(bow) == AffinityLoadResult.Snipe, "max-quality canonical Huntsman must offer Snipe");
-Require(AffinityState.AvailableFor(club) == AffinityLoadResult.Lunge, "max-quality Club must still offer Lunge");
+var club = new ItemDrop.ItemData
+{
+    m_dropPrefab = clubPrefab,
+    m_shared = new ItemDrop.SharedData { m_name = "$item_club" },
+};
+Require(AffinityState.IsEligibleForAffinity(bow, AffinityLoadResult.Snipe), "max-quality canonical Huntsman must accept Snipe");
+Require(AffinityState.IsEligibleForAffinity(club, AffinityLoadResult.Lunge), "max-quality Club must accept Lunge");
 Require(!AffinityState.IsEligibleSnipeBow(otherBow) && !AffinityState.IsEligibleSnipeBow(spoofedBow),
     "another bow or same-named noncanonical prefab must never qualify");
 bow.m_quality = 3;
-Require(AffinityState.IsEligibleSnipeBow(bow), "upgradable Huntsman must be eligible for the playtest");
+Require(!AffinityState.IsEligibleSnipeBow(bow), "lower-quality Huntsman must not accept a real Affinity");
+Require(AffinityState.IsEligibleForAffinity(bow, AffinityLoadResult.Test), "lower-quality Huntsman must accept Test Affinity");
 bow.m_quality = 5;
 Require(!AffinityState.IsEligibleSnipeBow(bow), "above-max Huntsman must remain ineligible");
 bow.m_quality = 4;
@@ -149,40 +176,123 @@ Require(AffinityState.StoredValue(bow) == "v1:snipe" && AffinityState.IsSnipe(bo
 AffinityState.Write(spoofedBow, AffinityLoadResult.Snipe, "test", false);
 Require(!AffinityState.IsSnipe(spoofedBow), "stored Snipe alone must not activate on the wrong prefab");
 
+var discoveryPlayer = new Player();
+var unlocked = new System.Collections.Generic.List<AffinityCatalogEntry>();
+AffinityCatalog.GetUnlocked(discoveryPlayer, unlocked);
+Require(unlocked.Count == 0, "catalog must hide undiscovered weapon and material combinations");
+discoveryPlayer.KnownRecipes.Add("$item_club");
+discoveryPlayer.KnownMaterials.Add("$item_wood");
+AffinityCatalog.GetUnlocked(discoveryPlayer, unlocked);
+Require(unlocked.Count == 2
+    && unlocked[0].Affinity == AffinityLoadResult.Lunge
+    && unlocked[1].Affinity == AffinityLoadResult.Test,
+    "discovering Club and Wood must reveal Lunge and Test once without owning a Club");
+discoveryPlayer.KnownRecipes.Add("$item_bow_huntsman");
+AffinityCatalog.GetUnlocked(discoveryPlayer, unlocked);
+Require(unlocked.Count == 4, "each discovered supported weapon must reveal its real and Test entries once");
+var firstClub = new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 1 };
+var secondClub = new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 4 };
+discoveryPlayer.Inventory.Items.Add(firstClub);
+discoveryPlayer.Inventory.Items.Add(secondClub);
+var ownedClubs = new System.Collections.Generic.List<ItemDrop.ItemData>();
+AffinityCatalog.GetOwnedWeapons(discoveryPlayer, unlocked[0], ownedClubs);
+Require(ownedClubs.Count == 2
+    && ReferenceEquals(ownedClubs[0], firstClub)
+    && ReferenceEquals(ownedClubs[1], secondClub),
+    "catalog selection must preserve every exact owned weapon reference in inventory order");
+
 // Exercise the shared application path used by both Forge and debug, with
 // native boundaries stubbed and the actual eligibility/state/cost code linked.
-ObjectDB.instance.Prefabs.Add("Wood", new UnityEngine.GameObject("Wood")
-{
-    Drop = new ItemDrop { m_itemData = new ItemDrop.ItemData { m_shared = new ItemDrop.SharedData { m_name = "$item_wood" } } },
-});
 var applicant = new Player { Station = new CraftingStation() };
 Player.m_localPlayer = applicant;
 foreach (var pair in new[] { (clubPrefab, AffinityLoadResult.Lunge), (huntsmanPrefab, AffinityLoadResult.Snipe) })
 {
     for (int quality = 1; quality <= 4; quality++)
     {
-        foreach (bool forge in new[] { true, false })
+        var forgeTarget = new ItemDrop.ItemData { m_dropPrefab = pair.Item1, m_quality = quality };
+        applicant.Inventory.Items.Add(forgeTarget);
+        applicant.Inventory.Wood = 2;
+        var forgeResult = AffinityApplication.Apply(
+            applicant, forgeTarget, pair.Item2, true, true, "test");
+        if (quality < 4)
         {
-            var target = new ItemDrop.ItemData { m_dropPrefab = pair.Item1, m_quality = quality };
-            applicant.Inventory.Items.Add(target);
-            applicant.Inventory.Wood = 2;
-            applicant.Weapon = target;
-            var result = AffinityApplication.Apply(applicant, target, pair.Item2, forge, forge, "test");
-            Require(result.Applied, $"{pair.Item2} application at quality {quality}, forge={forge}");
-            Require(applicant.Inventory.Wood == (forge ? 1 : 2), "Forge spends one Wood; debug spends none");
-            Require(target.m_quality == quality, "application preserves native quality");
-            Require(AffinityState.AvailableFor(target) == pair.Item2, "Forge still offers the exact native weapon");
-            if (pair.Item2 == AffinityLoadResult.Lunge)
-                Require(AffinityState.IsLunge(target), "lower-quality Lunge must be active");
-            else
-                Require(SnipeRuntime.ClampDrawPercentage(1f, applicant) == 0.8f, "lower-quality Snipe must change draw behavior");
+            Require(forgeResult.Reason == "maximum_quality_required",
+                $"normal {pair.Item2} application must reject quality {quality}");
+            Require(applicant.Inventory.Wood == 2, "max-quality rejection must not charge");
+        }
+        else
+        {
+            Require(forgeResult.Applied, $"normal {pair.Item2} application must accept max quality");
+            Require(applicant.Inventory.Wood == 1, "normal application spends the fixed 1 Wood cost");
             int calls = applicant.Inventory.RemoveCalls;
-            Require(AffinityApplication.Apply(applicant, target, pair.Item2, forge, forge, "test").Reason == "affinity_already_installed",
-                "same-affinity application must be rejected");
+            Require(AffinityApplication.Apply(applicant, forgeTarget, pair.Item2, true, true, "test").Reason
+                    == "affinity_already_installed",
+                "normal same-affinity application must be rejected");
             Require(applicant.Inventory.RemoveCalls == calls, "same-affinity rejection must not charge");
         }
+
+        var debugTarget = new ItemDrop.ItemData { m_dropPrefab = pair.Item1, m_quality = quality };
+        applicant.Inventory.Items.Add(debugTarget);
+        applicant.Inventory.Wood = 2;
+        var debugResult = AffinityApplication.Apply(
+            applicant,
+            debugTarget,
+            pair.Item2,
+            requireForge: false,
+            consumeResources: false,
+            source: "test",
+            developerBypass: true);
+        Require(debugResult.Applied, $"debug apply must bypass max quality for {pair.Item2} at quality {quality}");
+        Require(applicant.Inventory.Wood == 2, "debug apply must not spend resources");
+        Require(
+            pair.Item2 == AffinityLoadResult.Lunge
+                ? AffinityState.IsLunge(debugTarget)
+                : AffinityState.IsSnipe(debugTarget),
+            "a debug-applied real Affinity must activate on every supported native quality");
+        Require(AffinityApplication.Apply(
+                applicant,
+                debugTarget,
+                pair.Item2,
+                requireForge: false,
+                consumeResources: false,
+                source: "test",
+                developerBypass: true).Applied,
+            "debug apply must bypass replacement restrictions");
     }
 }
+
+foreach (UnityEngine.GameObject prefab in new[] { clubPrefab, huntsmanPrefab })
+{
+    for (int quality = 1; quality <= 4; quality++)
+    {
+        var target = new ItemDrop.ItemData { m_dropPrefab = prefab, m_quality = quality };
+        applicant.Inventory.Items.Add(target);
+        applicant.Inventory.Wood = 2;
+        AffinityApplicationResult result = AffinityApplication.Apply(
+            applicant, target, AffinityLoadResult.Test, true, true, "test");
+        Require(result.Applied && applicant.Inventory.Wood == 1,
+            $"Test Affinity must use the paid Forge flow at native quality {quality}");
+        Require(AffinityState.Read(target) == AffinityLoadResult.Test
+            && !AffinityState.IsLunge(target)
+            && !AffinityState.IsSnipe(target),
+            "Test Affinity must persist without activating Lunge or Snipe");
+        int calls = applicant.Inventory.RemoveCalls;
+        Require(AffinityApplication.Apply(applicant, target, AffinityLoadResult.Test, true, true, "test").Reason
+                == "affinity_already_installed",
+            "Test Affinity must reject normal reapplication");
+        Require(applicant.Inventory.RemoveCalls == calls, "Test Affinity reapplication must not charge");
+    }
+}
+
+var replacement = new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 4 };
+applicant.Inventory.Items.Add(replacement);
+applicant.Inventory.Wood = 3;
+Require(AffinityApplication.Apply(applicant, replacement, AffinityLoadResult.Test, true, true, "test").Applied,
+    "Test Affinity must apply before replacement");
+AffinityApplicationResult replacementResult = AffinityApplication.Apply(
+    applicant, replacement, AffinityLoadResult.Lunge, true, true, "test");
+Require(replacementResult.Applied && replacementResult.Replacing && applicant.Inventory.Wood == 1,
+    "paid real-Affinity replacement must consume the new fixed cost and replace Test Affinity");
 foreach (var target in new[] {
     new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 0 },
     new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 5 },
@@ -190,22 +300,21 @@ foreach (var target in new[] {
     otherBow, spoofedBow })
 {
     applicant.Inventory.Items.Add(target);
-    foreach (bool forge in new[] { true, false })
-    foreach (var affinity in new[] { AffinityLoadResult.Lunge, AffinityLoadResult.Snipe })
-        Require(AffinityApplication.Apply(applicant, target, affinity, forge, forge, "test").Reason == "ineligible_item",
+    foreach (var affinity in new[] { AffinityLoadResult.Lunge, AffinityLoadResult.Snipe, AffinityLoadResult.Test })
+        Require(AffinityApplication.Apply(applicant, target, affinity, true, true, "test").Reason == "ineligible_item",
             "unsupported prefab and non-native quality must fail both application paths");
     AffinityState.Write(target, AffinityLoadResult.Lunge, "test", false);
     Require(!AffinityState.IsLunge(target), "stored Lunge must not activate on an unsupported item");
 }
-var unpaid = new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 1 };
+var unpaid = new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 4 };
 applicant.Inventory.Items.Add(unpaid);
 applicant.Station = null;
 Require(AffinityApplication.Apply(applicant, unpaid, AffinityLoadResult.Lunge, true, true, "test").Reason == "not_at_base_game_forge",
-    "lower quality must not bypass the Forge");
+    "max quality must not bypass the Forge");
 applicant.Station = new CraftingStation();
 applicant.Inventory.Wood = 0;
 Require(AffinityApplication.Apply(applicant, unpaid, AffinityLoadResult.Lunge, true, true, "test").Reason == "missing_resources",
-    "lower quality must not bypass resource cost");
+    "max quality must not bypass resource cost");
 
 var local = new Player { Weapon = bow };
 Player.m_localPlayer = local;

@@ -53,9 +53,13 @@ internal sealed class Player : Humanoid
     internal ItemDrop.ItemData? Weapon;
     internal ItemDrop.ItemData? GetCurrentWeapon() => Weapon;
     internal readonly Inventory Inventory = new();
+    internal readonly HashSet<string> KnownRecipes = new();
+    internal readonly HashSet<string> KnownMaterials = new();
     internal CraftingStation? Station;
     internal Inventory GetInventory() => Inventory;
     internal CraftingStation? GetCurrentCraftingStation() => Station;
+    internal bool IsRecipeKnown(string name) => KnownRecipes.Contains(name);
+    internal bool IsKnownMaterial(string name) => KnownMaterials.Contains(name);
 }
 internal sealed class Projectile { }
 
@@ -97,6 +101,7 @@ internal sealed class Inventory
     internal int RemoveCalls;
     internal Action? m_onChanged = null;
     internal bool ContainsItem(ItemDrop.ItemData item) => Items.Contains(item);
+    internal List<ItemDrop.ItemData> GetAllItems() => Items;
     internal int CountItems(string name) => name == "$item_wood" ? Wood : 0;
     internal void RemoveItem(string name, int amount)
     {

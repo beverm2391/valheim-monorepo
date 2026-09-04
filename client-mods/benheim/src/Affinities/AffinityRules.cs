@@ -9,14 +9,23 @@ internal static class AffinityRules
         if (string.IsNullOrEmpty(value)) return AffinityLoadResult.None;
         if (string.Equals(value, AffinityState.LungeValue, StringComparison.Ordinal)) return AffinityLoadResult.Lunge;
         if (string.Equals(value, AffinityState.SnipeValue, StringComparison.Ordinal)) return AffinityLoadResult.Snipe;
+        if (string.Equals(value, AffinityState.TestValue, StringComparison.Ordinal)) return AffinityLoadResult.Test;
         return AffinityLoadResult.Unsupported;
     }
 
-    internal static bool IsEligibleWeapon(bool canonicalPrefab, int quality, int maximumQuality)
+    internal static bool IsNativeWeapon(bool canonicalPrefab, int quality, int maximumQuality)
     {
-        // Temporary playtest exception: native upgrades may erase the affinity.
-        // Keep the canonical weapon boundary and reject non-native quality values.
         return canonicalPrefab && quality >= 1 && quality <= maximumQuality;
+    }
+
+    internal static bool IsEligibleWeapon(
+        bool canonicalPrefab,
+        int quality,
+        int maximumQuality,
+        AffinityLoadResult affinity)
+    {
+        if (!IsNativeWeapon(canonicalPrefab, quality, maximumQuality)) return false;
+        return affinity == AffinityLoadResult.Test || quality == maximumQuality;
     }
 
     internal static int CountConsumed(int before, int after)

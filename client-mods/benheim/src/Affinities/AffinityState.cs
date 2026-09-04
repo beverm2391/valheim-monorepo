@@ -10,6 +10,7 @@ internal enum AffinityLoadResult
     None,
     Lunge,
     Snipe,
+    Test,
     Unsupported,
 }
 
@@ -18,36 +19,53 @@ internal static class AffinityState
     internal const string CustomDataKey = "com.benheim.qol:affinity";
     internal const string LungeValue = "v1:lunge";
     internal const string SnipeValue = "v1:snipe";
+    internal const string TestValue = "v1:test";
     internal const string ClubPrefab = "Club";
     internal const string SnipeBowPrefab = "BowHuntsman";
 
     internal static bool IsEligibleClub(ItemDrop.ItemData? item)
     {
-        return IsEligiblePrefab(item, ClubPrefab);
+        return IsEligibleFor(item, ClubPrefab, AffinityLoadResult.Lunge);
     }
 
     internal static bool IsEligibleSnipeBow(ItemDrop.ItemData? item)
     {
-        return IsEligiblePrefab(item, SnipeBowPrefab);
+        return IsEligibleFor(item, SnipeBowPrefab, AffinityLoadResult.Snipe);
     }
 
     internal static bool IsLunge(ItemDrop.ItemData? item)
     {
-        return IsEligibleClub(item) && Read(item) == AffinityLoadResult.Lunge;
+        return IsSupportedWeapon(item, ClubPrefab) && Read(item) == AffinityLoadResult.Lunge;
     }
 
     internal static bool IsSnipe(ItemDrop.ItemData? item)
     {
-        return IsEligibleSnipeBow(item) && Read(item) == AffinityLoadResult.Snipe;
+        return IsSupportedWeapon(item, SnipeBowPrefab) && Read(item) == AffinityLoadResult.Snipe;
     }
 
-    // Each supported weapon has one candidate affinity in this slice. Keep
-    // the exact prefab boundary here so the Forge and application agree.
-    internal static AffinityLoadResult AvailableFor(ItemDrop.ItemData? item)
+    internal static bool IsEligibleFor(ItemDrop.ItemData? item, AffinityCatalogEntry entry)
     {
-        if (IsEligibleClub(item)) return AffinityLoadResult.Lunge;
-        if (IsEligibleSnipeBow(item)) return AffinityLoadResult.Snipe;
-        return AffinityLoadResult.None;
+        return IsEligibleFor(item, entry.WeaponPrefab, entry.Affinity);
+    }
+
+    internal static bool SupportsAffinity(ItemDrop.ItemData? item, AffinityLoadResult affinity)
+    {
+        if (affinity == AffinityLoadResult.Test)
+        {
+            return IsSupportedWeapon(item, ClubPrefab)
+                || IsSupportedWeapon(item, SnipeBowPrefab);
+        }
+        if (affinity == AffinityLoadResult.Lunge) return IsSupportedWeapon(item, ClubPrefab);
+        if (affinity == AffinityLoadResult.Snipe) return IsSupportedWeapon(item, SnipeBowPrefab);
+        return false;
+    }
+
+    internal static bool IsEligibleForAffinity(ItemDrop.ItemData? item, AffinityLoadResult affinity)
+    {
+        if (affinity == AffinityLoadResult.Test) return SupportsAffinity(item, affinity);
+        if (affinity == AffinityLoadResult.Lunge) return IsEligibleClub(item);
+        if (affinity == AffinityLoadResult.Snipe) return IsEligibleSnipeBow(item);
+        return false;
     }
 
     internal static bool IsCanonicalPrefab(ItemDrop.ItemData? item, string prefabName)
@@ -58,13 +76,26 @@ internal static class AffinityState
             && ReferenceEquals(item.m_dropPrefab, canonicalPrefab);
     }
 
-    private static bool IsEligiblePrefab(ItemDrop.ItemData? item, string prefabName)
+    internal static bool IsSupportedWeapon(ItemDrop.ItemData? item, string prefabName)
+    {
+        return item != null
+            && AffinityRules.IsNativeWeapon(
+                IsCanonicalPrefab(item, prefabName),
+                item.m_quality,
+                item.m_shared.m_maxQuality);
+    }
+
+    private static bool IsEligibleFor(
+        ItemDrop.ItemData? item,
+        string prefabName,
+        AffinityLoadResult affinity)
     {
         return item != null
             && AffinityRules.IsEligibleWeapon(
                 IsCanonicalPrefab(item, prefabName),
                 item.m_quality,
-                item.m_shared.m_maxQuality);
+                item.m_shared.m_maxQuality,
+                affinity);
     }
 
     internal static AffinityLoadResult Read(ItemDrop.ItemData? item)
@@ -99,6 +130,7 @@ internal static class AffinityState
         {
             AffinityLoadResult.Lunge => LungeValue,
             AffinityLoadResult.Snipe => SnipeValue,
+            AffinityLoadResult.Test => TestValue,
             _ => throw new ArgumentOutOfRangeException(nameof(affinity)),
         };
         item.m_customData ??= new Dictionary<string, string>();

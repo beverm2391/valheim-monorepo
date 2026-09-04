@@ -113,13 +113,16 @@ internal static partial class ShortcutOverlay
             {
                 new Entry(
                     "Club + Lunge",
-                    $"At a level-1 Forge, spend {AffinityApplication.TestResourceAmount} Wood to bind Lunge to one exact base-game Club at any native quality for this playtest"),
+                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Lunge).MaterialAmount} Wood to bind Lunge to one specific max-quality base-game Club"),
                 new Entry(
                     "Airborne swing",
                     $"A primary swing while airborne adds {LungeRuntime.DefaultForce:0.#} m/s forward and raises vertical velocity to at least +{LungeRuntime.MinimumVerticalVelocity:0.#} m/s; grounded Club swings stay native"),
                 new Entry(
                     "Huntsman Bow + Snipe",
-                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Snipe).MaterialAmount} Wood to bind Snipe to one exact base-game Huntsman Bow at any native quality for this playtest"),
+                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Snipe).MaterialAmount} Wood to bind Snipe to one specific max-quality base-game Huntsman Bow"),
+                new Entry(
+                    "Test Affinity",
+                    "At a level-1 Forge, spend 1 Wood to confirm that you can apply an Affinity to a supported weapon of any native quality. Test Affinity adds no gameplay power"),
                 new Entry(
                     "Automatic scope",
                     $"Drawing a Snipe bow smoothly gives {SnipeRules.OpticalZoom:0.#}x optical zoom by changing field of view. Soft edge darkening grows with the draw while the center stays clear. Both remain active with Bow Focus or Benheim FX off and clear almost instantly on release or cancel. Crosshair, camera position, and look sensitivity stay native. No toggle, circle mask, or range predictor"),
@@ -130,7 +133,8 @@ internal static partial class ShortcutOverlay
                     "Snipe headshots",
                     $"Total multiplier is ×{SnipeRules.NearMultiplier:0.##} through {SnipeRules.NearDistanceMeters:0.#} m, rising linearly to ×{SnipeRules.CapMultiplier:0.##} at {SnipeRules.CapDistanceMeters:0.#} m and beyond (×{(SnipeRules.NearMultiplier + SnipeRules.CapMultiplier) / 2f:0.##} at {(SnipeRules.NearDistanceMeters + SnipeRules.CapDistanceMeters) / 2f:0.#} m). This replaces the ordinary headshot multiplier. Full draw is not required; fired arrows keep Snipe after switching weapons. Body shots, native WeakSpots, and ammunition effects stay native"),
             },
-            "Affinities stay with the exact item through saves, transfers, and drops, and appear in its inventory title and hover text. They cannot be toggled off or removed in the field. Benheim removal leaves them dormant; reinstalling restores them. Applying or replacing an Affinity requires confirmation and a nonrefundable cost; replacement destroys the old Affinity and its prior investment without a refund. The already-installed Affinity cannot be applied again. The 1 Wood recipes and any-native-quality eligibility are temporary playtest rules with no boss unlock. Native upgrades may erase the affinity; apply it again afterward."),
+            "Each Affinity stays with its exact item through saves, transfers, and drops. It appears in that item's inventory title and hover text. Every Affinity-bearing weapon shows the same subtle pulse on its sprite in the inventory and hotbar. Native slot indicators stay unchanged. You cannot toggle an Affinity off or remove it in the field. Uninstalling Benheim makes Affinities dormant, and reinstalling Benheim restores them.\n\n" +
+                "Applying or replacing an Affinity requires confirmation and a nonrefundable cost. Replacing an Affinity destroys the old one and all materials previously spent on it. You cannot apply an Affinity that the item already has. The current test costs are 1 Wood each. Affinities have no boss unlock. If a native upgrade erases an Affinity, apply it again afterward."),
         new(
             "Combat",
             new Color(1f, 0.48f, 0.54f, 1f),

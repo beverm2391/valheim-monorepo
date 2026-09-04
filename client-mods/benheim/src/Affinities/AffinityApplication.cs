@@ -26,7 +26,7 @@ internal sealed class AffinityApplicationResult
 internal static class AffinityApplication
 {
     internal static int TestResourceAmount =>
-        AffinityPresentation.RequirementsFor(AffinityLoadResult.Lunge).MaterialAmount;
+        AffinityPresentation.RequirementsFor(AffinityLoadResult.Test).MaterialAmount;
 
     internal static bool IsAtBaseGameForge(Player? player)
     {
@@ -44,9 +44,16 @@ internal static class AffinityApplication
         AffinityLoadResult selected,
         bool requireForge,
         bool consumeResources,
-        string source)
+        string source,
+        bool developerBypass = false)
     {
-        string validation = Validate(player, target, selected, requireForge, consumeResources);
+        string validation = Validate(
+            player,
+            target,
+            selected,
+            requireForge,
+            consumeResources,
+            developerBypass);
         bool valid = string.Equals(validation, "valid", StringComparison.Ordinal);
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "affinity_application_validation")
@@ -56,6 +63,7 @@ internal static class AffinityApplication
                 .String("reason", validation)
                 .Boolean("forge_required", requireForge)
                 .Boolean("resource_cost_required", consumeResources)
+                .Boolean("developer_bypass", developerBypass)
                 .String("item_prefab", AffinityState.ItemPrefab(target)));
         if (!valid || player == null || target == null)
         {
@@ -149,15 +157,25 @@ internal static class AffinityApplication
         ItemDrop.ItemData? target,
         AffinityLoadResult selected,
         bool requireForge,
-        bool consumeResources)
+        bool consumeResources,
+        bool developerBypass)
     {
         if (player == null) return "no_local_player";
         if (target == null) return "no_item";
         Inventory inventory = player.GetInventory();
         if (!inventory.ContainsItem(target)) return "item_moved";
-        if (selected != AffinityLoadResult.Lunge && selected != AffinityLoadResult.Snipe) return "unsupported_affinity";
-        if (AffinityState.AvailableFor(target) != selected) return "ineligible_item";
-        if (AffinityRules.IsSameAffinity(AffinityState.Read(target), selected))
+        if (selected != AffinityLoadResult.Lunge
+            && selected != AffinityLoadResult.Snipe
+            && selected != AffinityLoadResult.Test)
+        {
+            return "unsupported_affinity";
+        }
+        if (!AffinityState.SupportsAffinity(target, selected)) return "ineligible_item";
+        if (!developerBypass && !AffinityState.IsEligibleForAffinity(target, selected))
+        {
+            return "maximum_quality_required";
+        }
+        if (!developerBypass && AffinityRules.IsSameAffinity(AffinityState.Read(target), selected))
         {
             return "affinity_already_installed";
         }

@@ -30,12 +30,15 @@ internal static class AffinityPresentation
     {
         AffinityLoadResult.Lunge => "Lunge",
         AffinityLoadResult.Snipe => "Snipe",
+        AffinityLoadResult.Test => "Test Affinity",
         _ => string.Empty,
     };
 
     internal static AffinityRequirementSpec RequirementsFor(AffinityLoadResult affinity)
     {
-        if (affinity != AffinityLoadResult.Lunge && affinity != AffinityLoadResult.Snipe)
+        if (affinity != AffinityLoadResult.Lunge
+            && affinity != AffinityLoadResult.Snipe
+            && affinity != AffinityLoadResult.Test)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(affinity),
@@ -98,6 +101,9 @@ internal static class AffinityPresentation
                 + $"Total headshot damage is {SnipeRules.NearMultiplier:0.##}x through {SnipeRules.NearDistanceMeters:0.#} m, rising linearly to {SnipeRules.CapMultiplier:0.##}x at {SnipeRules.CapDistanceMeters:0.#} m and beyond "
                 + $"({(SnipeRules.NearMultiplier + SnipeRules.CapMultiplier) / 2f:0.##}x at {(SnipeRules.NearDistanceMeters + SnipeRules.CapDistanceMeters) / 2f:0.#} m). "
                 + "This replaces the ordinary headshot multiplier. Full draw is not required, and fired arrows keep Snipe after switching weapons. Body shots, native WeakSpots, and ammunition effects stay unchanged.",
+            AffinityLoadResult.Test =>
+                "Gameplay power: none. Test Affinity only confirms that you can apply an Affinity at the Forge.\n"
+                + "Persistent bias: none.",
             _ => string.Empty,
         };
     }

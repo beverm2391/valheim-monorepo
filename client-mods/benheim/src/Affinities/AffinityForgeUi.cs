@@ -10,10 +10,16 @@ namespace BenheimQoL.Affinities;
 internal sealed partial class AffinityForgeUi : MonoBehaviour
 {
     private readonly List<GameObject> rows = new();
-    private readonly List<ItemDrop.ItemData> items = new();
+    private readonly List<AffinityCatalogEntry> entries = new();
+    private readonly List<ItemDrop.ItemData> ownedWeapons = new();
     private InventoryGui gui = null!;
     private Button affinityTab = null!;
-    private int selectedIndex;
+    private GameObject weaponSelector = null!;
+    private Button previousWeapon = null!;
+    private Button nextWeapon = null!;
+    private TMP_Text weaponIndex = null!;
+    private int selectedEntryIndex;
+    private int selectedWeaponIndex;
     private bool active;
     private bool restoreCraftTab = true;
     private float restoreScrollValue = 1f;
@@ -76,6 +82,7 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         if (!active) return;
         active = false;
         ClearRows();
+        weaponSelector.SetActive(false);
         affinityTab.interactable = true;
         gui.m_tabCraft.interactable = !restoreCraftTab;
         gui.m_tabUpgrade.interactable = restoreCraftTab;
@@ -94,50 +101,36 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
     {
         if (!active) return;
 
-        ItemDrop.ItemData? selected = selectedIndex >= 0 && selectedIndex < items.Count
-            ? items[selectedIndex]
-            : null;
+        AffinityCatalogEntry? previousEntry = SelectedEntry();
+        ItemDrop.ItemData? previousWeapon = SelectedWeapon();
         HideNativeRows();
         ClearRows();
-        items.Clear();
+        entries.Clear();
 
         Player? player = Player.m_localPlayer;
-        if (player != null)
+        AffinityCatalog.GetUnlocked(player, entries);
+        selectedEntryIndex = 0;
+        if (previousEntry.HasValue)
         {
-            List<ItemDrop.ItemData> inventoryItems = player.GetInventory().GetAllItems();
-            for (int index = 0; index < inventoryItems.Count; index++)
+            for (int index = 0; index < entries.Count; index++)
             {
-                ItemDrop.ItemData item = inventoryItems[index];
-                bool canonical = AffinityState.IsCanonicalPrefab(item, AffinityState.ClubPrefab)
-                    || AffinityState.IsCanonicalPrefab(item, AffinityState.SnipeBowPrefab);
-                if (!canonical) continue;
-                AffinityLoadResult available = AffinityState.AvailableFor(item);
-                bool eligible = available != AffinityLoadResult.None;
-                AffinityDiagnostics.Emit(
-                    DiagnosticEvent.Create("Affinity", "affinity_eligibility")
-                        .String("source", "forge_menu")
-                        .String("affinity", available.ToString().ToLowerInvariant())
-                        .String("item_prefab", AffinityState.ItemPrefab(item))
-                        .Boolean("eligible", eligible)
-                        .Integer("quality", item.m_quality)
-                        .Integer("max_quality", item.m_shared.m_maxQuality));
-                if (eligible) items.Add(item);
+                if (!entries[index].Matches(previousEntry.Value)) continue;
+                selectedEntryIndex = index;
+                break;
             }
         }
-
-        selectedIndex = selected != null ? items.IndexOf(selected) : 0;
-        if (selectedIndex < 0) selectedIndex = 0;
-        for (int index = 0; index < items.Count; index++)
+        for (int index = 0; index < entries.Count; index++)
         {
-            AddRow(index, items[index]);
+            AddRow(index, entries[index], player);
         }
-        float height = Mathf.Max(gui.m_recipeListRoot.rect.height, items.Count * gui.m_recipeListSpace);
+        float height = Mathf.Max(gui.m_recipeListRoot.rect.height, entries.Count * gui.m_recipeListSpace);
         gui.m_recipeListRoot.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
         gui.m_recipeListScroll.value = 1f;
+        RefreshOwnedWeapons(previousWeapon);
         Render();
         if (focusSelection && rows.Count > 0)
         {
-            gui.m_recipeEnsureVisible.CenterOnItem(rows[selectedIndex].transform as RectTransform);
+            gui.m_recipeEnsureVisible.CenterOnItem(rows[selectedEntryIndex].transform as RectTransform);
         }
     }
 
@@ -147,41 +140,52 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         for (int index = 0; index < rows.Count; index++)
         {
             Transform? selection = rows[index].transform.Find("selected");
-            if (selection != null) selection.gameObject.SetActive(index == selectedIndex);
+            if (selection != null) selection.gameObject.SetActive(index == selectedEntryIndex);
         }
 
         Player? player = Player.m_localPlayer;
-        ItemDrop.ItemData? item = SelectedItem();
-        AffinityLoadResult selectedAffinity = AffinityState.AvailableFor(item);
-        if (player == null || item == null || selectedAffinity == AffinityLoadResult.None)
+        AffinityCatalogEntry? selectedEntry = SelectedEntry();
+        if (player == null || !selectedEntry.HasValue)
         {
             gui.m_recipeIcon.enabled = false;
             gui.m_recipeName.enabled = true;
-            gui.m_recipeName.text = "No eligible weapons";
+            gui.m_recipeName.text = "No unlocked Affinities";
             gui.m_recipeDecription.enabled = true;
             gui.m_recipeDecription.text =
-                "Playtest: use a base-game Club for Lunge or Huntsman Bow for Snipe at any native quality.";
+                "Discover a supported weapon recipe and the materials required by an Affinity to reveal that Affinity here.";
             gui.m_itemCraftType.gameObject.SetActive(false);
+            weaponSelector.SetActive(false);
             gui.m_craftButton.interactable = false;
             HideRequirements();
             return;
         }
 
+        AffinityCatalogEntry entry = selectedEntry.Value;
+        AffinityLoadResult selectedAffinity = entry.Affinity;
+        ItemDrop? weaponDrop = AffinityCatalog.WeaponDrop(entry);
+        ItemDrop.ItemData? item = SelectedWeapon();
         AffinityLoadResult existing = AffinityState.Read(item);
         string affinityName = AffinityPresentation.NameFor(selectedAffinity);
         gui.m_recipeIcon.enabled = true;
-        gui.m_recipeIcon.sprite = item.GetIcon();
+        gui.m_recipeIcon.sprite = weaponDrop?.m_itemData.GetIcon();
         gui.m_recipeName.enabled = true;
-        gui.m_recipeName.text = $"{Localize(item.m_shared.m_name)} · {affinityName}";
+        gui.m_recipeName.text = $"{WeaponName(entry)} · {affinityName}";
         gui.m_recipeDecription.enabled = true;
         gui.m_recipeDecription.text =
             AffinityPresentation.BehaviorDescription(
                 selectedAffinity, LungeRuntime.Force, LungeRuntime.MinimumVerticalVelocity) +
-            "\n\nTEMPORARY TEST COST: 1 Wood. This is not final balance.\n\n" +
+            (selectedAffinity == AffinityLoadResult.Test
+                ? "\n\nCost: 1 Wood.\n\n"
+                : "\n\nCurrent test cost: 1 Wood. The final cost is not set.\n\n") +
             "The Affinity stays with this item. Replacement destroys the old Affinity and all prior investment. No refund.";
         gui.m_itemCraftType.gameObject.SetActive(true);
-        gui.m_itemCraftType.text =
-            $"Exact item: quality {item.m_quality}, slot {item.m_gridPos.x + 1},{item.m_gridPos.y + 1}";
+        gui.m_itemCraftType.text = ExactWeaponDescription(entry, item);
+        weaponSelector.SetActive(ownedWeapons.Count > 1);
+        weaponIndex.text = ownedWeapons.Count == 0
+            ? "0 / 0"
+            : $"{selectedWeaponIndex + 1} / {ownedWeapons.Count}";
+        previousWeapon.interactable = selectedWeaponIndex > 0;
+        nextWeapon.interactable = selectedWeaponIndex + 1 < ownedWeapons.Count;
         gui.m_variantButton.gameObject.SetActive(false);
         gui.m_qualityPanel.gameObject.SetActive(false);
         gui.m_craftProgressPanel.gameObject.SetActive(false);
@@ -190,8 +194,10 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         AffinityRequirementSpec requirement = AffinityPresentation.RequirementsFor(selectedAffinity);
         int owned = ShowRequirements(player, requirement);
         bool canApply = AffinityApplication.IsAtBaseGameForge(player)
+            && player.GetCurrentCraftingStation()?.CheckUsable(player, false) == true
+            && item != null
             && player.GetInventory().ContainsItem(item)
-            && selectedAffinity != AffinityLoadResult.None
+            && AffinityState.IsEligibleFor(item, entry)
             && !AffinityRules.IsSameAffinity(existing, selectedAffinity)
             && owned >= requirement.MaterialAmount;
         gui.m_craftButton.interactable = canApply;
@@ -208,16 +214,33 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
                 ? string.Empty
                 : AffinityRules.IsSameAffinity(existing, selectedAffinity)
                     ? $"This exact item already has {affinityName}."
-                    : "Requires the exact eligible item, the Forge, and 1 Wood.";
+                    : item == null
+                        ? $"Carry a {WeaponName(entry)} to apply this Affinity."
+                        : !AffinityState.IsEligibleFor(item, entry)
+                            ? $"{affinityName} requires a max-quality {WeaponName(entry)}."
+                            : owned < requirement.MaterialAmount
+                                ? "You need 1 Wood."
+                                : "You need the selected eligible weapon and access to a working Forge.";
         }
     }
 
     internal void Navigate(int direction)
     {
         if (!active || UnifiedPopup.IsVisible() || rows.Count == 0) return;
-        selectedIndex = Mathf.Clamp(selectedIndex + direction, 0, rows.Count - 1);
+        selectedEntryIndex = Mathf.Clamp(selectedEntryIndex + direction, 0, rows.Count - 1);
+        RefreshOwnedWeapons(null);
         Render();
-        gui.m_recipeEnsureVisible.CenterOnItem(rows[selectedIndex].transform as RectTransform);
+        gui.m_recipeEnsureVisible.CenterOnItem(rows[selectedEntryIndex].transform as RectTransform);
+    }
+
+    internal void NavigateWeapon(int direction)
+    {
+        if (!active || UnifiedPopup.IsVisible() || ownedWeapons.Count < 2) return;
+        selectedWeaponIndex = Mathf.Clamp(
+            selectedWeaponIndex + direction,
+            0,
+            ownedWeapons.Count - 1);
+        Render();
     }
 
     internal void HandleGamepadInput()
@@ -230,15 +253,24 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         {
             Navigate(-1);
         }
+        if (InputState.IsButtonDown("JoyLStickLeft") || InputState.IsButtonDown("JoyDPadLeft"))
+        {
+            NavigateWeapon(-1);
+        }
+        if (InputState.IsButtonDown("JoyLStickRight") || InputState.IsButtonDown("JoyDPadRight"))
+        {
+            NavigateWeapon(1);
+        }
     }
 
     internal void ConfirmApply()
     {
-        ItemDrop.ItemData? captured = SelectedItem();
-        if (captured == null || UnifiedPopup.IsVisible()) return;
+        ItemDrop.ItemData? captured = SelectedWeapon();
+        AffinityCatalogEntry? entry = SelectedEntry();
+        if (captured == null || !entry.HasValue || UnifiedPopup.IsVisible()) return;
 
-        AffinityLoadResult selectedAffinity = AffinityState.AvailableFor(captured);
-        if (selectedAffinity == AffinityLoadResult.None) return;
+        AffinityLoadResult selectedAffinity = entry.Value.Affinity;
+        if (!AffinityState.IsEligibleFor(captured, entry.Value)) return;
 
         // The disabled button is the visible guard. Recheck here so indirect
         // invocation cannot turn the same Affinity into a replacement attempt.
@@ -248,8 +280,9 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         }
 
         bool replacing = AffinityState.Load(captured, "forge_confirmation") != AffinityLoadResult.None;
+        AffinityRequirementSpec requirement = AffinityPresentation.RequirementsFor(selectedAffinity);
         string body =
-            $"Apply {AffinityPresentation.NameFor(selectedAffinity)} to this exact {Localize(captured.m_shared.m_name)} for the temporary test cost of 1 Wood?\n\n" +
+            $"Apply {AffinityPresentation.NameFor(selectedAffinity)} to the selected {Localize(captured.m_shared.m_name)} for {requirement.MaterialAmount} Wood?\n\n" +
             "The cost is nonrefundable." +
             (replacing
                 ? " The old Affinity and every material previously spent on it will be destroyed with no refund."
@@ -280,7 +313,7 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
         {
             Player.m_localPlayer?.Message(
                 MessageHud.MessageType.Center,
-                $"Affinity was not applied: {result.Reason}.");
+                $"Affinity was not applied: {ApplicationFailureText(result.Reason)}");
             Refresh();
             return;
         }
@@ -297,129 +330,6 @@ internal sealed partial class AffinityForgeUi : MonoBehaviour
                     : $"{AffinityPresentation.NameFor(selectedAffinity)} applied. The 1 Wood cost is nonrefundable.");
         }
         Refresh();
-    }
-
-    private void AddRow(int index, ItemDrop.ItemData item)
-    {
-        GameObject row = UnityEngine.Object.Instantiate(gui.m_recipeElementPrefab, gui.m_recipeListRoot);
-        row.name = $"Benheim Affinity Row {index}";
-        row.SetActive(true);
-        RectTransform rowRect = row.transform as RectTransform
-            ?? throw new InvalidOperationException("Affinity recipe donor is not a RectTransform.");
-        rowRect.anchoredPosition = new Vector2(0f, index * -gui.m_recipeListSpace);
-        row.transform.Find("icon").GetComponent<Image>().sprite = item.GetIcon();
-        TMP_Text name = row.transform.Find("name").GetComponent<TMP_Text>();
-        name.text = $"{Localize(item.m_shared.m_name)} · {AffinityPresentation.NameFor(AffinityState.AvailableFor(item))}";
-        name.color = Color.white;
-        GuiBar durability = row.transform.Find("Durability").GetComponent<GuiBar>();
-        bool showDurability = item.m_shared.m_useDurability
-            && item.m_durability < item.GetMaxDurability();
-        durability.gameObject.SetActive(showDurability);
-        if (showDurability) durability.SetValue(item.GetDurabilityPercentage());
-        TMP_Text quality = row.transform.Find("QualityLevel").GetComponent<TMP_Text>();
-        quality.gameObject.SetActive(true);
-        quality.text = item.m_quality.ToString();
-        int capturedIndex = index;
-        row.GetComponent<Button>().onClick = new Button.ButtonClickedEvent();
-        row.GetComponent<Button>().onClick.AddListener(delegate
-        {
-            selectedIndex = capturedIndex;
-            Render();
-        });
-        rows.Add(row);
-    }
-
-    private int ShowRequirements(Player player, AffinityRequirementSpec specification)
-    {
-        ItemDrop? resource = AffinityApplication.ResourceDrop(specification);
-        CraftingStation? station = player.GetCurrentCraftingStation();
-        if (resource == null || station == null)
-        {
-            HideRequirements();
-            return 0;
-        }
-
-        gui.m_minStationLevelIcon.sprite = station.m_icon;
-        gui.m_minStationLevelIcon.gameObject.SetActive(true);
-        gui.m_minStationLevelText.text = specification.StationLevel.ToString();
-        gui.m_minStationLevelText.color = station.GetLevel() >= specification.StationLevel
-            ? minStationLevelBaseColor
-            : Color.red;
-
-        Piece.Requirement requirement = new Piece.Requirement
-        {
-            m_resItem = resource,
-            m_amount = specification.MaterialAmount,
-        };
-        InventoryGui.SetupRequirement(
-            gui.m_recipeRequirementList[0].transform,
-            requirement,
-            player,
-            craft: true,
-            quality: 1);
-        string resourceName = resource.m_itemData.m_shared.m_name;
-        int owned = player.GetInventory().CountItems(resourceName);
-        TMP_Text amount = gui.m_recipeRequirementList[0].transform
-            .Find("res_amount")
-            .GetComponent<TMP_Text>();
-        amount.text = $"{owned}/{specification.MaterialAmount}";
-        amount.color = owned >= specification.MaterialAmount ? Color.white : Color.red;
-        for (int index = 1; index < gui.m_recipeRequirementList.Length; index++)
-        {
-            InventoryGui.HideRequirement(gui.m_recipeRequirementList[index].transform);
-        }
-        return owned;
-    }
-
-    private void HideNativeRows()
-    {
-        for (int index = 0; index < gui.m_recipeListRoot.childCount; index++)
-        {
-            GameObject child = gui.m_recipeListRoot.GetChild(index).gameObject;
-            if (!rows.Contains(child)) child.SetActive(false);
-        }
-    }
-
-    private void ClearRows()
-    {
-        for (int index = 0; index < rows.Count; index++)
-        {
-            if (rows[index] != null) UnityEngine.Object.Destroy(rows[index]);
-        }
-        rows.Clear();
-    }
-
-    private void HideRequirements()
-    {
-        gui.m_minStationLevelIcon.gameObject.SetActive(false);
-        for (int index = 0; index < gui.m_recipeRequirementList.Length; index++)
-        {
-            InventoryGui.HideRequirement(gui.m_recipeRequirementList[index].transform);
-        }
-    }
-
-    private void RestoreNativeDisplayDefaults()
-    {
-        gui.m_minStationLevelIcon.sprite = restoreMinStationLevelSprite;
-        gui.m_minStationLevelText.color = minStationLevelBaseColor;
-        gui.m_recipeIcon.enabled = false;
-        gui.m_recipeName.enabled = false;
-        gui.m_recipeDecription.enabled = false;
-        gui.m_itemCraftType.gameObject.SetActive(false);
-        gui.m_variantButton.gameObject.SetActive(false);
-        gui.m_qualityPanel.gameObject.SetActive(false);
-        gui.m_craftProgressPanel.gameObject.SetActive(false);
-        HideRequirements();
-    }
-
-    private ItemDrop.ItemData? SelectedItem()
-    {
-        return selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : null;
-    }
-
-    private static string Localize(string value)
-    {
-        return Localization.instance != null ? Localization.instance.Localize(value) : value;
     }
 
 }

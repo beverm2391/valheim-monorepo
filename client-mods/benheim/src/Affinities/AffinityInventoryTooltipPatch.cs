@@ -15,7 +15,12 @@ internal static class AffinityInventoryTooltipPatch
         UITooltip tooltip)
     {
         AffinityLoadResult affinity = AffinityState.Read(item);
-        if (affinity != AffinityLoadResult.Lunge && affinity != AffinityLoadResult.Snipe) return;
+        if (affinity != AffinityLoadResult.Lunge
+            && affinity != AffinityLoadResult.Snipe
+            && affinity != AffinityLoadResult.Test)
+        {
+            return;
+        }
 
         // Rebuild only this hovered item's native tooltip. SharedData belongs
         // to the prefab, so mutating its name or description would rename every
