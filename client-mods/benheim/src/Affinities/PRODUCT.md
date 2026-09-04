@@ -178,9 +178,14 @@ flow:
 
 These commands are developer escape hatches, not an alternative progression
 path. Developers use them to apply and remove affinities quickly during in-game
-mechanic tests. Changes to tuning values or code require a new build.
-Developers use Test Affinity to verify the shared Forge flow and real affinities
-to verify progression and balance.
+mechanic tests. Any change to shipped affinity code or tuning requires a new
+build. An explicitly authorized
+[Valheim Dev Lab session](../../../../tools/valheim-dev/PRODUCT.md) is the
+exception for temporary experiments. During that session, developers may apply
+temporary code or tuning changes without rebuilding or reinstalling Benheim.
+To make an experimental change part of shipped affinity behavior, developers
+must include it in a build. Developers use Test Affinity to verify the shared
+Forge flow and real affinities to verify progression and balance.
 
 Diagnostics must use distinct event types for menu discovery, eligibility,
 application validation, resource consumption, writing and loading stored state,

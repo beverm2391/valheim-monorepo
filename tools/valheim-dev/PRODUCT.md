@@ -24,6 +24,11 @@ quitting Valheim revokes the authorization immediately. Authorization applies
 only to the current world session and never persists. Valheim Dev cannot enable
 Lab mode or grant authorization.
 
+When Lab authorization is revoked, Valheim Dev immediately rejects new
+operations and cancels queued operations. An active experiment stops the next
+time its code checks for cancellation. Valheim Dev cannot forcibly stop C#
+that is already running on Unity's main thread.
+
 The first agent interface must support these outcomes:
 
 - Confirm the connected Lab session and its Valheim and Benheim builds.
@@ -55,9 +60,12 @@ The record must identify the exact experiment that ran and explain a failure.
 
 ## The Lab State Is Disposable
 
-The first Lab session may run unrestricted experiment code. Valheim Dev may
-attach only to that session. Valheim Dev must never attach to an ordinary
-Benheim session, the shared production world, or a dedicated server.
+An authorized Lab session may run trusted C# experiments. The experiments have
+unrestricted access to Unity and Benheim, but each one must be bounded and
+return control to the game loop. Valheim Dev provides no sandbox or process
+isolation. Valheim Dev may attach only to the authorized Lab session. It must
+never attach to an ordinary Benheim session, the shared production world, or a
+dedicated server.
 
 An experiment may provide cleanup, but Valheim Dev does not promise that
 arbitrary runtime code can undo its changes. Restarting Valheim clears runtime
@@ -65,8 +73,11 @@ patches, callbacks, coroutines, static state, and loaded objects. Deleting and
 recreating the local test world and character resets persistent state.
 
 Valheim Dev has no tool or authority to launch, quit, or restart Valheim. If an
-experiment leaves Valheim in a state that requires a restart, Valheim Dev
-reports the `restart_required` status. Ben decides when to restart Valheim.
+experiment returns but leaves Valheim in a state that requires a restart,
+Valheim Dev reports `restart_required`. If an experiment does not return
+control to the game loop, Valheim Dev cannot recover Valheim or report a final
+result for that operation. Ben decides whether and when to quit or restart
+Valheim.
 
 ## Relationship To Developer Diagnostics
 
