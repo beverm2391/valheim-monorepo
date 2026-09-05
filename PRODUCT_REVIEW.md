@@ -2,12 +2,24 @@
 
 Open product questions and remaining playtests for Benheim.
 
-Installed on Ben's Mac: **0.1.86**.
+Installed on Ben's Mac: **0.1.88**.
 
 Grid selection, planting, berry cycles, and portal text fitting record
 diagnostics without enabling a probe.
 
 ## Remaining checks
+
+- **Valheim Dev live loop:**
+  1. Launch Benheim 0.1.88 and enter the disposable local single-player Lab
+     world.
+  2. Hover the Affinity weapon icon in your inventory or hotbar. Run `bh lab
+     on`, then tell Codex that the Lab is ready.
+  3. Codex inspects the hovered icon, installs one `affinity.weapon-icon`
+     variant, replaces it with another, and removes the final change.
+  4. Confirm that both variants appear. After removal, confirm that the original
+     icon returns and Valheim Dev does not report `restart_required`.
+  5. Run `bh lab off`. Ask Codex to try another live operation, and confirm that
+     Valheim Dev rejects it.
 
 - **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
   Huntsman Bow at any native quality. Confirm its inventory title and
