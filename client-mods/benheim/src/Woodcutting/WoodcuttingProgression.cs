@@ -42,6 +42,21 @@ internal static class WoodcuttingProgression
             return;
         }
 
+        // A lethal local-owner hit synchronously resets the ZDO in ZNetScene.Destroy,
+        // before Unity destroys the component. This postfix can still see a live
+        // tree whose Damage -> InvokeRPC would dereference that cleared ZDO.
+        // Validity, not local ownership, is the boundary: Damage routes to the
+        // current owner and keeps native destruction and drops in charge.
+        ZNetView view = target.GetComponent<ZNetView>();
+        if (!view || !view.IsValid())
+        {
+            Diagnostics.Event(
+                "Woodcutting",
+                "cleave_skipped",
+                $"reason=invalid_network_view target={target.GetType().Name}");
+            return;
+        }
+
         HitData cleaveHit = hit.Clone();
         cleaveHit.m_damage.Modify(CleaveDamageMultiplier);
         cleaveHit.m_pushForce = 0f;
@@ -49,21 +64,21 @@ internal static class WoodcuttingProgression
         cleaveHit.m_skillRaiseAmount = 0f;
 
         cleaveRunning = true;
-        bool applied = false;
+        bool damageCallCompleted = false;
         try
         {
             if (target is TreeBase tree && tree)
             {
                 tree.Damage(cleaveHit);
-                applied = true;
+                damageCallCompleted = true;
             }
             else if (target is TreeLog log && log)
             {
                 log.Damage(cleaveHit);
-                applied = true;
+                damageCallCompleted = true;
             }
 
-            if (applied)
+            if (damageCallCompleted)
             {
                 DamageText.instance?.ShowText(
                     DamageText.TextType.Bonus,
@@ -75,11 +90,12 @@ internal static class WoodcuttingProgression
         }
         finally
         {
+            cleaveRunning = false;
+            // Damage returning is not an acknowledgement from a remote owner.
             Diagnostics.Event(
                 "Woodcutting",
                 "cleave_finished",
-                $"applied={Diagnostics.Bool(applied)} skill={skillFactor * 100f:0.##} chance={chance:0.###} roll={roll:0.###} damage_multiplier={CleaveDamageMultiplier:0.###} target={target.GetType().Name}");
-            cleaveRunning = false;
+                $"damage_call_completed={Diagnostics.Bool(damageCallCompleted)} skill={skillFactor * 100f:0.##} chance={chance:0.###} roll={roll:0.###} damage_multiplier={CleaveDamageMultiplier:0.###} target={target.GetType().Name}");
         }
     }
 

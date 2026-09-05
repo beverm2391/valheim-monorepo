@@ -1,4 +1,5 @@
 using HarmonyLib;
+using UnityEngine;
 
 namespace BenheimQoL.PlayerCombat;
 
@@ -110,5 +111,28 @@ internal static class EarnedStateObjectDatabaseCopyPatch
     private static void Postfix(ObjectDB __instance)
     {
         PlayerCombatRuntime.RegisterNativeEffects(__instance);
+    }
+}
+
+[HarmonyPatch(typeof(ZSFX), nameof(ZSFX.Awake))]
+internal static class EarnedStateActivationAudioPatch
+{
+    private static void Prefix(ZSFX __instance)
+    {
+        if (!EarnedStateActivationAudio.IsShieldGeneratorLayer(
+                Utils.GetPrefabName(__instance.transform.root.gameObject),
+                __instance.gameObject.name))
+        {
+            return;
+        }
+
+        AudioSource? audioSource = __instance.GetComponent<AudioSource>();
+        if (audioSource != null)
+        {
+            // ZSFX.Awake runs for the owner-created instance and every remote
+            // network clone. Correcting only EffectList.Create's return value
+            // would leave the other peers on the donor's distance-to-2D curve.
+            EarnedStateActivationAudio.Spatialize(audioSource);
+        }
     }
 }

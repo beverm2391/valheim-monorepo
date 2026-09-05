@@ -1,442 +1,167 @@
-# Valheim 1.0 Migration Runbook
+# Valheim 1.0 Migration
 
-This is the temporary source of truth for moving the existing server, world,
-characters, and mods to Valheim 1.0 on September 9, 2026. It owns the migration
-until cutover and mod recovery are complete. It does not replace `PRODUCT.md`,
-normal server operations, or each mod's product documentation.
+Valheim 1.0 may rewrite a world or character when it opens and saves it. That
+is safe as long as 1.0 never opens the only copy. This migration therefore uses
+one complete recovery set, one disposable rehearsal, and one stopped production
+cutover. A failed migration restores the pre-1.0 copies and discards progress
+made after cutover.
 
 - **Status:** Planning
 - **Release:** September 9, 2026
-- **Cutover target:** Existing world, initially running vanilla Valheim 1.0
-- **Archive condition:** Vanilla 1.0 is stable, backups have run, and every
-  chosen mod is restored or deliberately deferred.
+- **World decision:** Preserve the existing world.
+- **Initial runtime:** Vanilla Valheim 1.0.
+- **Repair tools:** Not part of the initial cutover.
+- **Complete when:** Production is stable on 1.0 and each mod from the pre-1.0
+  stack is restored, replaced, or explicitly deferred.
 
-## The Safe Shape
+## Rules
 
-The migration has three phases:
+- Do not let 1.0 open the only copy of a world or character.
+- Do not test the production world first.
+- Do not alternate one mutable world copy between pre-1.0 and 1.0 binaries.
+- Start the rehearsal and production cutover in vanilla mode.
+- Restore mods only after vanilla world, character, save, and reconnect checks
+  pass.
+- Keep Deep North repair and Upgrade World separate from the initial cutover.
 
-1. Run a reversible, pinned mod setup before 1.0.
-2. Prove the existing world on a temporary vanilla 1.0 server before updating
-   the live server.
-3. Restore mods one dependency layer at a time only after vanilla 1.0 is known
-   good.
+Updating the game binaries alone does not change world or character data.
+Opening and saving that data with 1.0 changes it. The pre-1.0 recovery set lets
+you restore the pre-1.0 state, but rollback loses progress made after cutover.
 
-The live world is never the first copy opened by 1.0. The first 1.0 load uses a
-backup on a temporary server. The live cutover starts only after that rehearsal
-passes.
+## Build the Recovery Set
 
-## Facts We Are Planning Around
+Quit the game clients and stop the server before taking the final copies.
+Preserve:
 
-- Iron Gate says existing worlds and saves remain usable in 1.0.
-- New terrain, locations, and dungeons generate properly only in unexplored
-  areas. Valheim treats roughly 500 metres around visited areas as explored.
-- Iron Gate recommends a new world for the ideal experience but does not require one.
-- There will be no public test branch for 1.0.
-- Mods are not guaranteed to work at release and may prevent the game from
-  starting until BepInEx and individual mods are updated.
-- Achievements begin tracking after 1.0. Most cheat commands can mark a save as
-  cheated, so migration validation must not use spawn or similar commands.
-- The dedicated server does not auto-update. Clients may update through Steam
-  before the operator updates the server, creating a temporary version mismatch.
-- World state lives on the server. Character state lives with each player and
-  must be backed up separately.
+1. The complete production world storage.
+2. Every player's local and Steam Cloud character save roots.
+3. The complete working dedicated-server installation, launcher, configuration,
+   BepInEx files, and plugins.
+4. A known-good client game and mod setup for each supported platform where
+   practical.
+5. The installed game builds, Benheim versions, plugin versions, and archive
+   hashes needed to identify the working setup.
 
-- [Valheim 1.0 FAQ](https://valheim.com/support/valheim-1-0-faq/)
-- [Valheim FAQ: large world updates](https://valheim.com/faq/)
-- [Official guidance for game updates with mods](https://valheim.com/support/getting-ready-for-the-ashlands/)
-- [Dedicated server guide](https://valheim.com/support/a-guide-to-dedicated-servers/)
+The world archive must exist locally and in R2. Download it, verify its hash,
+and inspect it before migration day. Each player must verify that their backup
+contains the expected `.fch` file. A backup is part of the recovery set only
+after you restore it and inspect it.
 
-## Migration Boundaries
+The repo's supported backup and recovery paths own the commands. Use
+`scripts/download-backups.sh` and the world archive inspection and restore
+scripts rather than copying selected world files by hand.
 
-- Do not explore the Deep North before 1.0.
-- Do not enable automatic server updates.
-- Do not add mods that persist custom items, prefabs, or world objects before
-  the migration.
-- Do not load a world once with 1.0 and then casually reopen that migrated copy
-  with the old server binary.
-- Do not re-enable server and client mods during the initial vanilla cutover.
-- Do not treat a successful process start as proof. A Mac client and a Windows
-  client must both join, play, save, disconnect, and rejoin.
+## Rehearse on a Disposable Server
 
-## Timeline
+The rehearsal must use the final production world archive and the same Valheim
+1.0 server build intended for production.
 
-### Now Through August 31
+1. Create a distinct disposable server.
+2. Install the final Valheim 1.0 dedicated-server build with no mods enabled.
+3. Restore a copy of the final production world archive.
+4. Join first with a new test character.
+5. Verify the world loads, saves, restarts, and accepts a reconnect.
+6. Join with copies of the real characters.
+7. Verify character inventory, equipment, progression, map state, and saves.
+8. Check the main base, another distant base, portals, containers, tames, boss
+   progression, building, combat, sleeping, and a server restart.
+9. Record the exact Steam server build used for the passing rehearsal.
 
-Continue product design, source-code research, and upstream-mod evaluation for
-future Benheim systems. Limit pre-1.0 implementation to important stability
-work and migration preparation. Do not begin large gameplay-system
-implementation until the vanilla Valheim 1.0 migration is complete and
-Benheim's stable behavior has been ported and retested.
+The new character separates server and world compatibility from character-save
+compatibility. Never use the live character copies for rehearsal.
 
-- [ ] Keep every server mod removable without changing the world save.
-- [ ] Keep a tested vanilla launch path on the server.
-- [ ] Keep a tested vanilla launch path on every Mac and Windows client.
-- [ ] Pin mods and record the active set in the compatibility table below.
-- [ ] Rehearse creation and destruction of the temporary migration server using
-      the current game version.
-- [ ] Rehearse restoring a downloaded world archive to that temporary server.
-- [ ] Confirm no player has explored the Deep North or sailed along its edge.
+After vanilla passes, test the mod stack on the same copied world:
 
-### September 1 Through September 8
+1. Server BepInEx and the current first-party server plugin stack.
+2. Client BepInEx on Mac and Windows.
+3. Benheim.
+4. Any other mod deliberately selected for 1.0.
 
-This is a change freeze, not a gameplay freeze. Keep playing, but do not change
-the server runtime, world modifiers, BepInEx version, or mod set unless a change
-is required to keep the server playable.
+Add one layer at a time. At each layer, join the server, exercise that layer's
+intended behavior, save, disconnect, restart the server, and rejoin. If a layer
+fails, leave it disabled. Keep the last proven stack as the production
+candidate.
 
-- [ ] Verify the most recent nightly backup exists locally and in R2.
-- [ ] Run one cold backup while the server is stopped, then restart the server.
-- [ ] Inspect the cold archive and verify it contains the complete active world
-      storage.
-- [ ] Verify each player can launch vanilla Valheim without removing mods.
-- [ ] Have every player complete the character backup procedure below.
-- [ ] Confirm the ignored temporary environment still targets a distinct VM.
-- [ ] Announce the expected client/server update mismatch window.
+If Steam publishes another server build after the rehearsal, rerun the relevant
+rehearsal checks on that build. Production must not be the first world opened by
+an unrehearsed build.
 
-### September 9
+## Cut Over Production
 
-- [ ] Confirm the final 1.0 release is available for both clients and SteamCMD.
-- [ ] Update vanilla clients, leaving modded launchers unused.
-- [ ] Run and pass the temporary-server rehearsal with a production world copy.
-- [ ] Stop production, take the final cold backup, and archive the old server
-      installation.
-- [ ] Update production, pass vanilla checks, restart, and take a fresh backup.
+Start only when all players are disconnected and there is enough time to finish
+or roll back.
 
-### After Vanilla Cutover
+1. Stop the production server.
+2. Create one final backup while the production server is stopped. Upload it to
+   R2 as the final pre-1.0 world archive.
+3. Download and verify that final pre-1.0 world archive.
+4. Archive the complete working pre-1.0 server installation.
+5. Confirm every player's character backup is complete.
+6. Confirm the production 1.0 build matches the passing rehearsal build.
+7. Disable server mods through `scripts/set-server-mods.sh disable`.
+8. Update the dedicated server and start the existing world in vanilla 1.0.
+9. Join with the real characters and repeat the short world, character, save,
+   restart, and reconnect smoke test.
+10. Create and verify one post-migration world backup.
 
-- [ ] Keep production vanilla through a normal session and nightly backup.
-- [ ] Reintroduce server dependencies and mods in the order defined below.
-- [ ] Port and prove stable Benheim behavior before adding new gameplay systems.
-- [ ] Record restored, replaced, and deferred decisions below.
-- [ ] Close and archive this runbook when the archive condition is satisfied.
+After vanilla production passes, enable only the mod layers that passed the
+copied-world rehearsal. Use the supported server-mod installer for the
+first-party stack. Do not assemble a new production stack by copying individual
+plugin files.
 
-## Mod Compatibility Table
+## Roll Back
 
-Record migration decisions and evidence here. Package manifests and installed
-files, not this table, own exact versions.
+Rollback is a restore, not a downgrade in place.
 
-| Component | Runs on | September 9 disposition | 1.0 re-enable gate | Decision |
+1. Stop the production server.
+2. Preserve the failed migrated world for later diagnosis.
+3. Restore the pre-1.0 server installation into a clean directory.
+4. Restore a fresh copy of that final pre-1.0 world archive.
+5. Restore any character copy that 1.0 changed and that must return to its old
+   state.
+6. Start only after the server and clients can run the matching pre-1.0 build.
+
+Do not merge old files over the 1.0 installation. Do not reopen the migrated
+world with the old binary. Rollback intentionally discards post-cutover world
+and character progress.
+
+If Steam prevents an immediate client downgrade, keep the restored server
+stopped until matching clients are available. The recovery set protects the
+data even when game night cannot resume immediately.
+
+## Deep North and World Repair
+
+Do not explore more of the Deep North before 1.0. After vanilla migration,
+inspect which 1.0 content is absent from previously explored areas and decide
+whether the gaps matter.
+
+Upgrade World is a possible repair tool, not part of migration. It can delete
+world objects and reset generated zones, has no durable undo, and may mark the
+world as cheated. Test it only on a fresh copied world after its source and
+release explicitly support the installed 1.0 build. Promote a repaired archive
+only after Ben separately accepts the exact world changes and achievement
+tradeoff.
+
+## Execution Record
+
+Keep only evidence that changes a migration decision. Do not paste routine logs
+or duplicate versions that package manifests already own.
+
+| UTC time | Phase | Build or archive | Result | Decision |
 | --- | --- | --- | --- | --- |
-| BepInEx | Server | Disabled | Server starts cleanly under the 1.0-compatible loader. | Deployed pre-1.0; 1.0 re-enable proof pending |
-| Jotunn | Server | Remove | No re-enable gate if the first-party fire replacement passes. | Deployed pre-1.0 only for the failed third-party Eternal Fire stack; replacement removes this dependency |
-| Third-party Eternal Fire | Server | Remove | None. Do not restore it. | Failed vanilla-client behavior test: after one manual fuel, a standing wood torch remained at `1/4`; an empty standing wood control torch did not relight. It was replaced by Benheim Eternal Fire. |
-| Benheim Eternal Fire | Server | Disabled | Vanilla clients see existing zero-fuel pieces relight and burning pieces refill before they extinguish. This behavior survives a server restart and client reconnect. | Benheim Eternal Fire `0.1.1` is deployed on Valheim `0.221.12`. Existing empty fires and torches relit for a client that did not have Benheim Eternal Fire installed. Low-fuel and restart proof is pending. |
-| Metal portals | Server, native | Reapply after vanilla proof | Restricted items pass through portals for vanilla clients after restart. | Passed portal traversal with a normally restricted metal item; restart proof pending. |
-| BepInEx | Clients | Use vanilla launch | Mac and Windows clients launch and join with the compatible loader. | Pending |
-| Benheim | Clients | Disabled | Benheim's stable behavior passes focused 1.0 testing. | Benheim `0.1.52` is the accepted stable pre-1.0 client on Valheim `0.221.12`. All regular players use version `0.1.52`. Final 1.0 proof is pending. |
-| Future gameplay mods | To classify | Not admitted | Source audit identifies network ownership, persistence, and platform support. | Deferred |
 
-## Character Backups
+## Close the Migration
 
-Every player owns this step because server backups exclude characters. Quit
-Valheim and Steam before copying outside the live save directories.
+Archive this runbook after:
 
-### Mac Steam Client
+- Production runs the existing world on Valheim 1.0.
+- Real characters complete a normal session, save, restart, and reconnect.
+- Local and R2 backups complete after migration.
+- Each mod from the pre-1.0 stack is restored, replaced, or explicitly
+  deferred.
+- The vanilla recovery path still works.
+- Disposable migration infrastructure is destroyed.
 
-Copy both save roots to a dated folder:
-
-```text
-~/Library/Application Support/IronGate/Valheim/
-~/Library/Application Support/Steam/userdata/<STEAM_ID>/892970/
-```
-
-The first root covers local characters and other local Valheim state. The
-second covers Steam Cloud state. Verify the backup contains at least one `.fch`
-file before launching 1.0.
-
-### Windows Steam Client
-
-Copy both save roots to a dated folder:
-
-```text
-%USERPROFILE%\AppData\LocalLow\IronGate\Valheim\
-<STEAM_INSTALL>\userdata\<STEAM_ID>\892970\
-```
-
-Resolve the real Steam path instead of assuming its default location.
-
-### Cloud Conflict Rule
-
-If Steam reports a cloud conflict, stop. Snapshot both roots again, compare
-timestamps and inventory, then choose the known-good direction deliberately.
-
-Record one row per player without committing names, Steam IDs, or save files:
-
-| Client | Platform | Local root copied | Cloud root copied | `.fch` verified | Vanilla launch verified |
-| --- | --- | --- | --- | --- | --- |
-| Client A | Mac/Windows | [ ] | [ ] | [ ] | [ ] |
-| Client B | Mac/Windows | [ ] | [ ] | [ ] | [ ] |
-| Client C | Mac/Windows | [ ] | [ ] | [ ] | [ ] |
-
-## Rehearse the Temporary Server Before Release
-
-Before September, use the current version to prove the provider, installer,
-world upload, firewall, and cleanup paths.
-
-Create an ignored migration environment:
-
-```bash
-mkdir -p tmp/migration-1.0
-cp examples/server.env.example tmp/migration-1.0/server.env
-```
-
-Copy the required non-secret settings from the ordinary `server.env` into the
-migration file. Then edit the migration file before you run anything:
-
-- Give `HETZNER_SERVER_NAME` a unique migration-only name.
-- Give `VALHEIM_SERVER_NAME` a visibly temporary display name.
-- Keep `VALHEIM_WORLD_NAME` unchanged so the uploaded pair still matches.
-- Clear `SSH_HOST` so scripts cannot accidentally target production.
-- Confirm the Hetzner location, size, SSH key, and operator secret profile.
-- Keep passwords, cloud tokens, Tailscale keys, and R2 credentials out of the
-  migration file.
-
-Resolve the environment, inject each command's required process secrets through
-the operator's secret manager, and inspect the target before creating anything:
-
-```bash
-export VALHEIM_ENV_FILE="$PWD/tmp/migration-1.0/server.env"
-your-secret-manager run -- providers/hetzner/create.sh
-your-secret-manager run -- scripts/install-server.sh
-scripts/status.sh
-```
-
-Inspect a downloaded full-directory archive, then restore that exact storage
-tree. The restore stops Valheim, verifies the uploaded archive checksum,
-quarantines any existing `worlds_local` directory, and leaves the service
-stopped after reporting the storage shape and installed Steam build:
-
-```bash
-scripts/inspect-world-archive.sh backups/<world-archive>.tar.gz
-scripts/restore-world-archive.sh backups/<world-archive>.tar.gz
-scripts/restart.sh
-scripts/status.sh
-```
-Join the temporary server, verify the expected world, disconnect, and destroy
-the migration VM. Read the resolved server name before confirming deletion:
-
-```bash
-your-secret-manager run -- providers/hetzner/destroy.sh
-unset VALHEIM_ENV_FILE
-```
-
-Complete this lifecycle once before September.
-
-## Release-Day Rehearsal
-
-Repeat the temporary-server procedure after SteamCMD offers the final 1.0
-release. Use the latest verified pre-cutover world backup. Install no BepInEx,
-Jotunn, or plugins on the temporary server.
-
-- [ ] Server logs show the expected world loading, Steam opening, and the game
-      server connecting.
-- [ ] A vanilla Mac client joins with the expected character.
-- [ ] A vanilla Windows client joins with the expected character.
-- [ ] The main base, representative distant base, portals, containers, tames,
-      map state, boss progression, and world day look correct.
-- [ ] Players can move items, build, fight, use a portal, and sleep normally.
-- [ ] All clients disconnect cleanly.
-- [ ] The server is restarted and both platforms can rejoin.
-- [ ] State changed during the first session remains after restart.
-- [ ] Logs contain no repeated save, network, or serialization errors.
-
-Do not use developer spawn commands to make this faster. If a check fails,
-leave production unchanged, preserve the temporary server and logs, and diagnose
-before attempting the live cutover.
-
-## Live Cutover
-
-Run from the repo root with no players connected.
-
-### Gate
-
-- [ ] Release-day rehearsal passed.
-- [ ] Every character backup row is complete.
-- [ ] A recent world archive is present locally and in R2.
-- [ ] The server has a proven vanilla launch path.
-- [ ] The operator has enough uninterrupted time to finish or roll back.
-
-### Stop and Preserve Production
-
-`systemctl stop` uses the service's `SIGINT` path and waits for Valheim to exit.
-
-```bash
-bash <<'BASH'
-set -euo pipefail
-source scripts/lib.sh
-load_config
-
-remote_ssh 'systemctl stop valheim.service'
-remote_ssh 'valheim-backup-and-upload'
-remote_ssh '
-  set -euo pipefail
-  stamp=$(date -u +%Y%m%dT%H%M%SZ)
-  archive=/var/backups/valheim/server-pre-1.0-$stamp.tar.gz
-  tar -C /opt/valheim -czf "$archive" server
-  sha256sum "$archive"
-  valheim-r2-upload "$archive"
-'
-BASH
-
-scripts/download-backups.sh
-```
-
-Verify both final archives downloaded, then inspect the world archive and list
-the server archive. The world inspector reports legacy or directory-based
-storage without assuming either one:
-
-```bash
-scripts/inspect-world-archive.sh backups/<final-world-archive>.tar.gz
-tar -tzf backups/<server-pre-1.0-archive>.tar.gz | head
-```
-
-### Update and Start Vanilla 1.0
-
-If server mods were installed before 1.0, first switch the repo-managed launcher
-back to its previously tested vanilla mode. The migration is blocked until that
-switch is implemented and proven; do not remove random plugin files on release
-day and hope the loader stays dormant.
-
-```bash
-bash <<'BASH'
-set -euo pipefail
-source scripts/lib.sh
-load_config
-
-remote_ssh 'valheim-update'
-remote_ssh 'systemctl start valheim.service'
-BASH
-
-scripts/status.sh
-```
-
-Healthy status shows the correct world loading, Steam opening, and server
-connection. On failure, collect logs before changing anything:
-
-```bash
-scripts/logs.sh
-```
-
-### Accept Production
-
-Repeat the release-day rehearsal checks against production. Then prove that 1.0
-can persist new state:
-
-1. Make one harmless, recognizable world change.
-2. Have every player disconnect.
-3. Restart with `scripts/restart.sh`.
-4. Rejoin from Mac and Windows and confirm the change remains.
-5. Stop and run `valheim-backup-and-upload` once more.
-6. Start the server and download the new post-migration archive.
-
-Record the release version, archive names, status output, and result in the
-execution ledger. Do not put passwords, IPs, Steam IDs, or save contents there.
-
-## Rollback
-
-Rollback if the world fails to load, expected structures or progression are
-missing, saves repeatedly error, clients cannot remain connected, or state does
-not survive a restart. Do not rollback for a single broken mod because no mods
-should be active yet.
-
-1. Inspect the final pre-1.0 world archive again.
-2. Run `scripts/restore-world-archive.sh` with that archive. It stops the
-   service and quarantines the migrated storage without merging it.
-3. Replace `/opt/valheim/server` from the `server-pre-1.0` archive.
-4. Confirm ownership remains `valheim:valheim`.
-5. Start the old vanilla server only if clients can also run the matching old
-   game version. Otherwise leave the service stopped and wait for a game hotfix
-   or a deliberate client downgrade.
-
-A server rollback does not automatically downgrade Steam clients. Data safety
-comes first; resuming game night is a separate decision.
-
-Never alternate the same mutable world copy between old and 1.0 binaries. Each
-attempt starts from a fresh copy of the preserved pre-1.0 archive.
-
-## Restore Mods After Vanilla Is Stable
-
-Use a copy of the post-migration world on the temporary server for server-mod
-validation. Use backed-up characters and a non-production session for risky
-client-mod validation.
-
-### Upstream references for mod recovery
-
-[Jere Kuusela's Valheim repositories](https://github.com/JereKuusela) are the
-first external source to inspect when Valheim 1.0 changes a native interface
-that Benheim uses. The repositories show current examples of the mechanisms
-Benheim uses for locations, prefabs, server commands, and world updates. They
-show how an implementation can work. Benheim's product contracts still define
-what each feature must do.
-
-- [valheim-dev](https://github.com/JereKuusela/valheim-dev) shows current
-  server-executed commands, native location lookup, permission checks, and
-  temporary minimap pins. Its `find` command is the reference for a Benheim
-  marker that shows only the location selected by the server.
-- [valheim-upgrade_world](https://github.com/JereKuusela/valheim-upgrade_world)
-  shows how Valheim stores, regenerates, filters, and repairs location
-  instances across world versions. Before using its world-edit operations,
-  prove them safe in a rehearsal on a copy of the production world. Until
-  then, use them only as references.
-- [valheim-expand_world_data](https://github.com/JereKuusela/valheim-expand_world_data)
-  shows current location registration, location generation, and data-driven
-  world configuration.
-- [valheim-expand_world_prefabs](https://github.com/JereKuusela/valheim-expand_world_prefabs)
-  shows current prefab discovery and loading through Valheim's asset system.
-- [valheim-world_edit_commands](https://github.com/JereKuusela/valheim-world_edit_commands)
-  and [valheim-infinity_hammer](https://github.com/JereKuusela/valheim-infinity_hammer)
-  show current administrator selection, visualization, and world-edit command
-  boundaries.
-
-At migration time, inspect the current upstream source and license before
-copying anything. Pin the exact upstream commit only when Benheim adopts code
-or a behavioral pattern. Do not import a broad upstream command or world-edit
-framework to recover one narrow Benheim feature.
-
-Restore in this order:
-
-1. Server BepInEx.
-2. Benheim Eternal Fire.
-3. Client BepInEx on Mac and Windows.
-4. Benheim.
-5. Any newly selected gameplay mods.
-
-For every layer:
-
-- Confirm the release explicitly supports the installed 1.0 build.
-- Read upstream issues and release notes for save or multiplayer problems.
-- Start with only that layer and already-proven dependencies enabled.
-- Inspect startup logs for exceptions and dependency warnings.
-- Join from every supported client platform.
-- Exercise the feature, disconnect, restart, and rejoin.
-- Confirm vanilla launch remains available on each client.
-- Update the compatibility table before proceeding.
-
-If a mod fails, disable only that layer and its unused dependencies. Keep
-production on the last proven stack. Replacing or porting a mod is normal; it is
-not a reason to hold the world migration open indefinitely.
-
-## Close and Archive
-
-The migration is complete when:
-
-- [ ] Production runs Valheim 1.0 on the existing world.
-- [ ] Mac and Windows clients have completed normal play sessions.
-- [ ] A restart preserved post-1.0 state.
-- [ ] A nightly local and R2 backup completed after migration.
-- [ ] Every pre-migration mod is restored, replaced, or explicitly deferred.
-- [ ] Vanilla server and client launch paths still work.
-- [ ] Temporary migration infrastructure is destroyed.
-- [ ] Root `PRODUCT.md`, `PROMPT.md`, and operator docs reflect the lasting
-      runtime rather than the migration process.
-
-Then change the status to complete, remove live pointers, and move this file to
-`docs/archive/valheim-1.0-migration.md`. Before archiving, collapse the execution
-ledger to the useful outcome, retained backup identifiers, and any unresolved
-follow-up. Do not preserve a wall of routine command output.
-
-## Execution Ledger
-
-Keep this empty until a rehearsal or cutover action actually occurs.
-
-| UTC time | Phase | Evidence or artifact | Result | Follow-up |
-| --- | --- | --- | --- | --- |
+Before archiving, retain only the outcome, recovery identifiers, and unresolved
+follow-up. Normal server operations continue to belong to `PROMPT.md` and the
+operator scripts.

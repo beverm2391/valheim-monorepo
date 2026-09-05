@@ -30,6 +30,7 @@ VerifyCookingPatch(
 VerifyCookingScope();
 VerifyCookingRollObservation();
 VerifyComfortPatch();
+StationBuildCoverageTests.Run();
 VerifyTarPolicy();
 VerifyTarTranspilers();
 VerifyPlantingStamina();
@@ -46,28 +47,39 @@ static MethodInfo Resolver(string name)
 static void VerifyPlantingStamina()
 {
     Expect(PlantingStamina.Cost(0f) == 0f);
-    Expect(PlantingStamina.Cost(10f) == 5f);
-    Expect(PlantingStamina.Cost(7.5f) == 3.75f);
+    Expect(PlantingStamina.Cost(10f) == 2.5f);
+    Expect(PlantingStamina.Cost(7.5f) == 1.875f);
 
     Piece plantPiece = new Piece();
     plantPiece.gameObject.AddComponent(new Plant());
+    Piece berryPiece = new Piece();
+    berryPiece.gameObject.name = "RaspberryBush";
     Piece ordinaryPiece = new Piece();
     PieceTable plantTable = new PieceTable(plantPiece);
+    PieceTable berryTable = new PieceTable(berryPiece);
     PieceTable ordinaryTable = new PieceTable(ordinaryPiece);
     float resolvedCost = 10f;
     PlantingStamina.ApplyResolvedCost(plantTable, ref resolvedCost);
-    Expect(resolvedCost == 5f);
+    Expect(resolvedCost == 2.5f);
+    resolvedCost = 10f;
+    PlantingStamina.ApplyResolvedCost(berryTable, ref resolvedCost);
+    Expect(resolvedCost == 2.5f);
+    resolvedCost = 10f;
     PlantingStamina.ApplyResolvedCost(ordinaryTable, ref resolvedCost);
-    Expect(resolvedCost == 5f);
+    Expect(resolvedCost == 10f);
 
-    Player player = new Player(station: null) { Stamina = 5f, ResolvedBuildStamina = 5f };
+    Player player = new Player(station: null) { Stamina = 2.5f, ResolvedBuildStamina = 2.5f };
     Expect(PlantingStamina.HasPlacementStamina(player, 10f, plantPiece));
-    Expect(player.LastStaminaCheck == 5f);
+    Expect(player.LastStaminaCheck == 2.5f);
+    Expect(PlantingStamina.HasPlacementStamina(player, 10f, berryPiece));
+    Expect(player.LastStaminaCheck == 2.5f);
     Expect(!PlantingStamina.HasPlacementStamina(player, 10f, ordinaryPiece));
     Expect(player.LastStaminaCheck == 10f);
 
     MethodInfo getSelectedPiece = typeof(PieceTable).GetMethod(nameof(PieceTable.GetSelectedPiece))!;
-    MethodInfo haveStamina = typeof(Player).GetMethod(nameof(Player.HaveStamina))!;
+    // Player overrides Character.HaveStamina, but installed Valheim 0.221.12 calls the
+    // base-declared virtual slot from Player.UpdatePlacement.
+    MethodInfo haveStamina = typeof(Character).GetMethod(nameof(Character.HaveStamina))!;
     MethodInfo tryPlacePiece = typeof(Player).GetMethod(nameof(Player.TryPlacePiece))!;
     MethodInfo replacement = typeof(PlantingStamina).GetMethod(
         nameof(PlantingStamina.HasPlacementStamina),
@@ -217,12 +229,17 @@ static void VerifyCookingRollObservation()
 static void VerifyComfortPatch()
 {
     CodeInstruction nativeRadius = new CodeInstruction(OpCodes.Ldc_R4, 10f);
-    VerifyReplacement(
+    List<CodeInstruction> output = Invoke(
         typeof(ComfortFurnitureRangePatch),
-        Frame(nativeRadius),
-        nativeRadius,
-        OpCodes.Ldc_R4,
-        20f);
+        Frame(nativeRadius));
+    MethodInfo observer = typeof(ComfortDiagnosticCapture).GetMethod(
+        nameof(ComfortDiagnosticCapture.ObserveRadius),
+        BindingFlags.NonPublic | BindingFlags.Static)!;
+    int observerIndex = output.FindIndex(instruction => Equals(instruction.operand, observer));
+    Expect(output.Count == 4);
+    Expect(nativeRadius.opcode == OpCodes.Ldc_R4 && Equals(nativeRadius.operand, 20f));
+    Expect(observerIndex == 2 && output[observerIndex].opcode == OpCodes.Call);
+    Expect(ComfortDiagnosticCapture.ObserveRadius(20f) == 20f);
     ExpectThrows(() => Invoke(
         typeof(ComfortFurnitureRangePatch),
         Frame(new CodeInstruction(OpCodes.Ldc_R4, 9f))));
@@ -238,32 +255,26 @@ static void VerifyTarPolicy()
     Pickable smallTar = TarPickable("Pickable_Tar", tarGate: true);
     Expect(!TarCollectibleInteraction.ShouldBlockPickable(smallTar));
 
-    Pickable bigTar = TarPickable("Pickable_TarBig", tarGate: false);
-    Expect(!TarCollectibleInteraction.ShouldBlockPickable(bigTar));
-    bigTar.m_tarPreventsPicking = true;
-    Expect(!TarCollectibleInteraction.ShouldBlockPickable(bigTar));
-
     Pickable ordinaryPickable = TarPickable("Pickable_Stone", tarGate: true);
-    Expect(TarCollectibleInteraction.ShouldBlockPickable(ordinaryPickable));
-    ordinaryPickable.m_tarPreventsPicking = false;
     Expect(!TarCollectibleInteraction.ShouldBlockPickable(ordinaryPickable));
 
-    Pickable spoofedTarPickable = TarPickable("Pickable_Tar", tarGate: true);
-    spoofedTarPickable.m_itemPrefab!.GetComponent<ItemDrop>()!.m_itemData.m_shared.m_name = "$item_stone";
-    Expect(TarCollectibleInteraction.ShouldBlockPickable(spoofedTarPickable));
+    foreach ((string prefab, string itemName) in new[]
+             {
+                 ("Tar", "$item_tar"),
+                 ("Stone", "$item_stone"),
+                 ("Wood", "$item_wood")
+             })
+    {
+        ItemDrop itemDrop = TarItemDrop(
+            prefab,
+            itemName,
+            ItemDrop.ItemData.ItemType.Material,
+            inTar: true);
+        Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(itemDrop));
 
-    ItemDrop looseTar = TarItemDrop("Tar", "$item_tar", ItemDrop.ItemData.ItemType.Material, inTar: true);
-    Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(looseTar));
-    looseTar.TarState = false;
-    Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(looseTar));
-
-    ItemDrop ordinaryDrop = TarItemDrop("Stone", "$item_stone", ItemDrop.ItemData.ItemType.Material, inTar: true);
-    Expect(TarCollectibleInteraction.ShouldBlockItemDrop(ordinaryDrop));
-    ordinaryDrop.TarState = false;
-    Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(ordinaryDrop));
-
-    ItemDrop spoofedTarDrop = TarItemDrop("Tar", "$item_stone", ItemDrop.ItemData.ItemType.Material, inTar: true);
-    Expect(TarCollectibleInteraction.ShouldBlockItemDrop(spoofedTarDrop));
+        itemDrop.TarState = false;
+        Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(itemDrop));
+    }
 }
 
 static void VerifyTarTranspilers()
@@ -292,18 +303,33 @@ static void VerifyTarTranspilers()
     MethodInfo itemDropReplacement = typeof(TarCollectibleInteraction).GetMethod(
         nameof(TarCollectibleInteraction.ShouldBlockItemDrop),
         BindingFlags.NonPublic | BindingFlags.Static)!;
+    VerifyItemDropTarGatePatch(
+        typeof(TarItemDropInteractionPatch),
+        itemDropGate,
+        itemDropReplacement);
+    VerifyItemDropTarGatePatch(
+        typeof(TarItemDropAutoPickupPatch),
+        itemDropGate,
+        itemDropReplacement);
+}
+
+static void VerifyItemDropTarGatePatch(
+    Type patchType,
+    MethodInfo itemDropGate,
+    MethodInfo itemDropReplacement)
+{
     CodeInstruction itemDropCall = new CodeInstruction(OpCodes.Callvirt, itemDropGate);
     VerifyReplacement(
-        typeof(TarItemDropInteractionPatch),
+        patchType,
         Frame(itemDropCall),
         itemDropCall,
         OpCodes.Call,
         itemDropReplacement);
     ExpectThrows(() => Invoke(
-        typeof(TarItemDropInteractionPatch),
+        patchType,
         Frame(new CodeInstruction(OpCodes.Nop))));
     ExpectThrows(() => Invoke(
-        typeof(TarItemDropInteractionPatch),
+        patchType,
         Frame(
             new CodeInstruction(OpCodes.Call, itemDropGate),
             new CodeInstruction(OpCodes.Callvirt, itemDropGate))));

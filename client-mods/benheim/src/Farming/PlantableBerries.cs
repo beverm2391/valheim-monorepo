@@ -1,0 +1,423 @@
+using System;
+using System.Collections.Generic;
+using BenheimQoL.Infrastructure;
+using HarmonyLib;
+using UnityEngine;
+
+namespace BenheimQoL.Farming;
+
+// PlantEverything 1.20.0 (AdvizeGH/Advize_ValheimMods at f50a18f, GPL-3.0)
+// proved the product shape with these native prefabs. Benheim independently
+// uses Valheim's public prefab, Piece, and PieceTable APIs here; no upstream
+// code is copied.
+// Spawner Tweaks (JereKuusela/valheim-spawner_tweaks at 0ecdb6e, Unlicense)
+// proved that Pickable's instance respawn field can be adjusted before its
+// native check. Benheim derives that value from the native persisted position
+// and picked timestamp instead of storing an additional timer.
+internal static class PlantableBerries
+{
+    internal const int BerryCost = 5;
+    internal const float BerryRespawnMinimumSeconds = 4000f;
+    internal const float BerryRespawnMaximumSeconds = 5000f;
+
+    private static readonly BerryDefinition[] Definitions =
+    {
+        new BerryDefinition("RaspberryBush", "Raspberry Bush", "Plant a native raspberry bush."),
+        new BerryDefinition("BlueberryBush", "Blueberry Bush", "Plant a native blueberry bush."),
+        new BerryDefinition("CloudberryBush", "Cloudberry Bush", "Plant a native cloudberry bush."),
+    };
+
+    private static readonly Dictionary<string, float> FootprintByPrefab =
+        new Dictionary<string, float>(StringComparer.Ordinal);
+
+    internal static bool IsBerryBush(GameObject prefab)
+    {
+        string prefabName = Utils.GetPrefabName(prefab);
+        foreach (BerryDefinition definition in Definitions)
+        {
+            if (prefabName == definition.PrefabName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal static bool TryGetFootprint(GameObject prefab, out float footprint)
+    {
+        return FootprintByPrefab.TryGetValue(Utils.GetPrefabName(prefab), out footprint);
+    }
+
+    /// <summary>
+    /// Keeps Valheim's native removal decision for unrelated pieces. Native
+    /// berry bushes additionally require a creator marker, which distinguishes
+    /// player-planted instances from world-spawned bushes without identifying
+    /// which permitted player is holding the Hammer.
+    /// </summary>
+    internal static bool CanRemoveBerryBush(Piece piece, bool nativeCanRemove)
+    {
+        return !IsBerryBush(piece.gameObject)
+            ? nativeCanRemove
+            : nativeCanRemove && piece.GetCreator() != 0L;
+    }
+
+    /// <summary>
+    /// Identifies an owned berry-bush placement before Piece.SetCreator assigns
+    /// the local player as creator. It excludes natural bushes and pieces that
+    /// already have a creator.
+    /// </summary>
+    internal static bool IsNewOwnedBerryPlacement(Piece piece)
+    {
+        ZNetView? netView = piece.GetComponent<ZNetView>();
+        return IsBerryBush(piece.gameObject)
+            && piece.GetCreator() == 0L
+            && netView
+            && netView.IsValid()
+            && netView.IsOwner();
+    }
+
+    /// <summary>
+    /// Uses Pickable's own replicated picked-state RPC after native placement
+    /// establishes creator ownership. Pickable then owns the persisted picked
+    /// timestamp and its ordinary respawn transition.
+    /// </summary>
+    internal static void StartPlacedBerryEmpty(Piece piece, bool wasNewOwnedBerryPlacement)
+    {
+        if (!wasNewOwnedBerryPlacement
+            || piece.GetCreator() == 0L
+            || !IsBerryBush(piece.gameObject))
+        {
+            return;
+        }
+
+        ZNetView? netView = piece.GetComponent<ZNetView>();
+        if (!netView || !netView.IsValid() || !netView.IsOwner())
+        {
+            return;
+        }
+
+        netView.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", true);
+    }
+
+    /// <summary>
+    /// Gives each native berry bush a crop-length respawn after it is picked.
+    /// The cycle is deterministic from the native ZDO position and picked
+    /// timestamp, so every peer and world reload resolves the same duration.
+    /// Pickable still owns the timestamp, respawn check, RPC, and visible state.
+    /// </summary>
+    internal static bool TryApplyBerryRespawn(Pickable pickable)
+    {
+        ZNetView? netView = pickable.GetComponent<ZNetView>();
+        if (!IsBerryBush(pickable.gameObject)
+            || !netView
+            || !netView.IsValid())
+        {
+            return false;
+        }
+
+        ZDO zdo = netView.GetZDO();
+        long pickedTime = zdo.GetLong(ZDOVars.s_pickedTime, 0L);
+        if (pickedTime <= 1L)
+        {
+            return false;
+        }
+
+        pickable.m_respawnTimeMinutes = ResolveBerryRespawnSeconds(zdo.GetPosition(), pickedTime) / 60f;
+        return true;
+    }
+
+    internal static float ResolveBerryRespawnSeconds(Vector3 position, long pickedTime)
+    {
+        int seed = unchecked(
+            BitConverter.SingleToInt32Bits(position.x)
+            ^ BitConverter.SingleToInt32Bits(position.y)
+            ^ BitConverter.SingleToInt32Bits(position.z)
+            ^ (int)pickedTime
+            ^ (int)(pickedTime >> 32));
+        UnityEngine.Random.State previousState = UnityEngine.Random.state;
+        UnityEngine.Random.InitState(seed);
+        float seconds = Mathf.Lerp(
+            BerryRespawnMinimumSeconds,
+            BerryRespawnMaximumSeconds,
+            UnityEngine.Random.value);
+        UnityEngine.Random.state = previousState;
+        return seconds;
+    }
+
+    internal static void TryRegister(ZNetScene scene)
+    {
+        int registered;
+        try
+        {
+            registered = Register(scene);
+        }
+        catch (Exception exception)
+        {
+            try { Plugin.Log.LogError($"Plantable berries are unavailable: {exception}"); }
+            catch { }
+            BerryLifecycleDiagnostics.Emit(() => DiagnosticEvent.Create("Farming", "plantable_berries_registration_failed")
+                .String("error_type", exception.GetType().Name)
+                .String("error", exception.Message));
+            return;
+        }
+
+        // Registration is already complete. A diagnostic destination failure
+        // must neither reclassify that outcome nor escape the startup hook.
+        BerryLifecycleDiagnostics.Emit(() => DiagnosticEvent.Create("Farming", "plantable_berries_registered")
+            .Integer("count", registered)
+            .Integer("cost", BerryCost));
+    }
+
+    private static int Register(ZNetScene scene)
+    {
+        ObjectDB objectDb = ObjectDB.instance
+            ?? throw new InvalidOperationException("ObjectDB was not ready when ZNetScene registered prefabs.");
+        GameObject cultivator = objectDb.GetItemPrefab("Cultivator")
+            ?? throw new InvalidOperationException("The native Cultivator item prefab is missing.");
+        ItemDrop cultivatorDrop = cultivator.GetComponent<ItemDrop>()
+            ?? throw new InvalidOperationException("The native Cultivator has no ItemDrop component.");
+        PieceTable pieceTable = cultivatorDrop.m_itemData.m_shared.m_buildPieces
+            ?? throw new InvalidOperationException("The native Cultivator has no PieceTable.");
+        EffectList placeEffect = FindNativePlantPlaceEffect(pieceTable);
+
+        var prepared = new List<PreparedBerry>(Definitions.Length);
+        foreach (BerryDefinition definition in Definitions)
+        {
+            GameObject prefab = scene.GetPrefab(definition.PrefabName)
+                ?? throw new InvalidOperationException($"The native {definition.PrefabName} prefab is missing.");
+            if (!prefab.GetComponent<ZNetView>())
+            {
+                throw new InvalidOperationException($"The native {definition.PrefabName} has no ZNetView.");
+            }
+
+            if (!prefab.GetComponent<Destructible>())
+            {
+                throw new InvalidOperationException($"The native {definition.PrefabName} has no Destructible component.");
+            }
+
+            Pickable pickable = prefab.GetComponent<Pickable>()
+                ?? throw new InvalidOperationException($"The native {definition.PrefabName} has no Pickable component.");
+            ItemDrop berry = pickable.m_itemPrefab?.GetComponent<ItemDrop>()
+                ?? throw new InvalidOperationException($"The native {definition.PrefabName} has no berry ItemDrop.");
+            float footprint = ColliderFootprint(prefab);
+            if (footprint <= 0f)
+            {
+                throw new InvalidOperationException($"The native {definition.PrefabName} has no measurable collider footprint.");
+            }
+
+            prepared.Add(new PreparedBerry(definition, prefab, berry, footprint));
+        }
+
+        foreach (PreparedBerry berry in prepared)
+        {
+            Piece piece = berry.Prefab.GetComponent<Piece>() ?? berry.Prefab.AddComponent<Piece>();
+            ConfigurePiece(piece, berry, placeEffect);
+            FootprintByPrefab[berry.Definition.PrefabName] = berry.Footprint;
+            if (!pieceTable.m_pieces.Contains(berry.Prefab))
+            {
+                pieceTable.m_pieces.Add(berry.Prefab);
+            }
+        }
+
+        return prepared.Count;
+    }
+
+    private static EffectList FindNativePlantPlaceEffect(PieceTable pieceTable)
+    {
+        foreach (GameObject prefab in pieceTable.m_pieces)
+        {
+            if (!prefab)
+            {
+                continue;
+            }
+
+            Piece? piece = prefab.GetComponent<Piece>();
+            if (piece && prefab.GetComponent<Plant>())
+            {
+                return piece.m_placeEffect;
+            }
+        }
+
+        throw new InvalidOperationException("The native Cultivator has no plant Piece to supply placement effects.");
+    }
+
+    private static void ConfigurePiece(Piece piece, PreparedBerry berry, EffectList placeEffect)
+    {
+        piece.m_name = berry.Definition.DisplayName;
+        piece.m_description = berry.Definition.Description;
+        piece.m_icon = berry.ItemDrop.m_itemData.GetIcon();
+        piece.m_category = Piece.PieceCategory.Misc;
+        piece.m_groundPiece = true;
+        piece.m_groundOnly = true;
+        piece.m_cultivatedGroundOnly = false;
+        piece.m_onlyInBiome = Heightmap.Biome.None;
+        piece.m_canBeRemoved = true;
+        piece.m_targetNonPlayerBuilt = false;
+        piece.m_placeEffect = placeEffect;
+        piece.m_resources = new[]
+        {
+            new Piece.Requirement
+            {
+                m_resItem = berry.ItemDrop,
+                m_amount = BerryCost,
+                m_recover = true,
+            },
+        };
+    }
+
+    private static float ColliderFootprint(GameObject prefab)
+    {
+        bool found = false;
+        Bounds footprint = default;
+        foreach (Collider collider in prefab.GetComponentsInChildren<Collider>(includeInactive: true))
+        {
+            if (!collider || !collider.enabled || !TryGetLocalShapeBounds(collider, out Bounds shapeBounds))
+            {
+                continue;
+            }
+
+            Vector3 center = shapeBounds.center;
+            Vector3 extents = shapeBounds.extents;
+            for (int x = -1; x <= 1; x += 2)
+            {
+                for (int y = -1; y <= 1; y += 2)
+                {
+                    for (int z = -1; z <= 1; z += 2)
+                    {
+                        Vector3 localPoint = center + Vector3.Scale(
+                            extents,
+                            new Vector3(x, y, z));
+                        Vector3 rootPoint = prefab.transform.InverseTransformPoint(
+                            collider.transform.TransformPoint(localPoint));
+                        if (!found)
+                        {
+                            footprint = new Bounds(rootPoint, Vector3.zero);
+                            found = true;
+                        }
+                        else
+                        {
+                            footprint.Encapsulate(rootPoint);
+                        }
+                    }
+                }
+            }
+        }
+
+        return found ? Mathf.Max(footprint.size.x, footprint.size.z) : 0f;
+    }
+
+    private static bool TryGetLocalShapeBounds(Collider collider, out Bounds bounds)
+    {
+        if (collider is SphereCollider sphere)
+        {
+            float diameter = sphere.radius * 2f;
+            bounds = new Bounds(sphere.center, new Vector3(diameter, diameter, diameter));
+            return diameter > 0f;
+        }
+
+        if (collider is CapsuleCollider capsule)
+        {
+            float diameter = capsule.radius * 2f;
+            Vector3 size = new Vector3(diameter, diameter, diameter);
+            size[capsule.direction] = Mathf.Max(capsule.height, diameter);
+            bounds = new Bounds(capsule.center, size);
+            return diameter > 0f && size[capsule.direction] > 0f;
+        }
+
+        if (collider is BoxCollider box)
+        {
+            bounds = new Bounds(box.center, box.size);
+            return box.size.x > 0f || box.size.y > 0f || box.size.z > 0f;
+        }
+
+        if (collider is MeshCollider mesh && mesh.sharedMesh)
+        {
+            bounds = mesh.sharedMesh.bounds;
+            return bounds.size.x > 0f || bounds.size.y > 0f || bounds.size.z > 0f;
+        }
+
+        bounds = default;
+        return false;
+    }
+
+    private sealed class BerryDefinition
+    {
+        internal BerryDefinition(string prefabName, string displayName, string description)
+        {
+            PrefabName = prefabName;
+            DisplayName = displayName;
+            Description = description;
+        }
+
+        internal string PrefabName { get; }
+        internal string DisplayName { get; }
+        internal string Description { get; }
+    }
+
+    private sealed class PreparedBerry
+    {
+        internal PreparedBerry(
+            BerryDefinition definition,
+            GameObject prefab,
+            ItemDrop itemDrop,
+            float footprint)
+        {
+            Definition = definition;
+            Prefab = prefab;
+            ItemDrop = itemDrop;
+            Footprint = footprint;
+        }
+
+        internal BerryDefinition Definition { get; }
+        internal GameObject Prefab { get; }
+        internal ItemDrop ItemDrop { get; }
+        internal float Footprint { get; }
+    }
+}
+
+[HarmonyPatch(typeof(ZNetScene), "Awake")]
+internal static class PlantableBerryRegistrationPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(ZNetScene __instance)
+    {
+        PlantableBerries.TryRegister(__instance);
+    }
+}
+
+[HarmonyPatch(typeof(Piece), nameof(Piece.SetCreator))]
+internal static class PlantableBerryPlacementPatch
+{
+    [HarmonyPrefix]
+    private static void Prefix(Piece __instance, out bool __state)
+    {
+        __state = PlantableBerries.IsNewOwnedBerryPlacement(__instance);
+    }
+
+    [HarmonyPostfix]
+    private static void Postfix(Piece __instance, bool __state)
+    {
+        PlantableBerries.StartPlacedBerryEmpty(__instance, __state);
+    }
+}
+
+[HarmonyPatch(typeof(Pickable), "ShouldRespawn")]
+internal static class BerryRespawnPatch
+{
+    [HarmonyPrefix]
+    internal static void Prefix(Pickable __instance)
+    {
+        PlantableBerries.TryApplyBerryRespawn(__instance);
+    }
+}
+
+[HarmonyPatch(typeof(Piece), nameof(Piece.CanBeRemoved))]
+internal static class PlantableBerryRemovalPatch
+{
+    [HarmonyPostfix]
+    internal static void Postfix(Piece __instance, ref bool __result)
+    {
+        __result = PlantableBerries.CanRemoveBerryBush(__instance, __result);
+    }
+}

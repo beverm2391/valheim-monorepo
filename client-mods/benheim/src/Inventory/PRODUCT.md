@@ -77,6 +77,15 @@ the same durability contract and pass the stale-payload regression proof.
   chest owner, simultaneous contention followed by immediate reuse, and exact
   accepted/refunded settlement. Players saw no item loss, duplication, stuck
   batch or global lease, or chest-state disagreement.
+- Ben accepted the pipelined multi-chest scheduler in live play. After each
+  existing cohort validation, Put Away can start another owner-authoritative
+  chest deposit before earlier deposits settle when their item names do not
+  overlap. If a later eligible chest contains an item name from an unsettled
+  deposit, Put Away waits for exact settlement. It scans that chest again after
+  any refund returns. Independent deposits can settle in any order. A
+  validation failure stops new reservations. The batch becomes terminal only
+  after scheduling stops and every reserved deposit settles. Put Away then
+  releases the global lease.
 - Crash or reconnect recovery during an in-flight reservation is unsupported.
 
 ## In Development
@@ -88,16 +97,6 @@ the same durability contract and pass the stale-payload regression proof.
 - `R` keeps Valheim's normal Hide weapons behavior unless slots `1` and `2`
   can form an equipable paired loadout and slot `3` can form an equipable
   single-item loadout.
-- Live `0.1.67` timing showed that owner routing and handoff dominated
-  multi-chest Put Away latency. After each existing cohort validation, Put Away
-  can start another owner-authoritative chest deposit before earlier deposits
-  settle when their item names do not overlap. If a later eligible chest
-  contains the same item name, Put Away waits for exact settlement and scans
-  that chest after any refund returns. Results for independent deposits can
-  settle in any order. A validation failure stops new reservations. The batch
-  becomes terminal and Put Away releases the global lease only after scheduling
-  stops and every reserved deposit settles. This scheduler still needs live
-  multiplayer latency and durability proof.
 - Put Away's grouped receipt keeps every destination line and every item line.
   Its placement follows the shared top-left feedback lane defined in the root
   product document and still needs gameplay proof.

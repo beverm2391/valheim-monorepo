@@ -8,6 +8,8 @@
   <ItemGroup>
     <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
     <Compile Include="../../src/ShipSprint/ShipSprintDiagnostics.cs" Link="ShipSprintDiagnostics.cs" />
+    <Compile Include="../../src/ShipSprint/ShipSprintGaugeRules.cs" Link="ShipSprintGaugeRules.cs" />
+    <Compile Include="../../src/ShipSprint/ShipSprintHud.cs" Link="ShipSprintHud.cs" />
     <Compile Include="../../src/ShipSprint/ShipSprintObservation.cs" Link="ShipSprintObservation.cs" />
     <Compile Include="../../src/ShipSprint/ShipSprintOutcome.cs" Link="ShipSprintOutcome.cs" />
     <Compile Include="../../src/ShipSprint/ShipSprintRequestCadence.cs" Link="ShipSprintRequestCadence.cs" />

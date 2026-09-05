@@ -39,7 +39,7 @@ promise.
 | Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use a version compatible with those used by every other member. |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Benheim Test Commands | Runs a fixed native-admin command allowlist for selected Benheim gameplay experiments. | Client command and server component | Only the requesting native admin needs the matching client command. The server component is required. Every peer that can own the spawned test creature still needs compatible Benheim gameplay behavior. |
-| Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Benheim `0.1.70` and Benheim Server Support `0.1.6` are the supported candidate pair for Put Away and BERSERKER/SLAUGHTERHOUSE. Put Away uses lease generation `v2` and transaction generation `v4`. Kill Attribution V3 uses client-requested capability responses. |
+| Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Benheim `0.1.76` through `0.1.81` use Benheim Server Support `0.1.6` for Put Away and BERSERKER/SLAUGHTERHOUSE. Put Away uses lease generation `v2` and transaction generation `v4`. Kill Attribution V3 uses client-requested capability responses. |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
@@ -59,6 +59,19 @@ Benheim Server Support's production coordination boundary is owned by
 Third-party mod behavior remains owned by each upstream project; this document
 records only why the mod belongs in our stack and what compatibility promise it
 must preserve.
+
+## Product Candidates
+
+[Crow](tools/crow-lab/PRODUCT.md) is a private companion candidate for Ben,
+Johnny, and Ozi. Its current implementation is only a local writer's-room lab.
+It is not part of Benheim, the deployed server stack, or the live acceptance
+queue.
+
+[Valheim Dev](tools/valheim-dev/PRODUCT.md) is Codex's live workbench for an
+authorized local, single-player Lab session. Codex can inspect and describe the
+running game, apply managed live changes, watch or capture their effects, and
+replace or remove them without rebuilding or reinstalling Benheim between
+variants. It is not a player feature or part of the deployed server stack.
 
 ## Acceptance Shape
 

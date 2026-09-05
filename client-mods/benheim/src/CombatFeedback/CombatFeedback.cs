@@ -1,4 +1,5 @@
 using BenheimQoL.Infrastructure;
+using BenheimQoL.Affinities;
 using UnityEngine;
 
 namespace BenheimQoL.CombatFeedback;
@@ -20,6 +21,7 @@ internal static class CombatFeedbackController
     private static Camera? mainCamera;
     private static float currentFocusReduction;
     private static float focusReductionVelocity;
+    private static bool snipeFocusActive;
 
     private static float lastShakeAt = float.NegativeInfinity;
     private static float lastShakeStrength;
@@ -29,12 +31,7 @@ internal static class CombatFeedbackController
     {
         Player player = Player.m_localPlayer;
         Camera resolvedMainCamera = camera.GetComponent<Camera>();
-        if (!BenheimFxSettings.BowFocusEnabled)
-        {
-            RestoreFocusSmoothly(camera, resolvedMainCamera, "benheim_fx_disabled");
-            return;
-        }
-
+        bool snipe = SnipeRuntime.IsEquipped(player);
         string? blockReason = FocusBlockReason(player, resolvedMainCamera, camera.m_skyCamera);
 
         if (blockReason != null)
@@ -43,9 +40,20 @@ internal static class CombatFeedbackController
             return;
         }
 
+        if (!snipe && !BenheimFxSettings.BowFocusEnabled)
+        {
+            RestoreFocusSmoothly(camera, resolvedMainCamera, "benheim_fx_disabled");
+            return;
+        }
+
         if ((focusCamera && focusCamera != camera) || (focusPlayer && focusPlayer != player))
         {
             InterruptFocus(camera, resolvedMainCamera, "owner_changed");
+        }
+
+        if (snipeFocusActive && !snipe)
+        {
+            InterruptFocus(camera, resolvedMainCamera, "snipe_weapon_changed");
         }
 
         focusCamera = camera;
@@ -59,7 +67,7 @@ internal static class CombatFeedbackController
             Diagnostics.Event(
                 "CombatFeedback",
                 "focus_started",
-                $"draw={drawPercentage:0.###} base_fov={camera.m_fov:0.##} resumed={Diagnostics.Bool(focusPhase == FocusPhase.Restoring)}");
+                $"draw={drawPercentage:0.###} base_fov={camera.m_fov:0.##} snipe={Diagnostics.Bool(snipe)} resumed={Diagnostics.Bool(focusPhase == FocusPhase.Restoring)}");
             focusPhase = FocusPhase.Drawing;
         }
         else if (!drawing)
@@ -68,9 +76,17 @@ internal static class CombatFeedbackController
             return;
         }
 
+        snipeFocusActive = snipe;
+        SnipeVignette.Show(snipe ? drawPercentage : 0f);
+
+        // Snipe is the bow's required handling, independent of optional FX.
+        // Keep one FOV owner so native Bow Focus cannot stack with its scope.
+        float targetReduction = snipe
+            ? camera.m_fov - SnipeRules.ScopedFieldOfView(camera.m_fov)
+            : CombatFeedbackTuning.FocusReduction(drawPercentage);
         currentFocusReduction = Mathf.SmoothDamp(
             currentFocusReduction,
-            CombatFeedbackTuning.FocusReduction(drawPercentage),
+            targetReduction,
             ref focusReductionVelocity,
             CombatFeedbackTuning.BowFocusNarrowSmoothSeconds,
             float.PositiveInfinity,
@@ -147,6 +163,7 @@ internal static class CombatFeedbackController
         }
 
         ClearFocusState();
+        SnipeVignette.Reset();
         lastShakeAt = float.NegativeInfinity;
         lastShakeStrength = 0f;
         lastShakeTrigger = default;
@@ -199,6 +216,7 @@ internal static class CombatFeedbackController
 
     private static void InterruptFocus(GameCamera camera, Camera? resolvedMainCamera, string reason)
     {
+        SnipeVignette.Reset();
         if (focusPhase == FocusPhase.Idle)
         {
             return;
@@ -232,6 +250,18 @@ internal static class CombatFeedbackController
         if (!resolvedMainCamera || !camera.m_skyCamera)
         {
             InterruptFocus(camera, resolvedMainCamera, "camera_unavailable");
+            return;
+        }
+
+        if (snipeFocusActive)
+        {
+            // Snipe's release is deliberately immediate. The native camera
+            // has already restored its own FOV this frame; release both our
+            // projection and edge layer before rendering. Ordinary Bow Focus
+            // keeps its existing smooth restoration below.
+            SetCameraFov(camera, resolvedMainCamera, camera.m_fov);
+            Diagnostics.Event("CombatFeedback", "focus_ended", $"reason={reason} snipe=true");
+            ClearFocusState();
             return;
         }
 
@@ -280,6 +310,8 @@ internal static class CombatFeedbackController
         mainCamera = null;
         currentFocusReduction = 0f;
         focusReductionVelocity = 0f;
+        snipeFocusActive = false;
+        SnipeVignette.Show(0f);
     }
 
     private static void LogShakeSuppressed(CombatFeedbackTrigger trigger, string reason)

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Reflection;
 using HarmonyLib;
+using TMPro;
 using UnityEngine;
 
 namespace BenheimQoL.Infrastructure;
@@ -18,7 +19,6 @@ internal static class WorldFeedback
     private static readonly FieldInfo? DurationField = AccessTools.Field(
         AccessTools.Inner(typeof(DamageText), "WorldTextInstance"),
         "m_duration");
-
     internal static void ShowAbovePlayer(Player player, string text)
     {
         ShowAt(player.transform.position + Vector3.up * 1.9f, text);
@@ -38,16 +38,28 @@ internal static class WorldFeedback
             return;
         }
 
-        IList? worldTexts = WorldTextsField?.GetValue(damageText) as IList;
-        int previousCount = worldTexts?.Count ?? 0;
         float distance = Vector3.Distance(camera.transform.position, position);
-        AddInworldTextMethod.Invoke(
+        IList? worldTexts = WorldTextsField?.GetValue(damageText) as IList;
+        object? instance = AddBonusText(damageText, worldTexts, position, distance, text);
+        if (instance != null)
+        {
+            DurationField?.SetValue(instance, UtilityTextDurationSeconds);
+        }
+    }
+
+    private static object? AddBonusText(
+        DamageText damageText,
+        IList? worldTexts,
+        Vector3 position,
+        float distance,
+        string text)
+    {
+        int previousCount = worldTexts?.Count ?? 0;
+        AddInworldTextMethod!.Invoke(
             damageText,
             new object[] { DamageText.TextType.Bonus, position, distance, text, false });
-
-        if (worldTexts != null && worldTexts.Count > previousCount)
-        {
-            DurationField?.SetValue(worldTexts[worldTexts.Count - 1], UtilityTextDurationSeconds);
-        }
+        return worldTexts != null && worldTexts.Count > previousCount
+            ? worldTexts[worldTexts.Count - 1]
+            : null;
     }
 }

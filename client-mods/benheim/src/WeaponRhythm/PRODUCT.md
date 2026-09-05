@@ -5,9 +5,9 @@ players for learning each weapon's timing, charge behavior, cadence, and
 spacing. Skilled execution should improve a weapon's result without making
 ordinary attacks depend on perfect timing.
 
-## In Development
+## Current Behavior
 
-- Perfect Impact is an experimental approach technique. Make space and jump.
+- Perfect Impact is an approach technique. Make space and jump.
   Connect while descending and moving horizontally toward the contact point at
   `5.5 m/s` or faster to create a stagger opening for an ordinary follow-up.
 - A supported local-player melee attack resolves Perfect Impact at its first
@@ -20,7 +20,7 @@ ordinary attacks depend on perfect timing.
   a later target receives the modifiers only when that contact also meets the
   airborne, descent, and approach conditions.
 - A qualified contact multiplies all native damage by `1.15` and its native
-  stagger multiplier by `3`. Both values remain playtest tuning.
+  stagger multiplier by `3`.
 - A qualified attack requests one local `PERFECT IMPACT` through Valheim's
   native world text at the struck `Character` and contact point. Benheim FX does
   not gate this semantic feedback. The attack also requests one Combat Feedback
@@ -36,20 +36,8 @@ ordinary attacks depend on perfect timing.
   native hit. The target owner still decides block, dodge, resistance, armor,
   health, stagger, and death through the native damage path.
 - Automated verification records one outcome for each resolved attack.
-- The previous attack-start gate failed in gameplay. The first live contact-time
-  test observed 193 contacts. None qualified. In the closest clear descending
-  attempt, vertical velocity was `-4.93 m/s`, and approach speed was
-  `6.744 m/s`. Only the previous `7 m/s` approach threshold rejected this
-  attempt. The Perfect Impact candidate lowers the approach threshold from
-  `7 m/s` to `5.5 m/s`.
-- A later live Lox contact qualified at `-6.955 m/s` vertical speed and
-  `7.967 m/s` approach speed. It applied `1.15x` native damage and `3x` native
-  stagger. The top-left confirmation was not visible even though its diagnostic
-  claimed `feedback=placed`; that presentation path is rejected. The current
-  candidate requests the confirmation through native world text instead.
-- Gameplay still must prove all of the following:
 
-  - Grounded, rising, and insufficient-approach contacts remain native.
-  - Native world text makes `PERFECT IMPACT` visible once at the struck
-    character, including when Benheim FX is off.
-  - Combat Shake and Benheim FX settings gate only the shake.
+Ben accepted Perfect Impact after live testing in `0.1.80`. He confirmed that
+qualifying contacts apply the damage and stagger modifiers, nonqualifying
+contacts remain native, and one `PERFECT IMPACT` world-text message appears.
+Combat Shake and Benheim FX control only the optional shake.

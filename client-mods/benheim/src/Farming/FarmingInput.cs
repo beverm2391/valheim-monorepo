@@ -16,4 +16,5 @@ internal static class FarmingInput
             || Input.GetKey(KeyCode.JoystickButton4)
             || ZInput.GetKey(KeyCode.JoystickButton4);
     }
+
 }

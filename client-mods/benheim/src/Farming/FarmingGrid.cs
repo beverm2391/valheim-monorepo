@@ -23,25 +23,32 @@ internal readonly struct FarmingGridPoint
 
 internal static class FarmingGrid
 {
-    internal static List<FarmingGridPoint> Build(Vector3 origin, Plant plant, Quaternion rotation)
+    internal static List<FarmingGridPoint> Build(
+        Vector3 origin,
+        float spacing,
+        Quaternion rotation,
+        int size)
     {
-        float spacing = plant.m_growRadius * 2f;
+        if (!FarmingGridSelection.IsAllowed(size))
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(size), size, "Planting grids must use an allowed odd size.");
+        }
+
         Vector3 left = rotation * Vector3.left * spacing;
         Vector3 forward = rotation * Vector3.forward * spacing;
         Vector3 rowOrigin = origin
-            - forward * (FarmingSettings.GridLength / 2)
-            - left * (FarmingSettings.GridWidth / 2);
+            - forward * (size / 2)
+            - left * (size / 2);
 
-        var points = new List<FarmingGridPoint>(FarmingSettings.GridWidth * FarmingSettings.GridLength);
+        var points = new List<FarmingGridPoint>(size * size);
         int index = 0;
-        for (int row = 0; row < FarmingSettings.GridLength; row++)
+        for (int row = 0; row < size; row++)
         {
             Vector3 position = rowOrigin;
-            for (int column = 0; column < FarmingSettings.GridWidth; column++)
+            for (int column = 0; column < size; column++)
             {
                 position.y = ZoneSystem.instance.GetGroundHeight(position);
-                bool isAnchor = row == FarmingSettings.GridLength / 2
-                    && column == FarmingSettings.GridWidth / 2;
+                bool isAnchor = row == size / 2 && column == size / 2;
                 points.Add(new FarmingGridPoint(index++, row, column, position, isAnchor));
                 position += left;
             }

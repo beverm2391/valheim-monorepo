@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Affinities/AffinityApplication.cs" Link="AffinityApplication.cs" />
+    <Compile Include="../../src/Affinities/AffinityCatalog.cs" Link="AffinityCatalog.cs" />
+    <Compile Include="../../src/Affinities/AffinityState.cs" Link="AffinityState.cs" />
+    <Compile Include="../../src/Affinities/SnipeRules.cs" Link="SnipeRules.cs" />
+    <Compile Include="../../src/Affinities/SnipeRuntime.cs" Link="SnipeRuntime.cs" />
+    <Compile Include="../../src/Affinities/AffinityRules.cs" Link="AffinityRules.cs" />
+    <Compile Include="../../src/Affinities/AffinityPresentation.cs" Link="AffinityPresentation.cs" />
+  </ItemGroup>
+</Project>

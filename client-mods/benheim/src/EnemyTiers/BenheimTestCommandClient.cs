@@ -1,4 +1,6 @@
 using BenheimQoL.Infrastructure;
+using BenheimQoL.Affinities;
+using BenheimQoL.ValheimDev;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,7 +17,6 @@ internal static class BenheimTestCommandClient
     private static Minimap? hengeOverlayMinimap;
     private static string? pendingHengeOperationId;
     private static float pendingHengeRequestedAt;
-
     internal static void InitializeConsole()
     {
         if (commandRegistered)
@@ -31,18 +32,14 @@ internal static class BenheimTestCommandClient
             isNetwork: true);
         commandRegistered = true;
     }
-
     internal static void Update()
     {
-        CharacterColliderOverlay.Update();
         EnsureResultRpcRegistered();
         ExpireUnansweredRequests(Time.realtimeSinceStartup);
         ExpireHengeRequest(Time.realtimeSinceStartup);
     }
-
     internal static void Reset()
     {
-        CharacterColliderOverlay.Reset();
         ClearHengeOverlay();
         registeredServerRpc = null;
         PendingOperations.Clear();
@@ -50,7 +47,6 @@ internal static class BenheimTestCommandClient
         pendingHengeOperationId = null;
         pendingHengeRequestedAt = 0f;
     }
-
     private static object Execute(Terminal.ConsoleEventArgs args)
     {
         if (BoarTestCommandProtocol.IsHelpRequest(args.Args))
@@ -59,15 +55,9 @@ internal static class BenheimTestCommandClient
             return true;
         }
 
-        if (CharacterColliderOverlay.TryExecute(args.Args, args.Context))
-        {
-            return true;
-        }
+        if (ValheimDevRuntime.TryHandleConsole(args.Args, args.Context)) return true;
 
-        if (RuntimePrimitiveCatalogCommand.TryExecute(args.Args, args.Context))
-        {
-            return true;
-        }
+        if (AffinityDebugCommand.TryExecute(args.Args, args.Context)) return true;
 
         if (HengeOverlayProtocol.TryParse(args.Args, out bool hengeEnabled))
         {
@@ -118,9 +108,8 @@ internal static class BenheimTestCommandClient
         context.AddString("  0 = unstarred, 1 = one star, 2 = two stars");
         context.AddString($"  {HengeOverlayProtocol.Usage}");
         context.AddString("  locally show or remove every native Yagluth-henge candidate");
-        context.AddString("  bh debug colliders on|off");
-        context.AddString("  locally show live capsules for nearby non-player Characters");
-        RuntimePrimitiveCatalogCommand.PrintUsage(context);
+        AffinityDebugCommand.PrintUsage(context);
+        ValheimDevRuntime.PrintUsage(context);
     }
 
     private static bool EnsureResultRpcRegistered()

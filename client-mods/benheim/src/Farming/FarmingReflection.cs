@@ -44,6 +44,11 @@ internal static class FarmingReflection
         return (float)(GetPlaceDurabilityMethod.Invoke(player, new object[] { tool }) ?? 0f);
     }
 
+    internal static ItemDrop.ItemData? GetRightItem(Player player)
+    {
+        return GetRightItemMethod.Invoke(player, Array.Empty<object>()) as ItemDrop.ItemData;
+    }
+
     internal static void ApplyBuildSkill(Player player, PieceTable? pieceTable)
     {
         if (pieceTable is null || pieceTable.m_skill == Skills.SkillType.None)

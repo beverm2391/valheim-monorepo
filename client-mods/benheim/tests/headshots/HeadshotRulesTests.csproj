@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Archery/HeadshotRules.cs" Link="HeadshotRules.cs" />
+    <Compile Include="../../src/Affinities/SnipeRules.cs" Link="SnipeRules.cs" />
   </ItemGroup>
 </Project>

@@ -150,6 +150,7 @@ technical cost.
 | [Repair](src/Repair/PRODUCT.md) | Batch gear repair and nearby building repair. |
 | [Interaction](src/Interaction/PRODUCT.md) | Less fussy interaction and station range. |
 | [Portals](src/Portals/PRODUCT.md) | Faster transitions after the destination is ready. |
+| [World Labels](src/WorldLabels/PRODUCT.md) | Make existing sign text and portal destinations readable at a glance. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
 | [Woodcutting](src/Woodcutting/PRODUCT.md) | Skill-based cleave for trees and logs. |
 | [Player Combat](src/PlayerCombat/PRODUCT.md) | Reward skilled and bold play with adrenaline and earned combat states. |
@@ -158,19 +159,21 @@ technical cost.
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and Cultivator grid planting. |
 | [Spawning](src/Spawning/PRODUCT.md) | Adjust spawn opportunities for selected native creatures. |
 | [Enemy Tiers](src/EnemyTiers/PRODUCT.md) | Extend native stars and creature behavior with coherent mechanical and AI variation. |
-| [Affinities](src/Affinities/PRODUCT.md) | Create weapon variation through existing combat properties and meaningful tradeoffs. |
+| [Affinities](src/Affinities/PRODUCT.md) | Specialize existing weapons with new combat actions and persistent tradeoffs. |
 | [Weapon Rhythm](src/WeaponRhythm/PRODUCT.md) | Reward weapon mastery through timing, charge, cadence, spacing, and existing animations. |
+| [Wisp Echo](src/WispEcho/PRODUCT.md) | Pulse nearby threats through Mistlands mist without revealing them through solid cover. |
 | [Combat Feedback](src/CombatFeedback/PRODUCT.md) | Add local bow focus and restrained camera response to existing Benheim outcomes. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 | [Ship Sprint](src/ShipSprint/PRODUCT.md) | Boost native forward ship thrust while the controlling player holds Valheim's Run control. |
+| [Developer Diagnostics](src/DeveloperDiagnostics/PRODUCT.md) | Always keep evidence of important gameplay outcomes. Let developers discover and control limited in-game probes, with clear status, when they need more detail. |
 
 `Infrastructure` contains shared implementation support and has no independent
 player-facing promise.
 
 ## Current Behavior
 
-Benheim `0.1.52` is the current stable client. Ben gameplay-tested this combined
-client and accepted it as stable. That session confirms only the behavior Ben
+Ben gameplay-tested the combined `0.1.52` client and accepted it as stable in
+that session. That session confirms only the behavior Ben
 exercised. It does not prove feature-specific multiplayer, ownership,
 installer, or rare failure paths that the session did not exercise.
 
@@ -193,25 +196,58 @@ readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 Features listed under **In Development** in the module documents still need
 gameplay proof or fixes.
 
-Benheim `0.1.70` is the current private-test candidate. It keeps the Kill
-Attribution V3 capability boundary and the 6/12 kill-chain thresholds from
-`0.1.66`. Server-confirmed qualifying hostile kills now advance the shared,
-untimed UNTOUCHABLE streak. Bounded typed telemetry records the actual payloads
-for CLUTCH, UNTOUCHABLE, BERSERKER, and SLAUGHTERHOUSE.
+[Product Review](../../PRODUCT_REVIEW.md) identifies the installed version and
+what Ben can test. The feature modules own candidate behavior and acceptance;
+this overview does not track package or installation history.
+
+The candidate also corrects the [Player Combat](src/PlayerCombat/PRODUCT.md)
+earned-state activation cue. Compatible nearby players may hear the cue, but
+distant players must not hear it.
+
+[Affinities](src/Affinities/PRODUCT.md) owns weapon eligibility, application,
+playtest exceptions, and each affinity's mechanics and acceptance.
+
+The candidate doubles only native Workbench and Stonecutter build-piece
+placement coverage. In installed Valheim `0.221.12`, both level-1 stations have
+a native 20-meter build radius. The candidate doubles each build radius to 40
+meters. Benheim includes native Workbench extension contributions when it
+resolves the range, then doubles the total. The [Interaction
+module](src/Interaction/PRODUCT.md) defines the exact client-only boundary and
+gameplay proof requirements.
 
 The candidate includes Ship Sprint's first `3x` native-thrust tuning. Holding
 Valheim's logical Run control at the helm boosts forward paddle, half sail, and
-full sail. Reverse and every other native ship rule remain unchanged. The
-[Ship Sprint module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live
-proof gates.
+full sail. At the helm, the local player sees a compact readout directly below
+Valheim's native wind UI on the right. The readout stays upright on the screen
+and follows that UI at every supported resolution and UI scale. It shows the
+ship's planar world speed. It shows `SPRINT` only after Benheim accepts the local
+player's Ship Sprint request and while that request remains active. Reverse and
+every other native ship rule remain unchanged. The [Ship Sprint
+module](src/ShipSprint/PRODUCT.md) owns its multiplayer and live proof gates.
 
-The candidate also lets a player manually collect native Tar while the Tar is
-submerged in a tar pit. Only manual interaction with native Tar changes. Tar
-auto-pickup and every other submerged item remain native.
+The candidate includes the command set from the [Developer
+Diagnostics](src/DeveloperDiagnostics/PRODUCT.md) module. The `bhcatalog`
+command inspects the effects, text, and UI catalogs while Valheim is running.
+The `bhrun comfort` command records and prints one native comfort calculation
+without changing the player, furniture, or world. The `bhwatch colliders`
+command controls the temporary collider overlay for the current session and is
+off by default. The generic event-probe registry also includes the bounded
+`spawns` population probe, which is enabled by default.
+
+The candidate also adds the [Farming](src/Farming/PRODUCT.md) module's native
+plantable berry bushes and the [World Labels](src/WorldLabels/PRODUCT.md)
+module's sign glow and high-contrast portal labels. Native Raspberry,
+Blueberry, and Cloudberry bushes use the candidate's deterministic
+4,000-to-5,000-second yield timing. Player-planted bushes use native Hammer
+removal and return five matching berries. Those modules own the unproven
+behavior and live acceptance gates.
+
+The candidate also lets a player manually or automatically collect ordinary
+items submerged in a native tar pit. Native pickup range, capacity, carry
+weight, ownership, effects, and failure behavior remain unchanged.
 The [Interaction module](src/Interaction/PRODUCT.md) owns the exact behavior
 and live proof gate.
 
-The candidate also changes the Cultivator's centered grid from 5x5 to 9x9.
 Perfect Impact now qualifies only at the first `Character` contact authored for
 the attack. That contact requires horizontal approach speed of at least `5.5
 m/s`. A live Lox contact proved the `1.15x` native damage and `3x` native
@@ -238,8 +274,9 @@ not require Server Support. See the root [Gameplay
 Breakdown](../../PRODUCT.md#gameplay-breakdown) for the exact client and server
 versions and compatibility boundary.
 
-A live test still must prove runtime catalog command visibility and local
-snapshot cleanup.
+The [Developer Diagnostics module](src/DeveloperDiagnostics/PRODUCT.md) owns
+the remaining live tests for the new command families, the snapshots, and the
+watcher.
 
 Configured private-test builds start with sharing enabled, and the first run
 explains what the build shares. A live test still must prove that turning

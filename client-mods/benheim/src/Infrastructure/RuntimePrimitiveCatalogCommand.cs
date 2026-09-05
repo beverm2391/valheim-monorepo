@@ -12,47 +12,32 @@ internal static class RuntimePrimitiveCatalogCommand
     private const int MaximumSnapshotEntries = 2000;
     private const int ConsolePreviewEntries = 20;
 
-    internal static bool TryExecute(string[] arguments, Terminal context)
+    internal static void Run(
+        RuntimePrimitiveCatalogCategory category,
+        string[] arguments,
+        Action<string> output)
     {
-        if (!RuntimePrimitiveCatalogRequest.HasCatalogPrefix(arguments))
+        if (!RuntimePrimitiveCatalogRequest.TryCreate(
+                category,
+                arguments,
+                out RuntimePrimitiveCatalogRequest request))
         {
-            return false;
-        }
-
-        if (!RuntimePrimitiveCatalogRequest.TryParse(arguments, out RuntimePrimitiveCatalogRequest request))
-        {
-            PrintUsage(context);
-            return true;
+            output("Usage: bhcatalog <effects|text|ui> [filter]");
+            return;
         }
 
         if (!TryRequireReady(request.Category, out string readinessFailure))
         {
-            context.AddString($"Benheim runtime catalog unavailable: {readinessFailure}");
-            return true;
+            output($"Benheim runtime catalog unavailable: {readinessFailure}");
+            return;
         }
 
-        try
-        {
-            List<RuntimePrimitiveRecord> source = RuntimePrimitiveCatalog.Create(request.Category);
-            RuntimePrimitiveCatalogSelection selection =
-                RuntimePrimitiveCatalogSelection.Create(source, request.Filter, MaximumSnapshotEntries);
-            string path = Path.Combine(Paths.BepInExRootPath, SnapshotFileName);
-            WriteSnapshot(path, request, selection);
-            PrintSummary(context, request, selection, path);
-        }
-        catch (Exception exception)
-        {
-            context.AddString(
-                $"Benheim runtime catalog failed: {Diagnostics.Flatten(exception.Message)}");
-        }
-
-        return true;
-    }
-
-    internal static void PrintUsage(Terminal context)
-    {
-        context.AddString($"  {RuntimePrimitiveCatalogRequest.Usage}");
-        context.AddString("  write one local live-runtime snapshot; filter matches stable identities and fields");
+        List<RuntimePrimitiveRecord> source = RuntimePrimitiveCatalog.Create(request.Category);
+        RuntimePrimitiveCatalogSelection selection =
+            RuntimePrimitiveCatalogSelection.Create(source, request.Filter, MaximumSnapshotEntries);
+        string path = Path.Combine(Paths.BepInExRootPath, SnapshotFileName);
+        WriteSnapshot(path, request, selection);
+        PrintSummary(output, request, selection, path);
     }
 
     private static bool TryRequireReady(
@@ -99,7 +84,7 @@ internal static class RuntimePrimitiveCatalogCommand
     }
 
     private static void PrintSummary(
-        Terminal context,
+        Action<string> output,
         RuntimePrimitiveCatalogRequest request,
         RuntimePrimitiveCatalogSelection selection,
         string path)
@@ -107,24 +92,24 @@ internal static class RuntimePrimitiveCatalogCommand
         string filterSummary = request.Filter.Length == 0
             ? "no filter"
             : $"filter={request.Filter}";
-        context.AddString(
+        output(
             $"Benheim runtime catalog {CategoryName(request.Category)}: " +
             $"source={selection.SourceCount} matched={selection.Matches.Count} written={selection.WrittenCount} {filterSummary}");
-        context.AddString($"Local snapshot: {path}");
+        output($"Local snapshot: {path}");
 
         int previewCount = Math.Min(selection.WrittenCount, ConsolePreviewEntries);
         for (int index = 0; index < previewCount; index++)
         {
-            context.AddString($"  {selection.Matches[index].ToConsoleLine()}");
+            output($"  {selection.Matches[index].ToConsoleLine()}");
         }
 
         if (selection.WrittenCount > previewCount)
         {
-            context.AddString($"  ... {selection.WrittenCount - previewCount} more in the local snapshot");
+            output($"  ... {selection.WrittenCount - previewCount} more in the local snapshot");
         }
         if (selection.Matches.Count > selection.WrittenCount)
         {
-            context.AddString(
+            output(
                 $"  snapshot capped at {MaximumSnapshotEntries}; use a filter to inspect the remaining matches");
         }
     }

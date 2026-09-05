@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/WorldLabels/PortalLabelController.cs" Link="PortalLabelController.cs" />
+    <Compile Include="../../src/WorldLabels/PortalLabelDiagnostics.cs" Link="PortalLabelDiagnostics.cs" />
+    <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
+    <Compile Include="../../src/WorldLabels/PortalSignVisualFactory.cs" Link="PortalSignVisualFactory.cs" />
+    <Compile Include="../../src/WorldLabels/WorldLabelRuntime.cs" Link="WorldLabelRuntime.cs" />
+    <Compile Include="../../src/WorldLabels/WorldLabelStyle.cs" Link="WorldLabelStyle.cs" />
+  </ItemGroup>
+</Project>

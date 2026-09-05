@@ -1,94 +1,156 @@
 # Product Review
 
-This is the live acceptance queue for Benheim behavior under test. The owning
-`PRODUCT.md` defines canonical behavior. A behavior is canonical only when that
-document lists it under **Current Behavior**.
+Open product questions and remaining playtests for Benheim.
 
-> **Tomorrow:** Talk through the operator-config papercuts from the `0.1.66`
-> integration. The secret check first used the wrong scope instead of Doppler
-> `valheim`/`prd`, and server status first selected the ignored `server.env`
-> that the password guard rejects. This is only a reminder. Do not start cleanup
-> before Ben and the project lead discuss it.
+Installed on Ben's Mac: **0.1.88**.
 
-## Current candidate
+Grid selection, planting, berry cycles, and portal text fitting record
+diagnostics without enabling a probe.
 
-- Accepted client baseline: `0.1.52`
-- Installed private-test client: `0.1.70`
-- Deployed Server Support: `0.1.6`
-- Deployed Test Commands: `0.1.2`
-- Required Server Support for this pass: `0.1.6`
-- Required group version for this pass: Benheim `0.1.70`
+## Remaining checks
 
-## Test now on installed `0.1.70`
+- **Valheim Dev live loop:**
+  1. Launch Benheim 0.1.88 and enter the disposable local single-player Lab
+     world.
+  2. Hover the Affinity weapon icon in your inventory or hotbar. Run `bh lab
+     on`, then tell Codex that the Lab is ready.
+  3. Codex inspects the hovered icon, installs one `affinity.weapon-icon`
+     variant, replaces it with another, and removes the final change.
+  4. Confirm that both variants appear. After removal, confirm that the original
+     icon returns and Valheim Dev does not report `restart_required`.
+  5. Run `bh lab off`. Ask Codex to try another live operation, and confirm that
+     Valheim Dev rejects it.
 
-- **Perfect defense:** one qualifying parry gives one confirmation, adrenaline
-  award, and UNTOUCHABLE point; food normalization preserves the streak while
-  accepted damage and intentional health costs reset it.
-- **Earned combat states:** below 30 health, a perfect parry or dodge activates
-  CLUTCH with its title, icon, and charm cue. Six qualifying kills activate
-  BERSERKER; twelve within 30 seconds replace it with SLAUGHTERHOUSE. Later
-  kills refresh the state, and a 30-second gap expires it. Mix confirmed kills
-  and perfect defenses through each UNTOUCHABLE tier; transitions and measured
-  payloads must match the owning combat products.
-- **Capability warning:** join through Kill Attribution V3 discovery; the
-  warning must clear after the matching response.
-- **Non-Cooking craft:** craft one ordinary station item; native bonus behavior
-  remains and the exclusion outcome is recorded.
-- **Diagnostics sharing:** confirm sharing starts on, then turn it off. Remote
-  forwarding stops while local logs continue, and a shared event remains
-  queryable through the existing provider path.
-- **Developer tools:** exercise the ready/not-ready runtime catalogs and
-  collider-off cleanup; failures must be visible and catalog data must remain
-  local.
-- **Henge persistence:** after the accepted on/off commands, reconnect; no henge
-  pins may persist.
-- **Headshots and shake:** hit the refined head/body boundary and compare the
-  headshot, Cleave, and mining AOE shake with ordinary impacts. Accept if the
-  boundary is coherent and each shake feels distinct.
-- **Grouped receipts:** overlap Put Away, Mass Repair, pocketing, and a native
-  top-left message; every result must remain readable and distinct.
-- **Remote-owner Put Away:** with two clients, split a partial-capacity deposit
-  through a remote-owned chest, then deposit disjoint items whose owner results
-  arrive out of order; both clients must converge on the same chest and
-  inventory contents.
-- **Native boundaries:** exercise DANGEROUS/DEADLY FX gating, the 20 m comfort
-  boundary across rooms and floors, empty/nearly-full remote Windmills and
-  Shield Generators, and Stone Oven timing. Accept if native gating, range,
-  timing, and capacity remain unchanged.
-- **Input and repair denials:** press `/` during chat/menu input and exercise
-  Mass Repair denial and exhaustion cases. Accept if each invalid action is
-  rejected visibly without opening the console or changing native behavior.
+- **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
+  Huntsman Bow at any native quality. Confirm its inventory title and
+  description, the disabled same-affinity action, and persistence after storage
+  and reconnect.
+  Other bows must remain ineligible. Native upgrades may erase the affinity;
+  confirm that it can be applied again afterward.
+- **Snipe handling:** Draw, fire, and cancel with Bow Focus and Benheim FX off.
+  Confirm useful 3x zoom, soft edges that darken with draw progress, a clear
+  center, and an immediate return to normal view. Compare with an ordinary
+  Huntsman Bow: Snipe should take 25% longer to reach full draw while keeping
+  native partial shots and stamina use. Check the close-range tradeoff by feel.
+- **Snipe headshots:** Land headshots near 20 m, 40 m, and 60 m. Confirm total
+  multipliers of 1.25x, 1.75x, and 2.25x, including a partial draw and an arrow
+  that hits after switching weapons. Body shots, native WeakSpots, and ammo
+  effects must retain their normal behavior.
+- **Cleave tree lifecycle:** Chop a standing tree and the new log and log
+  halves. Confirm normal primary and nearby Cleave hits without tree-lifecycle
+  errors.
+- **Wisp discovery:** Run `bhrun wispecho` in a loaded world. Confirm a bounded
+  discovery summary and matching detailed diagnostics. This build adds no
+  mead, Wisp Echo rendering, or cyan highlights.
 
-- **Menu:** open `Left Shift + B`; confirm the organized, detailed catalog adds
-  manual submerged-Tar collection, Ship Sprint, and Perfect Impact, says
-  qualifying kills advance UNTOUCHABLE, and names Perfect Impact under Combat
-  Shake.
-- **Tar:** manually collect submerged small native Tar and loose Tar. Native
-  manual interaction remains unchanged; non-Tar stays stuck, and Tar never
-  auto-picks up.
-- **Ship Sprint:** hold Run at paddle, half sail, and full sail for `3x` native
-  thrust; release, helm exit, and reverse return immediately to native behavior.
-  With two clients, verify non-owner control and owner handoff apply one boost
-  only from the current physics owner.
-- **Put Away timing:** deposit one inventory across several chests. It should
-  feel meaningfully faster than `0.1.69` with no loss, duplication, or stuck
-  batch; inspect existing timing diagnostics only if it still feels slow.
-- **Perfect Impact:** repeat a qualifying Lox contact with FX on and off. One
-  `PERFECT IMPACT` appears through native world text at the struck character and
-  contact point; non-qualifying contacts stay native, and only the optional
-  shake follows Combat Shake/FX settings.
-- **Mass planting:** preview and place the centered 9x9 grid. Placement remains
-  native, and each successful plant costs half the native stamina.
+- **Earned-state audio:** In multiplayer, trigger an earned combat state near
+  one compatible player and far from another. The nearby player may hear the
+  native charm cue. The distant player must not hear it.
 
-## Needs bounded probe or code later
+- **Workbench and Stonecutter range:** Place a Workbench-required piece around
+  22 m and 38 m from an isolated level-1 Workbench. Confirm that placement fails
+  beyond 40 m. Repeat with a Stonecutter-required piece. Station use, crafting,
+  repair, and upgrades must keep their normal Valheim behavior.
+- **Sailing:** While steering, confirm the upright speed gauge sits directly
+  below Valheim's native wind UI on the right and follows that UI. It must show
+  planar speed and disappear when you leave the helm. Hold Run at forward
+  throttle. Confirm that `SPRINT` appears and `3x` thrust applies. Release Run,
+  reverse the throttle, and leave the helm. Each action must restore normal
+  Valheim behavior.
+- **Developer command discovery:** In Valheim's built-in console, confirm that
+  the console completes the first argument for each command: `bhcatalog`,
+  `bhrun`, and `bhwatch`. Run the effects, text, and UI catalog commands.
+  Confirm that each snapshot returns a result within its defined limit and
+  leaves no temporary state in the running game.
+- **Leech spawning:** The interval between Leech spawn opportunities is
+  confirmed at one-fifth of normal. A successful adjusted spawn and a
+  zone-owner transfer remain unproven.
+  Stay in an active Swamp zone until one logged
+  success records source `base_world`, prefab `Leech`, and multiplier `5`. Then
+  transfer zone ownership to another compatible client and confirm that the
+  same behavior continues.
 
-- **Starred Boars:** add one command-armed, time-bounded session for nearby
-  zero-, one-, and two-star Boars. Compare first-alert distance/time, pursuit,
-  charge movement/turning, and routine-hit, heavy-hit, Boar-shove, and Perfect
-  Impact displacement. Record completion or an explicit incomplete reason for
-  gates, slopes, water, or lost paths. Emit one terminal summary per Boar with
-  no per-frame events, clear observers on exit, and have Ben judge gameplay feel
-  and whether skilled counters remain useful.
-- **Leech opportunity:** use a bounded simulation or command-armed window to
-  prove the three-times-as-frequent opportunity rate from eligible checks,
-  owners, rolls, and outcomes; emit one summary instead of permanent logging.
+- **Tar-pit pickup:** Manual pickup of submerged Tar worked, but other items
+  remained stuck and auto-pickup failed. Valheim disables auto-pickup for items
+  dropped from inventory. Use naturally dropped loot for auto-pickup checks.
+  Retest the correction with native Tar, Stone, and one other ordinary item in
+  a native tar pit. Confirm that each item supports normal manual pickup and
+  normal auto-pickup. Confirm that
+  native range, inventory-space, carry-weight, and ownership failures still
+  block collection normally.
+
+- **Farming and Cultivator grids:** Open the Cultivator picker and confirm that
+  5x5 is highlighted. Click each size: 1x1, 3x3, 5x5, 7x7, and 9x9. The picker
+  must stay open and highlight the chosen size. Close it, then hold `Left Shift`
+  to preview and plant the selected grid. Reopen the picker and confirm the
+  default returns to 5x5. The Hammer picker must have no grid-size row, and
+  number keys must keep their native behavior. Default-on logs must explain
+  each click, any rejection, and the size used by preview and placement.
+  Planting stamina can still be tested: place one plant normally, then use
+  `Left Shift` mass planting on an area containing valid and
+  invalid cells. Each successful normal or grid-cell placement must cost 25%
+  of the native stamina cost after Valheim applies the Farming skill adjustment.
+  A failed, skipped, or rejected placement must cost no stamina.
+- **Comfort summary:** The Comfort calculation is accepted. Test the shorter
+  output for Valheim's non-scrollable console. Run
+  `bhrun comfort`. Confirm that the console shows a short readable summary with
+  calculated comfort and counts for **Counted**, **Ignored**, and **Just outside
+  range**.
+  Confirm that complete per-piece evidence remains in typed diagnostics.
+- **Berry planting:** Raspberry placement worked. Ben accepted Hammer removal
+  with a five-berry refund. The new bush previously started with berries. We
+  still need to confirm that newly planted bushes start empty. Test the
+  remaining berry behavior:
+
+  - confirm ordinary Blueberry and Cloudberry placement and centered 9x9
+    placement for all three bushes;
+  - confirm that preview and placement use the same roomier berry spacing at
+    every grid size;
+  - confirm that each placement costs exactly five matching berries;
+  - confirm that each newly planted bush starts empty;
+  - confirm that Benheim assigns each planted or naturally spawned bush a wait
+    of 4,000 to 5,000 seconds before each yield, including the first yield of a
+    planted bush;
+  - use default-on logs to follow one bush's cycle start, chosen duration,
+    actual transition to harvestable, and harvest; distinguish a state seen on
+    loading from a transition observed while the bush was loaded;
+  - confirm unrelated `Pickable` objects keep native timing;
+  - use the Hammer to remove one player-planted Blueberry bush and one
+    player-planted Cloudberry bush; confirm that each returns exactly five
+    matching berries when native access and ward rules allow removal;
+  - confirm naturally spawned bushes cannot be removed with the Hammer and the
+    Cultivator removes no planted or naturally spawned berry bush;
+  - reload the save and confirm persistence; and
+  - in multiplayer, confirm shared placement and harvesting, creator ownership,
+    and reconnect behavior.
+- **Portal label text fitting:** The wooden sign style and placement are
+  accepted, but some tags wrapped below the board. Check short and
+  long tags on both sides, then rename one portal. The complete text must stay
+  readable inside the board without changing its style or placement.
+  Default-on logs must report fitting on both faces when a label is created or
+  changed, including overflow or missing components. Ben still judges
+  readability and appearance.
+- **Pine Finewood:** Destroy one native Pine log half. Confirm that it produces
+  15 native item drops. Confirm that none is ordinary Wood and that the drops
+  still include Core Wood. If a compatible peer is available, let a
+  non-owner deliver the final hit once and confirm the owner still converts the
+  drops.
+- **Club + Lunge Affinity:** Confirm that the Affinity tab shows Forge level `1`
+  in the native station-requirement slot and keeps Wood in the following
+  material slot. Choose a Club at any native quality without Lunge. Spend
+  1 Wood to apply Lunge. In the ordinary inventory, confirm that the weapon
+  title is `Club · Lunge` and its hover description preserves the native Club text while
+  adding Lunge's behavior and persistent bias. Switch from Affinity back to
+  Craft and Upgrade and confirm that each native tab returns unchanged. Move,
+  equip, store, and drop the Club, then reconnect. Confirm that the same Club
+  retains Lunge after every action. Grounded Club swings must remain native.
+  If a compatible peer is available, confirm that the peer sees the Lunge
+  movement.
+- **Developer probes:** Run `bhwatch` and confirm that `spawns` is enabled by
+  default and `colliders` is disabled by default. Confirm that `spawns` records
+  the registered Leech rule, bounded population changes, cap transitions, and a
+  low-frequency
+  heartbeat without changing spawn behavior. Enable `colliders` before each
+  independent cleanup check. Then test `off`, `default`, world exit, and logout.
+  Confirm that every path removes all overlay objects. Confirm that the default
+  state is disabled.

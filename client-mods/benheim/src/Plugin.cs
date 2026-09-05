@@ -1,7 +1,9 @@
 using System;
+using System.Threading;
 using BepInEx;
 using BepInEx.Logging;
 using BenheimQoL.CombatFeedback;
+using BenheimQoL.DeveloperDiagnostics;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.InventoryFeature;
 using BenheimQoL.Farming;
@@ -11,6 +13,9 @@ using BenheimQoL.Shortcuts;
 using BenheimQoL.PlayerCombat;
 using BenheimQoL.KillAttribution;
 using BenheimQoL.ShipSprint;
+using BenheimQoL.WorldLabels;
+using BenheimQoL.Affinities;
+using BenheimQoL.ValheimDev;
 using HarmonyLib;
 using UnityEngine;
 
@@ -21,7 +26,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.70";
+    public const string PluginVersion = "0.1.88";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -32,14 +37,21 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
         Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
+        FarmingGridPicker.Reset();
+        LungeRuntime.ResetSession();
         PlayerCombatRuntime.BeginSession();
         DiagnosticsSharingSettings.Initialize(Config);
         RemoteDiagnostics.Begin(Paths.ConfigPath);
         DiagnosticsSharingSettings.ApplyLegacyPrivateTestDefault(
             RemoteDiagnostics.IsConfigured);
         BenheimTestCommandClient.InitializeConsole();
+        DeveloperDiagnosticsRuntime.InitializeConsole();
         BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();
+        ValheimDevRuntime.Initialize(
+            Paths.BepInExRootPath,
+            PluginVersion,
+            Thread.CurrentThread.ManagedThreadId);
         try
         {
             harmony = new Harmony(PluginGuid);
@@ -79,6 +91,9 @@ public sealed class Plugin : BaseUnityPlugin
         RemoteDiagnostics.Update();
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
+        DeveloperDiagnosticsRuntime.Update();
+        ValheimDevRuntime.Update();
+        FarmingGridPicker.Update();
         if (!HealthReporting.GameplayActionsEnabled)
         {
             return;
@@ -94,16 +109,21 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        ValheimDevRuntime.Revoke("plugin_teardown");
+        WorldLabelRuntime.Reset();
         ShipSprintRuntime.Reset("plugin_teardown");
         PlantingPreview.DestroyGhosts();
+        FarmingGridPicker.Reset();
         CombatFeedbackController.Reset();
         TopLeftFeedbackHud.Destroy();
         WildernessDangerPresentation.Reset();
+        DeveloperDiagnosticsRuntime.Reset();
         BenheimTestCommandClient.Reset();
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();
         RemoteDiagnostics.Reset();
         PlayerCombatRuntime.EndSession();
+        LungeRuntime.ResetSession();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         Diagnostics.EndSession();
         TryRemoveFailedPatches(logFailure: false);

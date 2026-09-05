@@ -2,6 +2,21 @@ using System;
 using System.IO;
 using BepInEx.Configuration;
 using BenheimQoL.CombatFeedback;
+using BenheimQoL.Affinities;
+
+foreach (float baseFov in new[] { 45f, 65f, 90f })
+{
+    float scopeFov = SnipeRules.ScopedFieldOfView(baseFov);
+    float magnification = (float)(Math.Tan(baseFov * Math.PI / 360)
+        / Math.Tan(scopeFov * Math.PI / 360));
+    ExpectClose(3f, magnification, "Snipe preserves 3x projection magnification across base FOVs");
+}
+ExpectClose(0f, SnipeRules.EdgeOpacity(0f, 0f), "Snipe center stays clear");
+ExpectClose(0f, SnipeRules.EdgeOpacity(0.5f, -0.5f), "Snipe central area stays clear");
+ExpectClose(1f, SnipeRules.EdgeOpacity(1f, 0f), "Snipe screen edge reaches full gradient");
+ExpectClose(0.5f, SnipeRules.EdgeOpacity(0.775f, 0f), "Snipe edge darkens smoothly");
+ExpectClose(SnipeRules.EdgeOpacity(0.8f, 0.6f), SnipeRules.EdgeOpacity(-0.8f, -0.6f),
+    "Snipe edges are symmetric");
 
 ExpectClose(0f, CombatFeedbackTuning.FocusReduction(0f), "no draw keeps native FOV");
 ExpectClose(3.5f, CombatFeedbackTuning.FocusReduction(0.5f), "half draw reaches eased midpoint");

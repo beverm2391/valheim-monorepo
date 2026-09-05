@@ -1,3 +1,4 @@
+using BenheimQoL.Affinities;
 using BenheimQoL.Archery;
 using BenheimQoL.Farming;
 using BenheimQoL.InventoryFeature;
@@ -48,24 +49,41 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
-                new Entry("Left Shift + plant", $"Plant a centered {FarmingSettings.GridWidth}x{FarmingSettings.GridLength} grid"),
+                new Entry("Click a grid size", "Choose 1x1, 3x3, 5x5, 7x7, or 9x9 in the Cultivator picker; the picker stays open and highlights your choice"),
+                new Entry("Left Shift + plant", $"Plant the centered selected grid (defaults to {FarmingSettings.DefaultGridSize}x{FarmingSettings.DefaultGridSize} each time the picker opens)"),
+                new Entry("Cultivator berries", $"Plant native Raspberry, Blueberry, and Cloudberry bushes for {PlantableBerries.BerryCost} matching berries each"),
+                new Entry("Hammer berries", $"Remove a player-planted berry bush when native access and ward rules allow it; receive {PlantableBerries.BerryCost} matching berries"),
             },
-            "Successful planting costs 50% of Valheim's native stamina; resource, spacing, and cultivated-ground rules stay native."),
+            $"Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved. Skipped, failed, and rejected placements cost no stamina. Ordinary crop spacing and planting restrictions stay unchanged. Berry bushes need ordinary ground. They do not need cultivated ground or a matching biome. Newly planted bushes start empty. Benheim assigns native Raspberry, Blueberry, and Cloudberry bushes a new {PlantableBerries.BerryRespawnMinimumSeconds:N0} to {PlantableBerries.BerryRespawnMaximumSeconds:N0} second wait before each yield. Naturally spawned bushes cannot be removed with the Hammer, and the Cultivator removes no berry bushes. Berry grids give bushes twice the previous spacing in both preview and placement at every grid size. Existing bushes stay in place."),
     };
 
     private static readonly Section[] FeatureSections =
     {
         new(
+            "Building",
+            new Color(1f, 0.58f, 0.36f, 1f),
+            new[]
+            {
+                new Entry(
+                    "Station coverage",
+                    "Workbench and Stonecutter build-piece placement coverage is 2× Valheim's native range (20 m to 40 m for level-1 stations)"),
+            },
+            "Crafting, repair, station interaction, Workbench suppression, enemy spawning, and all other station behavior stay native."),
+        new(
             "World & Travel",
             TravelAccent,
             new[]
             {
-                new Entry("Extended reach", "Use interactable objects from up to 8 m; open containers stay available to 10 m"),
-                new Entry("Tar pickup", "Manually collect native Tar while submerged; auto-pickup and other submerged items remain stuck"),
+                new Entry("Extended reach", "Use Feasts and other interactable objects at up to 8 m. Open containers remain available at up to 10 m"),
+                new Entry("Tar-pit pickup", "Manually pick up ordinary items submerged in native tar pits, or collect them with Valheim's normal auto-pickup"),
                 new Entry("Portal travel", "Finish the transition sooner after the destination is ready"),
+                new Entry("Glowing signs", "Existing sign letters have a soft, warm portal-amber glow. The wooden board stays unchanged"),
+                new Entry(
+                    "Portal labels",
+                    "A visual-only Valheim wooden sign board floats 20–30 cm above each tagged wooden or stone portal, stays fixed to portal rotation instead of billboarding, shows the tag on both sides with glowing sign letters, and is naturally occluded by scene geometry"),
                 new Entry(
                     "Ship Sprint",
-                    $"Hold Run at the helm for ×{ShipSprintTuning.ThrustMultiplier:0.#} native thrust at paddle, half sail, and full sail; release, helm exit, and reverse stay native"),
+                    $"Hold Run at the helm for ×{ShipSprintTuning.ThrustMultiplier:0.#} native thrust at paddle, half sail, and full sail; the helm readout shows planar speed and marks SPRINT while requested"),
             },
             "These features reduce waiting and positioning friction without automating play. Every possible ship physics owner needs compatible Benheim."),
         new(
@@ -77,14 +95,46 @@ internal static partial class ShortcutOverlay
             },
             "Faster baking preserves Valheim's normal fuel use."),
         new(
-            "Skills",
+            "Gathering & Skills",
             new Color(1f, 0.48f, 0.54f, 1f),
             new[]
             {
                 new Entry("Rockbreaker", "Pickaxes adds scaling damage; crits and AOE unlock at level 25"),
                 new Entry("Cleave", "After level 25, axe hits can add one half-damage hit to the same tree or log"),
+                new Entry(
+                    "Finewood",
+                    "Native Birch, Oak, and Pine logs convert each final ordinary Wood drop to Finewood without changing each log's native item count or Valheim's spawn path"),
             },
-            "Skill-based effects grow through normal play without granting bonus drops."),
+            "The compatible client that owns the log converts its drops, including when another compatible client attacks. Native Finewood, Core Wood, and other non-Wood drops, other logs, standing-tree drops, stumps, damage-type conversions, and unrelated destruction stay native."),
+        new(
+            "Affinities",
+            new Color(0.86f, 0.54f, 1f, 1f),
+            new[]
+            {
+                new Entry(
+                    "Club + Lunge",
+                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Lunge).MaterialAmount} Wood to bind Lunge to one specific max-quality base-game Club"),
+                new Entry(
+                    "Airborne swing",
+                    $"A primary swing while airborne adds {LungeRuntime.DefaultForce:0.#} m/s forward and raises vertical velocity to at least +{LungeRuntime.MinimumVerticalVelocity:0.#} m/s; grounded Club swings stay native"),
+                new Entry(
+                    "Huntsman Bow + Snipe",
+                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Snipe).MaterialAmount} Wood to bind Snipe to one specific max-quality base-game Huntsman Bow"),
+                new Entry(
+                    "Test Affinity",
+                    $"At a level-1 Forge, spend {AffinityPresentation.RequirementsFor(AffinityLoadResult.Test).MaterialAmount} Wood to confirm that you can apply an Affinity to a supported weapon of any native quality. Test Affinity adds no gameplay power"),
+                new Entry(
+                    "Automatic scope",
+                    $"Drawing a Snipe bow smoothly gives {SnipeRules.OpticalZoom:0.#}x optical zoom by changing field of view. Soft edge darkening grows with the draw while the center stays clear. Both remain active with Bow Focus or Benheim FX off and clear almost instantly on release or cancel. Crosshair, camera position, and look sensitivity stay native. No toggle, circle mask, or range predictor"),
+                new Entry(
+                    "Slower draw",
+                    $"Snipe takes {(SnipeRules.DrawDurationMultiplier - 1f) * 100f:0.#}% longer to reach full draw after skill adjustment at every range. Partial draws and stamina use stay native; no extra movement or flat damage penalty"),
+                new Entry(
+                    "Snipe headshots",
+                    $"Total multiplier is ×{SnipeRules.NearMultiplier:0.##} through {SnipeRules.NearDistanceMeters:0.#} m, rising linearly to ×{SnipeRules.CapMultiplier:0.##} at {SnipeRules.CapDistanceMeters:0.#} m and beyond (×{(SnipeRules.NearMultiplier + SnipeRules.CapMultiplier) / 2f:0.##} at {(SnipeRules.NearDistanceMeters + SnipeRules.CapDistanceMeters) / 2f:0.#} m). This replaces the ordinary headshot multiplier. Full draw is not required; fired arrows keep Snipe after switching weapons. Body shots, native WeakSpots, and ammunition effects stay native"),
+            },
+            "Each Affinity stays with its exact item through saves, transfers, and drops. It appears in that item's inventory title and hover text. Every Affinity-bearing weapon shows the same subtle pulse on its sprite in the inventory and hotbar. Native slot indicators stay unchanged. You cannot toggle an Affinity off or remove it in the field. Uninstalling Benheim makes Affinities dormant, and reinstalling Benheim restores them.\n\n" +
+                "Applying or replacing an Affinity requires confirmation and a nonrefundable cost. Replacing an Affinity destroys the old one and all materials previously spent on it. You cannot apply an Affinity that the item already has. The current test costs are 1 Wood each. Affinities have no boss unlock. If a native upgrade erases an Affinity, apply it again afterward."),
         new(
             "Combat",
             new Color(1f, 0.48f, 0.54f, 1f),
@@ -92,7 +142,7 @@ internal static partial class ShortcutOverlay
             {
                 new Entry(
                     "Headshots",
-                    $"Bow arrows deal ×{HeadshotRules.NearMultiplier:0.##} through {HeadshotRules.NearDistanceMeters:0.#} m, scaling to ×{HeadshotRules.CapMultiplier:0.##} at {HeadshotRules.CapDistanceMeters:0.#} m"),
+                    $"Ordinary Bow arrows deal ×{HeadshotRules.NearMultiplier:0.##} through {HeadshotRules.NearDistanceMeters:0.#} m, scaling to ×{HeadshotRules.CapMultiplier:0.##} at {HeadshotRules.CapDistanceMeters:0.#} m; Snipe uses the total curve in Affinities"),
                 new Entry(
                     "Perfect Impact",
                     $"While airborne, descend at least {-AirborneMeleeTuning.DescentThreshold:0.#} m/s and approach the contact horizontally at {AirborneMeleeTuning.ApproachSpeedThreshold:0.#} m/s: ×{AirborneMeleeTuning.DamageMultiplier:0.##} damage and ×{AirborneMeleeTuning.StaggerMultiplier:0.#} stagger"),
@@ -109,6 +159,9 @@ internal static partial class ShortcutOverlay
                 new Entry(
                     "SLAUGHTERHOUSE",
                     $"At {KillChainRules.SlaughterhouseKillThreshold} qualifying kills: 50% physical resistance and +100% stamina regeneration"),
+                new Entry(
+                    "Earned-state cue",
+                    "Compatible nearby players may hear the native charm audio; distant players cannot"),
             },
             $"Each qualifying kill resets the {KillChainRules.WindowSeconds:0}-second BERSERKER timer. " +
                 "BERSERKER, SLAUGHTERHOUSE, and kill-based UNTOUCHABLE progression require Benheim Server Support. " +
