@@ -4,4 +4,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>ValheimDevThrowing</AssemblyName>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../ValheimDevRuntimeTests.csproj" />
+  </ItemGroup>
 </Project>

@@ -13,31 +13,32 @@ const VALHEIM_HASH = "a".repeat(64);
 const BENHEIM_HASH = "b".repeat(64);
 const execFileAsync = promisify(execFile);
 
-export const SOURCE = "public static class ValheimDevExperiment { public static string Run() => \"ok\"; }";
+export const SOURCE = "public static class ValheimDevInspection { public static string Run() => \"ok\"; }";
+export const CHANGE_SOURCE = "public static class ValheimDevChange { public static string Run() => \"active\"; public static void Cleanup() { } }";
 
-export function lungeVariantSource(force) {
+export function iconVariantSource(variant) {
   return `using System;
 using System.Reflection;
 
-public static class ValheimDevExperiment
+public static class ValheimDevChange
 {
     private static MethodInfo setter;
-    private static float previousForce;
+    private static string previousVariant;
 
     public static string Run()
     {
-        Type runtime = Type.GetType("BenheimQoL.Affinities.LungeRuntime, BenheimQoL", true);
-        PropertyInfo forceProperty = runtime.GetProperty("Force", BindingFlags.Static | BindingFlags.NonPublic);
-        setter = runtime.GetMethod("TrySetForce", BindingFlags.Static | BindingFlags.NonPublic);
-        if (forceProperty == null || setter == null) return "missing_lunge_runtime";
-        previousForce = (float)forceProperty.GetValue(null);
-        bool applied = (bool)setter.Invoke(null, new object[] { ${force}f });
-        return "previous=" + previousForce + "; applied=" + applied + "; force=${force}";
+        Type runtime = Type.GetType("BenheimQoL.Affinities.IconRuntime, BenheimQoL", true);
+        PropertyInfo variantProperty = runtime.GetProperty("Variant", BindingFlags.Static | BindingFlags.NonPublic);
+        setter = runtime.GetMethod("SetVariant", BindingFlags.Static | BindingFlags.NonPublic);
+        if (variantProperty == null || setter == null) return "missing_icon_runtime";
+        previousVariant = (string)variantProperty.GetValue(null);
+        setter.Invoke(null, new object[] { "${variant}" });
+        return "previous=" + previousVariant + "; variant=${variant}";
     }
 
     public static void Cleanup()
     {
-        if (setter != null) setter.Invoke(null, new object[] { previousForce });
+        if (setter != null) setter.Invoke(null, new object[] { previousVariant });
     }
 }`;
 }
@@ -79,7 +80,7 @@ export async function installedDotnetReferenceSet(cscDll) {
   throw new Error("installed dotnet SDK has no reference pack for the offline compile proof");
 }
 
-export async function buildOfflineLungeHarness(root) {
+export async function buildOfflineIconHarness(root) {
   const fixtureDirectory = join(root, "offline-benheim-fixture");
   const runnerDirectory = join(root, "offline-experiment-runner");
   await mkdir(fixtureDirectory);
@@ -93,16 +94,15 @@ export async function buildOfflineLungeHarness(root) {
   </PropertyGroup>
 </Project>
 `);
-  await writeFile(join(fixtureDirectory, "LungeRuntime.cs"), `namespace BenheimQoL.Affinities;
+  await writeFile(join(fixtureDirectory, "IconRuntime.cs"), `namespace BenheimQoL.Affinities;
 
-internal static class LungeRuntime
+internal static class IconRuntime
 {
-    internal static float Force { get; private set; } = 10f;
+    internal static string Variant { get; private set; } = "baseline";
 
-    internal static bool TrySetForce(float force)
+    internal static void SetVariant(string variant)
     {
-        Force = force;
-        return true;
+        Variant = variant;
     }
 }
 `);
@@ -124,17 +124,17 @@ internal static class Program
     private static int Main(string[] args)
     {
         Assembly fixture = Assembly.LoadFrom(Path.GetFullPath(args[0]));
-        Type lunge = fixture.GetType("BenheimQoL.Affinities.LungeRuntime", true);
-        PropertyInfo force = lunge.GetProperty("Force", BindingFlags.Static | BindingFlags.NonPublic);
+        Type icon = fixture.GetType("BenheimQoL.Affinities.IconRuntime", true);
+        PropertyInfo variant = icon.GetProperty("Variant", BindingFlags.Static | BindingFlags.NonPublic);
         Assembly experiment = Assembly.LoadFrom(Path.GetFullPath(args[1]));
-        Type entry = experiment.GetType("ValheimDevExperiment", true);
+        Type entry = experiment.GetType("ValheimDevChange", true);
         MethodInfo run = entry.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);
         MethodInfo cleanup = entry.GetMethod("Cleanup", BindingFlags.Public | BindingFlags.Static);
-        float before = (float)force.GetValue(null);
+        string before = (string)variant.GetValue(null);
         string result = (string)run.Invoke(null, null);
-        float afterRun = (float)force.GetValue(null);
+        string afterRun = (string)variant.GetValue(null);
         cleanup.Invoke(null, null);
-        float afterCleanup = (float)force.GetValue(null);
+        string afterCleanup = (string)variant.GetValue(null);
         Console.WriteLine(fixture.GetName().Name + "|" + before + "|" + afterRun + "|" + afterCleanup + "|" + result);
         return 0;
     }
@@ -158,16 +158,16 @@ export async function executeOfflineVariant(harness, experimentAssembly) {
   const [fixtureName, before, afterRun, afterCleanup, result] = stdout.trim().split("|");
   return {
     fixtureName,
-    before: Number(before),
-    afterRun: Number(afterRun),
-    afterCleanup: Number(afterCleanup),
+    before,
+    afterRun,
+    afterCleanup,
     result,
   };
 }
 
 export async function writeDescriptor(root, reference, port, overrides = {}) {
   const descriptor = {
-    protocol: 1,
+    protocol: 2,
     session_id: randomUUID(),
     generation: randomUUID(),
     token: randomUUID(),
@@ -219,14 +219,31 @@ export async function startBridge(handler) {
 
 export function bridgeIdentity(descriptor, extra = {}) {
   return {
-    protocol: 1,
+    protocol: 2,
     ok: true,
+    error: null,
     session_id: descriptor.session_id,
     generation: descriptor.generation,
     valheim_version: descriptor.valheim_version,
     valheim_sha256: descriptor.valheim_sha256,
     benheim_version: descriptor.benheim_version,
     benheim_sha256: descriptor.benheim_sha256,
+    authorized: true,
+    restart_required: false,
+    active_changes: [],
+    ...extra,
+  };
+}
+
+export function managedChange(changeId = "affinity.weapon-icon", operationId = "working", extra = {}) {
+  return {
+    change_id: changeId,
+    operation_id: operationId,
+    source_sha256: "c".repeat(64),
+    assembly_sha256: "d".repeat(64),
+    installed_utc: "2026-09-04T00:00:00.000Z",
+    result: "active",
+    cleanup_state: "active",
     ...extra,
   };
 }

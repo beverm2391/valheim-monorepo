@@ -80,7 +80,7 @@ internal static class ValheimDevEligibility
     }
 }
 
-internal sealed class ValheimDevLoadedExperiment
+internal sealed class ValheimDevLoadedCode
 {
     internal MethodInfo Run { get; set; } = null!;
     internal MethodInfo? Cleanup { get; set; }
@@ -92,20 +92,15 @@ internal sealed class ValheimDevExecutionResult
     internal string? Result { get; set; }
     internal string? Exception { get; set; }
     internal string Error { get; set; } = string.Empty;
-    internal ValheimDevLoadedExperiment? LoadedExperiment { get; set; }
+    internal ValheimDevLoadedCode? LoadedCode { get; set; }
 }
 
-internal static class ValheimDevExperimentExecutor
+internal static class ValheimDevCodeExecutor
 {
-    internal static ValheimDevExecutionResult Execute(byte[] assemblyBytes, string entryType)
-    {
-        ValheimDevExecutionResult prepared = Prepare(assemblyBytes, entryType);
-        return prepared.LoadedExperiment == null
-            ? prepared
-            : Invoke(prepared.LoadedExperiment);
-    }
-
-    internal static ValheimDevExecutionResult Prepare(byte[] assemblyBytes, string entryType)
+    internal static ValheimDevExecutionResult Prepare(
+        byte[] assemblyBytes,
+        string entryType,
+        bool requireCleanup)
     {
         ValheimDevExecutionResult result = new ValheimDevExecutionResult();
         try
@@ -141,8 +136,13 @@ internal static class ValheimDevExperimentExecutor
                 result.Error = "cleanup_entrypoint_invalid";
                 return result;
             }
+            if (requireCleanup && cleanup == null)
+            {
+                result.Error = "cleanup_entrypoint_required";
+                return result;
+            }
 
-            result.LoadedExperiment = new ValheimDevLoadedExperiment { Run = run, Cleanup = cleanup };
+            result.LoadedCode = new ValheimDevLoadedCode { Run = run, Cleanup = cleanup };
             result.Ok = true;
             return result;
         }
@@ -154,15 +154,15 @@ internal static class ValheimDevExperimentExecutor
         }
     }
 
-    internal static ValheimDevExecutionResult Invoke(ValheimDevLoadedExperiment experiment)
+    internal static ValheimDevExecutionResult Invoke(ValheimDevLoadedCode code)
     {
         ValheimDevExecutionResult result = new ValheimDevExecutionResult
         {
-            LoadedExperiment = experiment
+            LoadedCode = code
         };
         try
         {
-            object? returnValue = experiment.Run.Invoke(null, null);
+            object? returnValue = code.Run.Invoke(null, null);
             result.Result = returnValue as string;
             result.Ok = true;
             return result;
@@ -171,7 +171,7 @@ internal static class ValheimDevExperimentExecutor
         {
             Exception cause = exception.InnerException ?? exception;
             result.Exception = BoundException(cause);
-            result.Error = "experiment_exception";
+            result.Error = "entrypoint_exception";
             return result;
         }
         catch (Exception exception)
@@ -182,13 +182,13 @@ internal static class ValheimDevExperimentExecutor
         }
     }
 
-    internal static bool TryCleanup(ValheimDevLoadedExperiment? experiment, out string? exception)
+    internal static bool TryCleanup(ValheimDevLoadedCode? code, out string? exception)
     {
         exception = null;
-        if (experiment?.Cleanup == null) return false;
+        if (code?.Cleanup == null) return false;
         try
         {
-            experiment.Cleanup.Invoke(null, null);
+            code.Cleanup.Invoke(null, null);
             return true;
         }
         catch (TargetInvocationException invocationException)

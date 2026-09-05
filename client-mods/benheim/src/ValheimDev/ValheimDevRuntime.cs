@@ -42,7 +42,13 @@ internal sealed class ValheimDevActiveOperation
     internal HashSet<string> Selectors { get; } = new HashSet<string>(StringComparer.Ordinal);
     internal HashSet<string> ObservedSelectors { get; } = new HashSet<string>(StringComparer.Ordinal);
     internal int EvidenceBytes { get; set; }
-    internal ValheimDevLoadedExperiment? Experiment { get; set; }
+    internal string CompletionCleanupState { get; set; } = ValheimDevCleanupState.NotApplicable;
+}
+
+internal sealed class ValheimDevManagedChange
+{
+    internal ValheimDevLoadedCode Code { get; set; } = null!;
+    internal ValheimDevChangeSummary Summary { get; set; } = new ValheimDevChangeSummary();
 }
 
 internal static partial class ValheimDevRuntime
@@ -52,6 +58,10 @@ internal static partial class ValheimDevRuntime
     private static readonly object Gate = new object();
     private static readonly Queue<ValheimDevPendingRequest> Requests = new Queue<ValheimDevPendingRequest>();
     private static readonly Queue<DiagnosticEvent> PendingEvidence = new Queue<DiagnosticEvent>();
+    private static readonly Dictionary<string, ValheimDevManagedChange> ManagedChanges =
+        new Dictionary<string, ValheimDevManagedChange>(StringComparer.Ordinal);
+    private static readonly HashSet<string> RestartRequiredChanges =
+        new HashSet<string>(StringComparer.Ordinal);
     private static string bepinExRootPath = string.Empty;
     private static string benheimVersion = string.Empty;
     private static int mainThreadId;
@@ -66,7 +76,7 @@ internal static partial class ValheimDevRuntime
     private static int activeConnections;
     private static volatile bool listenerFailed;
     private static ValheimDevActiveOperation? activeOperation;
-    private static bool restartRequired;
+    private static volatile bool restartRequired;
 #if VALHEIM_DEV_TESTS
     private static Func<ValheimDevWorldState>? snapshotOverride;
     private static Func<ValheimDevBuildIdentity>? buildIdentityOverride;
@@ -100,7 +110,12 @@ internal static partial class ValheimDevRuntime
         cancellationRequested = true;
         restartRequired = false;
         activeOperation = null;
-        lock (Gate) PendingEvidence.Clear();
+        lock (Gate)
+        {
+            ManagedChanges.Clear();
+            RestartRequiredChanges.Clear();
+            PendingEvidence.Clear();
+        }
         DeleteDescriptor();
     }
 
@@ -132,8 +147,10 @@ internal static partial class ValheimDevRuntime
                 }
                 return true;
             case "off":
-                Revoke("console_off");
-                context.AddString("Benheim Lab authorization revoked.");
+                string cleanupState = Revoke("console_off");
+                context.AddString(restartRequired || cleanupState == ValheimDevCleanupState.RestartRequired
+                    ? RestartRequiredMessage("Benheim Lab authorization revoked, but cleanup is uncertain and a game restart is required.")
+                    : "Benheim Lab authorization revoked.");
                 return true;
             case "status":
                 if (authorized)
@@ -141,12 +158,23 @@ internal static partial class ValheimDevRuntime
                     string reason = capture == null
                         ? "not_authorized"
                         : ValheimDevEligibility.CheckCapturedSession(capture, Snapshot());
-                    context.AddString(reason == "eligible"
-                        ? $"Benheim Lab is authorized for session {identity.SessionId}."
-                        : $"Benheim Lab is revoking because the session is no longer eligible: {reason}.");
-                    if (reason != "eligible") Revoke("status_drift:" + reason);
+                    if (reason == "eligible")
+                    {
+                        context.AddString(restartRequired
+                            ? RestartRequiredMessage($"Benheim Lab is authorized for session {identity.SessionId} with {ManagedChangeCount()} active managed change(s), but cleanup is uncertain and a game restart is required.")
+                            : $"Benheim Lab is authorized for session {identity.SessionId} with {ManagedChangeCount()} active managed change(s).");
+                    }
+                    else
+                    {
+                        string driftCleanup = Revoke("status_drift:" + reason);
+                        context.AddString(restartRequired || driftCleanup == ValheimDevCleanupState.RestartRequired
+                            ? RestartRequiredMessage($"Benheim Lab revoked after session drift ({reason}), but cleanup is uncertain and a game restart is required.")
+                            : $"Benheim Lab revoked because the session is no longer eligible: {reason}.");
+                    }
                 }
-                else context.AddString("Benheim Lab is off.");
+                else context.AddString(restartRequired
+                    ? RestartRequiredMessage("Benheim Lab is off, but cleanup is uncertain and a game restart is required.")
+                    : "Benheim Lab is off.");
                 return true;
             default:
                 PrintUsage(context);
@@ -188,17 +216,18 @@ internal static partial class ValheimDevRuntime
             }
         }
 
-        if (activeOperation != null)
+        ValheimDevActiveOperation? operation = activeOperation;
+        if (operation != null)
         {
-            DrainEvidence();
+            DrainEvidence(operation);
             if (cancellationRequested)
             {
-                FinishActiveOperation("authorization_revoked", ok: false);
+                FinishActiveOperation("authorization_revoked", ok: false, operation.CompletionCleanupState);
             }
-            else if (activeOperation.ObservedSelectors.IsSupersetOf(activeOperation.Selectors)
-                || DateTime.UtcNow >= activeOperation.DeadlineUtc)
+            else if (operation.ObservedSelectors.IsSupersetOf(operation.Selectors)
+                || DateTime.UtcNow >= operation.DeadlineUtc)
             {
-                FinishActiveOperation(null, ok: activeOperation.Response.Exception == null);
+                FinishActiveOperation(null, ok: operation.Response.Exception == null, operation.CompletionCleanupState);
             }
             return;
         }
@@ -212,7 +241,7 @@ internal static partial class ValheimDevRuntime
         if (!pending.IsCanceled) Process(pending);
     }
 
-    internal static void Revoke(string reason)
+    internal static string Revoke(string reason)
     {
         cancellationRequested = true;
         bool wasAuthorized = authorized;
@@ -220,10 +249,14 @@ internal static partial class ValheimDevRuntime
         StopListener();
         DeleteDescriptor();
 
-        string cleanupState = ValheimDevCleanupState.NotApplicable;
+        Dictionary<string, string> cleanupResults = CleanupManagedChanges();
+        string cleanupState = AggregateCleanupState(cleanupResults);
         if (activeOperation != null)
         {
-            cleanupState = FinishActiveOperation("authorization_revoked", ok: false);
+            FinishActiveOperation(
+                "authorization_revoked",
+                ok: false,
+                CleanupStateForActiveOperation(cleanupResults));
         }
 
         List<ValheimDevPendingRequest> canceled = new List<ValheimDevPendingRequest>();
@@ -235,7 +268,7 @@ internal static partial class ValheimDevRuntime
         {
             ValheimDevResponse response = ResponseFor(pending.Request);
             response.Error = "authorization_revoked";
-            pending.Complete(response.ToJson(pending.Request.Kind == "apply"));
+            pending.Complete(response.ToJson(pending.Request.Kind != "status"));
         }
 
         Diagnostics.SetValheimDevObserver(null);
@@ -247,6 +280,7 @@ internal static partial class ValheimDevRuntime
                     .String("reason", reason)
                     .String("cleanup_state", cleanupState));
         }
+        return cleanupState;
     }
 
     private static bool TryAuthorize(out string result)

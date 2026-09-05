@@ -80,7 +80,8 @@ export function createMcpHandler(service) {
       if (notification) return null;
       try {
         const result = await service.call(message.params?.name, message.params?.arguments ?? {});
-        const failed = message.params?.name === "apply_experiment" && result.state !== "succeeded";
+        const operationTools = new Set(["inspect_runtime", "install_change", "remove_change"]);
+        const failed = operationTools.has(message.params?.name) && result.state !== "succeeded";
         return { jsonrpc: "2.0", id: message.id, result: toolResult(result, failed) };
       } catch (error) {
         return { jsonrpc: "2.0", id: message.id, result: toolResult({ error: error.message }, true) };

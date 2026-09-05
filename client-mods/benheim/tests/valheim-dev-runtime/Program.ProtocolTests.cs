@@ -28,8 +28,7 @@ internal static partial class Program
             Scene = eligible.Scene!,
             WorldId = eligible.WorldId
         };
-        object replacementPlayer = new object();
-        eligible.LocalPlayer = replacementPlayer;
+        eligible.LocalPlayer = new object();
         Require(ValheimDevEligibility.CheckOperation(capture, eligible) == "eligible", "respawn replacement remains eligible");
         EachSessionGate(capture, eligible, value => value.Network = new object(), "network_changed");
         EachSessionGate(capture, eligible, value => value.Scene = new object(), "scene_changed");
@@ -38,124 +37,121 @@ internal static partial class Program
 
     private static void ProtocolBounds()
     {
-        string oversized = new string('s', ValheimDevProtocol.MaximumSourceBytes + 1);
-        string request = JsonSerializer.Serialize(new Dictionary<string, object?>
-        {
-            ["kind"] = "apply",
-            ["protocol"] = 1,
-            ["token"] = "t",
-            ["generation"] = "g",
-            ["operation_id"] = "op",
-            ["source"] = oversized,
-            ["source_sha256"] = new string('0', 64),
-            ["assembly_sha256"] = new string('0', 64),
-            ["assembly"] = "AA==",
-            ["entry_type"] = "ValheimDevExperiment",
-            ["evidence_events"] = Array.Empty<string>(),
-            ["evidence_timeout_ms"] = 0
-        });
+        string request = CodeProtocolRequest("inspect", new string('s', ValheimDevProtocol.MaximumSourceBytes + 1), "op", string.Empty, 0);
         Require(!ValheimDevProtocol.TryParseRequest(request, out _, out string error)
-            && error == "source_too_large", "oversized source is rejected before enqueue");
-
-        string assemblyTooLarge = new string('A', ((ValheimDevProtocol.MaximumAssemblyBytes + 2) / 3) * 4 + 9);
-        request = JsonSerializer.Serialize(new Dictionary<string, object?>
-        {
-            ["kind"] = "apply",
-            ["protocol"] = 1,
-            ["token"] = "t",
-            ["generation"] = "g",
-            ["operation_id"] = "op",
-            ["source"] = "x",
-            ["source_sha256"] = new string('0', 64),
-            ["assembly_sha256"] = new string('0', 64),
-            ["assembly"] = assemblyTooLarge,
-            ["entry_type"] = "ValheimDevExperiment",
-            ["evidence_events"] = Array.Empty<string>(),
-            ["evidence_timeout_ms"] = 0
-        });
-        Require(!ValheimDevProtocol.TryParseRequest(request, out _, out error)
-            && error == "assembly_too_large", "oversized assembly is rejected before enqueue");
+            && error == "source_invalid", "oversized source is rejected before enqueue");
 
         List<string> tooMany = new List<string>();
         for (int index = 0; index <= ValheimDevProtocol.MaximumEvidenceEvents; index++) tooMany.Add("D:E" + index);
-        request = JsonSerializer.Serialize(new Dictionary<string, object?>
-        {
-            ["kind"] = "apply",
-            ["protocol"] = 1,
-            ["token"] = "t",
-            ["generation"] = "g",
-            ["operation_id"] = "op",
-            ["source"] = "x",
-            ["source_sha256"] = new string('0', 64),
-            ["assembly_sha256"] = new string('0', 64),
-            ["assembly"] = "AA==",
-            ["entry_type"] = "ValheimDevExperiment",
-            ["evidence_events"] = tooMany,
-            ["evidence_timeout_ms"] = 0
-        });
-        Require(!ValheimDevProtocol.TryParseRequest(request, out _, out error)
+        Dictionary<string, object?> fields = CodeFields("install_change", "x", "op", "affinity.icon", 0);
+        fields["evidence_events"] = tooMany;
+        Require(!ValheimDevProtocol.TryParseRequest(JsonSerializer.Serialize(fields), out _, out error)
             && error == "too_many_evidence_selectors", "selector count is bounded");
 
         Require(ValheimDevProtocol.MaximumEvidenceTimeoutMs == 120000,
             "runtime advertises the reviewed two-minute evidence ceiling");
-        request = MinimalApplyProtocolRequest("120000");
+        request = CodeProtocolRequest("inspect", "x", "op", string.Empty, 120000);
         Require(ValheimDevProtocol.TryParseRequest(request, out ValheimDevRequest maximumTimeout, out error)
-            && maximumTimeout.EvidenceTimeoutMs == 120000,
-            "maximum evidence timeout is accepted as an integer");
+            && maximumTimeout.EvidenceTimeoutMs == 120000, "maximum evidence timeout is accepted");
 
-        request = MinimalApplyProtocolRequest("1.5");
-        Require(!ValheimDevProtocol.TryParseRequest(request, out _, out error)
-            && error == "missing_apply_fields",
-            "fractional protocol integers are rejected");
-        request = MinimalApplyProtocolRequest("01");
-        Require(!ValheimDevProtocol.TryParseRequest(request, out _, out error)
-            && error.StartsWith("invalid_json:", StringComparison.Ordinal),
-            "non-conforming JSON numbers are rejected");
+        string fractional = request.Replace("120000", "1.5", StringComparison.Ordinal);
+        Require(!ValheimDevProtocol.TryParseRequest(fractional, out _, out error)
+            && error == "missing_code_fields", "fractional protocol integers are rejected");
+        Require(!ValheimDevProtocol.TryParseRequest(
+                "{\"kind\":\"remove_change\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"operation_id\":\"op\",\"change_id\":\"bad id\"}",
+                out _, out error)
+            && error == "invalid_change_id", "change identifiers are bounded protocol values");
+        Require(!ValheimDevProtocol.TryParseRequest(
+                "{\"kind\":\"remove_change\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"operation_id\":\"op\",\"change_id\":\"caf\\u00e9\"}",
+                out _, out error)
+            && error == "invalid_change_id", "change identifiers use the same ASCII grammar as the MCP schema");
+        Require(!ValheimDevProtocol.TryParseRequest(
+                "{\"kind\":\"remove_change\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"operation_id\":\"op\",\"change_id\":\"affinity.icon\"}",
+                out _, out error)
+            && error == "invalid_expected_operation_id", "mutations require an explicit expected prior version or absence");
+        Require(!ValheimDevProtocol.TryParseRequest(
+                "{\"kind\":\"status\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"extra\":true}",
+                out _, out error)
+            && error == "unexpected_request_field", "request kinds reject unexpected fields");
 
-        string unicodeEnvelope = "{\"kind\":\"stat\\u0075s\",\"protocol\":1,\"token\":\"\\u0074\",\"generation\":\"g\"}";
+        Dictionary<string, object?> badSelector = CodeFields("inspect", "x", "op", string.Empty, 0);
+        badSelector["evidence_events"] = new[] { "A:B:C" };
+        Require(!ValheimDevProtocol.TryParseRequest(JsonSerializer.Serialize(badSelector), out _, out error)
+            && error == "invalid_evidence_selector", "selectors contain exactly one separator");
+        badSelector["evidence_events"] = new[] { "A:bad event" };
+        Require(!ValheimDevProtocol.TryParseRequest(JsonSerializer.Serialize(badSelector), out _, out error)
+            && error == "invalid_evidence_selector", "selectors reject whitespace");
+
+        string unicodeEnvelope = "{\"kind\":\"stat\\u0075s\",\"protocol\":2,\"token\":\"\\u0074\",\"generation\":\"g\"}";
         Require(ValheimDevProtocol.TryParseRequest(unicodeEnvelope, out ValheimDevRequest unicode, out error)
-            && unicode.Kind == "status" && unicode.Token == "t",
-            "Unicode escapes decode in protocol strings");
+            && unicode.Kind == "status" && unicode.Token == "t", "Unicode escapes decode in protocol strings");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"status\",\"protocol\":1,\"token\":\"\\u00xz\",\"generation\":\"g\"}",
+                "{\"kind\":\"status\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",}",
                 out _, out error)
-            && error.StartsWith("invalid_json:", StringComparison.Ordinal),
-            "malformed Unicode escapes are rejected");
-        Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"status\",\"protocol\":1,\"token\":\"t\",\"generation\":\"g\",}",
-                out _, out error)
-            && error.StartsWith("invalid_json:", StringComparison.Ordinal),
-            "malformed JSON is rejected");
+            && error.StartsWith("invalid_json:", StringComparison.Ordinal), "malformed JSON is rejected");
 
-        string deepValue = new string('[', ValheimDevProtocol.MaximumJsonDepth)
-            + "0"
+        string deepValue = new string('[', ValheimDevProtocol.MaximumJsonDepth) + "0"
             + new string(']', ValheimDevProtocol.MaximumJsonDepth);
-        string deeplyNested = "{\"kind\":\"status\",\"protocol\":1,\"token\":\"t\",\"generation\":\"g\",\"extra\":"
+        string deeplyNested = "{\"kind\":\"status\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"extra\":"
             + deepValue + "}";
         Require(!ValheimDevProtocol.TryParseRequest(deeplyNested, out _, out error)
-            && error.Contains("nesting exceeds", StringComparison.Ordinal),
-            "deep JSON is rejected by the parser before request validation");
+            && error.Contains("nesting exceeds", StringComparison.Ordinal), "deep JSON is rejected before validation");
     }
 
     private static void ExecutorVariants(string goodPath, string throwingPath, string badPath)
     {
         byte[] good = File.ReadAllBytes(goodPath);
-        ValheimDevExecutionResult first = ValheimDevExperimentExecutor.Execute(good, ValheimDevProtocol.ExpectedEntryType);
-        ValheimDevExecutionResult second = ValheimDevExperimentExecutor.Execute(good, ValheimDevProtocol.ExpectedEntryType);
-        Require(first.Ok && second.Ok && first.Result == "good-result" && second.Result == "good-result", "unique assembly loads execute repeatedly");
-        Require(first.LoadedExperiment != null && second.LoadedExperiment != null
-            && !ReferenceEquals(first.LoadedExperiment.Cleanup!.Module.Assembly, second.LoadedExperiment.Cleanup!.Module.Assembly),
-            "each apply receives a distinct loaded assembly");
+        ValheimDevExecutionResult first = ValheimDevCodeExecutor.Prepare(
+            good, ValheimDevProtocol.ChangeEntryType, requireCleanup: true);
+        ValheimDevExecutionResult second = ValheimDevCodeExecutor.Prepare(
+            good, ValheimDevProtocol.ChangeEntryType, requireCleanup: true);
+        Require(first.Ok && second.Ok && first.LoadedCode != null && second.LoadedCode != null,
+            "managed change entrypoint prepares repeatedly");
+        Require(!ReferenceEquals(first.LoadedCode!.Run.Module.Assembly, second.LoadedCode!.Run.Module.Assembly),
+            "each preparation receives a distinct loaded assembly");
 
-        ValheimDevExecutionResult throwing = ValheimDevExperimentExecutor.Execute(
-            File.ReadAllBytes(throwingPath),
-            ValheimDevProtocol.ExpectedEntryType);
-        Require(!throwing.Ok && throwing.Error == "experiment_exception"
-            && throwing.Exception!.Contains("experiment exploded", StringComparison.Ordinal),
-            "experiment exceptions are returned");
-        ValheimDevExecutionResult bad = ValheimDevExperimentExecutor.Execute(
-            File.ReadAllBytes(badPath),
-            ValheimDevProtocol.ExpectedEntryType);
+        ValheimDevExecutionResult preparedThrowing = ValheimDevCodeExecutor.Prepare(
+            File.ReadAllBytes(throwingPath), ValheimDevProtocol.ChangeEntryType, requireCleanup: true);
+        ValheimDevExecutionResult throwing = ValheimDevCodeExecutor.Invoke(preparedThrowing.LoadedCode!);
+        Require(!throwing.Ok && throwing.Error == "entrypoint_exception"
+            && throwing.Exception!.Contains("change exploded", StringComparison.Ordinal), "change exceptions are returned");
+        ValheimDevExecutionResult bad = ValheimDevCodeExecutor.Prepare(
+            File.ReadAllBytes(badPath), ValheimDevProtocol.ChangeEntryType, requireCleanup: false);
         Require(!bad.Ok && bad.Error == "run_entrypoint_invalid", "bad entrypoint is rejected");
+    }
+
+    private static string CodeProtocolRequest(string kind, string source, string operationId, string changeId, int timeout)
+    {
+        return JsonSerializer.Serialize(CodeFields(kind, source, operationId, changeId, timeout));
+    }
+
+    private static Dictionary<string, object?> CodeFields(
+        string kind,
+        string source,
+        string operationId,
+        string changeId,
+        int timeout)
+    {
+        Dictionary<string, object?> fields = new Dictionary<string, object?>
+        {
+            ["kind"] = kind,
+            ["protocol"] = 2,
+            ["token"] = "t",
+            ["generation"] = "g",
+            ["operation_id"] = operationId,
+            ["source"] = source,
+            ["source_sha256"] = new string('0', 64),
+            ["assembly_sha256"] = new string('0', 64),
+            ["assembly"] = "AA==",
+            ["entry_type"] = kind == "inspect" ? "ValheimDevInspection" : "ValheimDevChange",
+            ["evidence_events"] = Array.Empty<string>(),
+            ["evidence_timeout_ms"] = timeout
+        };
+        if (!string.IsNullOrEmpty(changeId))
+        {
+            fields["change_id"] = changeId;
+            fields["expected_operation_id"] = null;
+        }
+        return fields;
     }
 }

@@ -1,7 +1,18 @@
 using System;
 
-public static class ValheimDevExperiment
+public static class ValheimDevChange
 {
-    public static string Run() => throw new InvalidOperationException("experiment exploded");
-    public static void Cleanup() { }
+    public static string Run()
+    {
+        ValheimDevTestSurface.Visible = true;
+        ValheimDevTestSurface.Variant = "broken";
+        throw new InvalidOperationException("change exploded");
+    }
+
+    public static void Cleanup()
+    {
+        ValheimDevTestSurface.Visible = false;
+        ValheimDevTestSurface.Variant = "baseline";
+        ValheimDevTestSurface.CleanupCount++;
+    }
 }

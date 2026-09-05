@@ -100,7 +100,7 @@ internal static class Diagnostics
     }
 
     // Valheim Dev owns one temporary, non-persisting selection route during an
-    // authorized apply operation. It observes the same prepared typed event;
+    // authorized runtime operation. It observes the same prepared typed event;
     // it does not define another schema, log, or reusable watcher registry.
     internal static void SetValheimDevObserver(Action<DiagnosticEvent>? observer)
     {

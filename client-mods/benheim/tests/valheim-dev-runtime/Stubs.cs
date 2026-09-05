@@ -45,6 +45,29 @@ public static class ValheimDevTestEvidence
     }
 }
 
+// A tiny visible-state analogue for the first Affinity icon loop. Fixtures
+// mutate this surface through their normal runtime entrypoints so lifecycle
+// tests prove install, replace, restore, and removal rather than just JSON.
+public static class ValheimDevTestSurface
+{
+    public static bool Visible { get; set; }
+    public static string Variant { get; set; } = "baseline";
+    public static int CleanupCount { get; set; }
+
+    public static void Reset()
+    {
+        Visible = false;
+        Variant = "baseline";
+        CleanupCount = 0;
+    }
+
+    public static string Describe()
+    {
+        return "{\"target\":\"Affinity.weapon_icon\",\"component\":\"Image\",\"visible\":"
+            + (Visible ? "true" : "false") + ",\"variant\":\"" + Variant + "\"}";
+    }
+}
+
 namespace BepInEx
 {
     public class BaseUnityPlugin { }
@@ -118,6 +141,7 @@ namespace BenheimQoL.Infrastructure
         private static Action<DiagnosticEvent>? observer;
         internal static string Flatten(string value) => value.Replace('\r', ' ').Replace('\n', ' ');
         internal static void SetValheimDevObserver(Action<DiagnosticEvent>? value) => observer = value;
+        internal static Action<DiagnosticEvent>? CaptureObserverForTests() => observer;
         internal static void Emit(DiagnosticEvent value) => observer?.Invoke(value);
     }
 }

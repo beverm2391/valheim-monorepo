@@ -11,6 +11,8 @@ internal sealed class ValheimDevRequest
     internal string Token { get; set; } = string.Empty;
     internal string Generation { get; set; } = string.Empty;
     internal string OperationId { get; set; } = string.Empty;
+    internal string ChangeId { get; set; } = string.Empty;
+    internal string? ExpectedOperationId { get; set; }
     internal string Source { get; set; } = string.Empty;
     internal string SourceSha256 { get; set; } = string.Empty;
     internal string AssemblySha256 { get; set; } = string.Empty;
@@ -33,10 +35,23 @@ internal sealed class ValheimDevBuildIdentity
     internal List<string> CompilerReferences { get; } = new List<string>();
 }
 
+internal sealed class ValheimDevChangeSummary
+{
+    internal string ChangeId { get; set; } = string.Empty;
+    internal string OperationId { get; set; } = string.Empty;
+    internal string SourceSha256 { get; set; } = string.Empty;
+    internal string AssemblySha256 { get; set; } = string.Empty;
+    internal string InstalledUtc { get; set; } = string.Empty;
+    internal string? Result { get; set; }
+    internal string CleanupState { get; set; } = ValheimDevCleanupState.Active;
+}
+
 internal static class ValheimDevCleanupState
 {
     internal const string NotApplicable = "not_applicable";
+    internal const string Active = "active";
     internal const string Cleaned = "cleaned";
+    internal const string Restored = "restored";
     internal const string RestartRequired = "restart_required";
 }
 
@@ -47,19 +62,26 @@ internal sealed class ValheimDevResponse
     internal string? Error { get; set; }
     internal ValheimDevBuildIdentity Identity { get; set; } = new ValheimDevBuildIdentity();
     internal bool Authorized { get; set; }
+    internal bool RestartRequired { get; set; }
+    internal string Action { get; set; } = string.Empty;
     internal string OperationId { get; set; } = string.Empty;
+    internal string ChangeId { get; set; } = string.Empty;
     internal string StartedUtc { get; set; } = string.Empty;
     internal string FinishedUtc { get; set; } = string.Empty;
     internal string? Result { get; set; }
     internal string? Exception { get; set; }
     internal string CleanupState { get; set; } = ValheimDevCleanupState.NotApplicable;
+    internal bool PreviousChangePreserved { get; set; }
     internal bool EvidenceSelected { get; set; }
     internal bool EvidenceExhaustive { get; set; }
+    internal bool EvidenceTruncated { get; set; }
+    internal int DroppedEvidenceEvents { get; set; }
     internal List<string> EvidenceEvents { get; } = new List<string>();
+    internal List<ValheimDevChangeSummary> ActiveChanges { get; } = new List<ValheimDevChangeSummary>();
 
-    internal string ToJson(bool apply)
+    internal string ToJson(bool includeOperation)
     {
-        StringBuilder builder = new StringBuilder(512);
+        StringBuilder builder = new StringBuilder(1024);
         builder.Append('{');
         ValheimDevJson.AppendProperty(builder, "protocol", Protocol);
         builder.Append(',');
@@ -80,10 +102,18 @@ internal sealed class ValheimDevResponse
         ValheimDevJson.AppendProperty(builder, "benheim_sha256", Identity.BenheimSha256);
         builder.Append(',');
         ValheimDevJson.AppendProperty(builder, "authorized", Authorized);
-        if (apply)
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "restart_required", RestartRequired);
+        builder.Append(',');
+        AppendActiveChanges(builder, ActiveChanges);
+        if (includeOperation)
         {
             builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "action", Action);
+            builder.Append(',');
             ValheimDevJson.AppendProperty(builder, "operation_id", OperationId);
+            builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "change_id", ChangeId);
             builder.Append(',');
             ValheimDevJson.AppendProperty(builder, "started_utc", StartedUtc);
             builder.Append(',');
@@ -95,20 +125,51 @@ internal sealed class ValheimDevResponse
             builder.Append(',');
             ValheimDevJson.AppendProperty(builder, "cleanup_state", CleanupState);
             builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "previous_change_preserved", PreviousChangePreserved);
+            builder.Append(',');
             ValheimDevJson.AppendProperty(builder, "evidence_selected", EvidenceSelected);
             builder.Append(',');
             ValheimDevJson.AppendProperty(builder, "evidence_exhaustive", EvidenceExhaustive);
             builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "evidence_truncated", EvidenceTruncated);
+            builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "dropped_evidence_events", DroppedEvidenceEvents);
+            builder.Append(',');
             ValheimDevJson.AppendStringArrayProperty(builder, "evidence_events", EvidenceEvents);
         }
-        builder.Append('}');
-        return builder.ToString();
+        return builder.Append('}').ToString();
+    }
+
+    private static void AppendActiveChanges(StringBuilder builder, List<ValheimDevChangeSummary> changes)
+    {
+        builder.Append("\"active_changes\":[");
+        for (int index = 0; index < changes.Count; index++)
+        {
+            if (index > 0) builder.Append(',');
+            ValheimDevChangeSummary change = changes[index];
+            builder.Append('{');
+            ValheimDevJson.AppendProperty(builder, "change_id", change.ChangeId);
+            builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "operation_id", change.OperationId);
+            builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "source_sha256", change.SourceSha256);
+            builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "assembly_sha256", change.AssemblySha256);
+            builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "installed_utc", change.InstalledUtc);
+            builder.Append(',');
+            ValheimDevJson.AppendNullableProperty(builder, "result", change.Result);
+            builder.Append(',');
+            ValheimDevJson.AppendProperty(builder, "cleanup_state", change.CleanupState);
+            builder.Append('}');
+        }
+        builder.Append(']');
     }
 }
 
 internal static class ValheimDevProtocol
 {
-    internal const int ProtocolVersion = 1;
+    internal const int ProtocolVersion = 2;
     internal const int MaximumSourceBytes = 256 * 1024;
     internal const int MaximumAssemblyBytes = 1024 * 1024;
     internal const int MaximumRequestBytes = 2 * 1024 * 1024;
@@ -117,7 +178,8 @@ internal static class ValheimDevProtocol
     internal const int MaximumEvidenceBytes = 256 * 1024;
     internal const int MaximumEvidenceTimeoutMs = 120000;
     internal const int MaximumJsonDepth = 16;
-    internal const string ExpectedEntryType = "ValheimDevExperiment";
+    internal const string InspectionEntryType = "ValheimDevInspection";
+    internal const string ChangeEntryType = "ValheimDevChange";
 
     internal static bool TryParseRequest(string json, out ValheimDevRequest request, out string error)
     {
@@ -128,13 +190,11 @@ internal static class ValheimDevProtocol
             error = "request_too_large";
             return false;
         }
-
         if (!ValheimDevJson.TryParseObject(json, out Dictionary<string, object?> values, out error))
         {
             error = "invalid_json:" + error;
             return false;
         }
-
         if (!TryString(values, "kind", out string kind)
             || !TryInteger(values, "protocol", out int protocol)
             || !TryString(values, "token", out string token)
@@ -143,21 +203,47 @@ internal static class ValheimDevProtocol
             error = "missing_request_envelope";
             return false;
         }
-
-        if (kind != "status" && kind != "apply")
+        if (kind != "status" && kind != "inspect" && kind != "install_change" && kind != "remove_change")
         {
             error = "unsupported_request_kind";
             return false;
         }
-
+        if (!HasOnlyAllowedKeys(values, kind))
+        {
+            error = "unexpected_request_field";
+            return false;
+        }
         request.Kind = kind;
         request.Protocol = protocol;
         request.Token = token;
         request.Generation = generation;
         if (kind == "status") return true;
 
-        if (!TryString(values, "operation_id", out string operationId)
-            || !TryString(values, "source", out string source)
+        if (!TryString(values, "operation_id", out string operationId) || !ValidIdentifier(operationId))
+        {
+            error = "invalid_operation_id";
+            return false;
+        }
+        request.OperationId = operationId;
+        if (kind == "install_change" || kind == "remove_change")
+        {
+            if (!TryString(values, "change_id", out string changeId) || !ValidIdentifier(changeId))
+            {
+                error = "invalid_change_id";
+                return false;
+            }
+            request.ChangeId = changeId;
+            if (!TryNullableString(values, "expected_operation_id", out string? expectedOperationId)
+                || (expectedOperationId != null && !ValidIdentifier(expectedOperationId)))
+            {
+                error = "invalid_expected_operation_id";
+                return false;
+            }
+            request.ExpectedOperationId = expectedOperationId;
+        }
+        if (kind == "remove_change") return true;
+
+        if (!TryString(values, "source", out string source)
             || !TryString(values, "source_sha256", out string sourceSha256)
             || !TryString(values, "assembly_sha256", out string assemblySha256)
             || !TryString(values, "assembly", out string assemblyBase64)
@@ -165,18 +251,12 @@ internal static class ValheimDevProtocol
             || !TryInteger(values, "evidence_timeout_ms", out int timeoutMs)
             || !TryStringArray(values, "evidence_events", request.EvidenceEvents))
         {
-            error = "missing_apply_fields";
+            error = "missing_code_fields";
             return false;
         }
-
-        if (string.IsNullOrWhiteSpace(operationId) || operationId.Length > 128)
+        if (string.IsNullOrWhiteSpace(source) || Encoding.UTF8.GetByteCount(source) > MaximumSourceBytes)
         {
-            error = "invalid_operation_id";
-            return false;
-        }
-        if (Encoding.UTF8.GetByteCount(source) > MaximumSourceBytes)
-        {
-            error = "source_too_large";
+            error = "source_invalid";
             return false;
         }
         if (assemblyBase64.Length > ((MaximumAssemblyBytes + 2) / 3) * 4 + 8)
@@ -189,28 +269,73 @@ internal static class ValheimDevProtocol
             error = "invalid_evidence_timeout";
             return false;
         }
-        if (request.EvidenceEvents.Count > MaximumEvidenceEvents)
-        {
-            error = "too_many_evidence_selectors";
-            return false;
-        }
-        foreach (string selector in request.EvidenceEvents)
-        {
-            int separator = selector.IndexOf(':');
-            if (separator <= 0 || separator == selector.Length - 1 || selector.Length > 128)
-            {
-                error = "invalid_evidence_selector";
-                return false;
-            }
-        }
-
-        request.OperationId = operationId;
+        if (!ValidEvidenceSelectors(request.EvidenceEvents, out error)) return false;
         request.Source = source;
         request.SourceSha256 = sourceSha256;
         request.AssemblySha256 = assemblySha256;
         request.AssemblyBase64 = assemblyBase64;
         request.EntryType = entryType;
         request.EvidenceTimeoutMs = timeoutMs;
+        return true;
+    }
+
+    private static bool ValidIdentifier(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > 128) return false;
+        foreach (char character in value)
+        {
+            bool asciiLetter = (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z');
+            bool asciiDigit = character >= '0' && character <= '9';
+            if (!(asciiLetter || asciiDigit || character == '-' || character == '_' || character == '.')) return false;
+        }
+        return true;
+    }
+
+    private static bool HasOnlyAllowedKeys(Dictionary<string, object?> values, string kind)
+    {
+        foreach (string key in values.Keys)
+        {
+            bool envelope = key == "kind" || key == "protocol" || key == "token" || key == "generation";
+            if (envelope) continue;
+            if (kind == "status") return false;
+            if (key == "operation_id") continue;
+            if ((kind == "install_change" || kind == "remove_change")
+                && (key == "change_id" || key == "expected_operation_id")) continue;
+            if (kind == "remove_change") return false;
+            if (key == "source" || key == "source_sha256" || key == "assembly_sha256"
+                || key == "assembly" || key == "entry_type" || key == "evidence_events"
+                || key == "evidence_timeout_ms") continue;
+            return false;
+        }
+        return true;
+    }
+
+    private static bool ValidEvidenceSelectors(List<string> selectors, out string error)
+    {
+        error = string.Empty;
+        if (selectors.Count > MaximumEvidenceEvents)
+        {
+            error = "too_many_evidence_selectors";
+            return false;
+        }
+        foreach (string selector in selectors)
+        {
+            int separator = selector.IndexOf(':');
+            if (separator <= 0 || separator == selector.Length - 1 || selector.Length > 128
+                || selector.IndexOf(':', separator + 1) >= 0)
+            {
+                error = "invalid_evidence_selector";
+                return false;
+            }
+            foreach (char character in selector)
+            {
+                if (char.IsWhiteSpace(character))
+                {
+                    error = "invalid_evidence_selector";
+                    return false;
+                }
+            }
+        }
         return true;
     }
 
@@ -222,6 +347,25 @@ internal static class ValheimDevProtocol
             return true;
         }
         value = string.Empty;
+        return false;
+    }
+
+    private static bool TryNullableString(
+        Dictionary<string, object?> values,
+        string key,
+        out string? value)
+    {
+        if (!values.TryGetValue(key, out object? raw))
+        {
+            value = null;
+            return false;
+        }
+        if (raw == null || raw is string)
+        {
+            value = raw as string;
+            return true;
+        }
+        value = null;
         return false;
     }
 
@@ -240,15 +384,9 @@ internal static class ValheimDevProtocol
         return false;
     }
 
-    private static bool TryStringArray(
-        Dictionary<string, object?> values,
-        string key,
-        List<string> destination)
+    private static bool TryStringArray(Dictionary<string, object?> values, string key, List<string> destination)
     {
-        if (!values.TryGetValue(key, out object? raw) || raw is not List<object?> items)
-        {
-            return false;
-        }
+        if (!values.TryGetValue(key, out object? raw) || raw is not List<object?> items) return false;
         foreach (object? item in items)
         {
             if (item is not string text) return false;

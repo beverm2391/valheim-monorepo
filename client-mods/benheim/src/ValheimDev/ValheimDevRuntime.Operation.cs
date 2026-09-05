@@ -14,179 +14,183 @@ internal static partial class ValheimDevRuntime
         ValheimDevResponse response = ResponseFor(request);
         if (!authorized || capture == null)
         {
-            response.Error = "not_authorized";
-            pending.Complete(response.ToJson(request.Kind == "apply"));
+            Complete(pending, response, "not_authorized");
             return;
         }
         if (request.Protocol != ValheimDevProtocol.ProtocolVersion)
         {
-            response.Error = "protocol_mismatch";
-            pending.Complete(response.ToJson(request.Kind == "apply"));
+            Complete(pending, response, "protocol_mismatch");
             return;
         }
         if (!ConstantTimeEquals(request.Token, identity.Token)
             || !string.Equals(request.Generation, identity.Generation, StringComparison.Ordinal))
         {
-            response.Error = "authorization_mismatch";
-            pending.Complete(response.ToJson(request.Kind == "apply"));
+            Complete(pending, response, "authorization_mismatch");
             return;
         }
-
         if (request.Kind == "status")
         {
             response.Ok = true;
             response.Authorized = true;
-            pending.Complete(response.ToJson(apply: false));
+            SnapshotActiveChanges(response);
+            pending.Complete(response.ToJson(includeOperation: false));
             return;
         }
 
-        response.OperationId = request.OperationId;
-        response.EvidenceSelected = request.EvidenceEvents.Count > 0;
-        response.EvidenceExhaustive = false;
-        response.StartedUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-        if (restartRequired)
+        response.StartedUtc = UtcNow();
+        if (restartRequired && request.Kind != "inspect")
         {
-            response.Error = ValheimDevCleanupState.RestartRequired;
-            response.FinishedUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-            pending.Complete(response.ToJson(apply: true));
+            Complete(pending, response, ValheimDevCleanupState.RestartRequired);
             return;
         }
-
-        string eligibility = ValheimDevEligibility.CheckOperation(capture, Snapshot());
-        if (eligibility != "eligible")
+        if (!CheckEligibility(response, pending, "operation")) return;
+        if (request.Kind == "remove_change")
         {
-            response.Error = "ineligible:" + eligibility;
-            response.FinishedUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-            pending.Complete(response.ToJson(apply: true));
-            if (ValheimDevEligibility.CheckCapturedSession(capture, Snapshot()) != "eligible")
+            if (!MatchesExpectedChangeState(request.ChangeId, request.ExpectedOperationId))
             {
-                Revoke("operation_drift:" + eligibility);
+                Complete(pending, response, "stale_change_state");
+                return;
             }
+            RemoveChange(pending, response, request.ChangeId);
             return;
         }
-
         if (!TryValidateArtifact(request, out byte[] assemblyBytes, out string artifactError))
         {
-            response.Error = artifactError;
-            response.FinishedUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-            pending.Complete(response.ToJson(apply: true));
+            Complete(pending, response, artifactError);
             return;
         }
+        if (!CheckEligibility(response, pending, "before_load")) return;
 
-        // Recheck immediately before Assembly.Load. The same check is repeated
-        // before Run so neither static initialization nor experiment code can
-        // cross a stale world authorization.
-        eligibility = ValheimDevEligibility.CheckOperation(capture, Snapshot());
-        if (eligibility != "eligible")
+        bool managed = request.Kind == "install_change";
+        ValheimDevExecutionResult preparation = ValheimDevCodeExecutor.Prepare(
+            assemblyBytes,
+            request.EntryType,
+            requireCleanup: managed);
+        if (!preparation.Ok || preparation.LoadedCode == null)
         {
-            response.Error = "ineligible_before_load:" + eligibility;
-            response.FinishedUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-            pending.Complete(response.ToJson(apply: true));
+            response.Exception = preparation.Exception;
+            Complete(pending, response, preparation.Error);
+            return;
+        }
+        if (!CheckEligibility(response, pending, "before_entrypoint")) return;
+
+        if (managed && !MatchesExpectedChangeState(request.ChangeId, request.ExpectedOperationId))
+        {
+            Complete(pending, response, "stale_change_state");
             return;
         }
 
+        BeginOperation(pending, response, request);
+        if (managed) InstallChange(preparation.LoadedCode, request);
+        else RunInspection(preparation.LoadedCode, request);
+    }
+
+    private static void RunInspection(ValheimDevLoadedCode code, ValheimDevRequest request)
+    {
+        ValheimDevExecutionResult execution = ValheimDevCodeExecutor.Invoke(code);
+        activeOperation!.Response.Result = execution.Result;
+        activeOperation.Response.Exception = execution.Exception;
+        if (!execution.Ok)
+        {
+            FinishActiveOperation(execution.Error, ok: false, ValheimDevCleanupState.NotApplicable);
+            return;
+        }
+        FinishOrObserve(request, ValheimDevCleanupState.NotApplicable);
+    }
+
+    private static void BeginOperation(
+        ValheimDevPendingRequest pending,
+        ValheimDevResponse response,
+        ValheimDevRequest request)
+    {
         ValheimDevActiveOperation operation = new ValheimDevActiveOperation
         {
             Pending = pending,
             Response = response,
-            DeadlineUtc = DateTime.UtcNow.AddMilliseconds(request.EvidenceTimeoutMs)
+            DeadlineUtc = DateTime.UtcNow.AddMilliseconds(request.EvidenceTimeoutMs),
+            EvidenceBytes = 2
         };
         foreach (string selector in request.EvidenceEvents) operation.Selectors.Add(selector);
-        activeOperation = operation;
-        lock (Gate) PendingEvidence.Clear();
-        Diagnostics.SetValheimDevObserver(EnqueueEvidence);
+        lock (Gate)
+        {
+            activeOperation = operation;
+            PendingEvidence.Clear();
+        }
+        Diagnostics.SetValheimDevObserver(diagnosticEvent => EnqueueEvidence(operation, diagnosticEvent));
         Diagnostics.Emit(
-            DiagnosticEvent.Create("ValheimDev", "apply_started")
+            DiagnosticEvent.Create("ValheimDev", "operation_started")
+                .String("action", request.Kind)
                 .String("operation_id", request.OperationId)
+                .String("change_id", request.ChangeId)
                 .String("source_sha256", request.SourceSha256)
                 .String("assembly_sha256", request.AssemblySha256));
+    }
 
-        eligibility = ValheimDevEligibility.CheckOperation(capture, Snapshot());
-        if (eligibility != "eligible")
+    private static void FinishOrObserve(ValheimDevRequest request, string cleanupState)
+    {
+        activeOperation!.CompletionCleanupState = cleanupState;
+        if (activeOperation.Selectors.Count == 0 || request.EvidenceTimeoutMs == 0)
         {
-            FinishActiveOperation("ineligible_before_run:" + eligibility, ok: false);
-            return;
-        }
-
-        ValheimDevExecutionResult preparation = ValheimDevExperimentExecutor.Prepare(
-            assemblyBytes,
-            request.EntryType);
-        if (!preparation.Ok || preparation.LoadedExperiment == null)
-        {
-            response.Exception = preparation.Exception;
-            FinishActiveOperation(preparation.Error, ok: false);
-            return;
-        }
-        operation.Experiment = preparation.LoadedExperiment;
-
-        eligibility = ValheimDevEligibility.CheckOperation(capture, Snapshot());
-        if (eligibility != "eligible")
-        {
-            FinishActiveOperation("ineligible_before_entrypoint:" + eligibility, ok: false);
-            return;
-        }
-
-        ValheimDevExecutionResult execution = ValheimDevExperimentExecutor.Invoke(
-            preparation.LoadedExperiment);
-        response.Result = execution.Result;
-        response.Exception = execution.Exception;
-        if (!execution.Ok)
-        {
-            FinishActiveOperation(execution.Error, ok: false);
-            return;
-        }
-        if (operation.Selectors.Count == 0 || request.EvidenceTimeoutMs == 0)
-        {
-            FinishActiveOperation(null, ok: true);
+            FinishActiveOperation(null, ok: true, cleanupState);
         }
     }
 
-    private static string FinishActiveOperation(string? error, bool ok)
+    private static string FinishActiveOperation(string? error, bool ok, string cleanupState)
     {
-        ValheimDevActiveOperation? operation = activeOperation;
-        if (operation == null) return ValheimDevCleanupState.NotApplicable;
+        ValheimDevActiveOperation? operation;
+        lock (Gate)
+        {
+            operation = activeOperation;
+            if (operation == null) return ValheimDevCleanupState.NotApplicable;
+            activeOperation = null;
+        }
 
-        // Events emitted synchronously by Run belong to this operation even
-        // when its requested wait is zero. Close observation before Cleanup so
-        // the experiment is active only for its evidence window.
-        DrainEvidence();
         Diagnostics.SetValheimDevObserver(null);
-        activeOperation = null;
-        lock (Gate) PendingEvidence.Clear();
-        operation.Response.CleanupState = CleanupExperiment(operation.Experiment);
+        DrainEvidence(operation);
+        operation.Response.CleanupState = cleanupState;
         operation.Response.Ok = ok && error == null;
         operation.Response.Error = error;
         operation.Response.Authorized = authorized;
-        operation.Response.FinishedUtc = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+        operation.Response.RestartRequired = restartRequired;
+        operation.Response.FinishedUtc = UtcNow();
+        SnapshotActiveChanges(operation.Response);
         Diagnostics.Emit(
-            DiagnosticEvent.Create("ValheimDev", "apply_finished")
+            DiagnosticEvent.Create("ValheimDev", "operation_finished")
+                .String("action", operation.Response.Action)
                 .String("operation_id", operation.Response.OperationId)
                 .String("outcome", operation.Response.Ok ? "accepted" : "failed")
                 .String("error", operation.Response.Error ?? string.Empty)
-                .String("cleanup_state", operation.Response.CleanupState));
-        operation.Pending.Complete(operation.Response.ToJson(apply: true));
-        return operation.Response.CleanupState;
+                .String("cleanup_state", cleanupState));
+        operation.Pending.Complete(operation.Response.ToJson(includeOperation: true));
+        return cleanupState;
     }
 
-    private static void EnqueueEvidence(DiagnosticEvent diagnosticEvent)
+    private static void EnqueueEvidence(
+        ValheimDevActiveOperation expectedOperation,
+        DiagnosticEvent diagnosticEvent)
     {
         string selector = diagnosticEvent.Domain + ":" + diagnosticEvent.Name;
         lock (Gate)
         {
             ValheimDevActiveOperation? operation = activeOperation;
-            if (operation != null
-                && operation.Selectors.Contains(selector)
-                && PendingEvidence.Count < ValheimDevProtocol.MaximumEvidenceEvents * 2)
+            if (ReferenceEquals(operation, expectedOperation)
+                && operation.Selectors.Contains(selector))
             {
-                PendingEvidence.Enqueue(diagnosticEvent);
+                if (PendingEvidence.Count < ValheimDevProtocol.MaximumEvidenceEvents * 2)
+                {
+                    PendingEvidence.Enqueue(diagnosticEvent);
+                }
+                else
+                {
+                    operation.Response.EvidenceTruncated = true;
+                    operation.Response.DroppedEvidenceEvents++;
+                }
             }
         }
     }
 
-    private static void DrainEvidence()
+    private static void DrainEvidence(ValheimDevActiveOperation operation)
     {
-        ValheimDevActiveOperation? operation = activeOperation;
-        if (operation == null) return;
         List<DiagnosticEvent> events = new List<DiagnosticEvent>();
         lock (Gate)
         {
@@ -197,33 +201,19 @@ internal static partial class ValheimDevRuntime
             string selector = diagnosticEvent.Domain + ":" + diagnosticEvent.Name;
             if (!operation.Selectors.Contains(selector)) continue;
             string json = diagnosticEvent.ToJsonLine();
-            int bytes = Encoding.UTF8.GetByteCount(json);
+            int bytes = ValheimDevJson.EncodedStringUtf8ByteCount(json)
+                + (operation.Response.EvidenceEvents.Count == 0 ? 0 : 1);
             if (operation.Response.EvidenceEvents.Count >= ValheimDevProtocol.MaximumEvidenceEvents
                 || operation.EvidenceBytes + bytes > ValheimDevProtocol.MaximumEvidenceBytes)
             {
+                operation.Response.EvidenceTruncated = true;
+                operation.Response.DroppedEvidenceEvents++;
                 continue;
             }
             operation.Response.EvidenceEvents.Add(json);
             operation.EvidenceBytes += bytes;
             operation.ObservedSelectors.Add(selector);
         }
-    }
-
-    private static string CleanupExperiment(ValheimDevLoadedExperiment? experiment)
-    {
-        if (experiment == null) return ValheimDevCleanupState.NotApplicable;
-        if (experiment.Cleanup == null)
-        {
-            restartRequired = true;
-            return ValheimDevCleanupState.RestartRequired;
-        }
-        if (!ValheimDevExperimentExecutor.TryCleanup(experiment, out string? cleanupException))
-        {
-            restartRequired = true;
-            Plugin.Log.LogWarning("Benheim Lab cleanup failed: " + Diagnostics.Flatten(cleanupException ?? "unknown"));
-            return ValheimDevCleanupState.RestartRequired;
-        }
-        return ValheimDevCleanupState.Cleaned;
     }
 
     private static bool TryValidateArtifact(
@@ -233,7 +223,10 @@ internal static partial class ValheimDevRuntime
     {
         assemblyBytes = Array.Empty<byte>();
         error = string.Empty;
-        if (!string.Equals(request.EntryType, ValheimDevProtocol.ExpectedEntryType, StringComparison.Ordinal))
+        string expectedEntryType = request.Kind == "inspect"
+            ? ValheimDevProtocol.InspectionEntryType
+            : ValheimDevProtocol.ChangeEntryType;
+        if (!string.Equals(request.EntryType, expectedEntryType, StringComparison.Ordinal))
         {
             error = "entry_type_not_allowed";
             return false;
@@ -248,10 +241,7 @@ internal static partial class ValheimDevRuntime
             error = "source_sha256_mismatch";
             return false;
         }
-        try
-        {
-            assemblyBytes = Convert.FromBase64String(request.AssemblyBase64);
-        }
+        try { assemblyBytes = Convert.FromBase64String(request.AssemblyBase64); }
         catch (FormatException)
         {
             error = "assembly_base64_invalid";
@@ -269,6 +259,44 @@ internal static partial class ValheimDevRuntime
         }
         return true;
     }
+
+    private static bool CheckEligibility(
+        ValheimDevResponse response,
+        ValheimDevPendingRequest pending,
+        string boundary)
+    {
+        ValheimDevWorldState current = Snapshot();
+        string eligibility = ValheimDevEligibility.CheckOperation(capture!, current);
+        if (eligibility == "eligible") return true;
+        if (ValheimDevEligibility.CheckCapturedSession(capture!, current) != "eligible")
+        {
+            Revoke("operation_drift:" + eligibility);
+            response.Authorized = false;
+            response.RestartRequired = restartRequired;
+        }
+        Complete(pending, response, "ineligible_" + boundary + ":" + eligibility);
+        return false;
+    }
+
+    private static void Complete(
+        ValheimDevPendingRequest pending,
+        ValheimDevResponse response,
+        string error)
+    {
+        if (pending.Request.Kind == "install_change"
+            && error != "stale_change_state"
+            && HasManagedChange(pending.Request.ChangeId))
+        {
+            response.PreviousChangePreserved = true;
+        }
+        response.Error = error;
+        response.RestartRequired = restartRequired;
+        response.FinishedUtc = UtcNow();
+        SnapshotActiveChanges(response);
+        pending.Complete(response.ToJson(includeOperation: pending.Request.Kind != "status"));
+    }
+
+    private static string UtcNow() => DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
 
     private static ValheimDevWorldState Snapshot()
     {
@@ -299,10 +327,7 @@ internal static partial class ValheimDevRuntime
             state.LocalPlayerIsAlive = player != null && player;
             state.LocalPlayerIsOwner = state.LocalPlayerIsAlive && player!.IsOwner();
         }
-        catch
-        {
-            state.GameplayHooksHealthy = false;
-        }
+        catch { state.GameplayHooksHealthy = false; }
         return state;
     }
 
@@ -312,7 +337,10 @@ internal static partial class ValheimDevRuntime
         {
             Identity = identity,
             Authorized = authorized,
+            RestartRequired = restartRequired,
+            Action = request.Kind,
             OperationId = request.OperationId,
+            ChangeId = request.ChangeId,
             EvidenceSelected = request.EvidenceEvents.Count > 0,
             EvidenceExhaustive = false
         };

@@ -103,6 +103,13 @@ internal static class ValheimDevJson
         builder.Append('"');
     }
 
+    internal static int EncodedStringUtf8ByteCount(string value)
+    {
+        StringBuilder builder = new StringBuilder(value.Length + 2);
+        AppendString(builder, value);
+        return Encoding.UTF8.GetByteCount(builder.ToString());
+    }
+
     private sealed class Parser
     {
         private readonly string source;

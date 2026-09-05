@@ -92,7 +92,8 @@ internal static partial class ValheimDevRuntime
                     Requests.Enqueue(pending);
                 }
 
-                int wait = request.Kind == "apply"
+                bool waitsForEvidence = request.Kind == "inspect" || request.Kind == "install_change";
+                int wait = waitsForEvidence
                     ? Math.Min(ValheimDevProtocol.MaximumEvidenceTimeoutMs + 15000, request.EvidenceTimeoutMs + 15000)
                     : 15000;
                 if (!pending.Wait(wait))
@@ -150,12 +151,16 @@ internal static partial class ValheimDevRuntime
         {
             Identity = identity,
             Authorized = authorized,
+            RestartRequired = restartRequired,
+            Action = request?.Kind ?? string.Empty,
             Error = error,
             OperationId = request?.OperationId ?? string.Empty,
+            ChangeId = request?.ChangeId ?? string.Empty,
             EvidenceSelected = request?.EvidenceEvents.Count > 0,
             EvidenceExhaustive = false
         };
-        return response.ToJson(apply: request?.Kind == "apply");
+        SnapshotActiveChanges(response);
+        return response.ToJson(includeOperation: request != null && request.Kind != "status");
     }
 
     private static void StopListener()
