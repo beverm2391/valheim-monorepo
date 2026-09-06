@@ -9,23 +9,6 @@ diagnostics without enabling a probe.
 
 ## Remaining checks
 
-- **Valheim Dev live loop:**
-  1. Launch Benheim 0.1.91 and enter the disposable local single-player Lab
-     world.
-  2. Run `bh lab on`, then tell Codex that the Lab is ready.
-  3. Codex runs a labeled command twice with different structured inputs.
-     Confirm that each result is structured and the source stays unchanged.
-  4. Codex installs an ongoing change. Run `bh lab off` and confirm that the
-     change remains active while further operations are rejected.
-  5. Re-enable Lab in the same world. Confirm that status shows the installed
-     change, then ask Codex to remove it and verify that the effect stops.
-  6. Ask Codex to read the recent run history and one full run. Confirm that the
-     history shows labels, times, outcomes, and durations. Confirm that repeated
-     warnings or errors since the run are collapsed into counts and described
-     as time-correlated rather than caused by the run.
-  7. Confirm that Valheim Dev never reports `restart_required` during the clean
-     install, replacement, and removal path.
-
 - **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
   Huntsman Bow at any native quality. Confirm its inventory title and
   description, the disabled same-affinity action, and persistence after storage
