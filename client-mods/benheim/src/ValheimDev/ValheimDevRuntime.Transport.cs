@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -235,7 +236,6 @@ internal static partial class ValheimDevRuntime
         Assembly benheim = typeof(Plugin).Assembly;
         string valheimPath = Path.GetFullPath(valheim.Location);
         string benheimPath = Path.GetFullPath(benheim.Location);
-        string managedDirectory = Path.GetDirectoryName(valheimPath)!;
         ValheimDevSessionIdentity value = new ValheimDevSessionIdentity
         {
             ValheimVersion = ReadValheimVersion(valheim),
@@ -250,16 +250,42 @@ internal static partial class ValheimDevRuntime
         AddReference(value, Path.Combine(frameworkDirectory, "System.Core.dll"));
         AddReference(value, FindNetstandard(coreLibraryPath));
         AddReference(value, valheimPath);
-        AddReference(value, Path.Combine(managedDirectory, "UnityEngine.dll"));
-        AddReference(value, Path.Combine(managedDirectory, "UnityEngine.CoreModule.dll"));
         AddReference(value, typeof(BaseUnityPlugin).Assembly.Location);
         AddReference(value, typeof(Harmony).Assembly.Location);
         AddReference(value, benheimPath);
-        if (value.CompilerReferences.Count != 10)
+
+        // A live change should compile against the same managed surface that is
+        // already usable in this game process. Unity splits ordinary APIs across
+        // modules such as UnityEngine.UI and TextMeshPro, so a hand-maintained
+        // module list inevitably rejects valid runtime code as the game evolves.
+        foreach (string path in ReferenceableAssemblyLocations(AppDomain.CurrentDomain.GetAssemblies()))
         {
-            throw new InvalidOperationException("the curated compiler reference set is incomplete or contains duplicates");
+            AddReference(value, path);
         }
+        value.CompilerReferences.Sort(StringComparer.Ordinal);
         return value;
+    }
+
+    internal static string[] ReferenceableAssemblyLocations(IEnumerable<Assembly> assemblies)
+    {
+        HashSet<string> locations = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Assembly assembly in assemblies)
+        {
+            if (assembly.IsDynamic) continue;
+            string location;
+            try
+            {
+                location = assembly.Location;
+            }
+            catch (NotSupportedException)
+            {
+                continue;
+            }
+            if (string.IsNullOrEmpty(location)) continue;
+            string fullPath = Path.GetFullPath(location);
+            if (File.Exists(fullPath)) locations.Add(fullPath);
+        }
+        return locations.OrderBy(path => path, StringComparer.Ordinal).ToArray();
     }
 
     private static void AddReference(ValheimDevSessionIdentity value, string path)

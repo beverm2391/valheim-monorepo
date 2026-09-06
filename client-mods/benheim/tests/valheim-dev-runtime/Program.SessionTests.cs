@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -12,6 +15,7 @@ internal static partial class Program
 {
     private static void FailedStartupLeavesNoSession()
     {
+        CompilerReferencesFollowTheLoadedRuntime();
         root = Path.Combine(Path.GetTempPath(), "benheim-valheim-dev-blocked-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, "ValheimDev"), "blocks the session directory");
@@ -29,6 +33,25 @@ internal static partial class Program
         File.Delete(Path.Combine(root, "ValheimDev"));
         Directory.Delete(root);
         root = string.Empty;
+    }
+
+    private static void CompilerReferencesFollowTheLoadedRuntime()
+    {
+        Assembly fileBackedAssembly = typeof(Program).Assembly;
+        Assembly dynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new AssemblyName("ValheimDevDynamicReferenceProof"),
+            AssemblyBuilderAccess.Run);
+        string[] references = ValheimDevRuntime.ReferenceableAssemblyLocations(new[]
+        {
+            fileBackedAssembly,
+            fileBackedAssembly,
+            dynamicAssembly
+        });
+        string expected = Path.GetFullPath(fileBackedAssembly.Location);
+        Require(references.Length == 1
+            && references[0] == expected
+            && references.SequenceEqual(references.OrderBy(path => path, StringComparer.Ordinal)),
+            "compiler references include every unique file-backed loaded assembly and skip dynamic assemblies");
     }
 
     private static void AcceptedSocketCannotCrossSessions()
@@ -90,7 +113,7 @@ internal static partial class Program
         Require(value.GetProperty("protocol").GetInt32() == 3
             && value.GetProperty("host").GetString() == "127.0.0.1"
             && value.GetProperty("compiler_references").GetArrayLength() == 10,
-            "descriptor contains protocol, loopback endpoint, and curated references");
+            "descriptor contains protocol, loopback endpoint, and session compiler references");
         sessionId = value.GetProperty("session_id").GetString()!;
         port = value.GetProperty("port").GetInt32();
         using JsonDocument diagnostic = JsonDocument.Parse(
