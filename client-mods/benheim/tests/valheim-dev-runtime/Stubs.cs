@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 public sealed class Terminal
 {
@@ -107,41 +106,32 @@ namespace BenheimQoL.Infrastructure
         internal static bool GameplayActionsEnabled { get; set; } = true;
     }
 
-    internal sealed class DiagnosticEvent
-    {
-        private readonly Dictionary<string, string> fields = new Dictionary<string, string>();
-        private DiagnosticEvent(string domain, string name)
-        {
-            Domain = domain;
-            Name = name;
-        }
-
-        internal string Domain { get; }
-        internal string Name { get; }
-        internal static DiagnosticEvent Create(string domain, string name) => new DiagnosticEvent(domain, name);
-        internal DiagnosticEvent String(string name, string? value)
-        {
-            fields[name] = value ?? string.Empty;
-            return this;
-        }
-        internal string ToJsonLine()
-        {
-            StringBuilder builder = new StringBuilder();
-            builder.Append("{\"domain\":\"").Append(Domain).Append("\",\"event\":\"").Append(Name).Append("\"");
-            foreach (KeyValuePair<string, string> field in fields)
-            {
-                builder.Append(",\"").Append(field.Key).Append("\":\"").Append(field.Value).Append("\"");
-            }
-            return builder.Append('}').ToString();
-        }
-    }
-
     internal static class Diagnostics
     {
         private static Action<DiagnosticEvent>? observer;
+        private static readonly List<DiagnosticEvent> emitted = new List<DiagnosticEvent>();
+        private static readonly DateTime TestTimestamp =
+            new DateTime(2026, 9, 5, 0, 0, 0, DateTimeKind.Utc);
+        internal static IReadOnlyList<DiagnosticEvent> EmittedForTests => emitted;
+        internal static DiagnosticEvent? LastEmittedForTests { get; private set; }
         internal static string Flatten(string value) => value.Replace('\r', ' ').Replace('\n', ' ');
         internal static void SetValheimDevObserver(Action<DiagnosticEvent>? value) => observer = value;
         internal static Action<DiagnosticEvent>? CaptureObserverForTests() => observer;
-        internal static void Emit(DiagnosticEvent value) => observer?.Invoke(value);
+        internal static DiagnosticEvent PrepareForTests(DiagnosticEvent value)
+        {
+            value.Prepare(TestTimestamp, "test-diagnostic-session", "test-benheim");
+            return value;
+        }
+        internal static void Emit(DiagnosticEvent value)
+        {
+            LastEmittedForTests = PrepareForTests(value);
+            emitted.Add(value);
+            observer?.Invoke(value);
+        }
+        internal static void ClearEmittedForTests()
+        {
+            emitted.Clear();
+            LastEmittedForTests = null;
+        }
     }
 }

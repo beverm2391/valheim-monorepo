@@ -5,7 +5,7 @@ import { isAbsolute, join } from "node:path";
 
 import {
   buildIdentity, isoNow, loadDescriptor, plainObject, requestBridge, runCompiler,
-  sameAuthorization, sha256, validateKeys,
+  sameSession, sha256, validateKeys,
 } from "./bridge-compiler.mjs";
 import {
   DEFAULT_EVIDENCE_TIMEOUT_MS, EVENT_PATTERN, IDENTIFIER_PATTERN,
@@ -76,8 +76,8 @@ async function authorizedSession(root, bridgeRequest) {
 function baseRecord(descriptor, operationId, action, input, previous) {
   const source = input.source ?? null;
   return {
-    schema_version: 2, state: "pending", terminal: false, action,
-    session_id: descriptor.session_id, generation: descriptor.generation, operation_id: operationId,
+    schema_version: 3, state: "pending", terminal: false, action,
+    session_id: descriptor.session_id, operation_id: operationId,
     change_id: input.change_id ?? null, source, source_sha256: source === null ? null : sha256(source),
     artifact_sha256: null, ...buildIdentity(descriptor), targets: input.targets ?? null, inputs: input.inputs ?? null,
     previous_active_change: previous ?? null, previous_change_preserved: previous ? null : false,
@@ -121,7 +121,7 @@ function runtimeFields(response) {
 async function compileFailureRuntimeState(root, descriptor, previous, bridgeRequest) {
   try {
     const current = await readSessionStatus(root, bridgeRequest);
-    if (!sameAuthorization(descriptor, current.descriptor)
+    if (!sameSession(descriptor, current.descriptor)
         || current.status.ok !== true || current.status.authorized !== true) {
       throw new Error("authorization changed");
     }
@@ -145,13 +145,13 @@ export function createService({ root, bridgeRequest = requestBridge, compilerRun
       if (status.ok !== true || status.authorized === false) {
         return {
           authorized: false, connected: true, session_id: descriptor.session_id,
-          generation: descriptor.generation, authorized_at: descriptor.authorized_at,
+          authorized_at: descriptor.authorized_at,
           ...buildIdentity(descriptor), restart_required: status.restart_required === true,
           active_changes: status.active_changes, error: status.error ?? "Lab authorization is unavailable",
         };
       }
       return {
-        authorized: true, connected: true, session_id: descriptor.session_id, generation: descriptor.generation,
+        authorized: true, connected: true, session_id: descriptor.session_id,
         authorized_at: descriptor.authorized_at, ...buildIdentity(descriptor),
         restart_required: status.restart_required === true, active_changes: status.active_changes,
       };
@@ -224,7 +224,7 @@ export function createService({ root, bridgeRequest = requestBridge, compilerRun
       }
       try {
         const current = await loadDescriptor(root);
-        if (!sameAuthorization(descriptor, current)) throw new Error("Lab authorization changed during compilation");
+        if (!sameSession(descriptor, current)) throw new Error("Lab authorization changed during compilation");
       } catch (error) {
         record = terminalRecord(record, "runtime_failed", {
           error: `operation revoked before load: ${error.message}`, previous_change_preserved: null,

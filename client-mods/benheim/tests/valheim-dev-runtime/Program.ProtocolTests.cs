@@ -58,19 +58,19 @@ internal static partial class Program
         Require(!ValheimDevProtocol.TryParseRequest(fractional, out _, out error)
             && error == "missing_code_fields", "fractional protocol integers are rejected");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"remove_change\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"operation_id\":\"op\",\"change_id\":\"bad id\"}",
+                "{\"kind\":\"remove_change\",\"protocol\":3,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"bad id\"}",
                 out _, out error)
             && error == "invalid_change_id", "change identifiers are bounded protocol values");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"remove_change\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"operation_id\":\"op\",\"change_id\":\"caf\\u00e9\"}",
+                "{\"kind\":\"remove_change\",\"protocol\":3,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"caf\\u00e9\"}",
                 out _, out error)
             && error == "invalid_change_id", "change identifiers use the same ASCII grammar as the MCP schema");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"remove_change\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"operation_id\":\"op\",\"change_id\":\"affinity.icon\"}",
+                "{\"kind\":\"remove_change\",\"protocol\":3,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"affinity.icon\"}",
                 out _, out error)
             && error == "invalid_expected_operation_id", "mutations require an explicit expected prior version or absence");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"status\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"extra\":true}",
+                "{\"kind\":\"status\",\"protocol\":3,\"session_id\":\"s\",\"extra\":true}",
                 out _, out error)
             && error == "unexpected_request_field", "request kinds reject unexpected fields");
 
@@ -82,17 +82,17 @@ internal static partial class Program
         Require(!ValheimDevProtocol.TryParseRequest(JsonSerializer.Serialize(badSelector), out _, out error)
             && error == "invalid_evidence_selector", "selectors reject whitespace");
 
-        string unicodeEnvelope = "{\"kind\":\"stat\\u0075s\",\"protocol\":2,\"token\":\"\\u0074\",\"generation\":\"g\"}";
+        string unicodeEnvelope = "{\"kind\":\"stat\\u0075s\",\"protocol\":3,\"session_id\":\"\\u0073\"}";
         Require(ValheimDevProtocol.TryParseRequest(unicodeEnvelope, out ValheimDevRequest unicode, out error)
-            && unicode.Kind == "status" && unicode.Token == "t", "Unicode escapes decode in protocol strings");
+            && unicode.Kind == "status" && unicode.SessionId == "s", "Unicode escapes decode in protocol strings");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"status\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",}",
+                "{\"kind\":\"status\",\"protocol\":3,\"session_id\":\"s\",}",
                 out _, out error)
             && error.StartsWith("invalid_json:", StringComparison.Ordinal), "malformed JSON is rejected");
 
         string deepValue = new string('[', ValheimDevProtocol.MaximumJsonDepth) + "0"
             + new string(']', ValheimDevProtocol.MaximumJsonDepth);
-        string deeplyNested = "{\"kind\":\"status\",\"protocol\":2,\"token\":\"t\",\"generation\":\"g\",\"extra\":"
+        string deeplyNested = "{\"kind\":\"status\",\"protocol\":3,\"session_id\":\"s\",\"extra\":"
             + deepValue + "}";
         Require(!ValheimDevProtocol.TryParseRequest(deeplyNested, out _, out error)
             && error.Contains("nesting exceeds", StringComparison.Ordinal), "deep JSON is rejected before validation");
@@ -135,9 +135,8 @@ internal static partial class Program
         Dictionary<string, object?> fields = new Dictionary<string, object?>
         {
             ["kind"] = kind,
-            ["protocol"] = 2,
-            ["token"] = "t",
-            ["generation"] = "g",
+            ["protocol"] = 3,
+            ["session_id"] = "s",
             ["operation_id"] = operationId,
             ["source"] = source,
             ["source_sha256"] = new string('0', 64),

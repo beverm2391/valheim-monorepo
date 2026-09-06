@@ -16,8 +16,13 @@ internal sealed class ValheimDevPendingRequest
     private string response = string.Empty;
     private volatile bool canceled;
 
-    internal ValheimDevPendingRequest(ValheimDevRequest request) => Request = request;
+    internal ValheimDevPendingRequest(ValheimDevRequest request, ValheimDevSession session)
+    {
+        Request = request;
+        Session = session;
+    }
     internal ValheimDevRequest Request { get; }
+    internal ValheimDevSession Session { get; }
 
     internal bool IsCanceled => canceled;
 
@@ -51,6 +56,26 @@ internal sealed class ValheimDevManagedChange
     internal ValheimDevChangeSummary Summary { get; set; } = new ValheimDevChangeSummary();
 }
 
+internal sealed class ValheimDevSession
+{
+    // One object owns the resources that make Lab authorization real. Its
+    // presence is the authorization state; there is no second flag to drift.
+    internal ValheimDevSession(
+        ValheimDevSessionIdentity identity,
+        ValheimDevWorldCapture capture,
+        TcpListener listener)
+    {
+        Identity = identity;
+        Capture = capture;
+        Listener = listener;
+    }
+
+    internal ValheimDevSessionIdentity Identity { get; }
+    internal ValheimDevWorldCapture Capture { get; }
+    internal TcpListener Listener { get; }
+    internal volatile bool ListenerFailed;
+}
+
 internal static partial class ValheimDevRuntime
 {
     private const string SessionDirectoryName = "ValheimDev";
@@ -66,27 +91,22 @@ internal static partial class ValheimDevRuntime
     private static string benheimVersion = string.Empty;
     private static int mainThreadId;
     private static bool initialized;
-    private static volatile bool authorized;
-    private static volatile bool cancellationRequested = true;
     private static bool wrongThreadLogged;
-    private static ValheimDevWorldCapture? capture;
-    private static ValheimDevBuildIdentity identity = new ValheimDevBuildIdentity();
-    private static TcpListener? listener;
-    private static Thread? acceptThread;
     private static int activeConnections;
-    private static volatile bool listenerFailed;
+    private static volatile ValheimDevSession? session;
     private static ValheimDevActiveOperation? activeOperation;
     private static volatile bool restartRequired;
 #if VALHEIM_DEV_TESTS
     private static Func<ValheimDevWorldState>? snapshotOverride;
-    private static Func<ValheimDevBuildIdentity>? buildIdentityOverride;
+    private static Func<ValheimDevSessionIdentity>? sessionIdentityOverride;
 #endif
 
-    internal static bool IsCancellationRequested => cancellationRequested;
+    internal static bool IsCancellationRequested => session == null;
     internal static string DescriptorPath => Path.Combine(bepinExRootPath, SessionDirectoryName, DescriptorFileName);
 
 #if VALHEIM_DEV_TESTS
-    internal static bool IsAuthorizedForTests => authorized;
+    internal static bool IsAuthorizedForTests => session != null;
+    internal static int ActiveConnectionCountForTests => Volatile.Read(ref activeConnections);
     internal static int QueueCountForTests
     {
         get { lock (Gate) return Requests.Count; }
@@ -94,10 +114,10 @@ internal static partial class ValheimDevRuntime
 
     internal static void SetTestHooks(
         Func<ValheimDevWorldState> snapshot,
-        Func<ValheimDevBuildIdentity> buildIdentity)
+        Func<ValheimDevSessionIdentity> sessionIdentity)
     {
         snapshotOverride = snapshot;
-        buildIdentityOverride = buildIdentity;
+        sessionIdentityOverride = sessionIdentity;
     }
 #endif
 
@@ -107,7 +127,6 @@ internal static partial class ValheimDevRuntime
         benheimVersion = version;
         mainThreadId = unityMainThreadId;
         initialized = true;
-        cancellationRequested = true;
         restartRequired = false;
         activeOperation = null;
         lock (Gate)
@@ -139,7 +158,7 @@ internal static partial class ValheimDevRuntime
             case "on":
                 if (TryAuthorize(out string authorizationResult))
                 {
-                    context.AddString($"Benheim Lab authorized for this local world session on 127.0.0.1:{((IPEndPoint)listener!.LocalEndpoint).Port}.");
+                    context.AddString($"Benheim Lab authorized for this local world session on 127.0.0.1:{((IPEndPoint)session!.Listener.LocalEndpoint).Port}.");
                 }
                 else
                 {
@@ -153,16 +172,15 @@ internal static partial class ValheimDevRuntime
                     : "Benheim Lab authorization revoked.");
                 return true;
             case "status":
-                if (authorized)
+                ValheimDevSession? current = session;
+                if (current != null)
                 {
-                    string reason = capture == null
-                        ? "not_authorized"
-                        : ValheimDevEligibility.CheckCapturedSession(capture, Snapshot());
+                    string reason = ValheimDevEligibility.CheckCapturedSession(current.Capture, Snapshot());
                     if (reason == "eligible")
                     {
                         context.AddString(restartRequired
-                            ? RestartRequiredMessage($"Benheim Lab is authorized for session {identity.SessionId} with {ManagedChangeCount()} active managed change(s), but cleanup is uncertain and a game restart is required.")
-                            : $"Benheim Lab is authorized for session {identity.SessionId} with {ManagedChangeCount()} active managed change(s).");
+                            ? RestartRequiredMessage($"Benheim Lab is authorized for session {current.Identity.SessionId} with {ManagedChangeCount()} active managed change(s), but cleanup is uncertain and a game restart is required.")
+                            : $"Benheim Lab is authorized for session {current.Identity.SessionId} with {ManagedChangeCount()} active managed change(s).");
                     }
                     else
                     {
@@ -200,15 +218,16 @@ internal static partial class ValheimDevRuntime
             return;
         }
 
-        if (authorized && listenerFailed)
+        ValheimDevSession? current = session;
+        if (current != null && current.ListenerFailed)
         {
             Revoke("listener_failed");
             return;
         }
 
-        if (authorized && capture != null)
+        if (current != null)
         {
-            string drift = ValheimDevEligibility.CheckCapturedSession(capture, Snapshot());
+            string drift = ValheimDevEligibility.CheckCapturedSession(current.Capture, Snapshot());
             if (drift != "eligible")
             {
                 Revoke("session_drift:" + drift);
@@ -220,7 +239,7 @@ internal static partial class ValheimDevRuntime
         if (operation != null)
         {
             DrainEvidence(operation);
-            if (cancellationRequested)
+            if (session == null)
             {
                 FinishActiveOperation("authorization_revoked", ok: false, operation.CompletionCleanupState);
             }
@@ -243,10 +262,9 @@ internal static partial class ValheimDevRuntime
 
     internal static string Revoke(string reason)
     {
-        cancellationRequested = true;
-        bool wasAuthorized = authorized;
-        authorized = false;
-        StopListener();
+        ValheimDevSession? revokedSession = session;
+        session = null;
+        StopListener(revokedSession);
         DeleteDescriptor();
 
         Dictionary<string, string> cleanupResults = CleanupManagedChanges();
@@ -266,17 +284,17 @@ internal static partial class ValheimDevRuntime
         }
         foreach (ValheimDevPendingRequest pending in canceled)
         {
-            ValheimDevResponse response = ResponseFor(pending.Request);
+            ValheimDevResponse response = ResponseFor(pending);
             response.Error = "authorization_revoked";
             pending.Complete(response.ToJson(pending.Request.Kind != "status"));
         }
 
         Diagnostics.SetValheimDevObserver(null);
-        capture = null;
-        if (wasAuthorized)
+        if (revokedSession != null)
         {
             Diagnostics.Emit(
                 DiagnosticEvent.Create("ValheimDev", "lab_revoked")
+                    .String("lab_session_id", revokedSession.Identity.SessionId)
                     .String("reason", reason)
                     .String("cleanup_state", cleanupState));
         }
@@ -302,7 +320,7 @@ internal static partial class ValheimDevRuntime
             return false;
         }
 
-        if (authorized)
+        if (session != null)
         {
             result = "already_authorized";
             return true;
@@ -320,26 +338,24 @@ internal static partial class ValheimDevRuntime
         try
         {
             candidate.Start(ValheimDevProtocol.MaximumQueueDepth);
-            ValheimDevBuildIdentity candidateIdentity = BuildIdentity();
+            ValheimDevSessionIdentity candidateIdentity = CreateSessionIdentity();
             candidateIdentity.SessionId = Guid.NewGuid().ToString("N");
-            candidateIdentity.Generation = Guid.NewGuid().ToString("N");
-            candidateIdentity.Token = RandomHex(32);
             candidateIdentity.AuthorizedAt = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
             int port = ((IPEndPoint)candidate.LocalEndpoint).Port;
             WriteDescriptor(candidateIdentity, port);
 
-            listener = candidate;
-            listenerFailed = false;
-            identity = candidateIdentity;
-            capture = new ValheimDevWorldCapture
+            ValheimDevWorldCapture candidateCapture = new ValheimDevWorldCapture
             {
                 Network = state.Network!,
                 Scene = state.Scene!,
                 WorldId = state.WorldId
             };
-            cancellationRequested = false;
-            authorized = true;
-            acceptThread = new Thread(() => AcceptLoop(candidate))
+            ValheimDevSession candidateSession = new ValheimDevSession(
+                candidateIdentity,
+                candidateCapture,
+                candidate);
+            session = candidateSession;
+            Thread acceptThread = new Thread(() => AcceptLoop(candidateSession))
             {
                 IsBackground = true,
                 Name = "Benheim Valheim Dev listener"
@@ -347,16 +363,16 @@ internal static partial class ValheimDevRuntime
             acceptThread.Start();
             Diagnostics.Emit(
                 DiagnosticEvent.Create("ValheimDev", "lab_authorized")
-                    .String("session_id", candidateIdentity.SessionId)
-                    .String("generation", candidateIdentity.Generation));
+                    .String("lab_session_id", candidateIdentity.SessionId));
             result = "authorized";
             return true;
         }
         catch (Exception exception)
         {
+            session = null;
             candidate.Stop();
             DeleteDescriptor();
-            result = "listener_or_descriptor_failed:" + Diagnostics.Flatten(exception.Message);
+            result = "session_start_failed:" + Diagnostics.Flatten(exception.Message);
             return false;
         }
     }

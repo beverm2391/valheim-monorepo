@@ -8,8 +8,7 @@ internal sealed class ValheimDevRequest
 {
     internal string Kind { get; set; } = string.Empty;
     internal int Protocol { get; set; }
-    internal string Token { get; set; } = string.Empty;
-    internal string Generation { get; set; } = string.Empty;
+    internal string SessionId { get; set; } = string.Empty;
     internal string OperationId { get; set; } = string.Empty;
     internal string ChangeId { get; set; } = string.Empty;
     internal string? ExpectedOperationId { get; set; }
@@ -22,11 +21,9 @@ internal sealed class ValheimDevRequest
     internal int EvidenceTimeoutMs { get; set; }
 }
 
-internal sealed class ValheimDevBuildIdentity
+internal sealed class ValheimDevSessionIdentity
 {
     internal string SessionId { get; set; } = string.Empty;
-    internal string Generation { get; set; } = string.Empty;
-    internal string Token { get; set; } = string.Empty;
     internal string AuthorizedAt { get; set; } = string.Empty;
     internal string ValheimVersion { get; set; } = string.Empty;
     internal string ValheimSha256 { get; set; } = string.Empty;
@@ -60,7 +57,7 @@ internal sealed class ValheimDevResponse
     internal int Protocol { get; set; } = ValheimDevProtocol.ProtocolVersion;
     internal bool Ok { get; set; }
     internal string? Error { get; set; }
-    internal ValheimDevBuildIdentity Identity { get; set; } = new ValheimDevBuildIdentity();
+    internal ValheimDevSessionIdentity Identity { get; set; } = new ValheimDevSessionIdentity();
     internal bool Authorized { get; set; }
     internal bool RestartRequired { get; set; }
     internal string Action { get; set; } = string.Empty;
@@ -90,8 +87,6 @@ internal sealed class ValheimDevResponse
         ValheimDevJson.AppendNullableProperty(builder, "error", Error);
         builder.Append(',');
         ValheimDevJson.AppendProperty(builder, "session_id", Identity.SessionId);
-        builder.Append(',');
-        ValheimDevJson.AppendProperty(builder, "generation", Identity.Generation);
         builder.Append(',');
         ValheimDevJson.AppendProperty(builder, "valheim_version", Identity.ValheimVersion);
         builder.Append(',');
@@ -169,7 +164,7 @@ internal sealed class ValheimDevResponse
 
 internal static class ValheimDevProtocol
 {
-    internal const int ProtocolVersion = 2;
+    internal const int ProtocolVersion = 3;
     internal const int MaximumSourceBytes = 256 * 1024;
     internal const int MaximumAssemblyBytes = 1024 * 1024;
     internal const int MaximumRequestBytes = 2 * 1024 * 1024;
@@ -197,8 +192,7 @@ internal static class ValheimDevProtocol
         }
         if (!TryString(values, "kind", out string kind)
             || !TryInteger(values, "protocol", out int protocol)
-            || !TryString(values, "token", out string token)
-            || !TryString(values, "generation", out string generation))
+            || !TryString(values, "session_id", out string sessionId))
         {
             error = "missing_request_envelope";
             return false;
@@ -215,8 +209,7 @@ internal static class ValheimDevProtocol
         }
         request.Kind = kind;
         request.Protocol = protocol;
-        request.Token = token;
-        request.Generation = generation;
+        request.SessionId = sessionId;
         if (kind == "status") return true;
 
         if (!TryString(values, "operation_id", out string operationId) || !ValidIdentifier(operationId))
@@ -295,7 +288,7 @@ internal static class ValheimDevProtocol
     {
         foreach (string key in values.Keys)
         {
-            bool envelope = key == "kind" || key == "protocol" || key == "token" || key == "generation";
+            bool envelope = key == "kind" || key == "protocol" || key == "session_id";
             if (envelope) continue;
             if (kind == "status") return false;
             if (key == "operation_id") continue;

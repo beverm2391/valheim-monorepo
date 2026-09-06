@@ -9,7 +9,7 @@ const ACTIVE_CHANGE_KEYS = new Set([
   "installed_utc", "result", "cleanup_state",
 ]);
 const STATUS_KEYS = new Set([
-  "protocol", "ok", "error", "session_id", "generation", "valheim_version",
+  "protocol", "ok", "error", "session_id", "valheim_version",
   "valheim_sha256", "benheim_version", "benheim_sha256", "authorized",
   "restart_required", "active_changes",
 ]);

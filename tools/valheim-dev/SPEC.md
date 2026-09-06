@@ -16,21 +16,34 @@ one-time invocation. Those required extensions must follow this contract.
 ## A Session Is The Authority Boundary
 
 Ben authorizes one loaded single-player Lab world with `bh lab on`. The bridge
-captures the world identity and creates a fresh session ID, generation, token,
-and loopback port. It also records exact Valheim and Benheim versions and
-SHA-256 hashes. The descriptor supplies an explicit compiler reference set for
-those builds.
+captures the world identity and creates a fresh session ID and loopback port.
+It also records exact Valheim and Benheim versions and SHA-256 hashes. The
+descriptor supplies an explicit compiler reference set for those builds.
 
-Every bridge request includes the protocol version, token, and generation. The
-bridge compares the token in constant time and rejects stale generations. It
-also rechecks the captured world before loading code and before calling its
-entrypoint. A local player replacement after respawn does not change the world
-identity.
+One Lab session owns the listener, descriptor, captured world, and build
+identity. Its presence is the authorization state. Startup publishes the Lab
+session only after acquiring every required resource. If startup fails, it
+releases all acquired resources and publishes no session.
+
+Every bridge request includes the protocol version and session ID. The bridge
+rejects a request from an old session. It also rechecks the captured world
+before loading code and before calling its entrypoint. A local player
+replacement after respawn does not change the world identity.
+
+The bridge trusts processes that run as Ben on his local machine. It does not
+authenticate one local process from another. Together, the explicit Lab
+command, loopback listener, session ID, and captured world define the
+authorization boundary.
+
+Developer Diagnostics owns the Benheim process diagnostic session. Valheim
+Dev owns the authorized Lab session. A Lab event identifies the Lab session as
+`lab_session_id`. The Lab session ID does not replace or reuse the diagnostic
+envelope identity.
 
 The authorization ends when Ben runs `bh lab off`, the captured world changes,
 the network session ends, or the plugin stops. The bridge then deletes the
 descriptor, rejects queued work, stops watches, and attempts to clean every
-managed change. A new authorization always creates a new token and generation.
+managed change. A new authorization always creates a new session ID.
 
 Valheim Dev accepts only loopback connections. It rejects a request in any of
 these conditions:
@@ -62,8 +75,8 @@ reject extra top-level fields.
 The implemented core tools are:
 
 1. `lab_status({})`
-   - Returns connection state, authorization state, session and generation,
-     exact build identity, `restart_required`, and active changes. The complete
+   - Returns connection state, authorization state, session ID, exact build
+     identity, `restart_required`, and active changes. The complete
      extension also returns active watches and an in-flight operation.
 2. `inspect_runtime({source, targets?, inputs?, evidence_events?, evidence_timeout_ms?})`
    - Compiles source that defines `public static ValheimDevInspection.Run():
@@ -103,7 +116,7 @@ defaults to 512 and cannot exceed 4,096. `max_bytes` defaults to 1 MiB and canno
 exceed 4 MiB. A capture cursor is a non-negative integer. `wait_ms` defaults to
 zero and cannot exceed 120 seconds. `impact` is a non-empty string of at most
 1,024 characters. Every operation response includes its action, operation ID,
-session and generation, build identity, timestamps, result or error, cleanup
+session ID, build identity, timestamps, result or error, cleanup
 state, restart state, selected evidence, and active registry snapshot.
 
 `source` is exact UTF-8 C# source and is limited to 256 KiB. Compiled assemblies
@@ -135,18 +148,18 @@ A target reference is either a selector or a session-local handle:
 ```
 
 ```json
-{ "handle": "vh:<generation>:<opaque-id>" }
+{ "handle": "vh:<session-id>:<opaque-id>" }
 ```
 
 A selector must be bounded. Scene searches require at least one of `name`,
 `type`, `component`, or `path`. `max_results` defaults to 20 and cannot exceed
 100. The runtime returns stable handles for the selected objects within the
-current generation.
+current session.
 
 A handle is a registry reference, not a Unity instance ID. The registry keeps
 the live object reference plus its observed type, name, hierarchy path, and
-generation. A handle expires when the object is destroyed, the world changes,
-or authorization ends. The bridge rejects a handle from another generation.
+session ID. A handle expires when the object is destroyed, the world changes,
+or authorization ends. The bridge rejects a handle from another session.
 Handles never enter shipped source or survive a process restart.
 
 ## Inspection Describes What Actually Exists
@@ -248,16 +261,16 @@ result, and cleanup state. It also reports an in-flight operation and
 `restart_required` when present.
 
 The MCP server validates that the bridge response matches the descriptor's
-session, generation, Valheim build, and Benheim build. A mismatch makes the
-connection unavailable. The MCP server never merges active state from an old
-generation into a new one.
+session ID, Valheim build, and Benheim build. A mismatch makes the connection
+unavailable. The MCP server never merges active state from one session into
+another.
 
 ## The Ledger Is Persistent Evidence
 
 The MCP server writes a pending record before compilation. Each operation then
-updates the same atomic JSON record. Schema version 2 contains:
+updates the same atomic JSON record. Schema version 3 contains:
 
-- action, operation ID, change or watch ID, session, and generation;
+- action, operation ID, change or watch ID, and session ID;
 - exact Valheim and Benheim versions and SHA-256 hashes;
 - exact source, source hash, assembly hash, targets, and inputs;
 - prior active version and whether it was preserved;

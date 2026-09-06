@@ -34,14 +34,18 @@ internal static partial class Program
 
         Task<string> exactBoundary = StartObservedInspection(
             "exact-byte-boundary", inspectionAssembly, "Test:exact");
-        DiagnosticEvent empty = DiagnosticEvent.Create("Test", "exact").String("blob", string.Empty);
+        DiagnosticEvent empty = Diagnostics.PrepareForTests(
+            DiagnosticEvent.Create("Test", "exact").String("blob", string.Empty));
         int fixedBytes = 2 + ValheimDevJson.EncodedStringUtf8ByteCount(empty.ToJsonLine());
-        DiagnosticEvent exact = DiagnosticEvent.Create("Test", "exact")
-            .String("blob", new string('x', ValheimDevProtocol.MaximumEvidenceBytes - fixedBytes));
+        DiagnosticEvent exact = Diagnostics.PrepareForTests(
+            DiagnosticEvent.Create("Test", "exact")
+                .String("blob", new string('x', ValheimDevProtocol.MaximumEvidenceBytes - fixedBytes)));
         Require(2 + ValheimDevJson.EncodedStringUtf8ByteCount(exact.ToJsonLine())
                 == ValheimDevProtocol.MaximumEvidenceBytes,
             "evidence fixture reaches the exact serialized-array byte boundary");
-        Diagnostics.Emit(exact);
+        Action<DiagnosticEvent> exactObserver = Diagnostics.CaptureObserverForTests()
+            ?? throw new InvalidOperationException("exact boundary observer was not installed");
+        exactObserver(exact);
         JsonElement exactEvidence = Parse(Pump(exactBoundary));
         Require(exactEvidence.GetProperty("evidence_events").GetArrayLength() == 1
             && !exactEvidence.GetProperty("evidence_truncated").GetBoolean()
@@ -57,7 +61,8 @@ internal static partial class Program
 
         Task<string> second = StartObservedInspection(
             "observer-b", inspectionAssembly, "Test:cross");
-        delayedObserver(DiagnosticEvent.Create("Test", "cross").String("origin", "delayed-a"));
+        delayedObserver(Diagnostics.PrepareForTests(
+            DiagnosticEvent.Create("Test", "cross").String("origin", "delayed-a")));
         ValheimDevRuntime.Update();
         Require(!second.IsCompleted, "operation A's delayed observer cannot satisfy operation B");
         Diagnostics.Emit(DiagnosticEvent.Create("Test", "cross").String("origin", "current-b"));

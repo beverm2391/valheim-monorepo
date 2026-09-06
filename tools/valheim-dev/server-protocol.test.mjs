@@ -70,13 +70,15 @@ test("official SDK validates tool input before the service callback", async (t) 
   assert.match(unknownArgument.content[0].text, /Input validation error.*unrecognized key/is);
 });
 
-test("descriptor validation rejects non-loopback and opaque-generation violations", async (t) => {
+test("descriptor validation rejects outdated protocol, non-loopback, and invalid session identity", async (t) => {
   const { root, reference } = await temporaryRoot();
   t.after(() => rm(root, { recursive: true, force: true }));
+  await writeDescriptor(root, reference, 12345, { protocol: 2 });
+  assert.match((await createService({ root }).call("lab_status")).error, /unsupported bridge protocol/);
   await writeDescriptor(root, reference, 12345, { host: "localhost" });
   assert.match((await createService({ root }).call("lab_status")).error, /127\.0\.0\.1/);
-  await writeDescriptor(root, reference, 12345, { generation: 2 });
-  assert.match((await createService({ root }).call("lab_status")).error, /generation/);
+  await writeDescriptor(root, reference, 12345, { session_id: 2 });
+  assert.match((await createService({ root }).call("lab_status")).error, /session_id/);
 });
 
 test("compiler invocation uses direct Roslyn arguments and curated references", async (t) => {

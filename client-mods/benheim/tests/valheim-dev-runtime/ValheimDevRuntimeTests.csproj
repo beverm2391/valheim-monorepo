@@ -15,5 +15,6 @@
     <Compile Include="../../src/ValheimDev/ValheimDevRuntime.Operation.cs" Link="ValheimDevRuntime.Operation.cs" />
     <Compile Include="../../src/ValheimDev/ValheimDevRuntime.ManagedChanges.cs" Link="ValheimDevRuntime.ManagedChanges.cs" />
     <Compile Include="../../src/ValheimDev/ValheimDevRuntime.Transport.cs" Link="ValheimDevRuntime.Transport.cs" />
+    <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
   </ItemGroup>
 </Project>

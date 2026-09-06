@@ -15,26 +15,26 @@ namespace BenheimQoL.ValheimDev;
 
 internal static partial class ValheimDevRuntime
 {
-    private static void AcceptLoop(TcpListener ownedListener)
+    private static void AcceptLoop(ValheimDevSession ownedSession)
     {
-        while (authorized && ReferenceEquals(listener, ownedListener))
+        while (ReferenceEquals(session, ownedSession))
         {
             try
             {
-                TcpClient client = ownedListener.AcceptTcpClient();
+                TcpClient client = ownedSession.Listener.AcceptTcpClient();
                 if (Interlocked.Increment(ref activeConnections) > ValheimDevProtocol.MaximumQueueDepth * 2)
                 {
                     Interlocked.Decrement(ref activeConnections);
                     client.Dispose();
                     continue;
                 }
-                ThreadPool.QueueUserWorkItem(_ => HandleClient(client));
+                ThreadPool.QueueUserWorkItem(_ => HandleClient(client, ownedSession));
             }
             catch (SocketException)
             {
-                if (authorized && ReferenceEquals(listener, ownedListener))
+                if (ReferenceEquals(session, ownedSession))
                 {
-                    listenerFailed = true;
+                    ownedSession.ListenerFailed = true;
                     Plugin.Log.LogWarning("Benheim Lab listener stopped unexpectedly.");
                 }
                 return;
@@ -46,7 +46,7 @@ internal static partial class ValheimDevRuntime
         }
     }
 
-    private static void HandleClient(TcpClient client)
+    private static void HandleClient(TcpClient client, ValheimDevSession ownedSession)
     {
         try
         {
@@ -76,12 +76,12 @@ internal static partial class ValheimDevRuntime
                     return;
                 }
 
-                ValheimDevPendingRequest pending = new ValheimDevPendingRequest(request);
+                ValheimDevPendingRequest pending;
                 lock (Gate)
                 {
-                    if (!authorized)
+                    if (!ReferenceEquals(session, ownedSession))
                     {
-                    WriteResponse(stream, ErrorJson("not_authorized", request));
+                        WriteResponse(stream, ErrorJson("not_authorized", request));
                         return;
                     }
                     if (Requests.Count >= ValheimDevProtocol.MaximumQueueDepth)
@@ -89,6 +89,7 @@ internal static partial class ValheimDevRuntime
                         WriteResponse(stream, ErrorJson("queue_full", request));
                         return;
                     }
+                    pending = new ValheimDevPendingRequest(request, ownedSession);
                     Requests.Enqueue(pending);
                 }
 
@@ -147,10 +148,11 @@ internal static partial class ValheimDevRuntime
 
     private static string ErrorJson(string error, ValheimDevRequest? request = null)
     {
+        ValheimDevSession? current = session;
         ValheimDevResponse response = new ValheimDevResponse
         {
-            Identity = identity,
-            Authorized = authorized,
+            Identity = current?.Identity ?? new ValheimDevSessionIdentity(),
+            Authorized = current != null,
             RestartRequired = restartRequired,
             Action = request?.Kind ?? string.Empty,
             Error = error,
@@ -163,16 +165,13 @@ internal static partial class ValheimDevRuntime
         return response.ToJson(includeOperation: request != null && request.Kind != "status");
     }
 
-    private static void StopListener()
+    private static void StopListener(ValheimDevSession? current)
     {
-        TcpListener? current = listener;
-        listener = null;
-        try { current?.Stop(); }
+        try { current?.Listener.Stop(); }
         catch { }
-        acceptThread = null;
     }
 
-    private static void WriteDescriptor(ValheimDevBuildIdentity value, int port)
+    private static void WriteDescriptor(ValheimDevSessionIdentity value, int port)
     {
         string directory = Path.Combine(bepinExRootPath, SessionDirectoryName);
         Directory.CreateDirectory(directory);
@@ -183,10 +182,6 @@ internal static partial class ValheimDevRuntime
         ValheimDevJson.AppendProperty(builder, "protocol", ValheimDevProtocol.ProtocolVersion);
         builder.Append(',');
         ValheimDevJson.AppendProperty(builder, "session_id", value.SessionId);
-        builder.Append(',');
-        ValheimDevJson.AppendProperty(builder, "generation", value.Generation);
-        builder.Append(',');
-        ValheimDevJson.AppendProperty(builder, "token", value.Token);
         builder.Append(',');
         ValheimDevJson.AppendProperty(builder, "host", "127.0.0.1");
         builder.Append(',');
@@ -231,17 +226,17 @@ internal static partial class ValheimDevRuntime
         }
     }
 
-    private static ValheimDevBuildIdentity BuildIdentity()
+    private static ValheimDevSessionIdentity CreateSessionIdentity()
     {
 #if VALHEIM_DEV_TESTS
-        if (buildIdentityOverride != null) return buildIdentityOverride();
+        if (sessionIdentityOverride != null) return sessionIdentityOverride();
 #endif
         Assembly valheim = typeof(ZNet).Assembly;
         Assembly benheim = typeof(Plugin).Assembly;
         string valheimPath = Path.GetFullPath(valheim.Location);
         string benheimPath = Path.GetFullPath(benheim.Location);
         string managedDirectory = Path.GetDirectoryName(valheimPath)!;
-        ValheimDevBuildIdentity value = new ValheimDevBuildIdentity
+        ValheimDevSessionIdentity value = new ValheimDevSessionIdentity
         {
             ValheimVersion = ReadValheimVersion(valheim),
             ValheimSha256 = Sha256(File.ReadAllBytes(valheimPath)),
@@ -267,7 +262,7 @@ internal static partial class ValheimDevRuntime
         return value;
     }
 
-    private static void AddReference(ValheimDevBuildIdentity value, string path)
+    private static void AddReference(ValheimDevSessionIdentity value, string path)
     {
         string fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("compiler reference was not found", fullPath);
@@ -322,28 +317,4 @@ internal static partial class ValheimDevRuntime
         return builder.ToString();
     }
 
-    private static string RandomHex(int byteCount)
-    {
-        byte[] bytes = new byte[byteCount];
-        using RandomNumberGenerator generator = RandomNumberGenerator.Create();
-        generator.GetBytes(bytes);
-        StringBuilder builder = new StringBuilder(byteCount * 2);
-        foreach (byte value in bytes) builder.Append(value.ToString("x2", CultureInfo.InvariantCulture));
-        return builder.ToString();
-    }
-
-    private static bool ConstantTimeEquals(string left, string right)
-    {
-        byte[] a = Encoding.UTF8.GetBytes(left);
-        byte[] b = Encoding.UTF8.GetBytes(right);
-        int difference = a.Length ^ b.Length;
-        int length = Math.Max(a.Length, b.Length);
-        for (int index = 0; index < length; index++)
-        {
-            byte av = index < a.Length ? a[index] : (byte)0;
-            byte bv = index < b.Length ? b[index] : (byte)0;
-            difference |= av ^ bv;
-        }
-        return difference == 0;
-    }
 }

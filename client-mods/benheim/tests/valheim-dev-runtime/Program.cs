@@ -13,8 +13,7 @@ using BenheimQoL.ValheimDev;
 internal static partial class Program
 {
     private static ValheimDevWorldState state = EligibleState();
-    private static string token = string.Empty;
-    private static string generation = string.Empty;
+    private static string sessionId = string.Empty;
     private static int port;
     private static string root = string.Empty;
 
@@ -43,6 +42,7 @@ internal static partial class Program
     }
     private static void RuntimeLifecycle(string[] fixtures)
     {
+        FailedStartupLeavesNoSession();
         root = Path.Combine(Path.GetTempPath(), "benheim-valheim-dev-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "ValheimDev"));
         File.WriteAllText(Path.Combine(root, "ValheimDev", "session.json"), "stale");
@@ -51,8 +51,14 @@ internal static partial class Program
         Require(!File.Exists(ValheimDevRuntime.DescriptorPath), "startup removes stale descriptor");
 
         Authorize();
-        string firstToken = token;
-        string firstGeneration = generation;
+        string firstSessionId = sessionId;
+        JsonElement outdatedProtocol = Parse(Pump(SendAsync(JsonSerializer.Serialize(
+            new Dictionary<string, object?>
+            {
+                ["kind"] = "status", ["protocol"] = 2, ["session_id"] = sessionId
+            }))));
+        Require(outdatedProtocol.GetProperty("error").GetString() == "protocol_mismatch",
+            "the runtime rejects the superseded version-2 wire protocol explicitly");
         Require(Status().GetProperty("active_changes").GetArrayLength() == 0, "status starts with no managed changes");
 
         Task<string> wrongThreadInspection = SendAsync(CodeRequest(
@@ -138,13 +144,33 @@ internal static partial class Program
             "off invalidates the descriptor and cancels queued work");
 
         Authorize();
-        Require(token != firstToken && generation != firstGeneration, "reauthorization rotates token and generation");
+        Require(sessionId != firstSessionId, "reauthorization creates a new session identity");
+        JsonElement staleSession = Parse(Pump(SendAsync(JsonSerializer.Serialize(
+            new Dictionary<string, object?>
+            {
+                ["kind"] = "status", ["protocol"] = 3, ["session_id"] = firstSessionId
+            }))));
+        Require(staleSession.GetProperty("error").GetString() == "authorization_mismatch",
+            "a request from the previous Lab session is rejected");
+        AcceptedSocketCannotCrossSessions();
         Environment.SetEnvironmentVariable("VALHEIM_DEV_VARIANT", "revoked");
+        Diagnostics.ClearEmittedForTests();
         Require(Install("install-before-off", "affinity.weapon-icon", fixtures[0]).GetProperty("ok").GetBoolean(),
             "managed change installs before explicit revocation");
+        RequireLabDiagnostics("operation_started", "operation_finished");
+        string revokedSessionId = sessionId;
+        Diagnostics.ClearEmittedForTests();
         ValheimDevRuntime.Revoke("explicit_off");
         Require(!ValheimDevTestSurface.Visible && !File.Exists(ValheimDevRuntime.DescriptorPath),
             "revocation cleans managed changes and removes the descriptor");
+        RequireLabDiagnostics("lab_revoked");
+        using (JsonDocument revokedDiagnostic = JsonDocument.Parse(
+            Diagnostics.LastEmittedForTests?.ToJsonLine()
+                ?? throw new InvalidOperationException("Lab revocation diagnostic was not emitted")))
+        {
+            Require(revokedDiagnostic.RootElement.GetProperty("lab_session_id").GetString() == revokedSessionId,
+                "revocation remains correlated to the Lab session it ended");
+        }
 
         ResetRuntime();
         Authorize();
@@ -271,7 +297,7 @@ internal static partial class Program
     {
         return Parse(Pump(SendAsync(JsonSerializer.Serialize(new Dictionary<string, object?>
         {
-            ["kind"] = "status", ["protocol"] = 2, ["token"] = token, ["generation"] = generation
+            ["kind"] = "status", ["protocol"] = 3, ["session_id"] = sessionId
         }))));
     }
 
@@ -288,8 +314,8 @@ internal static partial class Program
     {
         return Parse(Pump(SendAsync(JsonSerializer.Serialize(new Dictionary<string, object?>
         {
-            ["kind"] = "remove_change", ["protocol"] = 2, ["token"] = token,
-            ["generation"] = generation, ["operation_id"] = operationId, ["change_id"] = changeId,
+            ["kind"] = "remove_change", ["protocol"] = 3, ["session_id"] = sessionId,
+            ["operation_id"] = operationId, ["change_id"] = changeId,
             ["expected_operation_id"] = expectedOperationIdOverride ?? ActiveOperationId(changeId)
         }))));
     }
@@ -307,7 +333,7 @@ internal static partial class Program
         string source = "// source for " + operationId;
         Dictionary<string, object?> fields = new Dictionary<string, object?>
         {
-            ["kind"] = kind, ["protocol"] = 2, ["token"] = token, ["generation"] = generation,
+            ["kind"] = kind, ["protocol"] = 3, ["session_id"] = sessionId,
             ["operation_id"] = operationId, ["source"] = source,
             ["source_sha256"] = Hash(Encoding.UTF8.GetBytes(source)), ["assembly_sha256"] = Hash(assembly),
             ["assembly"] = Convert.ToBase64String(assembly),
@@ -366,33 +392,6 @@ internal static partial class Program
         DateTime deadline = DateTime.UtcNow.AddSeconds(5);
         while (ValheimDevRuntime.QueueCountForTests == 0 && DateTime.UtcNow < deadline) Thread.Sleep(1);
         Require(ValheimDevRuntime.QueueCountForTests > 0, "request reached bounded runtime queue");
-    }
-
-    private static void Authorize()
-    {
-        Terminal terminal = new Terminal();
-        Require(ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "on" }, terminal), "lab command is routed");
-        Require(ValheimDevRuntime.IsAuthorizedForTests, "eligible console command authorizes");
-        using JsonDocument descriptor = JsonDocument.Parse(File.ReadAllText(ValheimDevRuntime.DescriptorPath));
-        JsonElement value = descriptor.RootElement;
-        Require(value.GetProperty("protocol").GetInt32() == 2
-            && value.GetProperty("host").GetString() == "127.0.0.1"
-            && value.GetProperty("compiler_references").GetArrayLength() == 10,
-            "descriptor contains protocol, loopback endpoint, and curated references");
-        token = value.GetProperty("token").GetString()!;
-        generation = value.GetProperty("generation").GetString()!;
-        port = value.GetProperty("port").GetInt32();
-    }
-
-    private static ValheimDevBuildIdentity TestIdentity()
-    {
-        ValheimDevBuildIdentity value = new ValheimDevBuildIdentity
-        {
-            ValheimVersion = "0.221.12", ValheimSha256 = new string('a', 64),
-            BenheimVersion = "test-benheim", BenheimSha256 = new string('b', 64)
-        };
-        for (int index = 0; index < 10; index++) value.CompilerReferences.Add(Path.Combine(root, "reference-" + index + ".dll"));
-        return value;
     }
 
     private static ValheimDevWorldState EligibleState()

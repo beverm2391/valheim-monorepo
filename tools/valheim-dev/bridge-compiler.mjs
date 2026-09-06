@@ -66,17 +66,12 @@ export async function loadDescriptor(root) {
   if (!plainObject(descriptor)) throw new Error("session descriptor must be an object");
   if (descriptor.protocol !== BRIDGE_PROTOCOL) throw new Error("unsupported bridge protocol");
   assertString(descriptor.session_id, "session_id");
-  assertString(descriptor.generation, "generation");
-  assertString(descriptor.token, "token");
   if (descriptor.host !== "127.0.0.1") throw new Error("bridge host must be 127.0.0.1");
   if (!Number.isInteger(descriptor.port) || descriptor.port < 1 || descriptor.port > 65535) {
     throw new Error("bridge port is invalid");
   }
   assertString(descriptor.authorized_at, "authorized_at");
   if (!Number.isFinite(Date.parse(descriptor.authorized_at))) throw new Error("authorized_at is invalid");
-  if (descriptor.authorized === false || descriptor.closed_at || descriptor.revoked_at) {
-    throw new Error("Lab authorization is closed");
-  }
   validateBuildFields(descriptor, "valheim");
   validateBuildFields(descriptor, "benheim");
   if (!Array.isArray(descriptor.compiler_references) || descriptor.compiler_references.length === 0) {
@@ -92,19 +87,14 @@ export async function loadDescriptor(root) {
   return Object.freeze({ ...descriptor, compiler_references: [...descriptor.compiler_references] });
 }
 
-export function sameAuthorization(left, right) {
-  return left.session_id === right.session_id &&
-    left.generation === right.generation &&
-    left.token === right.token &&
-    left.host === right.host &&
-    left.port === right.port;
+export function sameSession(left, right) {
+  return left.session_id === right.session_id;
 }
 
 export function validateBridgeIdentity(response, descriptor) {
   if (!plainObject(response)) throw new Error("bridge response must be an object");
   if (response.protocol !== BRIDGE_PROTOCOL) throw new Error("bridge response protocol mismatch");
   if (response.session_id !== descriptor.session_id) throw new Error("bridge session identity mismatch");
-  if (response.generation !== descriptor.generation) throw new Error("bridge generation mismatch");
   validateBuildFields(response, "valheim");
   validateBuildFields(response, "benheim");
   for (const [key, expected] of Object.entries(buildIdentity(descriptor))) {
@@ -134,8 +124,7 @@ export function requestBridge(descriptor, request, timeoutMs) {
       socket.write(`${JSON.stringify({
         ...request,
         protocol: BRIDGE_PROTOCOL,
-        token: descriptor.token,
-        generation: descriptor.generation,
+        session_id: descriptor.session_id,
       })}\n`);
     });
     socket.on("data", (chunk) => {

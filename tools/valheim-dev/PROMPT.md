@@ -32,6 +32,9 @@ Run the in-process bridge proof with:
 safe client-mods/benheim/tests/valheim-dev-runtime-test.sh
 ```
 
+This proof compiles the production `DiagnosticEvent` implementation. Do not
+reproduce its fields or envelope rules in a test double.
+
 After changing either the MCP server or the in-process bridge, run the
 canonical Benheim verification:
 
@@ -41,7 +44,7 @@ safe client-mods/benheim/scripts/verify.sh
 
 The focused suites must prove:
 
-- exact build identity and authorization generation;
+- exact build and session identity;
 - main-thread execution;
 - bounded compilation and transport;
 - persistent ledger records;

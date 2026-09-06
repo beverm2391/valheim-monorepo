@@ -11,8 +11,9 @@ internal static partial class ValheimDevRuntime
     private static void Process(ValheimDevPendingRequest pending)
     {
         ValheimDevRequest request = pending.Request;
-        ValheimDevResponse response = ResponseFor(request);
-        if (!authorized || capture == null)
+        ValheimDevResponse response = ResponseFor(pending);
+        ValheimDevSession? currentSession = session;
+        if (!ReferenceEquals(currentSession, pending.Session))
         {
             Complete(pending, response, "not_authorized");
             return;
@@ -22,8 +23,7 @@ internal static partial class ValheimDevRuntime
             Complete(pending, response, "protocol_mismatch");
             return;
         }
-        if (!ConstantTimeEquals(request.Token, identity.Token)
-            || !string.Equals(request.Generation, identity.Generation, StringComparison.Ordinal))
+        if (!string.Equals(request.SessionId, pending.Session.Identity.SessionId, StringComparison.Ordinal))
         {
             Complete(pending, response, "authorization_mismatch");
             return;
@@ -119,6 +119,7 @@ internal static partial class ValheimDevRuntime
         Diagnostics.SetValheimDevObserver(diagnosticEvent => EnqueueEvidence(operation, diagnosticEvent));
         Diagnostics.Emit(
             DiagnosticEvent.Create("ValheimDev", "operation_started")
+                .String("lab_session_id", pending.Session.Identity.SessionId)
                 .String("action", request.Kind)
                 .String("operation_id", request.OperationId)
                 .String("change_id", request.ChangeId)
@@ -150,12 +151,13 @@ internal static partial class ValheimDevRuntime
         operation.Response.CleanupState = cleanupState;
         operation.Response.Ok = ok && error == null;
         operation.Response.Error = error;
-        operation.Response.Authorized = authorized;
+        operation.Response.Authorized = ReferenceEquals(session, operation.Pending.Session);
         operation.Response.RestartRequired = restartRequired;
         operation.Response.FinishedUtc = UtcNow();
         SnapshotActiveChanges(operation.Response);
         Diagnostics.Emit(
             DiagnosticEvent.Create("ValheimDev", "operation_finished")
+                .String("lab_session_id", operation.Pending.Session.Identity.SessionId)
                 .String("action", operation.Response.Action)
                 .String("operation_id", operation.Response.OperationId)
                 .String("outcome", operation.Response.Ok ? "accepted" : "failed")
@@ -266,9 +268,9 @@ internal static partial class ValheimDevRuntime
         string boundary)
     {
         ValheimDevWorldState current = Snapshot();
-        string eligibility = ValheimDevEligibility.CheckOperation(capture!, current);
+        string eligibility = ValheimDevEligibility.CheckOperation(pending.Session.Capture, current);
         if (eligibility == "eligible") return true;
-        if (ValheimDevEligibility.CheckCapturedSession(capture!, current) != "eligible")
+        if (ValheimDevEligibility.CheckCapturedSession(pending.Session.Capture, current) != "eligible")
         {
             Revoke("operation_drift:" + eligibility);
             response.Authorized = false;
@@ -331,12 +333,13 @@ internal static partial class ValheimDevRuntime
         return state;
     }
 
-    private static ValheimDevResponse ResponseFor(ValheimDevRequest request)
+    private static ValheimDevResponse ResponseFor(ValheimDevPendingRequest pending)
     {
+        ValheimDevRequest request = pending.Request;
         return new ValheimDevResponse
         {
-            Identity = identity,
-            Authorized = authorized,
+            Identity = pending.Session.Identity,
+            Authorized = ReferenceEquals(session, pending.Session),
             RestartRequired = restartRequired,
             Action = request.Kind,
             OperationId = request.OperationId,
