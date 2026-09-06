@@ -45,10 +45,10 @@ conditions apply:
 - Benheim gameplay hooks are unhealthy.
 - The local process does not own the player.
 
-## Five General Tools
+## Six General Tools
 
 The official TypeScript MCP SDK owns stdio framing, initialization, discovery,
-input validation, and result envelopes. Valheim Dev exposes five tools:
+input validation, and result envelopes. Valheim Dev exposes six tools:
 
 1. `lab_status({})`
    - Reports connection and authorization state, exact build identity,
@@ -64,7 +64,19 @@ input validation, and result envelopes. Valheim Dev exposes five tools:
 4. `remove_change({label, change_id})`
    - Calls the installed cleanup entrypoint.
    - Removes the registry entry only after cleanup succeeds.
-5. `read_ledger({operation_id?, limit?})`
+5. `run_recipes({recipes: [{id, preset_index?, inputs?}, ...]})`
+   - Reads each `registry/<id>/code.cs` when that recipe is reached.
+   - Accepts an optional zero-based preset index from `presets.json` or optional
+     ad hoc structured inputs. Omit both to run without supplied inputs. Do not
+     provide both.
+   - Uses `ValheimDevCommand` for a one-time run and `ValheimDevChange` for a
+     managed change whose `change_id` is the recipe ID.
+   - Runs recipes in request order and returns one outcome for every requested
+     recipe.
+   - Continues after a safe per-recipe failure. It does not attempt later
+     recipes after `runtime_unresolved` or `restart_required` makes mutation
+     safety uncertain.
+6. `read_ledger({operation_id?, limit?})`
    - Returns either a compact newest-first history or one run's compact summary
      and complete details, including warnings or errors observed since that run
      started.
@@ -72,8 +84,10 @@ input validation, and result envelopes. Valheim Dev exposes five tools:
 
 `label` is a short human description used in history. `source` is exact UTF-8
 C# and is limited to 256 KiB. A compiled assembly is limited to 1 MiB. A change
-ID contains 1 to 128 ASCII letters, digits, dots, underscores, or hyphens.
-Every schema rejects extra top-level fields.
+ID contains 1 to 128 ASCII letters, digits, dots, underscores, or hyphens. A
+recipe ID uses the same characters and must start with a letter or digit. Each
+`code.cs` and `presets.json` file is limited to 256 KiB. Every schema rejects
+extra top-level fields.
 
 `targets` is an optional JSON object or array recorded as operation context in
 the ledger. The bridge does not interpret it as selectors, handles, or
@@ -83,7 +97,8 @@ permissions.
 passes it to `Run(string inputJson)`. `Run` must return a serialized JSON object
 or array. The runtime rejects a plain-text or malformed result. The MCP server
 parses the result back into structured JSON for the normal response. This lets
-one run feed the next without source rewriting or prose parsing.
+one run feed the next without source rewriting or prose parsing. `run_recipes`
+passes the selected preset or ad hoc inputs through this same contract.
 
 `evidence_events` selects up to 64 Developer Diagnostics events by
 `Domain:event`. An operation can wait up to 120 seconds for selected evidence.
@@ -138,8 +153,14 @@ to restart Valheim.
 
 A normal response from `run_once`, `install_change`, or `remove_change`
 contains its state, operation ID, result or error, and relevant installed-state
-changes. Evidence appears only when the request selected evidence. Source,
-hashes, compiler output, timestamps, and full history stay in the ledger.
+changes. A `run_recipes` response contains one outcome for every requested
+recipe in request order. A recipe that reaches a code operation includes its
+operation summary. A recipe that fails before execution or is skipped after
+runtime uncertainty reports its recipe metadata, state, null operation ID, and
+error. Skipped recipes use `state: not_attempted`. The response also includes
+the final active changes and restart state. Evidence appears only when the
+request selected evidence. Source, hashes, compiler output, timestamps, and
+full history stay in the ledger.
 
 `lab_status` is the live installed-code inventory. Registration does not prove
 that an effect is still visible. The agent must observe the current runtime or
