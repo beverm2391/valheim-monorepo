@@ -1,6 +1,7 @@
 # Product Review
 
-Open product questions and remaining playtests for Benheim.
+Outstanding hands-on checks for the Benheim build currently installed on Ben's
+Mac.
 
 Installed on Ben's Mac: **0.1.91**.
 
@@ -67,15 +68,8 @@ diagnostics without enabling a probe.
   native range, inventory-space, carry-weight, and ownership failures still
   block collection normally.
 
-- **Farming and Cultivator grids:** Open the Cultivator picker and confirm that
-  5x5 is highlighted. Click each size: 1x1, 3x3, 5x5, 7x7, and 9x9. The picker
-  must stay open and highlight the chosen size. Close it, then hold `Left Shift`
-  to preview and plant the selected grid. Reopen the picker and confirm the
-  default returns to 5x5. The Hammer picker must have no grid-size row, and
-  number keys must keep their native behavior. Default-on logs must explain
-  each click, any rejection, and the size used by preview and placement.
-  Planting stamina can still be tested: place one plant normally, then use
-  `Left Shift` mass planting on an area containing valid and
+- **Farming stamina:** Place one plant normally, then use `Left Shift` mass
+  planting on an area that contains valid and
   invalid cells. Each successful normal or grid-cell placement must cost 25%
   of the native stamina cost after Valheim applies the Farming skill adjustment.
   A failed, skipped, or rejected placement must cost no stamina.
@@ -92,8 +86,6 @@ diagnostics without enabling a probe.
 
   - confirm ordinary Blueberry and Cloudberry placement and centered 9x9
     placement for all three bushes;
-  - confirm that preview and placement use the same roomier berry spacing at
-    every grid size;
   - confirm that each placement costs exactly five matching berries;
   - confirm that each newly planted bush starts empty;
   - confirm that Benheim assigns each planted or naturally spawned bush a wait
