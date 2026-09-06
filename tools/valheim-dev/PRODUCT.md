@@ -46,6 +46,28 @@ Commands accept structured inputs and return structured results. Agents can
 reuse the same code with different parameters. They can pass one command's
 result into another without editing hard-coded source values or parsing prose.
 
+Codex can keep disposable recipes on disk. Each recipe uses one folder. The
+folder name is the recipe ID and the folder contains `code.cs`. An optional
+`presets.json` contains an array of structured input sets. The array position is
+the preset index. No preset is the default.
+
+One `run_recipes` MCP tool accepts one or more recipes in order. For each
+recipe, the agent supplies its ID. It may also select one preset index or
+provide ad hoc structured inputs, but not both. The tool reads the current files
+for each call, so an agent can use an edit without restarting the MCP server.
+The source entrypoint selects a one-time command or managed change. A managed
+recipe uses its recipe ID as the change ID, so selecting another preset replaces
+the same experiment.
+
+The tool uses the Lab's existing authorization, compilation, ledger, and
+cleanup behavior. Its response identifies the outcome of every attempted recipe
+and every managed change that remains active. It does not hide partial success
+or failure.
+
+Recipes are experimental scratch. Valheim Dev makes no compatibility or
+preservation promise for them. Keeping or running a recipe does not promote it
+into Benheim.
+
 The existing ledger provides a compact history. Each run shows a short human
 label, time, outcome, and duration. Agents can open a run to see its source,
 result, and errors. The history needs no new database or dashboard.
@@ -79,5 +101,6 @@ Runtime code must return control to the game loop. Valheim Dev cannot preempt
 code that hangs Unity's main thread or guarantee that arbitrary effects can be
 undone. Ben decides whether to restart the game or reset his disposable saves.
 
-Behavior Ben chooses to keep enters normal Benheim source and a normal build.
-The Lab does not replace that shipping workflow.
+Experiment behavior enters normal Benheim source only when Ben explicitly
+instructs a dev lead to implement it. That implementation uses the normal
+Benheim build and shipping workflow.
