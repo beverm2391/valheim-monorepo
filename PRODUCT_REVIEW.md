@@ -2,7 +2,7 @@
 
 Open product questions and remaining playtests for Benheim.
 
-Installed on Ben's Mac: **0.1.88**.
+Installed on Ben's Mac: **0.1.89**.
 
 Grid selection, planting, berry cycles, and portal text fitting record
 diagnostics without enabling a probe.
@@ -10,7 +10,7 @@ diagnostics without enabling a probe.
 ## Remaining checks
 
 - **Valheim Dev live loop:**
-  1. Launch Benheim 0.1.88 and enter the disposable local single-player Lab
+  1. Launch Benheim 0.1.89 and enter the disposable local single-player Lab
      world.
   2. Hover the Affinity weapon icon in your inventory or hotbar. Run `bh lab
      on`, then tell Codex that the Lab is ready.
