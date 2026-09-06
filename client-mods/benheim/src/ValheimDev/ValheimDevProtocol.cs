@@ -17,6 +17,7 @@ internal sealed class ValheimDevRequest
     internal string AssemblySha256 { get; set; } = string.Empty;
     internal string AssemblyBase64 { get; set; } = string.Empty;
     internal string EntryType { get; set; } = string.Empty;
+    internal string InputJson { get; set; } = "{}";
     internal List<string> EvidenceEvents { get; } = new List<string>();
     internal int EvidenceTimeoutMs { get; set; }
 }
@@ -164,7 +165,7 @@ internal sealed class ValheimDevResponse
 
 internal static class ValheimDevProtocol
 {
-    internal const int ProtocolVersion = 3;
+    internal const int ProtocolVersion = 4;
     internal const int MaximumSourceBytes = 256 * 1024;
     internal const int MaximumAssemblyBytes = 1024 * 1024;
     internal const int MaximumRequestBytes = 2 * 1024 * 1024;
@@ -173,7 +174,7 @@ internal static class ValheimDevProtocol
     internal const int MaximumEvidenceBytes = 256 * 1024;
     internal const int MaximumEvidenceTimeoutMs = 120000;
     internal const int MaximumJsonDepth = 16;
-    internal const string InspectionEntryType = "ValheimDevInspection";
+    internal const string CommandEntryType = "ValheimDevCommand";
     internal const string ChangeEntryType = "ValheimDevChange";
 
     internal static bool TryParseRequest(string json, out ValheimDevRequest request, out string error)
@@ -197,7 +198,7 @@ internal static class ValheimDevProtocol
             error = "missing_request_envelope";
             return false;
         }
-        if (kind != "status" && kind != "inspect" && kind != "install_change" && kind != "remove_change")
+        if (kind != "status" && kind != "run_once" && kind != "install_change" && kind != "remove_change")
         {
             error = "unsupported_request_kind";
             return false;
@@ -241,6 +242,7 @@ internal static class ValheimDevProtocol
             || !TryString(values, "assembly_sha256", out string assemblySha256)
             || !TryString(values, "assembly", out string assemblyBase64)
             || !TryString(values, "entry_type", out string entryType)
+            || !TryString(values, "input_json", out string inputJson)
             || !TryInteger(values, "evidence_timeout_ms", out int timeoutMs)
             || !TryStringArray(values, "evidence_events", request.EvidenceEvents))
         {
@@ -262,12 +264,18 @@ internal static class ValheimDevProtocol
             error = "invalid_evidence_timeout";
             return false;
         }
+        if (!ValheimDevJson.TryParseContainer(inputJson, out string inputError))
+        {
+            error = "input_json_invalid:" + inputError;
+            return false;
+        }
         if (!ValidEvidenceSelectors(request.EvidenceEvents, out error)) return false;
         request.Source = source;
         request.SourceSha256 = sourceSha256;
         request.AssemblySha256 = assemblySha256;
         request.AssemblyBase64 = assemblyBase64;
         request.EntryType = entryType;
+        request.InputJson = inputJson;
         request.EvidenceTimeoutMs = timeoutMs;
         return true;
     }
@@ -297,7 +305,7 @@ internal static class ValheimDevProtocol
             if (kind == "remove_change") return false;
             if (key == "source" || key == "source_sha256" || key == "assembly_sha256"
                 || key == "assembly" || key == "entry_type" || key == "evidence_events"
-                || key == "evidence_timeout_ms") continue;
+                || key == "evidence_timeout_ms" || key == "input_json") continue;
             return false;
         }
         return true;

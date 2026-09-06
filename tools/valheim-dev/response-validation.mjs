@@ -36,6 +36,17 @@ function requireNullableString(value, name) {
   if (value !== null && typeof value !== "string") throw new Error(`${name} must be a string or null`);
 }
 
+function requireJsonContainer(value, name) {
+  requireNullableString(value, name);
+  if (value === null) return;
+  let parsed;
+  try { parsed = JSON.parse(value); }
+  catch { throw new Error(`${name} must contain JSON`); }
+  if (!plainObject(parsed) && !Array.isArray(parsed)) {
+    throw new Error(`${name} must contain a JSON object or array`);
+  }
+}
+
 function requireTimestamp(value, name, allowEmpty = false) {
   if (typeof value !== "string" || (!allowEmpty && value.length === 0)
       || (value.length > 0 && !Number.isFinite(Date.parse(value)))) {
@@ -68,7 +79,7 @@ function validateActiveChanges(value) {
     requireSha256(change.source_sha256, "bridge source_sha256");
     requireSha256(change.assembly_sha256, "bridge assembly_sha256");
     requireTimestamp(change.installed_utc, "bridge installed_utc");
-    requireNullableString(change.result, "bridge active change result");
+    requireJsonContainer(change.result, "bridge active change result");
     if (change.cleanup_state !== "active" && change.cleanup_state !== "restart_required") {
       throw new Error("bridge active change cleanup_state is invalid");
     }
@@ -100,7 +111,7 @@ export function validateOperationResponse(response, descriptor, record, input) {
   }
   requireIdentifier(response.operation_id, "bridge operation_id");
   if (response.operation_id !== record.operation_id) throw new Error("bridge operation identity mismatch");
-  const bridgeAction = record.action === "inspect_runtime" ? "inspect" : record.action;
+  const bridgeAction = record.action;
   if (response.action !== bridgeAction) throw new Error("bridge action mismatch");
   if ((response.change_id ?? "") !== (record.change_id ?? "")) throw new Error("bridge change identity mismatch");
   if (typeof response.change_id !== "string") throw new Error("bridge change_id must be a string");
@@ -116,8 +127,15 @@ export function validateOperationResponse(response, descriptor, record, input) {
   requireNullableString(response.result, "bridge result");
   requireNullableString(response.exception, "bridge exception");
   if (response.ok && response.exception !== null) throw new Error("successful bridge response cannot contain an exception");
+  if (response.ok && bridgeAction !== "remove_change") {
+    requireJsonContainer(response.result, "successful bridge result");
+    if (response.result === null) throw new Error("successful code operation requires a structured result");
+  }
+  if (response.ok && bridgeAction === "remove_change" && response.result !== null) {
+    throw new Error("successful removal cannot contain a result");
+  }
   if (!CLEANUP_STATES.has(response.cleanup_state)) throw new Error("bridge cleanup_state is invalid");
-  if (response.ok && ((bridgeAction === "inspect" && response.cleanup_state !== "not_applicable")
+  if (response.ok && ((bridgeAction === "run_once" && response.cleanup_state !== "not_applicable")
       || (bridgeAction === "install_change" && response.cleanup_state !== "active")
       || (bridgeAction === "remove_change" && response.cleanup_state !== "cleaned"))) {
     throw new Error("successful bridge cleanup_state does not match the action");

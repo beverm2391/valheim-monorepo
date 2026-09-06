@@ -10,15 +10,23 @@ import {
 import {
   DEFAULT_EVIDENCE_TIMEOUT_MS, EVENT_PATTERN, IDENTIFIER_PATTERN,
   MAX_ASSEMBLY_BYTES, MAX_EVIDENCE_EVENTS,
-  MAX_EVIDENCE_TIMEOUT_MS, MAX_SOURCE_BYTES,
+  MAX_EVIDENCE_TIMEOUT_MS, MAX_RUN_LABEL_BYTES, MAX_SOURCE_BYTES,
 } from "./constants.mjs";
-import { optionalArtifactHash, readLedger, writeLedger } from "./ledger.mjs";
+import { captureLogCursor, optionalArtifactHash, readLedger, writeLedger } from "./ledger.mjs";
 import { validateOperationResponse, validateStatusResponse } from "./response-validation.mjs";
 
 function validateIdentifier(value, name) {
   if (typeof value !== "string" || !IDENTIFIER_PATTERN.test(value)) {
     throw new Error(`${name} must contain 1-128 letters, digits, dots, underscores, or hyphens`);
   }
+}
+
+function validateLabel(value) {
+  if (typeof value !== "string" || value.trim().length === 0
+      || Buffer.byteLength(value.trim(), "utf8") > MAX_RUN_LABEL_BYTES) {
+    throw new Error(`label must contain 1-${MAX_RUN_LABEL_BYTES} UTF-8 bytes`);
+  }
+  return value.trim();
 }
 
 function validateEvidence(args, allowed) {
@@ -47,17 +55,31 @@ function validateEvidence(args, allowed) {
 }
 
 function validateCodeArguments(args, action) {
-  const allowed = new Set(["source", "targets", "inputs", "evidence_events", "evidence_timeout_ms"]);
+  const allowed = new Set(["label", "source", "targets", "inputs", "evidence_events", "evidence_timeout_ms"]);
   if (action === "install_change") allowed.add("change_id");
   const input = validateEvidence(args, allowed);
   if (typeof args.source !== "string" || args.source.length === 0) throw new Error("source must be a non-empty string");
   if (Buffer.byteLength(args.source, "utf8") > MAX_SOURCE_BYTES) throw new Error("source exceeds size limit");
   if (action === "install_change") validateIdentifier(args.change_id, "change_id");
-  return { ...input, source: args.source, change_id: args.change_id ?? null };
+  return {
+    ...input,
+    label: validateLabel(args.label ?? action.replaceAll("_", " ")),
+    source: args.source,
+    change_id: args.change_id ?? null,
+  };
 }
 
 function unavailable(error) {
-  return { authorized: false, connected: false, active_changes: [], error: error instanceof Error ? error.message : String(error) };
+  const message = error instanceof Error ? error.message : String(error);
+  let guidance = message;
+  if (error?.code === "ENOENT") {
+    guidance = "Valheim Lab is off. Enter the disposable local world and run 'bh lab on'.";
+  } else if (message.includes("unsupported bridge protocol")) {
+    guidance = "Valheim Lab and this MCP process use different bridge versions. Install matching Benheim code, then refresh Codex.";
+  } else if (error?.code === "ECONNREFUSED") {
+    guidance = "The Lab descriptor exists, but its bridge is unavailable. Check 'bh lab status', then re-enable Lab if needed.";
+  }
+  return { authorized: false, connected: false, active_changes: [], error: guidance };
 }
 
 async function readSessionStatus(root, bridgeRequest) {
@@ -73,16 +95,17 @@ async function authorizedSession(root, bridgeRequest) {
   return { descriptor, status };
 }
 
-function baseRecord(descriptor, operationId, action, input, previous) {
+function baseRecord(descriptor, operationId, action, input, previous, logCursor) {
   const source = input.source ?? null;
   return {
-    schema_version: 3, state: "pending", terminal: false, action,
+    schema_version: 4, state: "pending", terminal: false, action, label: input.label,
     session_id: descriptor.session_id, operation_id: operationId,
     change_id: input.change_id ?? null, source, source_sha256: source === null ? null : sha256(source),
     artifact_sha256: null, ...buildIdentity(descriptor), targets: input.targets ?? null, inputs: input.inputs ?? null,
     previous_active_change: previous ?? null, previous_change_preserved: previous ? null : false,
     requested_evidence_events: input.evidence_events ?? [], evidence_timeout_ms: input.evidence_timeout_ms ?? 0,
-    created_utc: isoNow(), compile_started_utc: null, compile_finished_utc: null,
+    created_utc: logCursor?.captured_utc ?? isoNow(), duration_ms: null, log_cursor: logCursor,
+    compile_started_utc: null, compile_finished_utc: null,
     runtime_started_utc: null, runtime_finished_utc: null, terminal_utc: null,
     compiler: source === null ? { outcome: "not_applicable" } : { outcome: "pending", exit_code: null, signal: null, stdout: "", stderr: "" },
     result: null, exception: null, error: null, cleanup_state: "not_run", restart_required: false,
@@ -101,7 +124,15 @@ function compilerLedgerOutcome(outcome) {
 }
 
 function terminalRecord(record, state, fields = {}) {
-  return { ...record, ...fields, state, terminal: true, terminal_utc: isoNow() };
+  const terminalUtc = isoNow();
+  return {
+    ...record,
+    ...fields,
+    state,
+    terminal: true,
+    terminal_utc: terminalUtc,
+    duration_ms: Math.max(0, Date.parse(terminalUtc) - Date.parse(record.created_utc)),
+  };
 }
 
 function runtimeFields(response) {
@@ -135,7 +166,12 @@ async function compileFailureRuntimeState(root, descriptor, previous, bridgeRequ
   }
 }
 
-export function createService({ root, bridgeRequest = requestBridge, compilerRunner = runCompiler } = {}) {
+export function createService({
+  root,
+  logPath = join(root ?? "", "..", "LogOutput.log"),
+  bridgeRequest = requestBridge,
+  compilerRunner = runCompiler,
+} = {}) {
   if (!root) throw new Error("VALHEIM_DEV_ROOT is required");
   if (!isAbsolute(root)) throw new Error("VALHEIM_DEV_ROOT must be absolute");
 
@@ -169,7 +205,8 @@ export function createService({ root, bridgeRequest = requestBridge, compilerRun
       ? status.active_changes.find((change) => change.change_id === input.change_id) ?? null
       : null;
     const operationId = randomUUID();
-    let record = baseRecord(descriptor, operationId, action, input, previous);
+    const logCursor = await captureLogCursor(logPath);
+    let record = baseRecord(descriptor, operationId, action, input, previous, logCursor);
     await writeLedger(root, record);
     const workRoot = await mkdtemp(join(tmpdir(), "valheim-dev-"));
     const stem = `${operationId}-${record.source_sha256.slice(0, 16)}`;
@@ -237,12 +274,13 @@ export function createService({ root, bridgeRequest = requestBridge, compilerRun
       let response;
       try {
         response = await bridgeRequest(descriptor, {
-          kind: action === "inspect_runtime" ? "inspect" : "install_change",
+          kind: action === "run_once" ? "run_once" : "install_change",
           operation_id: operationId, change_id: input.change_id ?? undefined,
           expected_operation_id: action === "install_change" ? previous?.operation_id ?? null : undefined,
           source: input.source, source_sha256: record.source_sha256, assembly_sha256: assemblyHash,
           assembly: artifact.toString("base64"),
-          entry_type: action === "inspect_runtime" ? "ValheimDevInspection" : "ValheimDevChange",
+          entry_type: action === "run_once" ? "ValheimDevCommand" : "ValheimDevChange",
+          input_json: JSON.stringify(input.inputs ?? {}),
           evidence_events: input.evidence_events, evidence_timeout_ms: input.evidence_timeout_ms,
         }, input.evidence_timeout_ms + 15_000);
         validateOperationResponse(response, descriptor, record, input);
@@ -260,16 +298,18 @@ export function createService({ root, bridgeRequest = requestBridge, compilerRun
   }
 
   async function removeChange(args) {
-    validateKeys(args, new Set(["change_id"]));
+    validateKeys(args, new Set(["label", "change_id"]));
     validateIdentifier(args.change_id, "change_id");
+    const label = validateLabel(args.label ?? `remove ${args.change_id}`);
     let descriptor;
     let status;
     try { ({ descriptor, status } = await authorizedSession(root, bridgeRequest)); }
     catch (error) { throw new Error(`remove_change refused: ${error.message}`); }
     const previous = status.active_changes.find((change) => change.change_id === args.change_id) ?? null;
     const operationId = randomUUID();
-    const input = { change_id: args.change_id, evidence_events: [], evidence_timeout_ms: 0 };
-    let record = baseRecord(descriptor, operationId, "remove_change", input, previous);
+    const input = { label, change_id: args.change_id, evidence_events: [], evidence_timeout_ms: 0 };
+    const logCursor = await captureLogCursor(logPath);
+    let record = baseRecord(descriptor, operationId, "remove_change", input, previous, logCursor);
     await writeLedger(root, record);
     try {
       const response = await bridgeRequest(descriptor, {
@@ -292,10 +332,10 @@ export function createService({ root, bridgeRequest = requestBridge, compilerRun
   return {
     async call(name, args = {}) {
       if (name === "lab_status") { validateKeys(args, new Set()); return labStatus(); }
-      if (name === "inspect_runtime") return codeOperation(args, name);
+      if (name === "run_once") return codeOperation(args, name);
       if (name === "install_change") return codeOperation(args, name);
       if (name === "remove_change") return removeChange(args);
-      if (name === "read_ledger") return readLedger(root, args);
+      if (name === "read_ledger") return readLedger(root, args, logPath);
       throw new Error(`unknown tool: ${name}`);
     },
   };

@@ -1,5 +1,5 @@
-export const BRIDGE_PROTOCOL = 3;
-export const SERVER_VERSION = "0.1.0";
+export const BRIDGE_PROTOCOL = 4;
+export const SERVER_VERSION = "0.2.0";
 export const MAX_BRIDGE_RESPONSE_BYTES = 8 * 1024 * 1024;
 export const MAX_SOURCE_BYTES = 256 * 1024;
 export const MAX_ASSEMBLY_BYTES = 1024 * 1024;
@@ -9,6 +9,8 @@ export const MAX_EVIDENCE_TIMEOUT_MS = 120_000;
 export const DEFAULT_EVIDENCE_TIMEOUT_MS = 30_000;
 export const MAX_LEDGER_LIST = 100;
 export const MAX_LEDGER_RESPONSE_BYTES = 8 * 1024 * 1024;
+export const MAX_LOG_READ_BYTES = 2 * 1024 * 1024;
+export const MAX_RUN_LABEL_BYTES = 120;
 export const COMPILE_TIMEOUT_MS = 30_000;
 export const SHA256_PATTERN = /^[a-f0-9]{64}$/i;
 export const EVENT_PATTERN = /^[^:\s]+:[^:\s]+$/;

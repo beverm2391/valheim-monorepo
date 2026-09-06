@@ -11,8 +11,8 @@ const VALHEIM_HASH = "a".repeat(64);
 const BENHEIM_HASH = "b".repeat(64);
 const execFileAsync = promisify(execFile);
 
-export const SOURCE = "public static class ValheimDevInspection { public static string Run() => \"ok\"; }";
-export const CHANGE_SOURCE = "public static class ValheimDevChange { public static string Run() => \"active\"; public static void Cleanup() { } }";
+export const SOURCE = "public static class ValheimDevCommand { public static string Run(string inputJson) => \"{\\\"ok\\\":true}\"; }";
+export const CHANGE_SOURCE = "public static class ValheimDevChange { public static string Run(string inputJson) => \"{\\\"active\\\":true}\"; public static void Cleanup() { } }";
 
 export function iconVariantSource(variant) {
   return `using System;
@@ -23,15 +23,15 @@ public static class ValheimDevChange
     private static MethodInfo setter;
     private static string previousVariant;
 
-    public static string Run()
+    public static string Run(string inputJson)
     {
         Type runtime = Type.GetType("BenheimQoL.Affinities.IconRuntime, BenheimQoL", true);
         PropertyInfo variantProperty = runtime.GetProperty("Variant", BindingFlags.Static | BindingFlags.NonPublic);
         setter = runtime.GetMethod("SetVariant", BindingFlags.Static | BindingFlags.NonPublic);
-        if (variantProperty == null || setter == null) return "missing_icon_runtime";
+        if (variantProperty == null || setter == null) return "{\\\"error\\\":\\\"missing_icon_runtime\\\"}";
         previousVariant = (string)variantProperty.GetValue(null);
         setter.Invoke(null, new object[] { "${variant}" });
-        return "previous=" + previousVariant + "; variant=${variant}";
+        return "{\\\"previous\\\":\\\"" + previousVariant + "\\\",\\\"variant\\\":\\\"${variant}\\\"}";
     }
 
     public static void Cleanup()
@@ -129,7 +129,7 @@ internal static class Program
         MethodInfo run = entry.GetMethod("Run", BindingFlags.Public | BindingFlags.Static);
         MethodInfo cleanup = entry.GetMethod("Cleanup", BindingFlags.Public | BindingFlags.Static);
         string before = (string)variant.GetValue(null);
-        string result = (string)run.Invoke(null, null);
+        string result = (string)run.Invoke(null, new object[] { "{}" });
         string afterRun = (string)variant.GetValue(null);
         cleanup.Invoke(null, null);
         string afterCleanup = (string)variant.GetValue(null);
@@ -165,7 +165,7 @@ export async function executeOfflineVariant(harness, experimentAssembly) {
 
 export async function writeDescriptor(root, reference, port, overrides = {}) {
   const descriptor = {
-    protocol: 3,
+    protocol: 4,
     session_id: randomUUID(),
     host: "127.0.0.1",
     port,
@@ -215,7 +215,7 @@ export async function startBridge(handler) {
 
 export function bridgeIdentity(descriptor, extra = {}) {
   return {
-    protocol: 3,
+    protocol: 4,
     ok: true,
     error: null,
     session_id: descriptor.session_id,
@@ -230,6 +230,28 @@ export function bridgeIdentity(descriptor, extra = {}) {
   };
 }
 
+export function operationResponse(descriptor, request, extra = {}) {
+  return bridgeIdentity(descriptor, {
+    authorized: true,
+    action: request.kind,
+    operation_id: request.operation_id,
+    change_id: request.change_id ?? "",
+    started_utc: "2026-09-04T00:00:00.000Z",
+    finished_utc: "2026-09-04T00:00:00.010Z",
+    result: "{\"ok\":true}",
+    exception: null,
+    cleanup_state: request.kind === "install_change" ? "active" : "not_applicable",
+    previous_change_preserved: false,
+    evidence_selected: request.evidence_events?.length > 0,
+    evidence_exhaustive: false,
+    evidence_truncated: false,
+    dropped_evidence_events: 0,
+    evidence_events: [],
+    active_changes: [],
+    ...extra,
+  });
+}
+
 export function managedChange(changeId = "affinity.weapon-icon", operationId = "working", extra = {}) {
   return {
     change_id: changeId,
@@ -237,7 +259,7 @@ export function managedChange(changeId = "affinity.weapon-icon", operationId = "
     source_sha256: "c".repeat(64),
     assembly_sha256: "d".repeat(64),
     installed_utc: "2026-09-04T00:00:00.000Z",
-    result: "active",
+    result: "{\"active\":true}",
     cleanup_state: "active",
     ...extra,
   };

@@ -18,7 +18,7 @@ internal static partial class ValheimDevRuntime
             return;
         }
 
-        ValheimDevExecutionResult execution = ValheimDevCodeExecutor.Invoke(newCode);
+        ValheimDevExecutionResult execution = ValheimDevCodeExecutor.Invoke(newCode, request.InputJson);
         activeOperation!.Response.Result = execution.Result;
         activeOperation.Response.Exception = execution.Exception;
         if (!execution.Ok)
@@ -30,6 +30,7 @@ internal static partial class ValheimDevRuntime
         SetManagedChange(request.ChangeId, new ValheimDevManagedChange
         {
             Code = newCode,
+            InputJson = request.InputJson,
             Summary = SummaryFor(request, execution.Result, ValheimDevCleanupState.Active)
         });
         FinishOrObserve(request, ValheimDevCleanupState.Active);
@@ -47,6 +48,7 @@ internal static partial class ValheimDevRuntime
             ValheimDevManagedChange uncertainCandidate = new ValheimDevManagedChange
             {
                 Code = newCode,
+                InputJson = request.InputJson,
                 Summary = SummaryFor(
                     request,
                     activeOperation!.Response.Result,
@@ -64,7 +66,7 @@ internal static partial class ValheimDevRuntime
             return;
         }
 
-        ValheimDevExecutionResult restoration = ValheimDevCodeExecutor.Invoke(previous.Code);
+        ValheimDevExecutionResult restoration = ValheimDevCodeExecutor.Invoke(previous.Code, previous.InputJson);
         if (!restoration.Ok)
         {
             restartRequired = true;

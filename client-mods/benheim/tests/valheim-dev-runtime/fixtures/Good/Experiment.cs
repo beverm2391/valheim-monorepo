@@ -7,7 +7,7 @@ public static class ValheimDevChange
         Environment.GetEnvironmentVariable("VALHEIM_DEV_VARIANT") ?? "default";
     private static int runCount;
 
-    public static string Run()
+    public static string Run(string inputJson)
     {
         if (Environment.GetEnvironmentVariable("VALHEIM_DEV_FAIL_ON_RESTORE") == "1" && runCount++ > 0)
         {
@@ -16,7 +16,7 @@ public static class ValheimDevChange
         ValheimDevTestSurface.Visible = true;
         ValheimDevTestSurface.Variant = Variant;
         ValheimDevTestEvidence.EmitSynchronousEvent();
-        return ValheimDevTestSurface.Describe();
+        return "{\"snapshot\":" + ValheimDevTestSurface.Describe() + ",\"input\":" + inputJson + "}";
     }
     public static void Cleanup()
     {
@@ -28,7 +28,16 @@ public static class ValheimDevChange
     }
 }
 
-public static class ValheimDevInspection
+public static class ValheimDevCommand
 {
-    public static string Run() => ValheimDevTestSurface.Describe();
+    public static string Run(string inputJson)
+    {
+        string? variant = Environment.GetEnvironmentVariable("VALHEIM_DEV_COMMAND_VARIANT");
+        if (!string.IsNullOrEmpty(variant))
+        {
+            ValheimDevTestSurface.Visible = true;
+            ValheimDevTestSurface.Variant = variant;
+        }
+        return "{\"snapshot\":" + ValheimDevTestSurface.Describe() + ",\"input\":" + inputJson + "}";
+    }
 }

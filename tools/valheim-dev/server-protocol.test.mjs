@@ -6,7 +6,7 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
-import { createService, runCompiler } from "./server.mjs";
+import { createService, operationSummary, runCompiler } from "./server.mjs";
 import { SOURCE, bridgeIdentity, managedChange, temporaryRoot, writeDescriptor } from "./test-helpers.mjs";
 
 const SERVER_PATH = resolve(import.meta.dirname, "server.mjs");
@@ -32,24 +32,25 @@ test("official MCP client crosses spawned stdio boundary and exposes the five wo
   const { client } = await connectClient(root);
   t.after(() => client.close());
 
-  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.1.0" });
+  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.2.0" });
   const listed = await client.listTools();
   assert.deepEqual(listed.tools.map((tool) => tool.name), [
-    "lab_status", "inspect_runtime", "install_change", "remove_change", "read_ledger",
+    "lab_status", "run_once", "install_change", "remove_change", "read_ledger",
   ]);
-  assert.deepEqual(listed.tools[1].inputSchema.required, ["source"]);
-  assert.deepEqual(listed.tools[2].inputSchema.required, ["change_id", "source"]);
-  assert.deepEqual(listed.tools[3].inputSchema.required, ["change_id"]);
+  assert.deepEqual(listed.tools[1].inputSchema.required, ["label", "source"]);
+  assert.deepEqual(listed.tools[2].inputSchema.required, ["label", "change_id", "source"]);
+  assert.deepEqual(listed.tools[3].inputSchema.required, ["label", "change_id"]);
   assert.equal(listed.tools.every((tool) => tool.inputSchema.additionalProperties === false), true);
 
   const status = await client.callTool({ name: "lab_status", arguments: {} });
   assert.equal(status.structuredContent.authorized, false);
   assert.deepEqual(status.structuredContent.active_changes, []);
+  assert.match(status.structuredContent.error, /bh lab on/);
   assert.equal(status.content[0].text, JSON.stringify(status.structuredContent));
 
-  const inspection = await client.callTool({ name: "inspect_runtime", arguments: { source: SOURCE } });
+  const inspection = await client.callTool({ name: "run_once", arguments: { label: "Inspect", source: SOURCE } });
   assert.equal(inspection.isError, true);
-  assert.match(inspection.structuredContent.error, /inspect_runtime refused/);
+  assert.match(inspection.structuredContent.error, /run_once refused/);
   assert.equal(inspection.content[0].text, JSON.stringify(inspection.structuredContent));
 });
 
@@ -59,7 +60,7 @@ test("official SDK validates tool input before the service callback", async (t) 
   const { client } = await connectClient(root);
   t.after(() => client.close());
 
-  const missingSource = await client.callTool({ name: "inspect_runtime", arguments: {} });
+  const missingSource = await client.callTool({ name: "run_once", arguments: {} });
   assert.equal(missingSource.isError, true);
   assert.equal(missingSource.structuredContent, undefined);
   assert.match(missingSource.content[0].text, /Input validation error.*source/s);
@@ -73,15 +74,15 @@ test("official SDK validates tool input before the service callback", async (t) 
 test("descriptor validation rejects outdated protocol, non-loopback, and invalid session identity", async (t) => {
   const { root, reference } = await temporaryRoot();
   t.after(() => rm(root, { recursive: true, force: true }));
-  await writeDescriptor(root, reference, 12345, { protocol: 2 });
-  assert.match((await createService({ root }).call("lab_status")).error, /unsupported bridge protocol/);
+  await writeDescriptor(root, reference, 12345, { protocol: 3 });
+  assert.match((await createService({ root }).call("lab_status")).error, /different bridge versions/);
   await writeDescriptor(root, reference, 12345, { host: "localhost" });
   assert.match((await createService({ root }).call("lab_status")).error, /127\.0\.0\.1/);
   await writeDescriptor(root, reference, 12345, { session_id: 2 });
   assert.match((await createService({ root }).call("lab_status")).error, /session_id/);
 });
 
-test("compiler invocation uses direct Roslyn arguments and curated references", async (t) => {
+test("compiler invocation uses direct Roslyn arguments and descriptor references", async (t) => {
   const fixture = await temporaryRoot();
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
   const secondReference = join(fixture.root, "second reference.dll");
@@ -107,6 +108,18 @@ await writeFile(output, "fake assembly");
     `-out:${assemblyPath}`, `-reference:${fixture.reference}`, `-reference:${secondReference}`, sourcePath,
   ]);
   assert.equal(await readFile(assemblyPath, "utf8"), "fake assembly");
+});
+
+test("normal operation responses stay compact while the ledger owns details", () => {
+  const summary = operationSummary({
+    state: "succeeded", operation_id: "operation", action: "run_once",
+    result: "{\"position\":[1,2,3]}", error: null, restart_required: false,
+    evidence_selected: false, source: "large source", source_sha256: "a".repeat(64),
+    compiler: { outcome: "succeeded", stdout: "", stderr: "" }, active_changes: [],
+  });
+  assert.deepEqual(summary, {
+    state: "succeeded", operation_id: "operation", result: { position: [1, 2, 3] }, error: null,
+  });
 });
 
 test("lab status returns the runtime's active managed changes", async (t) => {

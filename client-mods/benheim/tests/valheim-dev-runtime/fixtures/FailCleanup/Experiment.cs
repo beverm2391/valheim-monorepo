@@ -4,13 +4,13 @@ public static class ValheimDevChange
 {
     private static int cleanupCount;
 
-    public static string Run()
+    public static string Run(string inputJson)
     {
         if (Environment.GetEnvironmentVariable("VALHEIM_DEV_FAIL_RUN") == "1")
         {
             throw new InvalidOperationException("candidate exploded");
         }
-        return "fail-cleanup-result";
+        return "{\"result\":\"fail-cleanup-result\"}";
     }
     public static void Cleanup()
     {

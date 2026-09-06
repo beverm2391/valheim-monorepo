@@ -94,7 +94,7 @@ internal static partial class ValheimDevRuntime
                     Requests.Enqueue(pending);
                 }
 
-                bool waitsForEvidence = request.Kind == "inspect" || request.Kind == "install_change";
+                bool waitsForEvidence = request.Kind == "run_once" || request.Kind == "install_change";
                 int wait = waitsForEvidence
                     ? Math.Min(ValheimDevProtocol.MaximumEvidenceTimeoutMs + 15000, request.EvidenceTimeoutMs + 15000)
                     : 15000;

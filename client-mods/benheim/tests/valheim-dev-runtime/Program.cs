@@ -55,14 +55,14 @@ internal static partial class Program
         JsonElement outdatedProtocol = Parse(Pump(SendAsync(JsonSerializer.Serialize(
             new Dictionary<string, object?>
             {
-                ["kind"] = "status", ["protocol"] = 2, ["session_id"] = sessionId
+                ["kind"] = "status", ["protocol"] = 3, ["session_id"] = sessionId
             }))));
         Require(outdatedProtocol.GetProperty("error").GetString() == "protocol_mismatch",
-            "the runtime rejects the superseded version-2 wire protocol explicitly");
+            "the runtime rejects the superseded version-3 wire protocol explicitly");
         Require(Status().GetProperty("active_changes").GetArrayLength() == 0, "status starts with no managed changes");
 
         Task<string> wrongThreadInspection = SendAsync(CodeRequest(
-            "inspect", "wrong-thread", string.Empty, fixtures[0], Array.Empty<string>(), 0));
+            "run_once", "wrong-thread", string.Empty, fixtures[0], Array.Empty<string>(), 0));
         WaitForQueue();
         Thread wrong = new Thread(ValheimDevRuntime.Update);
         wrong.Start();
@@ -73,12 +73,26 @@ internal static partial class Program
             "main-thread Update completes the queued inspection");
 
         ValheimDevTestSurface.Reset();
-        JsonElement inspection = Inspect("inspect-affinity-icon", fixtures[0]);
+        JsonElement inspection = RunOnce(
+            "inspect-affinity-icon",
+            fixtures[0],
+            "{\"selector\":\"inventory\"}");
+        JsonElement inspectionResult = Parse(inspection.GetProperty("result").GetString()!);
         Require(inspection.GetProperty("ok").GetBoolean()
             && inspection.GetProperty("result").GetString()!.Contains("Affinity.weapon_icon", StringComparison.Ordinal)
+            && inspectionResult.GetProperty("input").GetProperty("selector").GetString() == "inventory"
             && inspection.GetProperty("cleanup_state").GetString() == "not_applicable"
             && !ValheimDevTestSurface.Visible,
             "inspection describes the live icon surface without installing a change");
+
+        Environment.SetEnvironmentVariable("VALHEIM_DEV_COMMAND_VARIANT", "one-shot");
+        JsonElement command = RunOnce("change-value-once", fixtures[0]);
+        Require(command.GetProperty("ok").GetBoolean()
+            && command.GetProperty("cleanup_state").GetString() == "not_applicable"
+            && ValheimDevTestSurface.Visible && ValheimDevTestSurface.Variant == "one-shot",
+            "run_once can change live state without claiming cleanup or installing code");
+        Environment.SetEnvironmentVariable("VALHEIM_DEV_COMMAND_VARIANT", null);
+        ValheimDevTestSurface.Reset();
 
         Environment.SetEnvironmentVariable("VALHEIM_DEV_VARIANT", "pulse-a");
         Task<string> selectedTask = SendAsync(CodeRequest(
@@ -135,7 +149,7 @@ internal static partial class Program
 
         EvidenceBoundaries(fixtures[0]);
 
-        Task<string> queued = SendAsync(CodeRequest("inspect", "queued-before-off", string.Empty, fixtures[0], Array.Empty<string>(), 0));
+        Task<string> queued = SendAsync(CodeRequest("run_once", "queued-before-off", string.Empty, fixtures[0], Array.Empty<string>(), 0));
         WaitForQueue();
         ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, new Terminal());
         JsonElement canceled = Parse(queued.GetAwaiter().GetResult());
@@ -148,7 +162,7 @@ internal static partial class Program
         JsonElement staleSession = Parse(Pump(SendAsync(JsonSerializer.Serialize(
             new Dictionary<string, object?>
             {
-                ["kind"] = "status", ["protocol"] = 3, ["session_id"] = firstSessionId
+                ["kind"] = "status", ["protocol"] = 4, ["session_id"] = firstSessionId
             }))));
         Require(staleSession.GetProperty("error").GetString() == "authorization_mismatch",
             "a request from the previous Lab session is rejected");
@@ -160,9 +174,14 @@ internal static partial class Program
         RequireLabDiagnostics("operation_started", "operation_finished");
         string revokedSessionId = sessionId;
         Diagnostics.ClearEmittedForTests();
-        ValheimDevRuntime.Revoke("explicit_off");
-        Require(!ValheimDevTestSurface.Visible && !File.Exists(ValheimDevRuntime.DescriptorPath),
-            "revocation cleans managed changes and removes the descriptor");
+        Terminal explicitOff = new Terminal();
+        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, explicitOff);
+        Require(ValheimDevTestSurface.Visible
+            && !ValheimDevRuntime.IsAuthorizedForTests
+            && !ValheimDevRuntime.IsCancellationRequested
+            && !File.Exists(ValheimDevRuntime.DescriptorPath)
+            && explicitOff.Lines[0].Contains("1 installed change(s) remain active", StringComparison.Ordinal),
+            "off closes access without removing installed code from the current world");
         RequireLabDiagnostics("lab_revoked");
         using (JsonDocument revokedDiagnostic = JsonDocument.Parse(
             Diagnostics.LastEmittedForTests?.ToJsonLine()
@@ -171,6 +190,14 @@ internal static partial class Program
             Require(revokedDiagnostic.RootElement.GetProperty("lab_session_id").GetString() == revokedSessionId,
                 "revocation remains correlated to the Lab session it ended");
         }
+        Authorize();
+        Require(Status().GetProperty("active_changes").GetArrayLength() == 1
+            && ValheimDevTestSurface.Visible,
+            "reauthorizing the same world rediscovers its installed code");
+        Require(Remove("remove-after-reauthorize", "affinity.weapon-icon")
+                .GetProperty("ok").GetBoolean()
+            && !ValheimDevTestSurface.Visible,
+            "installed code remains explicitly removable after reauthorization");
 
         ResetRuntime();
         Authorize();
@@ -195,7 +222,7 @@ internal static partial class Program
         ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, dirtyOff);
         Require(dirtyOff.Lines[0].Contains("restart is required", StringComparison.Ordinal)
             && dirtyOff.Lines[0].Contains("affinity.weapon-icon", StringComparison.Ordinal),
-            "off preserves sticky restart reporting after a cleanup retry succeeds");
+            "off preserves sticky restart reporting without another cleanup attempt");
 
         ResetRuntime();
         Authorize();
@@ -245,40 +272,16 @@ internal static partial class Program
 
         ResetRuntime();
         Authorize();
-        Environment.SetEnvironmentVariable("VALHEIM_DEV_VARIANT", "mixed-cleanup");
-        Require(Install("mixed-good", "affinity.weapon-icon", fixtures[0]).GetProperty("ok").GetBoolean(),
-            "mixed cleanup proof installs a cleanable change");
-        Require(Install("mixed-failing", "other-change", fixtures[4]).GetProperty("ok").GetBoolean(),
-            "mixed cleanup proof installs an uncertain-cleanup change");
-        Task<string> inspectingDuringRevoke = SendAsync(CodeRequest(
-            "inspect", "inspect-during-revoke", string.Empty, fixtures[0], new[] { "Test:not-emitted" }, 5000));
-        WaitForQueue();
-        ValheimDevRuntime.Update();
-        Terminal off = new Terminal();
-        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, off);
-        JsonElement revokedInspection = Parse(inspectingDuringRevoke.GetAwaiter().GetResult());
-        Require(revokedInspection.GetProperty("cleanup_state").GetString() == "not_applicable"
-            && revokedInspection.GetProperty("restart_required").GetBoolean()
-            && !ValheimDevTestSurface.Visible
-            && off.Lines[0].Contains("restart is required", StringComparison.Ordinal)
-            && off.Lines[0].Contains("other-change", StringComparison.Ordinal),
-            "revocation reports mixed cleanup globally without assigning it to an inspection");
-        Terminal offStatus = new Terminal();
-        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "status" }, offStatus);
-        Require(offStatus.Lines[0].Contains("restart is required", StringComparison.Ordinal)
-            && offStatus.Lines[0].Contains("other-change", StringComparison.Ordinal),
-            "console status preserves cleanup uncertainty after authorization is gone");
-
-        ResetRuntime();
-        Authorize();
         Environment.SetEnvironmentVariable("VALHEIM_DEV_VARIANT", "world-drift");
         Install("install-before-world-drift", "affinity.weapon-icon", fixtures[0]);
         state.Scene = new object();
         ValheimDevRuntime.Update();
         Require(!ValheimDevRuntime.IsAuthorizedForTests
             && !File.Exists(ValheimDevRuntime.DescriptorPath)
+            && ValheimDevRuntime.IsCancellationRequested
             && !ValheimDevTestSurface.Visible,
-            "world identity drift revokes authorization and cleans active changes");
+            "world identity drift ends tracking and cleans installed code before another world");
+        OffWorldTransitionDoesNotCarryInstalledCode(fixtures[0]);
     }
 
     private static void ResetRuntime()
@@ -288,6 +291,7 @@ internal static partial class Program
         Environment.SetEnvironmentVariable("VALHEIM_DEV_FAIL_ON_RESTORE", null);
         Environment.SetEnvironmentVariable("VALHEIM_DEV_FAIL_CLEANUP_ONCE", null);
         Environment.SetEnvironmentVariable("VALHEIM_DEV_VARIANT", null);
+        Environment.SetEnvironmentVariable("VALHEIM_DEV_COMMAND_VARIANT", null);
         state = EligibleState();
         ValheimDevTestSurface.Reset();
         ValheimDevRuntime.Initialize(root, "test-benheim", Thread.CurrentThread.ManagedThreadId);
@@ -297,12 +301,14 @@ internal static partial class Program
     {
         return Parse(Pump(SendAsync(JsonSerializer.Serialize(new Dictionary<string, object?>
         {
-            ["kind"] = "status", ["protocol"] = 3, ["session_id"] = sessionId
+            ["kind"] = "status", ["protocol"] = 4, ["session_id"] = sessionId
         }))));
     }
 
-    private static JsonElement Inspect(string operationId, string assemblyPath)
-        => Parse(Pump(SendAsync(CodeRequest("inspect", operationId, string.Empty, assemblyPath, Array.Empty<string>(), 0))));
+    private static JsonElement RunOnce(string operationId, string assemblyPath, string inputJson = "{}")
+        => Parse(Pump(SendAsync(CodeRequest(
+            "run_once", operationId, string.Empty, assemblyPath, Array.Empty<string>(), 0,
+            inputJson: inputJson))));
 
     private static JsonElement Install(string operationId, string changeId, string assemblyPath)
         => Parse(Pump(SendAsync(CodeRequest("install_change", operationId, changeId, assemblyPath, Array.Empty<string>(), 0))));
@@ -314,50 +320,10 @@ internal static partial class Program
     {
         return Parse(Pump(SendAsync(JsonSerializer.Serialize(new Dictionary<string, object?>
         {
-            ["kind"] = "remove_change", ["protocol"] = 3, ["session_id"] = sessionId,
+            ["kind"] = "remove_change", ["protocol"] = 4, ["session_id"] = sessionId,
             ["operation_id"] = operationId, ["change_id"] = changeId,
             ["expected_operation_id"] = expectedOperationIdOverride ?? ActiveOperationId(changeId)
         }))));
-    }
-
-    private static string CodeRequest(
-        string kind,
-        string operationId,
-        string changeId,
-        string assemblyPath,
-        string[] selectors,
-        int timeoutMs,
-        string? expectedOperationIdOverride = null)
-    {
-        byte[] assembly = File.ReadAllBytes(assemblyPath);
-        string source = "// source for " + operationId;
-        Dictionary<string, object?> fields = new Dictionary<string, object?>
-        {
-            ["kind"] = kind, ["protocol"] = 3, ["session_id"] = sessionId,
-            ["operation_id"] = operationId, ["source"] = source,
-            ["source_sha256"] = Hash(Encoding.UTF8.GetBytes(source)), ["assembly_sha256"] = Hash(assembly),
-            ["assembly"] = Convert.ToBase64String(assembly),
-            ["entry_type"] = kind == "inspect" ? "ValheimDevInspection" : "ValheimDevChange",
-            ["evidence_events"] = selectors, ["evidence_timeout_ms"] = timeoutMs
-        };
-        if (!string.IsNullOrEmpty(changeId))
-        {
-            fields["change_id"] = changeId;
-            fields["expected_operation_id"] = expectedOperationIdOverride ?? ActiveOperationId(changeId);
-        }
-        return JsonSerializer.Serialize(fields);
-    }
-
-    private static string? ActiveOperationId(string changeId)
-    {
-        foreach (JsonElement change in Status().GetProperty("active_changes").EnumerateArray())
-        {
-            if (change.GetProperty("change_id").GetString() == changeId)
-            {
-                return change.GetProperty("operation_id").GetString();
-            }
-        }
-        return null;
     }
 
     private static Task<string> SendAsync(string json)

@@ -117,7 +117,7 @@ internal static class ValheimDevCodeExecutor
                 "Run",
                 BindingFlags.Public | BindingFlags.Static,
                 binder: null,
-                types: Type.EmptyTypes,
+                types: new[] { typeof(string) },
                 modifiers: null);
             if (run == null || run.ReturnType != typeof(string))
             {
@@ -154,7 +154,7 @@ internal static class ValheimDevCodeExecutor
         }
     }
 
-    internal static ValheimDevExecutionResult Invoke(ValheimDevLoadedCode code)
+    internal static ValheimDevExecutionResult Invoke(ValheimDevLoadedCode code, string inputJson)
     {
         ValheimDevExecutionResult result = new ValheimDevExecutionResult
         {
@@ -162,8 +162,14 @@ internal static class ValheimDevCodeExecutor
         };
         try
         {
-            object? returnValue = code.Run.Invoke(null, null);
-            result.Result = returnValue as string;
+            object? returnValue = code.Run.Invoke(null, new object[] { inputJson });
+            string? resultJson = returnValue as string;
+            if (resultJson == null || !ValheimDevJson.TryParseContainer(resultJson, out _))
+            {
+                result.Error = "result_json_invalid";
+                return result;
+            }
+            result.Result = resultJson;
             result.Ok = true;
             return result;
         }

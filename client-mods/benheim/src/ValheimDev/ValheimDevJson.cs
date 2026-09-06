@@ -7,6 +7,27 @@ namespace BenheimQoL.ValheimDev;
 
 internal static class ValheimDevJson
 {
+    internal static bool TryParseContainer(string json, out string error)
+    {
+        try
+        {
+            Parser parser = new Parser(json);
+            object? parsed = parser.ParseValue();
+            parser.SkipWhitespace();
+            if (!parser.AtEnd || (parsed is not Dictionary<string, object?> && parsed is not List<object?>))
+            {
+                throw new FormatException("root must be one JSON object or array");
+            }
+            error = string.Empty;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+            return false;
+        }
+    }
+
     internal static bool TryParseObject(
         string json,
         out Dictionary<string, object?> value,

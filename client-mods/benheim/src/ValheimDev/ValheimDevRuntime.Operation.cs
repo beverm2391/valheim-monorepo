@@ -38,7 +38,7 @@ internal static partial class ValheimDevRuntime
         }
 
         response.StartedUtc = UtcNow();
-        if (restartRequired && request.Kind != "inspect")
+        if (restartRequired)
         {
             Complete(pending, response, ValheimDevCleanupState.RestartRequired);
             return;
@@ -82,12 +82,12 @@ internal static partial class ValheimDevRuntime
 
         BeginOperation(pending, response, request);
         if (managed) InstallChange(preparation.LoadedCode, request);
-        else RunInspection(preparation.LoadedCode, request);
+        else RunOnce(preparation.LoadedCode, request);
     }
 
-    private static void RunInspection(ValheimDevLoadedCode code, ValheimDevRequest request)
+    private static void RunOnce(ValheimDevLoadedCode code, ValheimDevRequest request)
     {
-        ValheimDevExecutionResult execution = ValheimDevCodeExecutor.Invoke(code);
+        ValheimDevExecutionResult execution = ValheimDevCodeExecutor.Invoke(code, request.InputJson);
         activeOperation!.Response.Result = execution.Result;
         activeOperation.Response.Exception = execution.Exception;
         if (!execution.Ok)
@@ -225,8 +225,8 @@ internal static partial class ValheimDevRuntime
     {
         assemblyBytes = Array.Empty<byte>();
         error = string.Empty;
-        string expectedEntryType = request.Kind == "inspect"
-            ? ValheimDevProtocol.InspectionEntryType
+        string expectedEntryType = request.Kind == "run_once"
+            ? ValheimDevProtocol.CommandEntryType
             : ValheimDevProtocol.ChangeEntryType;
         if (!string.Equals(request.EntryType, expectedEntryType, StringComparison.Ordinal))
         {

@@ -80,7 +80,7 @@ internal static partial class Program
         string selector)
     {
         Task<string> task = SendAsync(CodeRequest(
-            "inspect", operationId, string.Empty, inspectionAssembly, new[] { selector }, 5000));
+            "run_once", operationId, string.Empty, inspectionAssembly, new[] { selector }, 5000));
         WaitForQueue();
         ValheimDevRuntime.Update();
         Require(!task.IsCompleted, operationId + " waits for selected evidence");

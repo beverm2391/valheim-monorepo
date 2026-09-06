@@ -2,7 +2,7 @@ using System;
 
 public static class ValheimDevChange
 {
-    public static string Run()
+    public static string Run(string inputJson)
     {
         ValheimDevTestSurface.Visible = true;
         ValheimDevTestSurface.Variant = "broken";

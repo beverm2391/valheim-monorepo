@@ -1,103 +1,92 @@
 # Valheim Dev
 
-Valheim Dev is Codex's live workbench for Valheim. Ben can stay in a disposable
-test world while Codex inspects the running game, changes it, observes the
-result, and tries another version. This removes the build, package, install, and
-relaunch cycle from early development.
+Valheim Dev lets Codex control Valheim while Ben plays in a disposable local
+test world. Codex can inspect the game, give items, change values, create
+objects, and install ongoing behavior while Ben sees the result. Ben should not need
+to rebuild or relaunch the game between experiments.
 
-Valheim Dev is for making and understanding Benheim, not for playing it. Ben
-continues to use Valheim and its native console. He does not need a second CLI,
-dashboard, or editor.
+The interface uses general code execution with a short reference for common
+operations. Separate tools for each item, creature, UI element, or gameplay
+action are unnecessary. Existing code and requirements must earn their place
+by serving this workflow.
 
-## Ben And Codex Work In One Live Loop
+## Run Commands And Try Changes
 
-The intended workflow is:
+Codex can run a trusted C# command for observation or action. Giving an item or
+changing a value does not require an ID for installed code or a cleanup function.
+A completed command may leave effects in the world or character. The tool does
+not promise to reverse those effects.
 
-```text
-Ben enables one disposable Lab world session.
-target = Codex inspects what exists in the running game.
-Codex describes the target's live structure and available behavior.
-change = Codex applies a managed live change.
-evidence = Codex watches the relevant signals and captures the visible result.
-Ben judges how the change looks, feels, or plays.
-Codex replaces the change and the loop repeats.
-Codex removes the live change when testing ends.
-chosen = Ben selects the behavior to keep.
-shipping = The chosen behavior enters normal Benheim source and a normal build.
-```
+Code that keeps running can be installed, replaced, or explicitly removed.
+For example, an orbiting object needs a running component and a way to remove
+that component. Replacement failures must report what remains installed and
+whether the previous version was restored.
 
-Inspection includes live objects, values, components, hierarchy, and available
-methods. A target can come from the player, the object under the crosshair, the
-hovered interface, or a bounded search of the current scene. This lets Codex
-describe the object that actually exists instead of guessing only from source
-or decompiled code.
+Status describes installed code and known errors. Registered code alone does
+not prove that its effect still applies. A player can respawn,
+an object can disappear, or Valheim can overwrite a value. Codex verifies the
+effect through a fresh observation and Ben's feedback.
 
-Codex can apply managed live changes to code, runtime state, presentation, and
-gameplay behavior. A managed live change remains active until Codex removes or
-replaces it. If a replacement fails, Valheim Dev keeps the working version
-active.
+Cleanup is explicit. Turning Lab off closes control access without undoing
+prior commands or automatically removing installed changes. Reopening Lab in
+the same world lets Codex inspect and remove that installed code. Leaving the
+world ends tracking for that world's installed code. Installed code must not
+carry into another world.
+This does not promise to undo saved items, creatures, damage, or other effects.
 
-Some actions happen once and cannot honestly be removed. Spawning a creature,
-dealing damage, or invoking a world-changing method may already have changed
-the disposable world. Valheim Dev distinguishes those actions from managed
-changes instead of promising false cleanup.
+## Make The Tool Easy To Use
 
-## What This Should Make Fast
+The reference gives agents small examples of common operations. It explains how
+to find the current runtime API. It covers inspection, inventory, UI, movement,
+camera, spawning, and ongoing behavior. Examples use real game APIs and teach
+how to verify the result. They do not require a new selector system, object
+handle registry, or separate watcher tools.
 
-- Inspect an unfamiliar live object, understand its useful structure, and
-  connect that runtime evidence to the existing decompiler.
-- Tune interface layout, materials, animation, particles, sound, or other
-  presentation while Ben watches the same running game.
-- Tune movement, combat, physics, status effects, and other mechanics while Ben
-  plays, with only the relevant state observed.
-- Point at a portal, plant, creature, collider, build piece, or item and inspect
-  the exact instance involved in a bug.
-- Leave a bounded watcher active while Ben reproduces a problem, then compare
-  the observed transitions with existing Benheim diagnostics.
-- Compare several variants quickly, remove the temporary work, and promote only
-  the version Ben wants into shipped code.
+Code can use the assemblies available in the running game. Agents should not
+need a new compiler-reference exception for each Unity module or Valheim API.
 
-The first live use is Affinity weapon-icon animation. Codex will inspect the
-actual inventory and hotbar objects, apply visible variants, and replace them
-while Ben judges the result. The chosen variant becomes shipped behavior only
-after it is incorporated into Benheim and included in a normal build.
+A normal response concisely reports the result or error, the operation ID, and
+relevant state changes. Source, hashes, compiler details, and full history remain
+available through the operation ledger. Connection errors explain the next
+useful action, such as enabling Lab or refreshing the MCP process.
 
-## Evidence Stays Attached To The Change
+Commands accept structured inputs and return structured results. Agents can
+reuse the same code with different parameters. They can pass one command's
+result into another without editing hard-coded source values or parsing prose.
 
-Valheim Dev keeps a persistent record of what Codex ran, which Valheim and
-Benheim builds were active, what Codex targeted, what selected evidence it
-observed, and whether cleanup succeeded. Active changes and watchers remain
-visible so a later operation cannot silently forget what is still installed.
-
-The record is evidence for the specific observations Codex selected. It does
-not imply that Valheim Dev captured every downstream effect. Ben's observation
-remains primary for look and feel.
+The existing ledger provides a compact history. Each run shows a short human
+label, time, outcome, and duration. Agents can open a run to see its source,
+result, and errors. The history needs no new database or dashboard.
 
 [Benheim Developer Diagnostics](../../client-mods/benheim/src/DeveloperDiagnostics/PRODUCT.md)
-continues to own typed events from shipped gameplay, Axiom delivery, and
-in-game diagnostic controls. Valheim Dev can watch and correlate those events.
-It does not create a second gameplay logging system.
+owns shipped gameplay diagnostics. Valheim Dev can read that evidence and
+record its own operations without creating another gameplay logging system.
+Agents can read warnings and errors from the time of a run onward. Repeated
+messages are collapsed into counts. When installed code keeps running, agents
+can read errors logged after the entrypoint returns. A log entry after a run does not
+prove that the run caused it. Logs prove only the observations they contain.
+Ben judges visible behavior.
 
-## The Power Stays Inside A Disposable Lab
+## Ben Controls The Lab
 
-Ben alone creates, selects, resets, and deletes the disposable local test
-character and world. Both remain outside the repository. After Ben enters that
-world, he runs `bh lab on`. This authorizes repeated Codex operations for that
-world session without separate approval for each operation.
+Ben creates and selects the disposable local character and world. He runs
+`bh lab on` after entering the world. That enables repeated Codex operations
+without separate approval for each command. Running `bh lab off`, leaving the
+world, or quitting Valheim ends access to that Lab session.
 
-Running `bh lab off`, leaving the world, or quitting Valheim ends the
-authorization. Valheim Dev rejects new work, stops active watches, and attempts
-to remove managed live changes. Authorization applies only to the current world
-session. Valheim Dev cannot enable Lab mode, manage saves, launch Valheim, quit
-Valheim, or restart Valheim.
+Valheim Dev trusts Ben's local machine. It does not authenticate one local
+process against another. One session ID distinguishes current requests from
+requests prepared for an earlier Lab session.
 
-Valheim Dev may connect only to the authorized local single-player Lab session.
-It must never connect to an ordinary Benheim session, the shared production
-world, or a dedicated server.
+Valheim Dev connects only to the enabled local single-player Lab. It does not
+connect to the shared production world, an ordinary Benheim session, or a
+dedicated server. It cannot enable Lab, manage saves, launch, quit, or restart
+Valheim.
 
-Valheim Dev may run trusted, bounded code with direct access to Unity and
-Benheim. That code must return control to the game loop. Valheim Dev cannot
-sandbox the code or forcibly stop it if it hangs Unity's main thread. Cleanup
-is best effort. When cleanup is uncertain, Valheim Dev stops making changes and
-tells Ben that Valheim must restart. Ben decides whether to restart Valheim or
-recreate the disposable saves.
+Runtime code must return control to the game loop. Valheim Dev cannot preempt
+code that hangs Unity's main thread or guarantee that arbitrary effects can be
+undone. Failures must remain visible. Ben decides whether to restart the game
+or reset his disposable saves.
+
+Behavior Ben chooses to keep enters normal Benheim source and a normal build.
+The Lab does not replace that shipping workflow.

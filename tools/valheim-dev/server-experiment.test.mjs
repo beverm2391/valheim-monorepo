@@ -8,30 +8,8 @@ import { MAX_EVIDENCE_BYTES } from "./constants.mjs";
 import {
   CHANGE_SOURCE, SOURCE, bridgeIdentity, buildOfflineIconHarness, digest,
   executeOfflineVariant, iconVariantSource, installedDotnetReferenceSet,
-  managedChange, startBridge, temporaryRoot, writeDescriptor,
+  managedChange, operationResponse, startBridge, temporaryRoot, writeDescriptor,
 } from "./test-helpers.mjs";
-
-function operationResponse(descriptor, request, extra = {}) {
-  return bridgeIdentity(descriptor, {
-    authorized: true,
-    action: request.kind,
-    operation_id: request.operation_id,
-    change_id: request.change_id ?? "",
-    started_utc: "2026-09-04T00:00:00.000Z",
-    finished_utc: "2026-09-04T00:00:00.010Z",
-    result: "ok",
-    exception: null,
-    cleanup_state: request.kind === "install_change" ? "active" : "not_applicable",
-    previous_change_preserved: false,
-    evidence_selected: request.evidence_events?.length > 0,
-    evidence_exhaustive: false,
-    evidence_truncated: false,
-    dropped_evidence_events: 0,
-    evidence_events: [],
-    active_changes: [],
-    ...extra,
-  });
-}
 
 test("offline first proof compiles and transports two managed Affinity icon variants", async (t) => {
   const fixture = await temporaryRoot();
@@ -56,9 +34,9 @@ test("offline first proof compiles and transports two managed Affinity icon vari
     active = [{
       change_id: request.change_id, operation_id: request.operation_id,
       source_sha256: request.source_sha256, assembly_sha256: request.assembly_sha256,
-      installed_utc: new Date().toISOString(), result: variant, cleanup_state: "active",
+      installed_utc: new Date().toISOString(), result: JSON.stringify({ variant }), cleanup_state: "active",
     }];
-    return operationResponse(descriptor, request, { result: variant, active_changes: active });
+    return operationResponse(descriptor, request, { result: JSON.stringify({ variant }), active_changes: active });
   });
   t.after(() => bridge.close());
   descriptor = await writeDescriptor(fixture.root, fixture.reference, bridge.port, { compiler_references: references });
@@ -94,9 +72,9 @@ test("offline first proof compiles and transports two managed Affinity icon vari
     ["baseline", "pulse-a", "baseline"]);
   assert.deepEqual([secondExecution.before, secondExecution.afterRun, secondExecution.afterCleanup],
     ["baseline", "pulse-b", "baseline"]);
-  assert.match(secondExecution.result, /previous=baseline; variant=pulse-b/);
+  assert.deepEqual(JSON.parse(secondExecution.result), { previous: "baseline", variant: "pulse-b" });
   const ledger = await service.call("read_ledger", { limit: 10 });
-  assert.equal(ledger.records.length, 2);
+  assert.equal(ledger.runs.length, 2);
 });
 
 test("compile failure preserves and records the working managed version", async (t) => {
@@ -122,7 +100,7 @@ test("compile failure preserves and records the working managed version", async 
   assert.deepEqual(record.previous_active_change, active[0]);
   assert.deepEqual(record.active_changes, active);
   assert.equal(bridge.requests.filter((request) => request.kind === "install_change").length, 0);
-  assert.deepEqual((await service.call("read_ledger", { operation_id: record.operation_id })).record, record);
+  assert.deepEqual((await service.call("read_ledger", { operation_id: record.operation_id })).details, record);
 });
 
 test("compile failure does not claim preservation after authorization changes during compilation", async (t) => {
@@ -155,10 +133,10 @@ test("inspection preserves exact source, hashes, selected evidence, and current 
   let descriptor;
   const bridge = await startBridge(async (request) => {
     if (request.kind === "status") return bridgeIdentity(descriptor, { authorized: true, active_changes: active });
-    assert.equal(request.kind, "inspect");
+    assert.equal(request.kind, "run_once");
     assert.equal(request.source, SOURCE);
     assert.equal(request.source_sha256, digest(SOURCE));
-    assert.equal(request.entry_type, "ValheimDevInspection");
+    assert.equal(request.entry_type, "ValheimDevCommand");
     const evidence = JSON.stringify({ domain: "Affinity", event: "icon_observed", visible: true });
     return operationResponse(descriptor, request, {
       result: "{\"target\":\"inventory.icon\"}", cleanup_state: "not_applicable",
@@ -175,7 +153,7 @@ test("inspection preserves exact source, hashes, selected evidence, and current 
       return { code: 0, signal: null, stdout: "", stderr: "", timed_out: false, output_overflow: false };
     },
   });
-  const record = await service.call("inspect_runtime", {
+  const record = await service.call("run_once", {
     source: SOURCE, targets: { selector: "hovered-interface" }, evidence_events: ["Affinity:icon_observed"],
   });
   assert.equal(record.state, "succeeded");
@@ -210,7 +188,7 @@ test("service accepts the exact serialized evidence-array byte boundary", async 
       return { code: 0, signal: null, stdout: "", stderr: "", timed_out: false, output_overflow: false };
     },
   });
-  const record = await service.call("inspect_runtime", {
+  const record = await service.call("run_once", {
     source: SOURCE, evidence_events: ["Test:boundary"],
   });
   assert.equal(record.state, "succeeded");
@@ -267,7 +245,7 @@ test("incomplete fields, wrong evidence, and inconsistent outcomes remain unreso
   const installed = await service.call("install_change", {
     change_id: "affinity.weapon-icon", source: CHANGE_SOURCE,
   });
-  const inspected = await service.call("inspect_runtime", {
+  const inspected = await service.call("run_once", {
     source: SOURCE, evidence_events: ["Affinity:selected"],
   });
   const removed = await service.call("remove_change", { change_id: "affinity.weapon-icon" });
@@ -278,8 +256,8 @@ test("incomplete fields, wrong evidence, and inconsistent outcomes remain unreso
   const missingTopLevelRestart = await service.call("install_change", {
     change_id: "affinity.weapon-icon", source: CHANGE_SOURCE,
   });
-  const wrongCleanupState = await service.call("inspect_runtime", { source: SOURCE });
-  const reversedTimestamps = await service.call("inspect_runtime", { source: SOURCE });
+  const wrongCleanupState = await service.call("run_once", { source: SOURCE });
+  const reversedTimestamps = await service.call("run_once", { source: SOURCE });
   for (const record of [
     installed, inspected, removed, missingInstalledRegistry, retainedRemovedRegistry,
     missingTopLevelRestart, wrongCleanupState, reversedTimestamps,
@@ -426,10 +404,10 @@ test("bridge timeouts remain unresolved and the persistent ledger remains readab
       return { code: 0, signal: null, stdout: "", stderr: "", timed_out: false, output_overflow: false };
     },
   });
-  const record = await service.call("inspect_runtime", { source: SOURCE });
+  const record = await service.call("run_once", { source: SOURCE });
   assert.equal(record.state, "runtime_unresolved");
   assert.equal(record.terminal, false);
   assert.equal(record.previous_change_preserved, null);
   await unlink(join(fixture.root, "session.json"));
-  assert.deepEqual((await service.call("read_ledger", { operation_id: record.operation_id })).record, record);
+  assert.deepEqual((await service.call("read_ledger", { operation_id: record.operation_id })).details, record);
 });

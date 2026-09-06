@@ -75,7 +75,7 @@ internal static partial class Program
         using NetworkStream stream = staleClient.GetStream();
         byte[] request = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new Dictionary<string, object?>
         {
-            ["kind"] = "status", ["protocol"] = 3, ["session_id"] = sessionId
+            ["kind"] = "status", ["protocol"] = 4, ["session_id"] = sessionId
         }) + "\n");
         stream.Write(request, 0, request.Length);
         using StreamReader reader = new StreamReader(stream, new UTF8Encoding(false));
@@ -83,6 +83,23 @@ internal static partial class Program
         Require(response.GetProperty("error").GetString() == "not_authorized"
             && ValheimDevRuntime.QueueCountForTests == 0,
             "a socket accepted by an old Lab session cannot enqueue work for its replacement");
+    }
+
+    private static void OffWorldTransitionDoesNotCarryInstalledCode(string changeAssembly)
+    {
+        ResetRuntime();
+        Authorize();
+        Environment.SetEnvironmentVariable("VALHEIM_DEV_VARIANT", "old-world");
+        Require(Install("old-world-change", "affinity.weapon-icon", changeAssembly)
+                .GetProperty("ok").GetBoolean(),
+            "world transition proof installs code in the first world");
+        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, new Terminal());
+        Require(ValheimDevTestSurface.Visible, "turning access off leaves first-world code installed");
+        state.Scene = new object();
+        Authorize();
+        Require(Status().GetProperty("active_changes").GetArrayLength() == 0
+            && !ValheimDevTestSurface.Visible,
+            "authorizing another world cleans and forgets code tracked for the first world");
     }
 
     private static void RequireLabDiagnostics(params string[] expectedNames)
@@ -110,7 +127,7 @@ internal static partial class Program
             "eligible console command publishes a usable Lab session: " + string.Join(" | ", terminal.Lines));
         using JsonDocument descriptor = JsonDocument.Parse(File.ReadAllText(ValheimDevRuntime.DescriptorPath));
         JsonElement value = descriptor.RootElement;
-        Require(value.GetProperty("protocol").GetInt32() == 3
+        Require(value.GetProperty("protocol").GetInt32() == 4
             && value.GetProperty("host").GetString() == "127.0.0.1"
             && value.GetProperty("compiler_references").GetArrayLength() == 10,
             "descriptor contains protocol, loopback endpoint, and session compiler references");
