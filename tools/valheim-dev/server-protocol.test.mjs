@@ -1,49 +1,73 @@
 import assert from "node:assert/strict";
 import { readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
 
-import { createService, runCompiler } from "./server.mjs";
-import { SOURCE, bridgeIdentity, managedChange, runStdio, temporaryRoot, writeDescriptor } from "./test-helpers.mjs";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
-test("stdio MCP lifecycle exposes the five workbench tools", async (t) => {
+import { createService, runCompiler } from "./server.mjs";
+import { SOURCE, bridgeIdentity, managedChange, temporaryRoot, writeDescriptor } from "./test-helpers.mjs";
+
+const SERVER_PATH = resolve(import.meta.dirname, "server.mjs");
+
+async function connectClient(root) {
+  const env = Object.fromEntries(Object.entries(process.env).filter((entry) => typeof entry[1] === "string"));
+  env.VALHEIM_DEV_ROOT = root;
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [SERVER_PATH],
+    cwd: import.meta.dirname,
+    env,
+    stderr: "pipe",
+  });
+  const client = new Client({ name: "valheim-dev-test", version: "1.0.0" });
+  await client.connect(transport);
+  return { client, transport };
+}
+
+test("official MCP client crosses spawned stdio boundary and exposes the five workbench tools", async (t) => {
   const { root } = await temporaryRoot();
   t.after(() => rm(root, { recursive: true, force: true }));
-  const responses = await runStdio(root, [
-    { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } } },
-    { jsonrpc: "2.0", method: "notifications/initialized" },
-    { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
-    { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "lab_status", arguments: {} } },
-    { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "inspect_runtime", arguments: { source: SOURCE } } },
-  ]);
-  assert.equal(responses.length, 4);
-  assert.equal(responses[0].result.protocolVersion, "2025-06-18");
-  assert.deepEqual(responses[1].result.tools.map((tool) => tool.name), [
+  const { client } = await connectClient(root);
+  t.after(() => client.close());
+
+  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.1.0" });
+  const listed = await client.listTools();
+  assert.deepEqual(listed.tools.map((tool) => tool.name), [
     "lab_status", "inspect_runtime", "install_change", "remove_change", "read_ledger",
   ]);
-  assert.deepEqual(responses[1].result.tools[1].inputSchema.required, ["source"]);
-  assert.deepEqual(responses[1].result.tools[2].inputSchema.required, ["change_id", "source"]);
-  assert.deepEqual(responses[1].result.tools[3].inputSchema.required, ["change_id"]);
-  assert.equal(responses[2].result.structuredContent.authorized, false);
-  assert.deepEqual(responses[2].result.structuredContent.active_changes, []);
-  assert.equal(responses[3].result.isError, true);
-  assert.match(responses[3].result.structuredContent.error, /inspect_runtime refused/);
+  assert.deepEqual(listed.tools[1].inputSchema.required, ["source"]);
+  assert.deepEqual(listed.tools[2].inputSchema.required, ["change_id", "source"]);
+  assert.deepEqual(listed.tools[3].inputSchema.required, ["change_id"]);
+  assert.equal(listed.tools.every((tool) => tool.inputSchema.additionalProperties === false), true);
+
+  const status = await client.callTool({ name: "lab_status", arguments: {} });
+  assert.equal(status.structuredContent.authorized, false);
+  assert.deepEqual(status.structuredContent.active_changes, []);
+  assert.equal(status.content[0].text, JSON.stringify(status.structuredContent));
+
+  const inspection = await client.callTool({ name: "inspect_runtime", arguments: { source: SOURCE } });
+  assert.equal(inspection.isError, true);
+  assert.match(inspection.structuredContent.error, /inspect_runtime refused/);
+  assert.equal(inspection.content[0].text, JSON.stringify(inspection.structuredContent));
 });
 
-test("initialize negotiates a supported version and rejects malformed clients", async (t) => {
+test("official SDK validates tool input before the service callback", async (t) => {
   const { root } = await temporaryRoot();
   t.after(() => rm(root, { recursive: true, force: true }));
-  const responses = await runStdio(root, [
-    { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2026-01-15", capabilities: {}, clientInfo: { name: "future", version: "2" } } },
-    { jsonrpc: "2.0", method: "notifications/initialized" },
-    { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
-  ]);
-  assert.equal(responses[0].result.protocolVersion, "2025-06-18");
-  assert.equal(responses[1].result.tools.length, 5);
-  const malformed = await runStdio(root, [
-    { jsonrpc: "2.0", id: 3, method: "initialize", params: { protocolVersion: 20250618, capabilities: {}, clientInfo: { name: "bad", version: "1" } } },
-  ]);
-  assert.equal(malformed[0].error.code, -32602);
+  const { client } = await connectClient(root);
+  t.after(() => client.close());
+
+  const missingSource = await client.callTool({ name: "inspect_runtime", arguments: {} });
+  assert.equal(missingSource.isError, true);
+  assert.equal(missingSource.structuredContent, undefined);
+  assert.match(missingSource.content[0].text, /Input validation error.*source/s);
+
+  const unknownArgument = await client.callTool({ name: "lab_status", arguments: { enable: true } });
+  assert.equal(unknownArgument.isError, true);
+  assert.equal(unknownArgument.structuredContent, undefined);
+  assert.match(unknownArgument.content[0].text, /Input validation error.*unrecognized key/is);
 });
 
 test("descriptor validation rejects non-loopback and opaque-generation violations", async (t) => {

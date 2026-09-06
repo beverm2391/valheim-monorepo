@@ -12,6 +12,14 @@ registration independent of the repository's absolute path. After changing the
 launcher, config, protocol, or tool list, verify registration in a fresh Codex
 process.
 
+The scoped `package.json` and `package-lock.json` own the exact MCP SDK
+dependency versions. Restore those dependencies before the focused proof or a
+fresh registration check:
+
+```bash
+safe npm ci --prefix tools/valheim-dev
+```
+
 Run the focused MCP proof with:
 
 ```bash
@@ -39,7 +47,7 @@ The focused suites must prove:
 - persistent ledger records;
 - managed installation, replacement, and removal;
 - cleanup uncertainty;
-- the MCP schema.
+- the Zod tool schemas and the official client-to-server transport.
 
 When Valheim is not running, use an equivalent runtime test as a stand-in for
 changes that a player would normally see. Actual Unity targets still require an

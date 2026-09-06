@@ -43,6 +43,17 @@ these conditions:
 
 ## The MCP Surface
 
+The official TypeScript MCP SDK owns stdio framing, protocol negotiation,
+initialization, tool discovery, tool calls, input validation, and result
+envelopes. Valheim Dev registers its Zod schemas and tool handlers with that
+SDK. The service beneath the SDK owns compilation, bridge calls, ledger state,
+and managed-change semantics. The scoped `package.json` and `package-lock.json`
+own the exact dependency versions.
+
+Protocol tests use the official SDK client to spawn the real stdio server.
+Valheim Dev does not implement a parallel JSON-RPC transport or test its own
+handler against itself.
+
 All operation IDs are UUIDs created by the MCP server. Caller-supplied
 `change_id` and `watch_id` values must contain 1 to 128 characters. Each
 character must be a letter, digit, dot, underscore, or hyphen. Every schema must

@@ -1,14 +1,12 @@
-import assert from "node:assert/strict";
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
-const SERVER_PATH = resolve(import.meta.dirname, "server.mjs");
 const VALHEIM_HASH = "a".repeat(64);
 const BENHEIM_HASH = "b".repeat(64);
 const execFileAsync = promisify(execFile);
@@ -246,21 +244,4 @@ export function managedChange(changeId = "affinity.weapon-icon", operationId = "
     cleanup_state: "active",
     ...extra,
   };
-}
-
-export async function runStdio(root, messages) {
-  const child = spawn(process.execPath, [SERVER_PATH], {
-    env: { ...process.env, VALHEIM_DEV_ROOT: root },
-    stdio: ["pipe", "pipe", "pipe"],
-  });
-  let stdout = "";
-  let stderr = "";
-  child.stdout.setEncoding("utf8");
-  child.stderr.setEncoding("utf8");
-  child.stdout.on("data", (chunk) => { stdout += chunk; });
-  child.stderr.on("data", (chunk) => { stderr += chunk; });
-  child.stdin.end(messages.map((message) => JSON.stringify(message)).join("\n") + "\n");
-  const [code] = await once(child, "close");
-  assert.equal(code, 0, stderr);
-  return stdout.trim().split("\n").filter(Boolean).map(JSON.parse);
 }

@@ -10,81 +10,10 @@ import {
 import {
   DEFAULT_EVIDENCE_TIMEOUT_MS, EVENT_PATTERN, IDENTIFIER_PATTERN,
   MAX_ASSEMBLY_BYTES, MAX_EVIDENCE_EVENTS,
-  MAX_EVIDENCE_TIMEOUT_MS, MAX_LEDGER_LIST, MAX_SOURCE_BYTES,
+  MAX_EVIDENCE_TIMEOUT_MS, MAX_SOURCE_BYTES,
 } from "./constants.mjs";
 import { optionalArtifactHash, readLedger, writeLedger } from "./ledger.mjs";
 import { validateOperationResponse, validateStatusResponse } from "./response-validation.mjs";
-
-const evidenceProperties = {
-  targets: { type: ["object", "array"], description: "Target selectors or live handles recorded with this operation." },
-  inputs: { type: ["object", "array"], description: "Inputs recorded with this operation." },
-  evidence_events: { type: "array", maxItems: MAX_EVIDENCE_EVENTS, items: { type: "string", maxLength: 128, pattern: "^[^:\\s]+:[^:\\s]+$" } },
-  evidence_timeout_ms: { type: "integer", minimum: 0, maximum: MAX_EVIDENCE_TIMEOUT_MS, default: DEFAULT_EVIDENCE_TIMEOUT_MS },
-};
-
-const inspectionSourceProperty = {
-  type: "string",
-  description: "Exact trusted C# source defining public static ValheimDevInspection.Run(): string for observation. The bridge does not enforce read-only behavior.",
-};
-
-const changeSourceProperty = {
-  type: "string",
-  description: "Exact trusted C# source defining public static ValheimDevChange.Run(): string and Cleanup(): void.",
-};
-
-const TOOLS = Object.freeze([
-  {
-    name: "lab_status",
-    description: "Read authorization, exact build identity, and every active managed change in the current Valheim Lab session.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
-  },
-  {
-    name: "inspect_runtime",
-    description: "Compile and run one trusted C# inspection against the authorized live runtime for observation. The bridge does not enforce read-only behavior.",
-    inputSchema: {
-      type: "object",
-      properties: { source: inspectionSourceProperty, ...evidenceProperties },
-      required: ["source"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "install_change",
-    description: "Install or replace one managed live C# change. Failed-compile preservation is reported only after re-reading the same authorization.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        change_id: { type: "string", maxLength: 128, pattern: "^[A-Za-z0-9._-]+$" },
-        source: changeSourceProperty,
-        ...evidenceProperties,
-      },
-      required: ["change_id", "source"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "remove_change",
-    description: "Run Cleanup for one active managed change and remove it only after cleanup succeeds.",
-    inputSchema: {
-      type: "object",
-      properties: { change_id: { type: "string", maxLength: 128, pattern: "^[A-Za-z0-9._-]+$" } },
-      required: ["change_id"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "read_ledger",
-    description: "Read persistent Valheim Lab operation records, including after the session disconnects.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        operation_id: { type: "string", pattern: "^[a-f0-9-]{36}$" },
-        limit: { type: "integer", minimum: 1, maximum: MAX_LEDGER_LIST, default: 20 },
-      },
-      additionalProperties: false,
-    },
-  },
-]);
 
 function validateIdentifier(value, name) {
   if (typeof value !== "string" || !IDENTIFIER_PATTERN.test(value)) {
@@ -361,7 +290,6 @@ export function createService({ root, bridgeRequest = requestBridge, compilerRun
   }
 
   return {
-    tools: TOOLS,
     async call(name, args = {}) {
       if (name === "lab_status") { validateKeys(args, new Set()); return labStatus(); }
       if (name === "inspect_runtime") return codeOperation(args, name);
