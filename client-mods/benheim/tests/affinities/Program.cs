@@ -175,6 +175,10 @@ Require(AffinityState.StoredValue(bow) == "v1:snipe" && AffinityState.IsSnipe(bo
     "Snipe writes versioned data on the exact eligible item");
 AffinityState.Write(spoofedBow, AffinityLoadResult.Snipe, "test", false);
 Require(!AffinityState.IsSnipe(spoofedBow), "stored Snipe alone must not activate on the wrong prefab");
+var rawLowerQualityClub = new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 1 };
+AffinityState.Write(rawLowerQualityClub, AffinityLoadResult.Lunge, "raw_fixture", false);
+Require(!AffinityState.IsLunge(rawLowerQualityClub),
+    "raw lower-quality state must not impersonate a Benheim-created development fixture");
 
 var discoveryPlayer = new Player();
 var unlocked = new System.Collections.Generic.List<AffinityCatalogEntry>();
@@ -244,6 +248,8 @@ foreach (var pair in new[] { (clubPrefab, AffinityLoadResult.Lunge), (huntsmanPr
             developerBypass: true);
         Require(debugResult.Applied, $"debug apply must bypass max quality for {pair.Item2} at quality {quality}");
         Require(applicant.Inventory.Wood == 2, "debug apply must not spend resources");
+        Require(AffinityState.HasDeveloperBypass(debugTarget),
+            "debug apply must persist its runtime quality bypass");
         Require(
             pair.Item2 == AffinityLoadResult.Lunge
                 ? AffinityState.IsLunge(debugTarget)
@@ -260,6 +266,23 @@ foreach (var pair in new[] { (clubPrefab, AffinityLoadResult.Lunge), (huntsmanPr
             "debug apply must bypass replacement restrictions");
     }
 }
+
+var helperTarget = new ItemDrop.ItemData { m_dropPrefab = clubPrefab, m_quality = 1 };
+applicant.Inventory.Items.Add(helperTarget);
+applicant.Weapon = helperTarget;
+AffinityDevelopmentFixtureResult helperResult =
+    AffinityDevelopmentFixture.ApplyToEquippedWeapon("lunge");
+Require(helperResult.Applied && helperResult.Reason == "applied"
+        && AffinityState.IsLunge(helperTarget),
+    "the public Lab helper must create an active lower-quality Lunge fixture through application validation");
+Require(!AffinityDevelopmentFixture.ApplyToEquippedWeapon("unknown").Applied,
+    "the public Lab helper must reject unknown Affinities");
+applicant.Inventory.Wood = 1;
+Require(AffinityApplication.Apply(
+        applicant, helperTarget, AffinityLoadResult.Test, true, true, "test").Applied,
+    "the paid Forge path must be able to replace a development fixture with Test Affinity");
+Require(!AffinityState.HasDeveloperBypass(helperTarget) && !AffinityState.IsLunge(helperTarget),
+    "a paid Forge replacement must clear the developer bypass");
 
 foreach (UnityEngine.GameObject prefab in new[] { clubPrefab, huntsmanPrefab })
 {

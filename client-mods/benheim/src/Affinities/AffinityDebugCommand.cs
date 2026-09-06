@@ -32,14 +32,9 @@ internal static class AffinityDebugCommand
                 return true;
             }
             string name = AffinityPresentation.NameFor(selected);
-            AffinityApplicationResult result = AffinityApplication.Apply(
-                player,
-                weapon,
+            AffinityDevelopmentFixtureResult result = AffinityDevelopmentFixture.ApplyToEquippedWeapon(
                 selected,
-                requireForge: false,
-                consumeResources: false,
-                source: "debug_apply",
-                developerBypass: true);
+                "debug_apply");
             context.AddString(result.Applied
                 ? $"Applied {name} to the equipped item for development testing."
                 : $"Could not apply {name}: {result.Reason}.");

@@ -93,7 +93,7 @@ internal static class AffinityApplication
                 EmitConsumption(source, requirement, consumed, "consumed");
             }
 
-            AffinityState.Write(target, selected, source, replacing);
+            AffinityState.Write(target, selected, source, replacing, developerBypass);
             NotifyInventoryChanged(inventory);
             return AffinityApplicationResult.Success(replacing);
         }

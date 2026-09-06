@@ -163,7 +163,7 @@ internal static class LungeRuntime
         if (player == null || character != player) return "wrong_player";
         bool sameWeapon = ReferenceEquals(player.GetCurrentWeapon(), state.Weapon)
             && ReferenceEquals(attack.GetWeapon(), state.Weapon);
-        bool hasLunge = AffinityState.IsEligibleClub(state.Weapon)
+        bool hasLunge = AffinityState.IsLunge(state.Weapon)
             && AffinityState.Load(state.Weapon, "lunge_attempt") == AffinityLoadResult.Lunge;
         return AffinityRules.ResolveLunge(
             player.IsOwner(),

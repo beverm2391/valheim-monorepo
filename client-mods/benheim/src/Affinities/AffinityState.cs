@@ -17,6 +17,8 @@ internal enum AffinityLoadResult
 internal static class AffinityState
 {
     internal const string CustomDataKey = "com.benheim.qol:affinity";
+    internal const string DeveloperBypassKey = "com.benheim.qol:affinity-development-bypass";
+    internal const string DeveloperBypassValue = "v1";
     internal const string LungeValue = "v1:lunge";
     internal const string SnipeValue = "v1:snipe";
     internal const string TestValue = "v1:test";
@@ -35,12 +37,12 @@ internal static class AffinityState
 
     internal static bool IsLunge(ItemDrop.ItemData? item)
     {
-        return IsSupportedWeapon(item, ClubPrefab) && Read(item) == AffinityLoadResult.Lunge;
+        return IsActive(item, AffinityLoadResult.Lunge);
     }
 
     internal static bool IsSnipe(ItemDrop.ItemData? item)
     {
-        return IsSupportedWeapon(item, SnipeBowPrefab) && Read(item) == AffinityLoadResult.Snipe;
+        return IsActive(item, AffinityLoadResult.Snipe);
     }
 
     internal static bool IsEligibleFor(ItemDrop.ItemData? item, AffinityCatalogEntry entry)
@@ -66,6 +68,23 @@ internal static class AffinityState
         if (affinity == AffinityLoadResult.Lunge) return IsEligibleClub(item);
         if (affinity == AffinityLoadResult.Snipe) return IsEligibleSnipeBow(item);
         return false;
+    }
+
+    internal static bool IsActive(ItemDrop.ItemData? item, AffinityLoadResult affinity)
+    {
+        // Ordinary items must still satisfy the progression gate. Only an item
+        // Benheim initialized as a development fixture may carry that bypass
+        // through later attacks, equipment changes, and native persistence.
+        return SupportsAffinity(item, affinity)
+            && Read(item) == affinity
+            && (IsEligibleForAffinity(item, affinity) || HasDeveloperBypass(item));
+    }
+
+    internal static bool HasDeveloperBypass(ItemDrop.ItemData? item)
+    {
+        return item?.m_customData != null
+            && item.m_customData.TryGetValue(DeveloperBypassKey, out string? stored)
+            && string.Equals(stored, DeveloperBypassValue, StringComparison.Ordinal);
     }
 
     internal static bool IsCanonicalPrefab(ItemDrop.ItemData? item, string prefabName)
@@ -120,11 +139,17 @@ internal static class AffinityState
                 .String("source", source)
                 .String("result", result.ToString().ToLowerInvariant())
                 .String("stored_value", stored)
+                .Boolean("developer_bypass", HasDeveloperBypass(item))
                 .String("item_prefab", ItemPrefab(item)));
         return result;
     }
 
-    internal static void Write(ItemDrop.ItemData item, AffinityLoadResult affinity, string source, bool replacing)
+    internal static void Write(
+        ItemDrop.ItemData item,
+        AffinityLoadResult affinity,
+        string source,
+        bool replacing,
+        bool developerBypass = false)
     {
         string value = affinity switch
         {
@@ -135,22 +160,33 @@ internal static class AffinityState
         };
         item.m_customData ??= new Dictionary<string, string>();
         item.m_customData[CustomDataKey] = value;
+        if (developerBypass)
+        {
+            item.m_customData[DeveloperBypassKey] = DeveloperBypassValue;
+        }
+        else
+        {
+            item.m_customData.Remove(DeveloperBypassKey);
+        }
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "affinity_state_written")
                 .String("source", source)
                 .String("affinity", affinity.ToString().ToLowerInvariant())
                 .Integer("version", 1)
                 .Boolean("replacing", replacing)
+                .Boolean("developer_bypass", developerBypass)
                 .String("item_prefab", ItemPrefab(item)));
     }
 
     internal static bool Clear(ItemDrop.ItemData item, string source)
     {
         bool removed = item.m_customData != null && item.m_customData.Remove(CustomDataKey);
+        bool bypassRemoved = item.m_customData != null && item.m_customData.Remove(DeveloperBypassKey);
         AffinityDiagnostics.Emit(
             DiagnosticEvent.Create("Affinity", "affinity_state_cleared")
                 .String("source", source)
                 .Boolean("removed", removed)
+                .Boolean("developer_bypass_removed", bypassRemoved)
                 .String("item_prefab", ItemPrefab(item)));
         return removed;
     }
