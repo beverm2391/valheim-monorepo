@@ -36,19 +36,11 @@ This does not promise to undo saved items, creatures, damage, or other effects.
 
 ## Make The Tool Easy To Use
 
-The reference gives agents small examples of common operations. It explains how
-to find the current runtime API. It covers inspection, inventory, UI, movement,
-camera, spawning, and ongoing behavior. Examples use real game APIs and teach
-how to verify the result. They do not require a new selector system, object
-handle registry, or separate watcher tools.
+A short reference shows agents how to perform common operations and verify
+results.
 
-Code can use the assemblies available in the running game. Agents should not
-need a new compiler-reference exception for each Unity module or Valheim API.
-
-A normal response concisely reports the result or error, the operation ID, and
-relevant state changes. Source, hashes, compiler details, and full history remain
-available through the operation ledger. Connection errors explain the next
-useful action, such as enabling Lab or refreshing the MCP process.
+Normal responses stay concise. Agents can open the ledger for detailed evidence
+about each operation.
 
 Commands accept structured inputs and return structured results. Agents can
 reuse the same code with different parameters. They can pass one command's
@@ -75,8 +67,8 @@ without separate approval for each command. Running `bh lab off`, leaving the
 world, or quitting Valheim ends access to that Lab session.
 
 Valheim Dev trusts Ben's local machine. It does not authenticate one local
-process against another. One session ID distinguishes current requests from
-requests prepared for an earlier Lab session.
+process against another. A request prepared for an earlier Lab session cannot
+run in the current Lab session.
 
 Valheim Dev connects only to the enabled local single-player Lab. It does not
 connect to the shared production world, an ordinary Benheim session, or a
@@ -85,8 +77,7 @@ Valheim.
 
 Runtime code must return control to the game loop. Valheim Dev cannot preempt
 code that hangs Unity's main thread or guarantee that arbitrary effects can be
-undone. Failures must remain visible. Ben decides whether to restart the game
-or reset his disposable saves.
+undone. Ben decides whether to restart the game or reset his disposable saves.
 
 Behavior Ben chooses to keep enters normal Benheim source and a normal build.
 The Lab does not replace that shipping workflow.
