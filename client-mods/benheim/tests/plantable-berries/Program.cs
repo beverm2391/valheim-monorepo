@@ -114,14 +114,14 @@ RequireNear(raspberrySpacing, 1.42f, "raspberry spacing must use its native view
 RequireNear(blueberrySpacing, 1.6f, "blueberry spacing must use its native viewblock sphere");
 RequireNear(cloudberrySpacing, 0.73952f, "cloudberry spacing must include native child scale");
 
-// The registered footprint remains collision clearance; only the shared
-// preview/placement grid step doubles. Run the real grid builder at every size.
+// The registered footprint remains collision clearance. All berries use the
+// same tuned preview/placement grid step. Run the real builder at every size.
 foreach (var pair in new[] { (raspberry, 1.42f), (blueberry, 1.6f), (cloudberry, 0.73952f), (nativePlant, 1f) })
 {
     bool crop = pair.Item1 == nativePlant;
-    float expectedSpacing = crop ? pair.Item2 : pair.Item2 * 2f;
+    float expectedSpacing = crop ? pair.Item2 : FarmingSettings.BerryGridSpacing;
     Require(PlantingRules.TryGetGridSpacing(pair.Item1, out float spacing), "plant spacing must resolve");
-    RequireNear(spacing, expectedSpacing, "only berry grid spacing doubles");
+    RequireNear(spacing, expectedSpacing, "every berry grid uses exactly 1.75 m spacing while crops stay native");
     Require(PlantingRules.HasGrowSpace(Vector3.zero, pair.Item1), "empty native clearance stays valid");
     RequireNear(Physics.LastRadius, pair.Item2 * 0.5f, "placement clearance must not grow with the grid");
     Physics.Nearby = new Collider[] { new SphereCollider() };

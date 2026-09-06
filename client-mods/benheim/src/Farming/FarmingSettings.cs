@@ -6,4 +6,5 @@ internal static class FarmingSettings
     internal const int DefaultGridSize = 5;
     internal const int MinimumGridSize = 1;
     internal const int MaximumGridSize = 9;
+    internal const float BerryGridSpacing = 1.75f;
 }

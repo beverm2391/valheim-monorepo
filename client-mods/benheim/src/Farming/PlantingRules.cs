@@ -29,10 +29,17 @@ internal static class PlantingRules
             return true;
         }
 
-        // Spread the grid without enlarging collision clearance around each bush.
-        bool berry = PlantableBerries.TryGetFootprint(prefab, out spacing);
-        spacing *= 2f;
-        return berry;
+        // Grid tuning is independent from collision clearance. Registration
+        // still has to establish a native collider footprint before a berry
+        // bush can reach planting, but all three bushes share one exact step.
+        if (PlantableBerries.TryGetFootprint(prefab, out _))
+        {
+            spacing = FarmingSettings.BerryGridSpacing;
+            return true;
+        }
+
+        spacing = 0f;
+        return false;
     }
 
     internal static bool HasGrowSpace(Vector3 position, GameObject plantPrefab)

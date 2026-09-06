@@ -58,10 +58,10 @@ Require(FarmingGridSelection.CurrentSize == 9 && Reason() == "picker_closed", "c
 Hud.PickerVisible = true;
 FarmingGridPicker.Update();
 FarmingGridPickerView second = FarmingGridPickerView.Last!;
-Require(second != first && FarmingGridSelection.CurrentSize == 5 && second.HighlightedSize == 5,
-    "every reopening creates a fresh default-5 session");
-first.Click(9);
-Require(FarmingGridSelection.CurrentSize == 5 && Reason() == "stale_picker",
+Require(second != first && FarmingGridSelection.CurrentSize == 9 && second.HighlightedSize == 9,
+    "reopening creates fresh controls for the plugin-session selection");
+first.Click(1);
+Require(FarmingGridSelection.CurrentSize == 9 && Reason() == "stale_picker",
     "a retained callback from the prior row cannot mutate a new same-player session");
 second.Click(3);
 
@@ -85,11 +85,11 @@ Require(FarmingGridPickerView.Last == second, "a tool without build pieces does 
 player.RightItem.m_shared.m_buildPieces = new PieceTable();
 FarmingGridPicker.Update();
 FarmingGridPickerView third = FarmingGridPickerView.Last!;
-Require(third != second && third.HighlightedSize == 5, "returning to the Cultivator starts at 5");
+Require(third != second && third.HighlightedSize == 3, "returning to the Cultivator preserves the plugin-session choice");
 third.Click(7);
 Player.m_localPlayer = CultivatorPlayer();
 FarmingGridPicker.Update();
-Require(!third.IsAlive && FarmingGridSelection.CurrentSize == 5, "player replacement cleans the old owner and resets choice");
+Require(!third.IsAlive && FarmingGridSelection.CurrentSize == 7, "player replacement cleans the old owner without resetting the session choice");
 FarmingGridPickerView current = FarmingGridPickerView.Last!;
 Player.m_localPlayer = null;
 FarmingGridPicker.Update();
@@ -119,11 +119,12 @@ FarmingGridPicker.Update();
 Require(FarmingGridPickerView.Last!.IsAlive && Last().GetProperty("result").GetString() == "shown",
     "late native donors recover through the same session without a new command");
 current = FarmingGridPickerView.Last!;
+int highlightedBeforeFailure = current.HighlightedSize;
 current.ThrowOnHighlight = true;
 current.Click(9);
 Require(Last().GetProperty("result").GetString() == "failed" &&
     Last().GetProperty("selected_size").GetInt32() == 9 &&
-    Last().GetProperty("highlighted_size").GetInt32() == 5,
+    Last().GetProperty("highlighted_size").GetInt32() == highlightedBeforeFailure,
     "a rendering operation failure records the actual partial state, not a fabricated selected highlight");
 current.ThrowOnHighlight = false;
 Diagnostics.ThrowOnEmit = true;
@@ -131,7 +132,7 @@ current.Click(3);
 Require(FarmingGridSelection.CurrentSize == 3 && current.HighlightedSize == 3,
     "a throwing diagnostic sink cannot escape the click or interrupt selection");
 FarmingGridPicker.Reset();
-Require(!current.IsAlive && FarmingGridSelection.CurrentSize == 5, "reset cleans the row even with a failed sink");
+Require(!current.IsAlive && FarmingGridSelection.CurrentSize == 5, "plugin reset cleans the row and restores the next session's 5x5 default even with a failed sink");
 Diagnostics.ThrowOnEmit = false;
 FarmingGridPickerView.ThrowOnCreate = true;
 FarmingGridPicker.Update();

@@ -1,8 +1,9 @@
 namespace BenheimQoL.Farming;
 
 /// <summary>
-/// Owns the session-local mass-planting grid choice. Odd dimensions preserve a
-/// single, unambiguous center cell for the native anchor placement.
+/// Owns the plugin-session mass-planting grid choice. Picker visibility does
+/// not own this value; only plugin startup or teardown resets it to the default.
+/// Odd dimensions preserve one unambiguous center cell for native placement.
 /// </summary>
 internal static class FarmingGridSelection
 {
@@ -42,7 +43,6 @@ internal static class FarmingGridSelection
         }
 
         pickerWasOpen = true;
-        CurrentSize = FarmingSettings.DefaultGridSize;
         return true;
     }
 

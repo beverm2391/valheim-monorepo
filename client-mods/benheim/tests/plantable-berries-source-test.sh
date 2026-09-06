@@ -83,9 +83,10 @@ if grep -Fq 'HarmonyPatch(typeof(Player)' "$registration"; then
   exit 1
 fi
 
-# Grid spacing and collision rejection come from each native bush's collider
-# shape data. Unity reports empty world-space bounds for inactive prefabs, so
-# registration measures the native shapes in prefab-root space instead.
+# Collision rejection comes from each native bush's collider shape data. Unity
+# reports empty world-space bounds for inactive prefabs, so registration
+# measures the native shapes in prefab-root space instead. Grid spacing is the
+# separately tuned value shared by all three berries.
 grep -Fq 'prefab.GetComponentsInChildren<Collider>(includeInactive: true)' "$registration"
 if grep -Fq 'collider.bounds' "$registration"; then
   printf 'plantable berry registration must not read inactive collider bounds\n' >&2
@@ -97,6 +98,8 @@ grep -Fq 'collider.transform.TransformPoint(localPoint)' "$registration"
 grep -Fq 'Mathf.Max(footprint.size.x, footprint.size.z)' "$registration"
 grep -Fq 'PlantableBerries.TryGetFootprint' "$root/src/Farming/PlantingRules.cs"
 grep -Fq 'radius = footprint * 0.5f;' "$root/src/Farming/PlantingRules.cs"
+grep -Fq 'internal const float BerryGridSpacing = 1.75f;' "$root/src/Farming/FarmingSettings.cs"
+grep -Fq 'spacing = FarmingSettings.BerryGridSpacing;' "$root/src/Farming/PlantingRules.cs"
 
 # Both callers must keep using the spacing resolver and grid builder exercised
 # by the behavioral fixture, so preview cannot drift from actual positions.

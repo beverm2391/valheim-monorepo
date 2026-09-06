@@ -35,7 +35,7 @@ internal static class FarmingGridPicker
             if (FarmingGridSelection.UpdatePickerSession(pickerOpen: true))
             {
                 PlantingPreview.DestroyGhosts();
-                State("opened", "default_size");
+                State("opened", "session_selection");
             }
 
             if (view != null && view.IsAlive) return;
