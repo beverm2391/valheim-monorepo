@@ -172,7 +172,9 @@ flow:
 
 - `bh debug affinity apply <affinity>` applies the named affinity to an
   eligible equipped weapon. It ignores the Forge, resource cost, confirmation,
-  max-quality requirement, and replacement restrictions.
+  max-quality requirement, and replacement restrictions. That bypass continues
+  through gameplay execution: a debug-applied real Affinity works at every
+  native quality supported by its weapon family.
 - `bh debug affinity remove` removes only Benheim affinity state from the
   equipped weapon.
 

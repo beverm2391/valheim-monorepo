@@ -46,6 +46,12 @@ Commands accept structured inputs and return structured results. Agents can
 reuse the same code with different parameters. They can pass one command's
 result into another without editing hard-coded source values or parsing prose.
 
+When a first-party mod owns a behavior's initialization and validation, it
+exposes one narrow helper to Lab recipe code. Recipes use that helper to create
+the test fixture through the mod's production path instead of writing private
+state or duplicating the mod's rules. `run_recipes` remains the only recipe MCP
+tool.
+
 Codex can keep disposable recipes on disk. Each recipe uses one folder. The
 folder name is the recipe ID and the folder contains `code.cs`. An optional
 `presets.json` contains an array of structured input sets. The array position is
