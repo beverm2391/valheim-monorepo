@@ -2,7 +2,7 @@
 
 Open product questions and remaining playtests for Benheim.
 
-Installed on Ben's Mac: **0.1.90**.
+Installed on Ben's Mac: **0.1.91**.
 
 Grid selection, planting, berry cycles, and portal text fitting record
 diagnostics without enabling a probe.
@@ -10,16 +10,21 @@ diagnostics without enabling a probe.
 ## Remaining checks
 
 - **Valheim Dev live loop:**
-  1. Launch Benheim 0.1.90 and enter the disposable local single-player Lab
+  1. Launch Benheim 0.1.91 and enter the disposable local single-player Lab
      world.
-  2. Hover the Affinity weapon icon in your inventory or hotbar. Run `bh lab
-     on`, then tell Codex that the Lab is ready.
-  3. Codex inspects the hovered icon, installs one `affinity.weapon-icon`
-     variant, replaces it with another, and removes the final change.
-  4. Confirm that both variants appear. After removal, confirm that the original
-     icon returns and Valheim Dev does not report `restart_required`.
-  5. Run `bh lab off`. Ask Codex to try another live operation, and confirm that
-     Valheim Dev rejects it.
+  2. Run `bh lab on`, then tell Codex that the Lab is ready.
+  3. Codex runs a labeled command twice with different structured inputs.
+     Confirm that each result is structured and the source stays unchanged.
+  4. Codex installs an ongoing change. Run `bh lab off` and confirm that the
+     change remains active while further operations are rejected.
+  5. Re-enable Lab in the same world. Confirm that status shows the installed
+     change, then ask Codex to remove it and verify that the effect stops.
+  6. Ask Codex to read the recent run history and one full run. Confirm that the
+     history shows labels, times, outcomes, and durations. Confirm that repeated
+     warnings or errors since the run are collapsed into counts and described
+     as time-correlated rather than caused by the run.
+  7. Confirm that Valheim Dev never reports `restart_required` during the clean
+     install, replacement, and removal path.
 
 - **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
   Huntsman Bow at any native quality. Confirm its inventory title and
