@@ -3,7 +3,7 @@
 Outstanding hands-on checks for the Benheim build currently installed on Ben's
 Mac.
 
-Installed on Ben's Mac: **0.1.91**.
+Installed on Ben's Mac: **0.1.92**.
 
 Grid selection, planting, berry cycles, and portal text fitting record
 diagnostics without enabling a probe.
@@ -73,6 +73,13 @@ diagnostics without enabling a probe.
   invalid cells. Each successful normal or grid-cell placement must cost 25%
   of the native stamina cost after Valheim applies the Farming skill adjustment.
   A failed, skipped, or rejected placement must cost no stamina.
+- **Cultivator grid selection:** In one plugin session, open the Cultivator
+  picker and confirm that 5x5 is highlighted. Select another size, close the
+  picker, and reopen it without restarting the game. Confirm that the selected
+  size remains highlighted and controls the next `Left Shift` preview and
+  placement. The Hammer picker must have no grid-size row, and number keys must
+  keep their native behavior. Fully quit and relaunch the game to start a fresh
+  plugin session. Confirm that the Cultivator picker starts at 5x5.
 - **Comfort summary:** The Comfort calculation is accepted. Test the shorter
   output for Valheim's non-scrollable console. Run
   `bhrun comfort`. Confirm that the console shows a short readable summary with
@@ -86,6 +93,10 @@ diagnostics without enabling a probe.
 
   - confirm ordinary Blueberry and Cloudberry placement and centered 9x9
     placement for all three bushes;
+  - for Raspberry, Blueberry, and Cloudberry, measure adjacent grid positions
+    along each grid axis. Confirm exactly 1.75 meters between adjacent preview
+    positions and between the corresponding placed bushes. Confirm that
+    default-on logs report 1.75 meters for both preview and placement;
   - confirm that each placement costs exactly five matching berries;
   - confirm that each newly planted bush starts empty;
   - confirm that Benheim assigns each planted or naturally spawned bush a wait
