@@ -5,7 +5,8 @@ This file owns monorepo-wide commands, tests, operating rules, and development
 workflow. It also owns the server, migration, and public-repository workflows.
 Nested `PROMPT.md` files add rules for their paths. Read the root
 [`PRODUCT.md`](PRODUCT.md) before changing the product promise or a compatibility
-boundary.
+boundary. Read [`LEARNINGS.md`](LEARNINGS.md) before live Valheim or Benheim
+experimentation.
 
 ## Product boundaries
 
