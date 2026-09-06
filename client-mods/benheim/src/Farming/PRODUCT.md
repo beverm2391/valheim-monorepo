@@ -31,9 +31,8 @@ Valheim's normal farming restrictions.
   CloudberryBush to the Cultivator. Planting each bush costs five berries of its
   matching type.
 - Berry bushes can be planted only on ordinary ground. They do not require
-  cultivated ground or a matching biome. For the next playtest, berry-bush grid
-  spacing is twice the spacing derived from each bush's native collider
-  footprint. This gives bushes more room.
+  cultivated ground or a matching biome. Raspberry, Blueberry, and Cloudberry
+  bushes use an exact grid spacing of 1.75 meters.
   The preview and placement use the same spacing at every grid size. Ordinary
   crop spacing and placement restrictions stay unchanged. Existing bushes do
   not move.
@@ -73,9 +72,9 @@ Valheim's normal farming restrictions.
   sizes: 1x1, 3x3, 5x5, 7x7, and 9x9. Clicking a size keeps the picker open and
   highlights the choice. After the picker closes, the selected size controls
   the existing `Left Shift` mass-plant preview and placement.
-- Each time the local player opens the Cultivator picker, the grid selection
-  resets to 5x5. Benheim does not carry a selection into the next picker
-  session.
+- The selected grid size remains active for the current Benheim plugin session,
+  including after the Cultivator picker closes and reopens. A fresh plugin
+  session starts at 5x5.
 - The clickable row replaces the grid-size number shortcut. Number keys keep
   native behavior. The row appears only in the Cultivator picker.
 - Live `0.1.80` proved ordinary Raspberry placement. It also showed that newly
@@ -109,5 +108,7 @@ Valheim's normal farming restrictions.
     rules permit removal, while those rules still block unauthorized removal
   - reconnect behavior
 - The number-key selector failed in live play. Ben approved replacing it with
-  clickable sizes. The row, selection feedback, per-picker 5x5 default, and
-  matching preview and placement remain unaccepted until live review.
+  clickable sizes. The row, selection feedback, session persistence,
+  fresh-session 5x5 default, and exact 1.75-meter preview and placement spacing
+  for Raspberry, Blueberry, and Cloudberry bushes remain unaccepted until live
+  review.
