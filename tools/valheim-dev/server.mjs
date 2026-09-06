@@ -37,6 +37,14 @@ const evidenceShape = {
 };
 const changeId = z.string().max(128).regex(/^[A-Za-z0-9._-]+$/);
 const runLabel = z.string().trim().min(1).max(120).describe("Short human label shown in run history.");
+const recipeRequest = z.strictObject({
+  id: z.string().max(128).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/)
+    .describe("Recipe folder name under the Valheim Dev registry."),
+  preset_index: z.int().min(0).optional().describe("Zero-based index in the recipe's presets.json array."),
+  inputs: jsonContainer.optional().describe("Ad hoc structured inputs for this recipe."),
+}).refine((value) => value.preset_index === undefined || value.inputs === undefined, {
+  message: "choose preset_index or inputs, not both",
+});
 
 const TOOL_DEFINITIONS = Object.freeze([
   {
@@ -71,6 +79,13 @@ const TOOL_DEFINITIONS = Object.freeze([
     name: "remove_change",
     description: "Run Cleanup for one active managed change and remove it only after cleanup succeeds.",
     inputSchema: z.strictObject({ label: runLabel, change_id: changeId }),
+  },
+  {
+    name: "run_recipes",
+    description: "Run one or more disposable registry recipes in order. Each recipe may select a preset index or use ad hoc inputs; managed recipes replace the active change with the same recipe ID.",
+    inputSchema: z.strictObject({
+      recipes: z.array(recipeRequest).min(1),
+    }),
   },
   {
     name: "read_ledger",
@@ -129,13 +144,45 @@ function toolResult(structuredContent, isError = false) {
   return result;
 }
 
+function recipeBatchSummary(batch) {
+  return {
+    recipes: batch.recipes.map((outcome) => {
+      if (!outcome.record) {
+        return {
+          recipe_id: outcome.recipe_id,
+          preset_index: outcome.preset_index,
+          action: outcome.action,
+          state: outcome.state,
+          operation_id: null,
+          error: outcome.error,
+        };
+      }
+      const { active_changes: _activeChanges, ...summary } = operationSummary(outcome.record);
+      return {
+        recipe_id: outcome.recipe_id,
+        preset_index: outcome.preset_index,
+        action: outcome.action,
+        ...summary,
+      };
+    }),
+    active_changes: structuredChanges(batch.active_changes),
+    active_changes_error: batch.active_changes_error,
+    restart_required: batch.restart_required,
+  };
+}
+
 async function callTool(service, name, args) {
   try {
     const result = await service.call(name, args);
     const output = OPERATION_TOOLS.has(name)
       ? operationSummary(result)
-      : name === "lab_status" ? structuredStatus(result) : result;
-    return toolResult(output, OPERATION_TOOLS.has(name) && result.state !== "succeeded");
+      : name === "lab_status" ? structuredStatus(result)
+        : name === "run_recipes" ? recipeBatchSummary(result) : result;
+    const isError = OPERATION_TOOLS.has(name)
+      ? result.state !== "succeeded"
+      : name === "run_recipes"
+        && result.recipes.some((outcome) => outcome.record?.state !== "succeeded");
+    return toolResult(output, isError);
   } catch (error) {
     return toolResult({ error: error instanceof Error ? error.message : String(error) }, true);
   }

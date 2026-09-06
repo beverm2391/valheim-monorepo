@@ -13,6 +13,7 @@ import {
   MAX_EVIDENCE_TIMEOUT_MS, MAX_RUN_LABEL_BYTES, MAX_SOURCE_BYTES,
 } from "./constants.mjs";
 import { captureLogCursor, optionalArtifactHash, readLedger, writeLedger } from "./ledger.mjs";
+import { createRecipeRunner, DEFAULT_RECIPES_ROOT } from "./recipes.mjs";
 import { validateOperationResponse, validateStatusResponse } from "./response-validation.mjs";
 
 function validateIdentifier(value, name) {
@@ -168,6 +169,7 @@ async function compileFailureRuntimeState(root, descriptor, previous, bridgeRequ
 
 export function createService({
   root,
+  recipesRoot = DEFAULT_RECIPES_ROOT,
   logPath = join(root ?? "", "..", "LogOutput.log"),
   bridgeRequest = requestBridge,
   compilerRunner = runCompiler,
@@ -329,12 +331,19 @@ export function createService({
     return record;
   }
 
+  const runRecipes = createRecipeRunner({
+    recipesRoot,
+    runCodeOperation: codeOperation,
+    readStatus: labStatus,
+  });
+
   return {
     async call(name, args = {}) {
       if (name === "lab_status") { validateKeys(args, new Set()); return labStatus(); }
       if (name === "run_once") return codeOperation(args, name);
       if (name === "install_change") return codeOperation(args, name);
       if (name === "remove_change") return removeChange(args);
+      if (name === "run_recipes") return runRecipes(args);
       if (name === "read_ledger") return readLedger(root, args, logPath);
       throw new Error(`unknown tool: ${name}`);
     },

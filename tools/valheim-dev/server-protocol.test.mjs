@@ -26,7 +26,7 @@ async function connectClient(root) {
   return { client, transport };
 }
 
-test("official MCP client crosses spawned stdio boundary and exposes the five workbench tools", async (t) => {
+test("official MCP client crosses spawned stdio boundary and exposes the six workbench tools", async (t) => {
   const { root } = await temporaryRoot();
   t.after(() => rm(root, { recursive: true, force: true }));
   const { client } = await connectClient(root);
@@ -35,11 +35,12 @@ test("official MCP client crosses spawned stdio boundary and exposes the five wo
   assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.2.0" });
   const listed = await client.listTools();
   assert.deepEqual(listed.tools.map((tool) => tool.name), [
-    "lab_status", "run_once", "install_change", "remove_change", "read_ledger",
+    "lab_status", "run_once", "install_change", "remove_change", "run_recipes", "read_ledger",
   ]);
   assert.deepEqual(listed.tools[1].inputSchema.required, ["label", "source"]);
   assert.deepEqual(listed.tools[2].inputSchema.required, ["label", "change_id", "source"]);
   assert.deepEqual(listed.tools[3].inputSchema.required, ["label", "change_id"]);
+  assert.deepEqual(listed.tools[4].inputSchema.required, ["recipes"]);
   assert.equal(listed.tools.every((tool) => tool.inputSchema.additionalProperties === false), true);
 
   const status = await client.callTool({ name: "lab_status", arguments: {} });
@@ -52,6 +53,14 @@ test("official MCP client crosses spawned stdio boundary and exposes the five wo
   assert.equal(inspection.isError, true);
   assert.match(inspection.structuredContent.error, /run_once refused/);
   assert.equal(inspection.content[0].text, JSON.stringify(inspection.structuredContent));
+
+  const recipes = await client.callTool({
+    name: "run_recipes",
+    arguments: { recipes: [{ id: "infinite-food" }] },
+  });
+  assert.equal(recipes.isError, true);
+  assert.equal(recipes.structuredContent.recipes[0].recipe_id, "infinite-food");
+  assert.match(recipes.structuredContent.recipes[0].error, /install_change refused/);
 });
 
 test("official SDK validates tool input before the service callback", async (t) => {
@@ -69,6 +78,14 @@ test("official SDK validates tool input before the service callback", async (t) 
   assert.equal(unknownArgument.isError, true);
   assert.equal(unknownArgument.structuredContent, undefined);
   assert.match(unknownArgument.content[0].text, /Input validation error.*unrecognized key/is);
+
+  const conflictingRecipeInputs = await client.callTool({
+    name: "run_recipes",
+    arguments: { recipes: [{ id: "infinite-food", preset_index: 0, inputs: {} }] },
+  });
+  assert.equal(conflictingRecipeInputs.isError, true);
+  assert.equal(conflictingRecipeInputs.structuredContent, undefined);
+  assert.match(conflictingRecipeInputs.content[0].text, /choose preset_index or inputs, not both/);
 });
 
 test("descriptor validation rejects outdated protocol, non-loopback, and invalid session identity", async (t) => {
