@@ -5,8 +5,8 @@ Mac.
 
 Installed on Ben's Mac: **0.1.93**.
 
-Grid selection, planting, berry cycles, and portal text fitting record
-diagnostics without enabling a probe.
+Grid selection, planting, and berry cycles record diagnostics without enabling
+a probe.
 
 ## Remaining checks
 
@@ -114,13 +114,6 @@ diagnostics without enabling a probe.
   - reload the save and confirm persistence; and
   - in multiplayer, confirm shared placement and harvesting, creator ownership,
     and reconnect behavior.
-- **Portal label text fitting:** The wooden sign style and placement are
-  accepted, but some tags wrapped below the board. Check short and
-  long tags on both sides, then rename one portal. The complete text must stay
-  readable inside the board without changing its style or placement.
-  Default-on logs must report fitting on both faces when a label is created or
-  changed, including overflow or missing components. Ben still judges
-  readability and appearance.
 - **Pine Finewood:** Destroy one native Pine log half. Confirm that it produces
   15 native item drops. Confirm that none is ordinary Wood and that the drops
   still include Core Wood. If a compatible peer is available, let a
