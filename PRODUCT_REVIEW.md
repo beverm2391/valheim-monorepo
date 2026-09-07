@@ -128,15 +128,18 @@ diagnostics without enabling a probe.
   drops.
 - **Club + Lunge Affinity:** Confirm that the Affinity tab shows Forge level `1`
   in the native station-requirement slot and keeps Wood in the following
-  material slot. Choose a Club at any native quality without Lunge. Spend
+  material slot. Choose a max-quality Club without Lunge. Spend
   1 Wood to apply Lunge. In the ordinary inventory, confirm that the weapon
   title is `Club · Lunge` and its hover description preserves the native Club text while
   adding Lunge's behavior and persistent bias. Switch from Affinity back to
   Craft and Upgrade and confirm that each native tab returns unchanged. Move,
   equip, store, and drop the Club, then reconnect. Confirm that the same Club
   retains Lunge after every action. Grounded Club swings must remain native.
-  If a compatible peer is available, confirm that the peer sees the Lunge
-  movement.
+  In ordinary multiplayer play, if a compatible peer is available, confirm
+  that the peer sees the Lunge movement. Separately, in a disposable local
+  world, equip a below-max-quality native Club and run
+  `bh debug affinity apply lunge`. Confirm that an airborne primary swing
+  Lunges despite the normal Forge quality requirement.
 - **Developer probes:** Run `bhwatch` and confirm that `spawns` is enabled by
   default and `colliders` is disabled by default. Confirm that `spawns` records
   the registered Leech rule, bounded population changes, cap transitions, and a
