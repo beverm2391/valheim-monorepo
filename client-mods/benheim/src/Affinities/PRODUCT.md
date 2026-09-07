@@ -122,7 +122,10 @@ The first slice adds an Affinity tab beside Valheim's Craft and Upgrade tabs at
 the base-game Forge. It should look, sound, and navigate like the surrounding
 Valheim interface. It reuses native-style weapon selection, item presentation,
 resource rows, input behavior, and confirmation feedback rather than opening a
-separate Benheim window.
+separate Benheim window. The Affinity tab sits beneath the Forge panel's bronze
+divider at the same depth and alignment as the native Craft and Upgrade tabs.
+Station-level requirements reuse Valheim's native gold star icon rather than a
+custom station icon.
 
 The left panel uses the list layout from Valheim's native Craft tab. It shows
 each unlocked weapon-and-affinity combination once, regardless of whether the

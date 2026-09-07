@@ -14,6 +14,10 @@ a probe.
   Huntsman Bow at any native quality. Confirm its inventory title and
   description, the disabled same-affinity action, and persistence after storage
   and reconnect.
+  The station-level requirement icon beneath the level must reuse Valheim's
+  native gold star, matching the other crafting-station requirements.
+  The Affinity tab must sit beneath the Forge panel's bronze divider at the
+  same depth and alignment as the native Craft and Upgrade tabs.
   Other bows must remain ineligible. Native upgrades may erase the affinity;
   confirm that it can be applied again afterward.
 - **Snipe handling:** Draw, fire, and cancel with Bow Focus and Benheim FX off.
