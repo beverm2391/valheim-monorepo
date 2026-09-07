@@ -105,9 +105,20 @@ internal sealed partial class AffinityForgeUi
             ?? throw new InvalidOperationException("Craft tab is not a RectTransform.");
         RectTransform upgrade = gui.m_tabUpgrade.transform as RectTransform
             ?? throw new InvalidOperationException("Upgrade tab is not a RectTransform.");
-        Vector2 spacing = upgrade.anchoredPosition - craft.anchoredPosition;
-        if (spacing.sqrMagnitude < 1f) spacing = new Vector2(upgrade.rect.width, 0f);
-        affinity.anchoredPosition = upgrade.anchoredPosition + spacing;
+        float horizontalSpacing = upgrade.anchoredPosition.x - craft.anchoredPosition.x;
+        if (Mathf.Abs(horizontalSpacing) < 1f) horizontalSpacing = upgrade.rect.width;
+
+        // Preserve the native tab row's vertical anchor. Extrapolating the
+        // full Craft-to-Upgrade vector can push a third tab across the bronze
+        // divider when the two native tabs have a small vertical offset.
+        affinity.anchoredPosition = new Vector2(
+            upgrade.anchoredPosition.x + horizontalSpacing,
+            upgrade.anchoredPosition.y);
+
+        // Instantiation appends the clone after the bronze TabBorder, which
+        // renders it on top of that divider. Insert it beside the native tabs
+        // so the existing border remains the visual foreground owner.
+        affinity.SetSiblingIndex(upgrade.GetSiblingIndex() + 1);
     }
 
     private static void RemoveClonedGamepadBindings(GameObject tabObject)

@@ -47,7 +47,10 @@ internal sealed partial class AffinityForgeUi
             return 0;
         }
 
-        gui.m_minStationLevelIcon.sprite = station.m_icon;
+        // This field is Valheim's native station-level star, not the current
+        // station's identity icon. Keep the loaded donor sprite that native
+        // recipes use and change only the required-level text below it.
+        gui.m_minStationLevelIcon.sprite = restoreMinStationLevelSprite;
         gui.m_minStationLevelIcon.gameObject.SetActive(true);
         gui.m_minStationLevelText.text = specification.StationLevel.ToString();
         gui.m_minStationLevelText.color = station.GetLevel() >= specification.StationLevel
