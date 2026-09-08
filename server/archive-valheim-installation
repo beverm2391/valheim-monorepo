@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root=${VALHEIM_ARCHIVE_ROOT:-}
+archive_root=${root:-/}
+destination=${VALHEIM_ARCHIVE_DEST_DIR:-$root/var/backups/valheim}
+uploader="$root/usr/local/bin/valheim-r2-upload"
+
+if [[ ! -d "$destination" ]]; then
+  echo "Missing backup destination: $destination" >&2
+  exit 1
+fi
+
+if systemctl is-active --quiet valheim.service; then
+  echo "Refusing to archive a running Valheim installation." >&2
+  exit 1
+fi
+
+required_paths=(
+  "$root/opt/valheim/server"
+  "$root/usr/local/bin/valheim-start"
+  "$root/usr/local/bin/valheim-wait-ready"
+  "$root/etc/systemd/system/valheim.service"
+  "$root/etc/valheim/r2.env"
+  "$uploader"
+)
+for path in "${required_paths[@]}"; do
+  if [[ ! -e "$path" ]]; then
+    echo "Missing required recovery input: $path" >&2
+    exit 1
+  fi
+done
+
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+archive="$destination/server-installation-$stamp.tar.gz"
+temporary="$archive.tmp"
+cleanup() { rm -f "$temporary"; }
+trap cleanup EXIT
+
+# The generated runtime environment is deliberately excluded because it
+# contains the server password. The ignored non-secret operator config plus the
+# scoped secret store reproduce it.
+tar -C "$archive_root" -czf "$temporary" \
+  opt/valheim/server \
+  usr/local/bin/valheim-start \
+  usr/local/bin/valheim-wait-ready \
+  etc/systemd/system/valheim.service
+tar -tzf "$temporary" >/dev/null
+chmod 0600 "$temporary"
+mv "$temporary" "$archive"
+trap - EXIT
+
+archive_sha="$(sha256sum "$archive" | awk '{print $1}')"
+"$uploader" "$archive"
+printf 'Server installation archive: %s\n' "$archive"
+printf 'SHA-256: %s\n' "$archive_sha"

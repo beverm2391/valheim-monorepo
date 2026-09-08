@@ -218,10 +218,8 @@ fi
 [[ ! -s "$test_root/remote.log" ]] || fail "config password preflight fails before remote calls"
 pass "config password preflight fails before remote calls"
 
-assert_contains "config rollback snapshots the readiness helper" \
-  'old_waiter="$work/wait-for-valheim.previous"' "$repo_root/scripts/apply-server-config.sh"
-assert_contains "config rollback restores the readiness helper" \
-  'install -m 0755 "$old_waiter" /usr/local/bin/valheim-wait-ready' "$repo_root/scripts/apply-server-config.sh"
+assert_contains "config deployment transfers the remote apply helper" \
+  'server/apply-valheim-config' "$repo_root/scripts/apply-server-config.sh"
 assert_contains "R2 runtime credentials are root-only" \
   'install -m 0600 -o root -g root "$work/r2.env" /etc/valheim/r2.env' "$repo_root/scripts/install-server.sh"
 assert_not_contains "ordinary installs preserve an existing R2 runtime file" \
