@@ -13,7 +13,7 @@ player promise. [PROMPT.md](PROMPT.md) owns development and registration.
 Ben enables Lab after entering a local single-player world. The bridge captures
 the network object, scene object, and world ID. It creates a fresh session ID
 and loopback listener. It then writes a session descriptor with the exact
-Valheim and Benheim build identities.
+Valheim and Valheim Dev bridge build identities.
 
 One active session owns the listener, descriptor, captured world, and build
 identity. Startup publishes that session only after every resource is ready. A
@@ -42,8 +42,9 @@ conditions apply:
 - Valheim is a dedicated or open server.
 - A peer is connected.
 - Server RPC state is present.
-- Benheim gameplay hooks are unhealthy.
 - The local process does not own the player.
+
+Benheim presence, absence, and gameplay health are not authorization inputs.
 
 ## Six General Tools
 
@@ -103,8 +104,9 @@ passes the selected preset or ad hoc inputs through this same contract.
 `evidence_events` selects up to 64 Developer Diagnostics events by
 `Domain:event`. An operation can wait up to 120 seconds for selected evidence.
 The response labels selected evidence as non-exhaustive and reports count or
-byte truncation. Benheim Developer Diagnostics remains the source of shipped
-gameplay events.
+byte truncation. Feature-specific evidence is an optional integration with the
+mod that owns those events. If its provider is absent or unhealthy, the
+operation continues and reports the requested evidence as unavailable.
 
 ## Compilation Matches The Running Process
 
@@ -113,10 +115,12 @@ application domain and backed by a file. It skips dynamic and in-memory
 assemblies. The list is sorted so the descriptor remains deterministic.
 
 At startup, Valheim Dev requires compiler references for the core runtime,
-Valheim, Benheim, BepInEx, and Harmony. Loaded Unity modules and game libraries
-do not need a feature-specific allowlist. A type that is not loaded can be
-located through the current decompiled source and game files before the agent
-writes the command.
+Valheim, the Valheim Dev bridge, BepInEx, and Harmony. Benheim is not required.
+When another mod is loaded, its assembly can appear in the normal loaded-
+assembly list so experimental code may call a helper that mod deliberately
+exposes. Loaded Unity modules and game libraries do not need a feature-specific
+allowlist. A type that is not loaded can be located through the current
+decompiled source and game files before the agent writes the command.
 
 The MCP server invokes Roslyn directly with `-nostdlib+`. Source compilation and
 ledger I/O happen outside Unity's main thread. Temporary source and assemblies

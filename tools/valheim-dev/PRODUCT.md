@@ -5,6 +5,12 @@ test world. Codex can inspect the game, give items, change values, create
 objects, and install ongoing behavior while Ben sees the result. Ben should not need
 to rebuild or relaunch the game between experiments.
 
+Valheim Dev is its own BepInEx plugin. Benheim is neither a build dependency
+nor a runtime prerequisite. Lab remains usable when Benheim is absent,
+disabled, or unhealthy. Optional helpers and evidence from another first-party
+mod may be unavailable with that mod, but their absence cannot disable Lab or
+its general code-execution tools.
+
 The interface uses general code execution with a short reference for common
 operations. Separate tools for each item, creature, UI element, or gameplay
 action are unnecessary. Existing code and requirements must earn their place
@@ -78,14 +84,14 @@ The existing ledger provides a compact history. Each run shows a short human
 label, time, outcome, and duration. Agents can open a run to see its source,
 result, and errors. The history needs no new database or dashboard.
 
-[Benheim Developer Diagnostics](../../client-mods/benheim/src/DeveloperDiagnostics/PRODUCT.md)
-owns shipped gameplay diagnostics. Valheim Dev can read that evidence and
-record its own operations without creating another gameplay logging system.
-Agents can read warnings and errors from the time of a run onward. Repeated
-messages are collapsed into counts. When installed code keeps running, agents
-can read errors logged after the entrypoint returns. A log entry after a run does not
-prove that the run caused it. Logs prove only the observations they contain.
-Ben judges visible behavior.
+Valheim Dev records its own operations and can read warnings and errors from
+the BepInEx log from the time of a run onward. Repeated messages are collapsed
+into counts. When installed code keeps running, agents can read errors logged
+after the entrypoint returns. Another first-party mod may expose richer
+feature-specific evidence through an optional boundary. Missing or unhealthy
+optional evidence reports itself as unavailable rather than disabling the run.
+A log entry after a run does not prove that the run caused it. Logs prove only
+the observations they contain. Ben judges visible behavior.
 
 ## Ben Controls The Lab
 
