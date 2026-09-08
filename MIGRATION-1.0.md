@@ -190,17 +190,21 @@ Restore these development layers first:
 
 1. Server and client BepInEx with no gameplay plugins. Prove clean startup on
    Linux, Mac, and Windows.
-2. The minimum Benheim foundation: feature-isolated patching, health reporting,
-   local diagnostics, and the visible failure path. Do not make unrelated
-   features share one all-or-nothing patch transaction.
-3. [Valheim Dev](tools/valheim-dev/PRODUCT.md)'s local bridge and MCP. In a
-   disposable single-player Lab, prove a one-time observation, a one-time
-   change, an installed change, replacement, removal, Lab off/on behavior, and
-   world-exit cleanup.
+2. [Valheim Dev](tools/valheim-dev/PRODUCT.md)'s standalone local bridge and
+   MCP. The bridge must be its own BepInEx plugin and must not depend on
+   Benheim, Benheim's assembly, or Benheim gameplay health. In a disposable
+   single-player Lab, prove a one-time observation, a one-time change, an
+   installed change, replacement, removal, Lab off/on behavior, and world-exit
+   cleanup.
+3. Use Valheim Dev to restore the minimum Benheim skeleton with no gameplay
+   features enabled: feature-isolated patch transactions, per-feature health
+   reporting, and visible failure details. Prove that one broken Benheim patch
+   group disables neither Valheim Dev nor an unrelated healthy group.
 
-Valheim Dev is the first restored development capability because it makes each
-later compatibility investigation faster. It is not multiplayer, save/restart,
-or dedicated-server proof and cannot replace those gates.
+Valheim Dev is the first restored development capability after the loader
+because it makes each later compatibility investigation faster. It is not
+multiplayer, save/restart, or dedicated-server proof and cannot replace those
+gates.
 Benheim Test Commands remains disabled until a selected dedicated-server probe
 requires it. Restore and prove it as its own plugin; its failure never gates an
 unrelated gameplay feature.
