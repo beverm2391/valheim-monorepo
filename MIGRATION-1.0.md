@@ -63,7 +63,12 @@ the server stopped through rehearsal and production cutover. Preserve:
    Prove that it can render a fresh runtime environment with the scoped secret.
 5. A known-good client game and mod setup for each supported platform where
    practical.
-6. The installed game builds, Benheim versions, plugin versions, and archive
+6. An immutable mod-compatibility snapshot of each available pre-1.0 client:
+   the complete `Managed` directory, the matching `BepInEx/core` directory,
+   the game build ID, and file hashes. Keep these game binaries in ignored
+   recovery storage, not in git. The ILSpy source cache is derived evidence and
+   does not replace the raw assemblies.
+7. The installed game builds, Benheim versions, plugin versions, and archive
    hashes needed to identify the working setup.
 
 The world archive must exist locally and in R2. Download it, verify its hash,
@@ -172,17 +177,84 @@ archive on the same recorded build.
 The new character separates server and world compatibility from character-save
 compatibility. Never use the live character copies for rehearsal.
 
-After vanilla passes, test the mod stack on the same copied world:
+### Restore the mod development path
 
-1. Server BepInEx and the current first-party server plugin stack.
-2. Client BepInEx on Mac and Windows.
-3. Benheim.
-4. Any other mod deliberately selected for 1.0.
+After vanilla passes, capture the matching 1.0 `Managed` and `BepInEx/core`
+directories with the same build and hash evidence as the pre-1.0 snapshot.
+Use the two snapshots with Benheim's
+[hash-addressed ILSpy tools](client-mods/benheim/PROMPT.md) to compare only the
+Valheim types, methods, fields, and method bodies that the mod uses. Build each
+plugin against the 1.0 snapshot before live testing it.
 
-Add one layer at a time. At each layer, join the server, exercise that layer's
-intended behavior, save, disconnect, restart the server, and rejoin. If a layer
-fails, leave it disabled. Keep the last proven stack as the production
-candidate.
+Restore these development layers first:
+
+1. Server and client BepInEx with no gameplay plugins. Prove clean startup on
+   Linux, Mac, and Windows.
+2. The minimum Benheim foundation: feature-isolated patching, health reporting,
+   local diagnostics, and the visible failure path. Do not make unrelated
+   features share one all-or-nothing patch transaction.
+3. [Valheim Dev](tools/valheim-dev/PRODUCT.md)'s local bridge and MCP. In a
+   disposable single-player Lab, prove a one-time observation, a one-time
+   change, an installed change, replacement, removal, Lab off/on behavior, and
+   world-exit cleanup.
+
+Valheim Dev is the first restored development capability because it makes each
+later compatibility investigation faster. It is not multiplayer, save/restart,
+or dedicated-server proof and cannot replace those gates.
+Benheim Test Commands remains disabled until a selected dedicated-server probe
+requires it. Restore and prove it as its own plugin; its failure never gates an
+unrelated gameplay feature.
+
+### Restore gameplay features
+
+Restore and enable gameplay by feature or by a real dependency group, not as
+one Benheim-wide layer. Work may begin early on long-running compatibility
+problems such as Put Away, but the production candidate enables features only
+in this order:
+
+1. Faster portal transitions.
+2. Wooden-sign glow and wooden/stone portal labels.
+3. Extended interaction range for stations, chests, and feasts.
+4. Mass Harvest for crops, pickups, bushes, and beehives. Keep it independent
+   from grid planting.
+5. Put Away together with its required Benheim Server Support capability. Its
+   proof includes contention, ownership changes, accepted and refunded items,
+   disconnect cleanup, exact settlement, and absence of loss or duplication;
+   those are not later edge cases.
+6. Benheim Eternal Fire. Enable it only after copied-world save, restart, and
+   refuel proof.
+7. The accepted centered 5x5 grid-planting behavior. Selectable grids,
+   plantable berries, and other unaccepted farming candidates remain deferred.
+8. Remaining Inventory conveniences: split-stack input, pocket items and
+   protection, and hotbar loadout swap.
+9. Mass Repair.
+10. Station batch filling.
+11. Ship Sprint.
+12. The accepted Cooking bonus, followed separately by Stone Oven timing.
+13. Remaining accepted Interaction behavior, including comfort range.
+14. Mining and Woodcutting.
+15. Global Bow headshots and the accepted native-bow focus effect.
+16. Adrenaline and accepted Player Combat states, including the required
+    confirmed-kill capability from Server Support.
+17. The complete controls and feature menu, after its contents can reflect the
+    features that actually survived migration. The minimal health warning path
+    remains part of the foundation.
+18. Unaccepted candidates and experiments, including Enemy Tiers changes,
+    spawning changes, Affinities, unsettled Weapon Rhythm work, Wisp Echo,
+    selectable planting grids, and plantable berries.
+
+For each feature, first resolve its 1.0 compile, Harmony target, reflected
+member, transpiler, prefab, and native-UI dependencies. Then prove the intended
+behavior in local Lab where possible. A passing local probe advances the
+feature to the copied-world checks required by its real behavior: save,
+disconnect, restart, rejoin, ownership, or multiplayer. A failed feature stays
+disabled while unrelated proven features continue.
+
+Keep one production-candidate manifest of the exact BepInEx, Benheim, and
+server-plugin binaries and enabled feature groups that passed rehearsal. Do
+not rediscover compatibility on production. After vanilla production passes,
+install and enable only that rehearsed set. Any other mod deliberately selected
+for 1.0 follows the same layer and proof rules.
 
 If Steam publishes another server build after the rehearsal, rerun the relevant
 rehearsal checks on that build. Production must not be the first world opened by

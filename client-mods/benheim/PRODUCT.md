@@ -309,12 +309,20 @@ Valheim's messages. Short confirmations do not replace an active Put Away or
 Mass Repair grouped receipt. Center messages and world feedback keep their
 existing UI locations. This unified lane still needs gameplay proof.
 
-If Benheim cannot attach a required gameplay hook, it disables all Benheim
-gameplay actions. It logs the exact failure and a `[diag][Health]` event. It
-keeps the problem visible in the menu Warnings block and shows one prominent
-message per session that directs the player to `Left Shift + B`. If only
-keybind inspection fails, Benheim reports the problem in logs and Warnings
-without interrupting unrelated gameplay.
+Benheim isolates startup and patch failures by independently useful feature or
+by an actual dependency group. If a feature cannot attach every hook required
+for its behavior, Benheim removes that feature's partial patches and disables
+only that feature. It logs the exact failure and a `[diag][Health]` event,
+keeps the problem visible in the menu Warnings block, and shows one prominent
+message per session that directs the player to `Left Shift + B`. Unrelated
+features remain available.
+
+Features that share a required client/server or network protocol fail closed
+as one capability group when a required component is missing or incompatible.
+Only a failure in shared infrastructure that every gameplay feature actually
+depends on may disable all gameplay. If keybind inspection alone fails,
+Benheim reports the problem in logs and Warnings without interrupting unrelated
+gameplay.
 
 ## Later
 
