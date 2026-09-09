@@ -49,8 +49,9 @@ capsule, pathfinding agent, perception, pursuit, speed, turning, and push fields
 on live Boars. These events prove that the fields were applied, not the
 behavior or feel they produced.
 
-[`RESEARCH.md`](RESEARCH.md) owns the code evidence, multiplayer authority,
-extension seams, and Valheim `1.0` revalidation gate behind this baseline.
+[Enemy Tiers research](../../../../knowledge-base/creatures/ENEMY-TIERS.md) owns
+the code evidence, multiplayer authority, extension seams, and Valheim `1.0`
+revalidation gate behind this baseline.
 
 ## In Development
 
@@ -90,7 +91,7 @@ Benheim supplies that behavior on clients, and Benheim Test Commands supplies
 it while the dedicated server owns a spawned test Boar. Lifecycle restoration
 and multiplayer ownership remain unproven.
 
-For physical inspection, `bh debug colliders on|off` locally shows a thin
+For physical inspection, `bhwatch colliders on|off|default` locally shows a thin
 wireframe around the actual active collision capsule of each nearby non-player
 Character. The transient overlay follows the live collider as it moves or
 changes, allowing the visible body and head area of a starred Boar to be judged
@@ -98,7 +99,8 @@ against its physics shape. It does not change physics, networking, or saved
 state. Characters without a supported active capsule are not drawn. Ben
 accepted the overlay's presentation on live starred Boars. It remains unproven
 that every overlay disappears when the player turns the overlay off or during a
-world transition.
+world transition. `bhwatch colliders` shows the default setting in the shipped
+build, the current session setting, and whether the overlay is active.
 
 This experiment changes Boar physical identity, force exchange, perception,
 pursuit, charge speed, and turning by native star level. The exact behavior and
@@ -109,7 +111,7 @@ numeric attack reach, breeding rules, or spawning rules. The complete fight,
 larger collision, pen and gate navigation, slopes, water behavior, and
 practical bite reach remain gameplay-unproven.
 
-For this experiment, a native administrator using Benheim `0.1.70` can request
+For this experiment, a native administrator using Benheim `0.1.77` can request
 an ordinary Boar as a control or request a one-star or two-star native Boar.
 This requires Benheim Test Commands `0.1.2` on the dedicated server.
 [Benheim Test Commands](../../../../server-mods/benheim-test-commands/PRODUCT.md)

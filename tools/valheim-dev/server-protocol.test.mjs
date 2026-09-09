@@ -1,0 +1,186 @@
+import assert from "node:assert/strict";
+import { readFile, rm, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import test from "node:test";
+
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+
+import { createService, operationSummary, runCompiler } from "./server.mjs";
+import { SOURCE, bridgeIdentity, managedChange, temporaryRoot, writeDescriptor } from "./test-helpers.mjs";
+
+const SERVER_PATH = resolve(import.meta.dirname, "server.mjs");
+
+async function connectClient(root) {
+  const env = Object.fromEntries(Object.entries(process.env).filter((entry) => typeof entry[1] === "string"));
+  env.VALHEIM_DEV_ROOT = root;
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [SERVER_PATH],
+    cwd: import.meta.dirname,
+    env,
+    stderr: "pipe",
+  });
+  const client = new Client({ name: "valheim-dev-test", version: "1.0.0" });
+  await client.connect(transport);
+  return { client, transport };
+}
+
+test("official MCP client crosses spawned stdio boundary and exposes the six workbench tools", async (t) => {
+  const { root } = await temporaryRoot();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const { client } = await connectClient(root);
+  t.after(() => client.close());
+
+  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.3.0" });
+  const listed = await client.listTools();
+  assert.deepEqual(listed.tools.map((tool) => tool.name), [
+    "lab_status", "run_once", "install_change", "remove_change", "run_recipes", "read_ledger",
+  ]);
+  assert.deepEqual(listed.tools[1].inputSchema.required, ["label", "source"]);
+  assert.deepEqual(listed.tools[2].inputSchema.required, ["label", "change_id", "source"]);
+  assert.deepEqual(listed.tools[3].inputSchema.required, ["label", "change_id"]);
+  assert.deepEqual(listed.tools[4].inputSchema.required, ["recipes"]);
+  assert.equal(listed.tools.every((tool) => tool.inputSchema.additionalProperties === false), true);
+
+  const status = await client.callTool({ name: "lab_status", arguments: {} });
+  assert.equal(status.structuredContent.authorized, false);
+  assert.deepEqual(status.structuredContent.active_changes, []);
+  assert.match(status.structuredContent.error, /bh lab on/);
+  assert.equal(status.structuredContent.error.includes(root), true);
+  assert.equal(status.content[0].text, JSON.stringify(status.structuredContent));
+
+  const inspection = await client.callTool({ name: "run_once", arguments: { label: "Inspect", source: SOURCE } });
+  assert.equal(inspection.isError, true);
+  assert.match(inspection.structuredContent.error, /run_once refused/);
+  assert.equal(inspection.content[0].text, JSON.stringify(inspection.structuredContent));
+
+  const recipes = await client.callTool({
+    name: "run_recipes",
+    arguments: { recipes: [{ id: "infinite-food" }] },
+  });
+  assert.equal(recipes.isError, true);
+  assert.equal(recipes.structuredContent.recipes[0].recipe_id, "infinite-food");
+  assert.equal(recipes.structuredContent.recipes[0].error.includes(join(root, "registry", "infinite-food", "code.cs")), true);
+});
+
+test("official SDK validates tool input before the service callback", async (t) => {
+  const { root } = await temporaryRoot();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const { client } = await connectClient(root);
+  t.after(() => client.close());
+
+  const missingSource = await client.callTool({ name: "run_once", arguments: {} });
+  assert.equal(missingSource.isError, true);
+  assert.equal(missingSource.structuredContent, undefined);
+  assert.match(missingSource.content[0].text, /Input validation error.*source/s);
+
+  const unknownArgument = await client.callTool({ name: "lab_status", arguments: { enable: true } });
+  assert.equal(unknownArgument.isError, true);
+  assert.equal(unknownArgument.structuredContent, undefined);
+  assert.match(unknownArgument.content[0].text, /Input validation error.*unrecognized key/is);
+
+  const conflictingRecipeInputs = await client.callTool({
+    name: "run_recipes",
+    arguments: { recipes: [{ id: "infinite-food", preset_index: 0, inputs: {} }] },
+  });
+  assert.equal(conflictingRecipeInputs.isError, true);
+  assert.equal(conflictingRecipeInputs.structuredContent, undefined);
+  assert.match(conflictingRecipeInputs.content[0].text, /choose preset_index or inputs, not both/);
+});
+
+test("descriptor validation rejects outdated protocol, non-loopback, and invalid session identity", async (t) => {
+  const { root, reference } = await temporaryRoot();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeDescriptor(root, reference, 12345, { protocol: 3 });
+  assert.match((await createService({ root }).call("lab_status")).error, /different bridge versions/);
+  await writeDescriptor(root, reference, 12345, { host: "localhost" });
+  assert.match((await createService({ root }).call("lab_status")).error, /127\.0\.0\.1/);
+  await writeDescriptor(root, reference, 12345, { session_id: 2 });
+  assert.match((await createService({ root }).call("lab_status")).error, /session_id/);
+});
+
+test("compiler invocation uses direct Roslyn arguments and descriptor references", async (t) => {
+  const fixture = await temporaryRoot();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const secondReference = join(fixture.root, "second reference.dll");
+  const sourcePath = join(fixture.root, "source.cs");
+  const assemblyPath = join(fixture.root, "result.dll");
+  const fakeCsc = join(fixture.root, "fake-csc.mjs");
+  await writeFile(secondReference, "second reference");
+  await writeFile(sourcePath, SOURCE);
+  await writeFile(fakeCsc, `
+import { writeFile } from "node:fs/promises";
+const output = process.argv.find((value) => value.startsWith("-out:")).slice(5);
+await writeFile(output, "fake assembly");
+`);
+  const outcome = await runCompiler({
+    descriptor: { compiler_references: [fixture.reference, secondReference] },
+    sourcePath,
+    assemblyPath,
+    compiler: { dotnetPath: process.execPath, cscDll: fakeCsc },
+  });
+  assert.equal(outcome.code, 0, outcome.stderr);
+  assert.deepEqual(outcome.arguments, [
+    "-noconfig", "-nostdlib+", "-target:library", "-langversion:latest",
+    `-out:${assemblyPath}`, `-reference:${fixture.reference}`, `-reference:${secondReference}`, sourcePath,
+  ]);
+  assert.equal(await readFile(assemblyPath, "utf8"), "fake assembly");
+});
+
+test("normal operation responses stay compact while the ledger owns details", () => {
+  const summary = operationSummary({
+    state: "succeeded", operation_id: "operation", action: "run_once",
+    result: "{\"position\":[1,2,3]}", error: null, restart_required: false,
+    evidence_selected: false, source: "large source", source_sha256: "a".repeat(64),
+    compiler: { outcome: "succeeded", stdout: "", stderr: "" }, active_changes: [],
+  });
+  assert.deepEqual(summary, {
+    state: "succeeded", operation_id: "operation", result: { position: [1, 2, 3] }, error: null,
+  });
+});
+
+test("normal operation responses surface unavailable optional evidence", () => {
+  const summary = operationSummary({
+    state: "succeeded", operation_id: "operation", action: "run_once",
+    result: "{\"ok\":true}", error: null, restart_required: false,
+    evidence_selected: true, evidence_available: false,
+    evidence_unavailable_reason: "optional_provider_absent",
+    evidence_events: [], evidence_truncated: false, dropped_evidence_events: 0,
+  });
+  assert.equal(summary.evidence_available, false);
+  assert.equal(summary.evidence_unavailable_reason, "optional_provider_absent");
+});
+
+test("lab status returns the runtime's active managed changes", async (t) => {
+  const fixture = await temporaryRoot();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const active = [managedChange()];
+  let descriptor;
+  const service = createService({
+    root: fixture.root,
+    bridgeRequest: async () => bridgeIdentity(descriptor, { authorized: true, active_changes: active }),
+  });
+  descriptor = await writeDescriptor(fixture.root, fixture.reference, 12345);
+  const status = await service.call("lab_status");
+  assert.equal(status.authorized, true);
+  assert.deepEqual(status.active_changes, active);
+});
+
+test("lab status rejects an active restart-required change without the top-level flag", async (t) => {
+  const fixture = await temporaryRoot();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  let descriptor;
+  const service = createService({
+    root: fixture.root,
+    bridgeRequest: async () => bridgeIdentity(descriptor, {
+      active_changes: [managedChange("affinity.weapon-icon", "working", { cleanup_state: "restart_required" })],
+      restart_required: false,
+    }),
+  });
+  descriptor = await writeDescriptor(fixture.root, fixture.reference, 12345);
+  const status = await service.call("lab_status");
+  assert.equal(status.authorized, false);
+  assert.equal(status.connected, false);
+  assert.match(status.error, /restart-required state/);
+});

@@ -21,7 +21,39 @@ public class SE_Rested
 
 public class CraftingStation
 {
+    private static readonly List<CraftingStation> m_allStations = new List<CraftingStation>();
+
     public Skills.SkillType m_craftingSkill;
+    public string m_name = "";
+    public float NativeBuildRange;
+    public UnityEngine.GameObject gameObject = new UnityEngine.GameObject("");
+    public UnityEngine.Transform transform = new UnityEngine.Transform();
+
+    public static CraftingStation? HaveBuildStationInRange(string name, UnityEngine.Vector3 point)
+    {
+        foreach (CraftingStation station in m_allStations)
+        {
+            if (station.m_name != name)
+            {
+                continue;
+            }
+
+            point.y = station.transform.position.y;
+            if (UnityEngine.Vector3.Distance(station.transform.position, point) < station.NativeBuildRange)
+            {
+                return station;
+            }
+        }
+        return null;
+    }
+
+    public static void SetStations(params CraftingStation[] stations)
+    {
+        m_allStations.Clear();
+        m_allStations.AddRange(stations);
+    }
+
+    public float GetStationBuildRange() => NativeBuildRange;
 }
 
 public static class Skills
@@ -34,8 +66,15 @@ public static class Skills
     }
 }
 
-public class Player
+public class Player : Humanoid
 {
+    public enum RequirementMode
+    {
+        IsKnown,
+        CanAlmostBuild,
+        CanBuild
+    }
+
     private readonly CraftingStation? station;
 
     public Player(CraftingStation? station)
@@ -53,13 +92,15 @@ public class Player
         return station;
     }
 
-    public bool HaveStamina(float amount)
+    public override bool HaveStamina(float amount)
     {
         LastStaminaCheck = amount;
         return Stamina >= amount;
     }
 
     public bool TryPlacePiece(Piece piece) => true;
+
+    public bool HaveRequirements(Piece piece, RequirementMode mode) => true;
 
     private float GetBuildStamina() => ResolvedBuildStamina;
 }
@@ -90,7 +131,12 @@ public class Plant
     public static implicit operator bool(Plant? plant) => plant is not null;
 }
 
-public class Humanoid
+public class Character
+{
+    public virtual bool HaveStamina(float amount) => false;
+}
+
+public class Humanoid : Character
 {
 }
 
@@ -152,6 +198,33 @@ public static class Utils
 
 namespace UnityEngine
 {
+    public struct Vector3
+    {
+        public Vector3(float x, float y, float z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
+        public float x;
+        public float y;
+        public float z;
+
+        public static float Distance(Vector3 left, Vector3 right)
+        {
+            float xDistance = left.x - right.x;
+            float yDistance = left.y - right.y;
+            float zDistance = left.z - right.z;
+            return MathF.Sqrt(xDistance * xDistance + yDistance * yDistance + zDistance * zDistance);
+        }
+    }
+
+    public sealed class Transform
+    {
+        public Vector3 position;
+    }
+
     public sealed class GameObject
     {
         private readonly Dictionary<Type, object> components = new Dictionary<Type, object>();
@@ -213,8 +286,27 @@ namespace BenheimQoL.Infrastructure
     }
 }
 
+namespace BenheimQoL.Interaction
+{
+    internal static class ComfortDiagnosticCapture
+    {
+        internal static float ObserveRadius(float radius) => radius;
+    }
+}
+
 namespace BenheimQoL.Farming
 {
+    internal static class PlantableBerries
+    {
+        internal static bool IsBerryBush(UnityEngine.GameObject prefab)
+        {
+            string name = Utils.GetPrefabName(prefab);
+            return name == "RaspberryBush"
+                || name == "BlueberryBush"
+                || name == "CloudberryBush";
+        }
+    }
+
     internal static class FarmingReflection
     {
         internal static float GetBuildStamina(Player player) => player.ResolvedBuildStamina;
@@ -263,6 +355,12 @@ namespace HarmonyLib
         internal object? operand;
         internal List<Label> labels = new List<Label>();
         internal List<ExceptionBlock> blocks = new List<ExceptionBlock>();
+
+        internal bool Calls(MethodInfo method)
+        {
+            return (opcode == OpCodes.Call || opcode == OpCodes.Callvirt)
+                && Equals(operand, method);
+        }
 
         internal void MoveLabelsTo(CodeInstruction target)
         {

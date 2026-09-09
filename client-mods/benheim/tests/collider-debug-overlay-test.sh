@@ -3,14 +3,8 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 overlay="$root/src/EnemyTiers/CharacterColliderOverlay.cs"
-client="$root/src/EnemyTiers/BenheimTestCommandClient.cs"
-
-rg -Fq 'arguments[1], "debug"' "$overlay"
-rg -Fq 'arguments[2], "colliders"' "$overlay"
-rg -Fq 'arguments[3], "on"' "$overlay"
-rg -Fq 'arguments[3], "off"' "$overlay"
-rg -Fq 'CharacterColliderOverlay.TryExecute(args.Args, args.Context)' "$client"
-rg -Fq 'bh debug colliders on|off' "$client"
+rg -Fq 'internal static bool TrySetActive(bool requestedState, out string failure)' "$overlay"
+rg -Fq 'DiagnosticEvent.Create("EnemyTiers", "character_collider_overlay_toggled")' "$overlay"
 
 rg -Fq 'Character.GetAllCharacters()' "$overlay"
 rg -Fq 'character.GetCollider()' "$overlay"
@@ -25,13 +19,12 @@ rg -Fq 'LineRenderer' "$overlay"
 rg -Fq 'line.useWorldSpace = true' "$overlay"
 rg -Fq 'CompareFunction.Always' "$overlay"
 
-rg -Fq 'CharacterColliderOverlay.Update();' "$client"
-rg -Fq 'CharacterColliderOverlay.Reset();' "$client"
 rg -Fq 'Player.m_localPlayer == null' "$overlay"
 rg -Fq 'UnityEngine.Object.Destroy(root)' "$overlay"
 rg -Fq 'UnityEngine.Object.Destroy(lineMaterial)' "$overlay"
+rg -Fq 'UnityEngine.Object.Destroy(lineObject)' "$overlay"
 
-if rg -q 'Physics\.|Rigidbody|ZRoutedRpc|ZDO|GetComponents|new Vector3\[|System\.Linq' "$overlay"; then
+if rg -q 'Physics\.|Rigidbody|ZRoutedRpc|ZDO|GetComponents|new Vector3\[|System\.Linq|bh debug' "$overlay"; then
   echo "collider overlay must remain observational, bounded, and allocation-stable" >&2
   exit 1
 fi

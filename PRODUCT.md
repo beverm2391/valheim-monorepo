@@ -31,6 +31,12 @@ promise.
   visual language over parallel systems that feel pasted onto the game.
 - Mod infrastructure is part of server operations. Players should not need to
   understand BepInEx, systemd, or deployment mechanics to play.
+- Axiom is the single searchable surface for actionable failures from our
+  managed Benheim clients and dedicated server, including BepInEx plugin-load,
+  Harmony, and runtime failures. Local NDJSON, BepInEx logs, and the systemd
+  journal remain the raw fallbacks. Forward bounded structured failure records,
+  not indiscriminate raw logs, with enough source, session, build, and server
+  invocation identity to correlate each record with its original runtime.
 
 ## Gameplay Breakdown
 
@@ -39,7 +45,7 @@ promise.
 | Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use a version compatible with those used by every other member. |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Benheim Test Commands | Runs a fixed native-admin command allowlist for selected Benheim gameplay experiments. | Client command and server component | Only the requesting native admin needs the matching client command. The server component is required. Every peer that can own the spawned test creature still needs compatible Benheim gameplay behavior. |
-| Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Benheim `0.1.70` and Benheim Server Support `0.1.6` are the supported candidate pair for Put Away and BERSERKER/SLAUGHTERHOUSE. Put Away uses lease generation `v2` and transaction generation `v4`. Kill Attribution V3 uses client-requested capability responses. |
+| Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Benheim `0.1.76` through `0.1.81` use Benheim Server Support `0.1.6` for Put Away and BERSERKER/SLAUGHTERHOUSE. Put Away uses lease generation `v2` and transaction generation `v4`. Kill Attribution V3 uses client-requested capability responses. |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
@@ -60,6 +66,19 @@ Third-party mod behavior remains owned by each upstream project; this document
 records only why the mod belongs in our stack and what compatibility promise it
 must preserve.
 
+## Product Candidates
+
+[Crow](tools/crow-lab/PRODUCT.md) is a private companion candidate for Ben,
+Johnny, and Ozi. Its current implementation is only a local writer's-room lab.
+It is not part of Benheim, the deployed server stack, or the live acceptance
+queue.
+
+[Valheim Dev](tools/valheim-dev/PRODUCT.md) is Codex's live workbench for an
+authorized local, single-player Lab session. Codex can inspect and describe the
+running game, apply managed live changes, watch or capture their effects, and
+replace or remove them without rebuilding or reinstalling Benheim between
+variants. It is not a player feature or part of the deployed server stack.
+
 ## Acceptance Shape
 
 The server product is healthy when the world survives restarts and restores,
@@ -75,8 +94,9 @@ must prevent compatible clients from entering that flow concurrently.
 
 ## Open Gates
 
-- Complete the temporary [Valheim 1.0 migration](MIGRATION-1.0.md): prove the
-  existing world on vanilla 1.0, then restore or defer each mod deliberately.
+- Complete the temporary [Valheim 1.0 migration](MIGRATION-1.0.md). The gate
+  closes when production is stable on 1.0, each mod works or is explicitly
+  deferred, and the post-migration world backup succeeds.
 - Complete Benheim Eternal Fire's remaining
   [gameplay and restart proof](server-mods/benheim-eternal-fire/PRODUCT.md).
 - Choose Benheim's next gameplay system by balancing the ideal player experience,

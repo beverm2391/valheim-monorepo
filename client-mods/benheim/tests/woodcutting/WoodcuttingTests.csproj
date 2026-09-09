@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <BepInExCoreDir>$(HOME)/Library/Application Support/Steam/steamapps/common/Valheim/BepInEx/core</BepInExCoreDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Woodcutting/WoodcuttingProgression.cs" Link="WoodcuttingProgression.cs" />
+    <Compile Include="../../src/Woodcutting/WoodcuttingPatches.cs" Link="WoodcuttingPatches.cs" />
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExCoreDir)/0Harmony.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

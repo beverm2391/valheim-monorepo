@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Stubs.cs" />
+    <Compile Include="../../src/DeveloperDiagnostics/DeveloperDiagnosticsRuntime.cs" Link="DeveloperDiagnosticsRuntime.cs" />
+    <Compile Include="../../src/DeveloperDiagnostics/DeveloperDiagnosticsRuntime.Helpers.cs" Link="DeveloperDiagnosticsRuntime.Helpers.cs" />
+    <Compile Include="../../src/DeveloperDiagnostics/DiagnosticProbeRegistration.cs" Link="DiagnosticProbeRegistration.cs" />
+  </ItemGroup>
+</Project>

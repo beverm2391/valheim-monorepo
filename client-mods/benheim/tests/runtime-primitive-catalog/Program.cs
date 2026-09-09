@@ -5,42 +5,33 @@ using System.Text.Json;
 using BenheimQoL.Infrastructure;
 
 Expect(
-    RuntimePrimitiveCatalogRequest.TryParse(
-        new[] { "bh", "debug", "catalog", "effects" },
+    RuntimePrimitiveCatalogRequest.TryCreate(
+        RuntimePrimitiveCatalogCategory.Effects,
+        Array.Empty<string>(),
         out RuntimePrimitiveCatalogRequest effects)
     && effects.Category == RuntimePrimitiveCatalogCategory.Effects
     && effects.Filter == string.Empty,
     "effects request parses without a filter");
 
 Expect(
-    RuntimePrimitiveCatalogRequest.TryParse(
-        new[] { "BH", "DEBUG", "CATALOG", "TEXT", "  bronze  " },
+    RuntimePrimitiveCatalogRequest.TryCreate(
+        RuntimePrimitiveCatalogCategory.Text,
+        new[] { "  bronze  " },
         out RuntimePrimitiveCatalogRequest text)
     && text.Category == RuntimePrimitiveCatalogCategory.Text
     && text.Filter == "bronze",
-    "request grammar is case-insensitive and trims one filter");
+    "request trims one filter");
 
 Expect(
-    RuntimePrimitiveCatalogRequest.TryParse(
-        new[] { "bh", "debug", "catalog", "ui" },
+    RuntimePrimitiveCatalogRequest.TryCreate(
+        RuntimePrimitiveCatalogCategory.Ui,
+        Array.Empty<string>(),
         out RuntimePrimitiveCatalogRequest ui)
     && ui.Category == RuntimePrimitiveCatalogCategory.Ui,
     "ui request parses");
 
-Expect(
-    RuntimePrimitiveCatalogRequest.HasCatalogPrefix(
-        new[] { "bh", "debug", "catalog" }),
-    "an incomplete catalog request remains owned by catalog help");
-
-Expect(
-    !RuntimePrimitiveCatalogRequest.HasCatalogPrefix(
-        new[] { "bh", "debug", "colliders", "on" }),
-    "the catalog does not claim another debug command");
-
-ExpectRejected(new[] { "bh", "debug", "catalog" }, "missing category");
-ExpectRejected(new[] { "bh", "debug", "catalog", "sprites" }, "raw sprite category");
-ExpectRejected(new[] { "bh", "debug", "catalog", "ui", "" }, "empty filter");
-ExpectRejected(new[] { "bh", "debug", "catalog", "ui", "panel", "extra" }, "extra argument");
+ExpectRejected(RuntimePrimitiveCatalogCategory.Ui, new[] { "" }, "empty filter");
+ExpectRejected(RuntimePrimitiveCatalogCategory.Ui, new[] { "panel", "extra" }, "extra argument");
 
 Expect(
     RuntimePrimitiveCatalogPolicy.IsNativeRuntimeType(typeof(string).Assembly, typeof(string).Assembly),
@@ -193,10 +184,13 @@ static RuntimePrimitiveCatalogAvailability Availability(
         tmpReady);
 }
 
-static void ExpectRejected(string[] arguments, string description)
+static void ExpectRejected(
+    RuntimePrimitiveCatalogCategory category,
+    string[] arguments,
+    string description)
 {
     Expect(
-        !RuntimePrimitiveCatalogRequest.TryParse(arguments, out _),
+        !RuntimePrimitiveCatalogRequest.TryCreate(category, arguments, out _),
         $"{description} is rejected");
 }
 

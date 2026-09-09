@@ -1,0 +1,351 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using BepInEx;
+using HarmonyLib;
+
+namespace ValheimDev;
+
+internal static partial class ValheimDevRuntime
+{
+    private static void AcceptLoop(ValheimDevSession ownedSession)
+    {
+        while (ReferenceEquals(session, ownedSession))
+        {
+            try
+            {
+                TcpClient client = ownedSession.Listener.AcceptTcpClient();
+                if (Interlocked.Increment(ref activeConnections) > ValheimDevProtocol.MaximumQueueDepth * 2)
+                {
+                    Interlocked.Decrement(ref activeConnections);
+                    client.Dispose();
+                    continue;
+                }
+                ThreadPool.QueueUserWorkItem(_ => HandleClient(client, ownedSession));
+            }
+            catch (SocketException)
+            {
+                if (ReferenceEquals(session, ownedSession))
+                {
+                    ownedSession.ListenerFailed = true;
+                    Plugin.Log.LogWarning("Valheim Dev Lab listener stopped unexpectedly.");
+                }
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+        }
+    }
+
+    private static void HandleClient(TcpClient client, ValheimDevSession ownedSession)
+    {
+        try
+        {
+            using (client)
+            {
+                client.ReceiveTimeout = 5000;
+                client.SendTimeout = 5000;
+                NetworkStream stream = client.GetStream();
+                string? line;
+                try
+                {
+                    line = ReadBoundedLine(stream);
+                }
+                catch (Exception exception)
+                {
+                    WriteResponse(stream, ErrorJson("request_read_failed:" + ValheimDevDiagnostics.Flatten(exception.Message)));
+                    return;
+                }
+                if (line == null)
+                {
+                    WriteResponse(stream, ErrorJson("request_missing"));
+                    return;
+                }
+                if (!ValheimDevProtocol.TryParseRequest(line, out ValheimDevRequest request, out string parseError))
+                {
+                    WriteResponse(stream, ErrorJson(parseError));
+                    return;
+                }
+
+                ValheimDevPendingRequest pending;
+                lock (Gate)
+                {
+                    if (!ReferenceEquals(session, ownedSession))
+                    {
+                        WriteResponse(stream, ErrorJson("not_authorized", request));
+                        return;
+                    }
+                    if (Requests.Count >= ValheimDevProtocol.MaximumQueueDepth)
+                    {
+                        WriteResponse(stream, ErrorJson("queue_full", request));
+                        return;
+                    }
+                    pending = new ValheimDevPendingRequest(request, ownedSession);
+                    Requests.Enqueue(pending);
+                }
+
+                bool waitsForEvidence = request.Kind == "run_once" || request.Kind == "install_change";
+                int wait = waitsForEvidence
+                    ? Math.Min(ValheimDevProtocol.MaximumEvidenceTimeoutMs + 15000, request.EvidenceTimeoutMs + 15000)
+                    : 15000;
+                if (!pending.Wait(wait))
+                {
+                    pending.Cancel();
+                    WriteResponse(stream, ErrorJson("main_thread_timeout", request));
+                    return;
+                }
+                WriteResponse(stream, pending.Response);
+            }
+        }
+        finally
+        {
+            Interlocked.Decrement(ref activeConnections);
+        }
+    }
+
+    private static string? ReadBoundedLine(Stream stream)
+    {
+        using MemoryStream buffer = new MemoryStream();
+        while (buffer.Length <= ValheimDevProtocol.MaximumRequestBytes)
+        {
+            int value = stream.ReadByte();
+            if (value < 0) return buffer.Length == 0 ? null : throw new IOException("request must end with newline");
+            if (value == '\n')
+            {
+                byte[] bytes = buffer.ToArray();
+                if (bytes.Length > 0 && bytes[bytes.Length - 1] == '\r')
+                {
+                    Array.Resize(ref bytes, bytes.Length - 1);
+                }
+                return new UTF8Encoding(false, true).GetString(bytes);
+            }
+            buffer.WriteByte((byte)value);
+        }
+        throw new IOException("request_too_large");
+    }
+
+    private static void WriteResponse(Stream stream, string json)
+    {
+        try
+        {
+            byte[] bytes = new UTF8Encoding(false).GetBytes(json + "\n");
+            stream.Write(bytes, 0, bytes.Length);
+        }
+        catch
+        {
+            // The requester owns a closed connection; gameplay remains intact.
+        }
+    }
+
+    private static string ErrorJson(string error, ValheimDevRequest? request = null)
+    {
+        ValheimDevSession? current = session;
+        ValheimDevResponse response = new ValheimDevResponse
+        {
+            Identity = current?.Identity ?? new ValheimDevSessionIdentity(),
+            Authorized = current != null,
+            RestartRequired = restartRequired,
+            Action = request?.Kind ?? string.Empty,
+            Error = error,
+            OperationId = request?.OperationId ?? string.Empty,
+            ChangeId = request?.ChangeId ?? string.Empty,
+            EvidenceSelected = request?.EvidenceEvents.Count > 0,
+            EvidenceAvailable = false,
+            EvidenceUnavailableReason = request?.EvidenceEvents.Count > 0 ? "operation_not_started" : null,
+            EvidenceExhaustive = false
+        };
+        SnapshotActiveChanges(response);
+        return response.ToJson(includeOperation: request != null && request.Kind != "status");
+    }
+
+    private static void StopListener(ValheimDevSession? current)
+    {
+        try { current?.Listener.Stop(); }
+        catch { }
+    }
+
+    private static void WriteDescriptor(ValheimDevSessionIdentity value, int port)
+    {
+        Directory.CreateDirectory(dataRoot);
+        string destination = DescriptorPath;
+        string temporary = Path.Combine(dataRoot, ".session-" + Guid.NewGuid().ToString("N") + ".tmp");
+        StringBuilder builder = new StringBuilder(1024);
+        builder.Append('{');
+        ValheimDevJson.AppendProperty(builder, "protocol", ValheimDevProtocol.ProtocolVersion);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "session_id", value.SessionId);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "host", "127.0.0.1");
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "port", port);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "authorized_at", value.AuthorizedAt);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "valheim_version", value.ValheimVersion);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "valheim_sha256", value.ValheimSha256);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "valheim_dev_version", value.ValheimDevVersion);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "valheim_dev_sha256", value.ValheimDevSha256);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "data_root", dataRoot);
+        builder.Append(',');
+        ValheimDevJson.AppendProperty(builder, "log_path", logPath);
+        builder.Append(',');
+        ValheimDevJson.AppendStringArrayProperty(builder, "compiler_references", value.CompilerReferences);
+        builder.Append('}');
+
+        File.WriteAllText(temporary, builder.ToString(), new UTF8Encoding(false));
+        try
+        {
+            if (File.Exists(destination)) File.Replace(temporary, destination, null);
+            else File.Move(temporary, destination);
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
+    }
+
+    private static void DeleteDescriptor()
+    {
+        if (string.IsNullOrEmpty(dataRoot)) return;
+        try
+        {
+            string path = DescriptorPath;
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception exception)
+        {
+            if (initialized) Plugin.Log.LogWarning("Valheim Dev Lab could not remove its descriptor: "
+                + ValheimDevDiagnostics.Flatten(exception.Message));
+        }
+    }
+
+    private static ValheimDevSessionIdentity CreateSessionIdentity()
+    {
+#if VALHEIM_DEV_TESTS
+        if (sessionIdentityOverride != null) return sessionIdentityOverride();
+#endif
+        Assembly valheim = typeof(ZNet).Assembly;
+        Assembly valheimDev = typeof(Plugin).Assembly;
+        string valheimPath = Path.GetFullPath(valheim.Location);
+        string valheimDevPath = Path.GetFullPath(valheimDev.Location);
+        ValheimDevSessionIdentity value = new ValheimDevSessionIdentity
+        {
+            ValheimVersion = ReadValheimVersion(valheim),
+            ValheimSha256 = Sha256(File.ReadAllBytes(valheimPath)),
+            ValheimDevVersion = pluginVersion,
+            ValheimDevSha256 = Sha256(File.ReadAllBytes(valheimDevPath))
+        };
+        string coreLibraryPath = Path.GetFullPath(typeof(object).Assembly.Location);
+        string frameworkDirectory = Path.GetDirectoryName(coreLibraryPath)!;
+        AddReference(value, coreLibraryPath);
+        AddReference(value, Path.Combine(frameworkDirectory, "System.dll"));
+        AddReference(value, Path.Combine(frameworkDirectory, "System.Core.dll"));
+        AddReference(value, FindNetstandard(coreLibraryPath));
+        AddReference(value, valheimPath);
+        AddReference(value, typeof(BaseUnityPlugin).Assembly.Location);
+        AddReference(value, typeof(Harmony).Assembly.Location);
+        AddReference(value, valheimDevPath);
+
+        // A live change should compile against the same managed surface that is
+        // already usable in this game process. Unity splits ordinary APIs across
+        // modules such as UnityEngine.UI and TextMeshPro, so a hand-maintained
+        // module list inevitably rejects valid runtime code as the game evolves.
+        foreach (string path in ReferenceableAssemblyLocations(AppDomain.CurrentDomain.GetAssemblies()))
+        {
+            AddReference(value, path);
+        }
+        value.CompilerReferences.Sort(StringComparer.Ordinal);
+        return value;
+    }
+
+    internal static string[] ReferenceableAssemblyLocations(IEnumerable<Assembly> assemblies)
+    {
+        HashSet<string> locations = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Assembly assembly in assemblies)
+        {
+            if (assembly.IsDynamic) continue;
+            string location;
+            try
+            {
+                location = assembly.Location;
+            }
+            catch (NotSupportedException)
+            {
+                continue;
+            }
+            if (string.IsNullOrEmpty(location)) continue;
+            string fullPath = Path.GetFullPath(location);
+            if (File.Exists(fullPath)) locations.Add(fullPath);
+        }
+        return locations.OrderBy(path => path, StringComparer.Ordinal).ToArray();
+    }
+
+    private static void AddReference(ValheimDevSessionIdentity value, string path)
+    {
+        string fullPath = Path.GetFullPath(path);
+        if (!File.Exists(fullPath)) throw new FileNotFoundException("compiler reference was not found", fullPath);
+        if (!value.CompilerReferences.Contains(fullPath, StringComparer.Ordinal)) value.CompilerReferences.Add(fullPath);
+    }
+
+    private static string FindNetstandard(string coreLibraryPath)
+    {
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            if (string.Equals(assembly.GetName().Name, "netstandard", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrEmpty(assembly.Location)) return assembly.Location;
+        }
+        string directory = Path.GetDirectoryName(coreLibraryPath)!;
+        string facade = Path.Combine(directory, "Facades", "netstandard.dll");
+        if (File.Exists(facade)) return facade;
+        return Path.Combine(directory, "netstandard.dll");
+    }
+
+    private static string ReadValheimVersion(Assembly valheimAssembly)
+    {
+        Type? versionType = valheimAssembly.GetType("Version", throwOnError: false, ignoreCase: false);
+        MethodInfo? method = versionType?.GetMethod(
+            "GetVersionString",
+            BindingFlags.Public | BindingFlags.Static,
+            binder: null,
+            types: new[] { typeof(bool) },
+            modifiers: null);
+        return method?.Invoke(null, new object[] { false }) as string
+            ?? throw new InvalidOperationException("Valheim's exact version API is unavailable");
+    }
+
+    private static bool IsSha256(string value)
+    {
+        if (value.Length != 64) return false;
+        foreach (char character in value)
+        {
+            bool hex = character >= '0' && character <= '9'
+                || character >= 'a' && character <= 'f'
+                || character >= 'A' && character <= 'F';
+            if (!hex) return false;
+        }
+        return true;
+    }
+
+    private static string Sha256(byte[] bytes)
+    {
+        using SHA256 algorithm = SHA256.Create();
+        byte[] hash = algorithm.ComputeHash(bytes);
+        StringBuilder builder = new StringBuilder(64);
+        foreach (byte value in hash) builder.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+        return builder.ToString();
+    }
+
+}

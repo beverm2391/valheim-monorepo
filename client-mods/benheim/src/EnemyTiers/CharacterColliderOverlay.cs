@@ -1,5 +1,4 @@
 using BenheimQoL.Infrastructure;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -13,7 +12,6 @@ namespace BenheimQoL.EnemyTiers;
 /// </summary>
 internal static class CharacterColliderOverlay
 {
-    private const string Usage = "bh debug colliders on|off";
     private const float MaximumDistance = 40f;
     private const float MaximumDistanceSquared = MaximumDistance * MaximumDistance;
     private const float LineWidth = 0.015f;
@@ -25,32 +23,6 @@ internal static class CharacterColliderOverlay
     private static Material? lineMaterial;
     private static bool enabled;
     private static int scanGeneration;
-
-    internal static bool TryExecute(string[] arguments, Terminal context)
-    {
-        if (arguments.Length != 4 ||
-            !string.Equals(arguments[0], "bh", StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(arguments[1], "debug", StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(arguments[2], "colliders", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        if (string.Equals(arguments[3], "on", StringComparison.OrdinalIgnoreCase))
-        {
-            SetEnabled(true, context);
-            return true;
-        }
-
-        if (string.Equals(arguments[3], "off", StringComparison.OrdinalIgnoreCase))
-        {
-            SetEnabled(false, context);
-            return true;
-        }
-
-        context.AddString($"Usage: {Usage}");
-        return true;
-    }
 
     internal static void Update()
     {
@@ -131,26 +103,26 @@ internal static class CharacterColliderOverlay
         DisableAndDestroy();
     }
 
-    private static void SetEnabled(bool requestedState, Terminal context)
+    internal static bool TrySetActive(bool requestedState, out string failure)
     {
+        failure = string.Empty;
         if (requestedState == enabled)
         {
-            context.AddString($"Benheim collider overlay is already {(enabled ? "on" : "off")}.");
-            return;
+            return true;
         }
 
         if (requestedState)
         {
             if (Player.m_localPlayer == null)
             {
-                context.AddString("Benheim collider overlay is available only while playing in a world.");
-                return;
+                failure = "available only while playing in a world";
+                return false;
             }
 
             if (!TryCreateMaterial())
             {
-                context.AddString("Benheim collider overlay is unavailable: runtime line shader not found.");
-                return;
+                failure = "runtime line shader not found";
+                return false;
             }
 
             enabled = true;
@@ -163,7 +135,7 @@ internal static class CharacterColliderOverlay
         Diagnostics.Emit(
             DiagnosticEvent.Create("EnemyTiers", "character_collider_overlay_toggled")
                 .Boolean("enabled", enabled));
-        context.AddString($"Benheim collider overlay {(enabled ? "on" : "off")}.");
+        return true;
     }
 
     private static bool TryCreateMaterial()
@@ -228,10 +200,18 @@ internal static class CharacterColliderOverlay
             {
                 hideFlags = HideFlags.HideAndDontSave,
             };
-            upperRing = CreateLine("Upper Ring", RingSegments, material);
-            lowerRing = CreateLine("Lower Ring", RingSegments, material);
-            firstProfile = CreateLine("First Profile", (HemisphereSegments + 1) * 2, material);
-            secondProfile = CreateLine("Second Profile", (HemisphereSegments + 1) * 2, material);
+            try
+            {
+                upperRing = CreateLine("Upper Ring", RingSegments, material);
+                lowerRing = CreateLine("Lower Ring", RingSegments, material);
+                firstProfile = CreateLine("First Profile", (HemisphereSegments + 1) * 2, material);
+                secondProfile = CreateLine("Second Profile", (HemisphereSegments + 1) * 2, material);
+            }
+            catch
+            {
+                UnityEngine.Object.Destroy(root);
+                throw;
+            }
         }
 
         internal CapsuleCollider Collider { get; }
@@ -297,20 +277,28 @@ internal static class CharacterColliderOverlay
             {
                 hideFlags = HideFlags.HideAndDontSave,
             };
-            lineObject.transform.SetParent(root.transform, false);
-            LineRenderer line = lineObject.AddComponent<LineRenderer>();
-            line.sharedMaterial = material;
-            line.useWorldSpace = true;
-            line.loop = true;
-            line.positionCount = positionCount;
-            line.startWidth = LineWidth;
-            line.endWidth = LineWidth;
-            line.startColor = LineColor;
-            line.endColor = LineColor;
-            line.shadowCastingMode = ShadowCastingMode.Off;
-            line.receiveShadows = false;
-            line.generateLightingData = false;
-            return line;
+            try
+            {
+                lineObject.transform.SetParent(root.transform, false);
+                LineRenderer line = lineObject.AddComponent<LineRenderer>();
+                line.sharedMaterial = material;
+                line.useWorldSpace = true;
+                line.loop = true;
+                line.positionCount = positionCount;
+                line.startWidth = LineWidth;
+                line.endWidth = LineWidth;
+                line.startColor = LineColor;
+                line.endColor = LineColor;
+                line.shadowCastingMode = ShadowCastingMode.Off;
+                line.receiveShadows = false;
+                line.generateLightingData = false;
+                return line;
+            }
+            catch
+            {
+                UnityEngine.Object.Destroy(lineObject);
+                throw;
+            }
         }
 
         private static void SetRing(

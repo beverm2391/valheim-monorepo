@@ -1,0 +1,3 @@
+[mcp_servers.valheim-dev]
+command = "tools/valheim-dev/launch.sh"
+env_vars = ["VALHEIM_DEV_ROOT", "VALHEIM_GAME_DIR"]

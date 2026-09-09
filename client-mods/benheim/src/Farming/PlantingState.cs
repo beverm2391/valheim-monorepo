@@ -8,6 +8,7 @@ internal static class PlantingState
     internal static Quaternion AnchorRotation { get; private set; }
     internal static Piece? AnchorPiece { get; private set; }
     internal static bool AnchorPlaced { get; set; }
+    internal static int GridSize { get; private set; } = FarmingSettings.DefaultGridSize;
     internal static int? Rotation { get; set; }
     internal static bool MassPlacementRunning { get; set; }
 
@@ -23,6 +24,7 @@ internal static class PlantingState
         AnchorPosition = ghost.transform.position;
         AnchorRotation = ghost.transform.rotation;
         AnchorPiece = piece;
+        GridSize = FarmingGridSelection.CurrentSize;
         AnchorPlaced = true;
     }
 }

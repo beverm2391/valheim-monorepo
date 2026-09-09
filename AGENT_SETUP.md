@@ -78,6 +78,7 @@ process variables:
 | Create or destroy a Hetzner VM without `HCLOUD_CONTEXT` | `HETZNER_TOKEN` or `HCLOUD_TOKEN` |
 | Install the server or deploy server configuration | `VALHEIM_PASSWORD` |
 | Server install with R2 enabled | `VALHEIM_R2_ACCESS_KEY_ID` and `VALHEIM_R2_SECRET_ACCESS_KEY` |
+| Server install with diagnostics enabled | `BENHEIM_AXIOM_INGEST_TOKEN` |
 
 ## Setup Steps
 
@@ -155,6 +156,34 @@ ssh root@<server> 'valheim-backup-and-upload'
 ```
 
 Verify the object exists in R2.
+
+## Server Diagnostics
+
+If the operator wants dedicated-server failures in the managed Benheim Axiom
+dataset, set these non-secret routes in `server.env`:
+
+```text
+VALHEIM_DIAGNOSTICS_CONFIGURE=1
+BENHEIM_AXIOM_ENDPOINT=https://us-east-1.aws.edge.axiom.co
+BENHEIM_AXIOM_DATASET=
+VALHEIM_DIAGNOSTICS_SERVER_ID=
+```
+
+Inject the dataset-scoped `BENHEIM_AXIOM_INGEST_TOKEN` and rerun
+`scripts/install-server.sh`. Verify `valheim-diagnostics.service` is active.
+The forwarder is independent of `valheim.service`; a forwarding failure cannot
+restart or stop the game. The systemd journal remains the raw fallback.
+
+Query the shared dataset through the existing developer command:
+
+```bash
+client-mods/benheim/scripts/query-events.py --remote \
+  --domain ServerRuntime --since 24h
+```
+
+The `event` selector distinguishes `valheim-failure`, `bepinex-failure`, and
+`first-party-server-mod-failure`. Records include systemd invocation and Steam
+build identity, plus the exact component binary hash when one is available.
 
 ## Safety Notes
 

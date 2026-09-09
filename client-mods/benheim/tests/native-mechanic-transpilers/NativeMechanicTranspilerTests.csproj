@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="../../src/Production/CookingBonusPatches.cs" Link="CookingBonusPatches.cs" />
     <Compile Include="../../src/Interaction/ComfortFurnitureRangePatch.cs" Link="ComfortFurnitureRangePatch.cs" />
+    <Compile Include="../../src/Interaction/StationBuildCoveragePatch.cs" Link="StationBuildCoveragePatch.cs" />
     <Compile Include="../../src/Interaction/TarCollectibleInteraction.cs" Link="TarCollectibleInteraction.cs" />
     <Compile Include="../../src/Interaction/TarCollectiblePatches.cs" Link="TarCollectiblePatches.cs" />
     <Compile Include="../../src/Farming/PlantingStamina.cs" Link="PlantingStamina.cs" />

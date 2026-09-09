@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Woodcutting/FinewoodDrops.cs" Link="FinewoodDrops.cs" />
+    <Compile Include="../../src/Woodcutting/FinewoodDropPatches.cs" Link="FinewoodDropPatches.cs" />
+  </ItemGroup>
+</Project>

@@ -14,5 +14,6 @@
     </Reference>
     <Compile Include="../../src/CombatFeedback/BenheimFxSettings.cs" Link="BenheimFxSettings.cs" />
     <Compile Include="../../src/CombatFeedback/CombatFeedbackTuning.cs" Link="CombatFeedbackTuning.cs" />
+    <Compile Include="../../src/Affinities/SnipeRules.cs" Link="SnipeRules.cs" />
   </ItemGroup>
 </Project>

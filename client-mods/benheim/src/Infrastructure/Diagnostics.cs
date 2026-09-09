@@ -16,6 +16,7 @@ internal static class Diagnostics
     private static string sessionId = string.Empty;
     private static string benheimVersion = string.Empty;
     private static bool writeFailureLogged;
+    private static Action<string, string, string>? externalObserver;
 
     internal static void BeginSession(string bepinExRootPath, string version)
     {
@@ -47,6 +48,7 @@ internal static class Diagnostics
         {
             eventWriter?.Dispose();
             eventWriter = null;
+            externalObserver = null;
         }
     }
 
@@ -58,6 +60,7 @@ internal static class Diagnostics
 
     internal static void Emit(DiagnosticEvent diagnosticEvent)
     {
+        Action<string, string, string>? observer;
         lock (Gate)
         {
             diagnosticEvent.Prepare(DateTime.UtcNow, sessionId, benheimVersion);
@@ -75,12 +78,36 @@ internal static class Diagnostics
                     LogWriteFailure(exception);
                 }
             }
+            observer = externalObserver;
         }
 
         // Local readable and NDJSON emission above is always complete before
         // independently selected optional destinations observe the same whole
         // typed event. Destinations own transport, not event definition.
         OptionalDestinations.Route(diagnosticEvent);
+        if (observer != null)
+        {
+            try
+            {
+                observer(diagnosticEvent.Domain, diagnosticEvent.Name, diagnosticEvent.ToJsonLine());
+            }
+            catch (Exception exception)
+            {
+                Plugin.Log.LogWarning(
+                    $"Benheim external evidence observation failed: {Flatten(exception.Message)}");
+            }
+        }
+    }
+
+    // The optional Valheim Dev adapter is the only caller. Keeping the raw
+    // subscription here lets focused diagnostics tests compile this event
+    // writer without pulling in Benheim's health-reporting subsystem.
+    internal static void SetExternalObserver(Action<string, string, string>? observer)
+    {
+        lock (Gate)
+        {
+            externalObserver = observer;
+        }
     }
 
     private static bool SelectEveryTypedEvent(DiagnosticEvent _) => true;

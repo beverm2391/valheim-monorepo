@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using BenheimQoL.Infrastructure;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -12,7 +11,6 @@ internal static class PlantingPreview
     private static GameObject[] placementGhosts = Array.Empty<GameObject>();
     private static Piece? fakeResourcePiece;
     private static string selectedPrefabName = string.Empty;
-    private static string lastDiagnosticSignature = string.Empty;
 
     internal static void Update(Player player)
     {
@@ -23,9 +21,10 @@ internal static class PlantingPreview
             return;
         }
 
-        Plant? plant = anchorGhost.GetComponent<Plant>();
         Piece? anchorPiece = anchorGhost.GetComponent<Piece>();
-        if (!plant || !anchorPiece || !EnsureGhostsBuilt(player))
+        if (!anchorPiece
+            || !PlantingRules.TryGetGridSpacing(anchorGhost, out float gridSpacing)
+            || !EnsureGhostsBuilt(player))
         {
             HideGhosts();
             return;
@@ -37,8 +36,9 @@ internal static class PlantingPreview
         Heightmap? heightmap = Heightmap.FindHeightmap(anchorGhost.transform.position);
         List<FarmingGridPoint> points = FarmingGrid.Build(
             anchorGhost.transform.position,
-            plant,
-            anchorGhost.transform.rotation);
+            gridSpacing,
+            anchorGhost.transform.rotation,
+            FarmingGridSelection.CurrentSize);
 
         PrepareFakeRequirement(requirement);
         List<PlantingInvalidReason> reasons = EvaluateAndDraw(
@@ -49,7 +49,8 @@ internal static class PlantingPreview
             tool,
             heightmap,
             points);
-        LogChangedDiagnostics(reasons);
+        PlantingDiagnostics.Preview(selectedPrefabName, FarmingGridSelection.CurrentSize,
+            gridSpacing, reasons.Select(PlantingRules.Name).ToArray());
     }
 
     internal static void DestroyGhosts()
@@ -65,7 +66,7 @@ internal static class PlantingPreview
         placementGhosts = Array.Empty<GameObject>();
         fakeResourcePiece = null;
         selectedPrefabName = string.Empty;
-        lastDiagnosticSignature = string.Empty;
+        PlantingDiagnostics.ResetPreview();
     }
 
     private static List<PlantingInvalidReason> EvaluateAndDraw(
@@ -180,7 +181,8 @@ internal static class PlantingPreview
             return false;
         }
 
-        int requiredSize = FarmingSettings.GridWidth * FarmingSettings.GridLength;
+        int gridSize = FarmingGridSelection.CurrentSize;
+        int requiredSize = gridSize * gridSize;
         bool needsRebuild = placementGhosts.Length != requiredSize
             || placementGhosts.Length == 0
             || !placementGhosts[0]
@@ -289,46 +291,6 @@ internal static class PlantingPreview
             }
         }
 
-        lastDiagnosticSignature = string.Empty;
-    }
-
-    private static void LogChangedDiagnostics(List<PlantingInvalidReason> reasons)
-    {
-        string signature = string.Join(",", reasons.Select(reason => ((int)reason).ToString()));
-        if (signature == lastDiagnosticSignature)
-        {
-            return;
-        }
-
-        lastDiagnosticSignature = signature;
-        int valid = 0;
-        int invalid = 0;
-        for (int index = 0; index < reasons.Count; index++)
-        {
-            PlantingInvalidReason reason = reasons[index];
-            if (reason == PlantingInvalidReason.None)
-            {
-                valid++;
-                continue;
-            }
-
-            if (reason == PlantingInvalidReason.Anchor)
-            {
-                continue;
-            }
-
-            invalid++;
-            int row = index / FarmingSettings.GridWidth;
-            int column = index % FarmingSettings.GridWidth;
-            Diagnostics.Event(
-                "Farming",
-                "plant_preview_invalid",
-                $"index={index} row={row} column={column} reason={PlantingRules.Name(reason)}");
-        }
-
-        Diagnostics.Event(
-            "Farming",
-            "plant_preview_updated",
-            $"valid={valid} invalid={invalid} grid={FarmingSettings.GridWidth}x{FarmingSettings.GridLength}");
+        PlantingDiagnostics.ResetPreview();
     }
 }

@@ -32,14 +32,47 @@ use it to find controls and passive features.
 
 ## In Development
 
-- The `0.1.70` candidate adds organized feature entries for Ship Sprint,
-  manual collection of submerged native Tar, Perfect Impact, and reduced
-  planting stamina. It says each successful plant placement, including every
-  successful mass-grid placement, costs 50% of Valheim's resolved native
-  planting stamina cost. It preserves the menu's named combat states and useful
-  tuning detail. UNTOUCHABLE now says that qualifying kills as well as perfect
-  defenses add streak points. Combat Shake also names Perfect Impact. The
-  updated presentation still needs gameplay proof.
+- The Affinities section explains eligible weapons, station requirements,
+  resource costs, persistent item behavior, and each affinity's benefits and
+  tradeoffs. It shows the exact controls and numerical effects defined by
+  [Affinities](../Affinities/PRODUCT.md). It includes temporary playtest
+  exceptions and the nonrefundable replacement rule. The updated presentation
+  still needs gameplay proof.
+- The current candidate adds organized feature entries for Ship Sprint,
+  ordinary manual and automatic pickup of items submerged in native tar pits,
+  Perfect Impact, and reduced
+  planting stamina. The planting-stamina entry says that each successful
+  ordinary or grid plant placement costs 25% of the native planting stamina
+  cost that Valheim has already resolved. Skipped, failed, and rejected
+  placements cost no stamina. It preserves the menu's named combat states and
+  useful tuning detail. UNTOUCHABLE now says that qualifying kills as well as
+  perfect defenses add streak points. Combat Shake also names Perfect Impact.
+  The updated presentation still needs gameplay proof.
+- The Ship Sprint entry explains that the helm readout shows planar speed and
+  marks `SPRINT` while the local player has an active Ship Sprint request.
+- The installed `0.1.80` build includes a Building section. It says Workbench and
+  Stonecutter build-piece placement coverage is `2x` Valheim's native range,
+  from 20 meters to 40 meters for level-1 stations. It also names the station
+  behaviors that remain native.
+- The candidate renames the Skills section to **Gathering & Skills**. It adds a
+  Finewood entry. The entry says that the compatible client that owns a native
+  Birch or Oak log converts each final ordinary Wood drop to Finewood. This
+  conversion also works when another compatible client attacks the log. Each
+  log keeps its native item count unchanged. Valheim still spawns every drop
+  through its native path. Native Finewood drops and all non-Wood drops remain
+  unchanged. For the Finewood conversion, other logs, standing-tree drops,
+  stumps, native damage-type conversions, and unrelated destruction stay
+  native.
+- The Farming section explains grid selection, the default size, planting
+  controls, spacing, and stamina costs. It also explains berry costs, placement,
+  first growth, regrowth, and removal. The menu shows the exact controls and
+  values from [Farming](../Farming/PRODUCT.md); this document does not define
+  a separate set of mechanics.
+- The World & Travel section lists sign glow and portal labels. It says that
+  each high-contrast portal label exactly matches its portal's non-empty tag.
+  It also states the 30-meter range and line-of-sight rule.
+- The Combat section says compatible nearby players may hear the native charm
+  cue for earned states. It says distant players must not hear the cue.
 - The `/` shortcut never closes or toggles the console. F5 and Escape keep
   their native behavior. The shortcut does nothing while the player is typing
   or while a menu, password field, or other text input is active. This

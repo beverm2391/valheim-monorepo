@@ -12,46 +12,31 @@ namespace BenheimQoL.Interaction;
     new[] { typeof(Humanoid), typeof(bool), typeof(bool) })]
 internal static class TarPickableInteractionPatch
 {
-    private static void Prefix(
-        Pickable __instance,
-        out TarCollectibleInteractionObservation __state)
-    {
-        __state = TarCollectibleInteraction.Observe(__instance);
-    }
-
-    private static void Postfix(
-        bool __result,
-        TarCollectibleInteractionObservation __state)
-    {
-        TarCollectibleInteraction.ReportResult(__state, __result);
-    }
-
     private static IEnumerable<CodeInstruction> Transpiler(
         IEnumerable<CodeInstruction> instructions)
     {
-        FieldInfo nativeGate = AccessTools.Field(
+        FieldInfo nativeCheck = AccessTools.Field(
                 typeof(Pickable),
                 nameof(Pickable.m_tarPreventsPicking))
             ?? throw new InvalidOperationException(
-                "Valheim's Pickable tar interaction gate was not found.");
+                "Benheim could not find Valheim's Pickable tar pickup check.");
         MethodInfo replacement = AccessTools.Method(
                 typeof(TarCollectibleInteraction),
                 nameof(TarCollectibleInteraction.ShouldBlockPickable))
             ?? throw new InvalidOperationException(
-                "Benheim's Pickable tar interaction replacement was not found.");
+                "Benheim could not find the replacement for Valheim's Pickable tar pickup check.");
 
         List<CodeInstruction> codes = new List<CodeInstruction>(instructions);
         int replaced = 0;
         foreach (CodeInstruction code in codes)
         {
-            if (code.opcode != OpCodes.Ldfld || !Equals(code.operand, nativeGate))
+            if (code.opcode != OpCodes.Ldfld || !Equals(code.operand, nativeCheck))
             {
                 continue;
             }
 
-            // The Pickable instance already on the stack becomes the helper
-            // argument. Every later native Floating, RPC, and effect path stays
-            // byte-for-byte in Valheim's method.
+            // The Pickable already on the stack becomes the helper argument.
+            // Floating detection, the RPC, drops, and effects stay native.
             code.opcode = OpCodes.Call;
             code.operand = replacement;
             replaced++;
@@ -60,7 +45,7 @@ internal static class TarPickableInteractionPatch
         if (replaced != 1)
         {
             throw new InvalidOperationException(
-                $"Expected one Pickable tar interaction gate, found {replaced}.");
+                $"Expected exactly one Pickable tar pickup check, but found {replaced}.");
         }
 
         return codes;
@@ -73,48 +58,58 @@ internal static class TarPickableInteractionPatch
     new[] { typeof(Humanoid), typeof(bool), typeof(bool) })]
 internal static class TarItemDropInteractionPatch
 {
-    private static void Prefix(
-        ItemDrop __instance,
-        bool repeat,
-        out TarCollectibleInteractionObservation __state)
-    {
-        __state = repeat
-            ? default
-            : TarCollectibleInteraction.Observe(__instance);
-    }
-
-    private static void Postfix(
-        bool __result,
-        TarCollectibleInteractionObservation __state)
-    {
-        TarCollectibleInteraction.ReportResult(__state, __result);
-    }
-
     private static IEnumerable<CodeInstruction> Transpiler(
         IEnumerable<CodeInstruction> instructions)
     {
-        MethodInfo nativeGate = AccessTools.Method(typeof(ItemDrop), nameof(ItemDrop.InTar))
+        return TarItemDropCheckTranspiler.ReplaceSingleCheck(
+            instructions,
+            "ItemDrop.Interact");
+    }
+}
+
+// Valheim declares AutoPickup private, so nameof(Player.AutoPickup) cannot
+// reference it. The patch target must use the method name string.
+[HarmonyPatch(typeof(Player), "AutoPickup", new[] { typeof(float) })]
+internal static class TarItemDropAutoPickupPatch
+{
+    private static IEnumerable<CodeInstruction> Transpiler(
+        IEnumerable<CodeInstruction> instructions)
+    {
+        return TarItemDropCheckTranspiler.ReplaceSingleCheck(
+            instructions,
+            "Player.AutoPickup");
+    }
+}
+
+internal static class TarItemDropCheckTranspiler
+{
+    internal static IEnumerable<CodeInstruction> ReplaceSingleCheck(
+        IEnumerable<CodeInstruction> instructions,
+        string nativeMethod)
+    {
+        MethodInfo nativeCheck = AccessTools.Method(typeof(ItemDrop), nameof(ItemDrop.InTar))
             ?? throw new InvalidOperationException(
-                "Valheim's ItemDrop tar interaction gate was not found.");
+                "Benheim could not find Valheim's ItemDrop tar pickup check.");
         MethodInfo replacement = AccessTools.Method(
                 typeof(TarCollectibleInteraction),
                 nameof(TarCollectibleInteraction.ShouldBlockItemDrop))
             ?? throw new InvalidOperationException(
-                "Benheim's ItemDrop tar interaction replacement was not found.");
+                "Benheim could not find the replacement for Valheim's ItemDrop tar pickup check.");
 
         List<CodeInstruction> codes = new List<CodeInstruction>(instructions);
         int replaced = 0;
         foreach (CodeInstruction code in codes)
         {
             if ((code.opcode != OpCodes.Call && code.opcode != OpCodes.Callvirt)
-                || !Equals(code.operand, nativeGate))
+                || !Equals(code.operand, nativeCheck))
             {
                 continue;
             }
 
-            // The ItemDrop instance already on the stack becomes the helper
-            // argument. Pickup, ownership, inventory, and ordinary failure all
-            // remain in Valheim's original Interact and Pickup methods.
+            // The ItemDrop already on the stack becomes the helper argument.
+            // Only this method's tar check changes. The rest of its native
+            // pickup logic stays intact, as do other ItemDrop.InTar callers
+            // such as TimedDestruction.
             code.opcode = OpCodes.Call;
             code.operand = replacement;
             replaced++;
@@ -123,7 +118,7 @@ internal static class TarItemDropInteractionPatch
         if (replaced != 1)
         {
             throw new InvalidOperationException(
-                $"Expected one ItemDrop tar interaction gate, found {replaced}.");
+                $"Expected exactly one {nativeMethod} tar pickup check, but found {replaced}.");
         }
 
         return codes;

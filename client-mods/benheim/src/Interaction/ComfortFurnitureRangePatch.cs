@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 
@@ -15,6 +16,12 @@ internal static class ComfortFurnitureRangePatch
 {
     internal const float NativeComfortRadius = 10f;
     internal const float ExtendedComfortRadius = 20f;
+    private static readonly MethodInfo ObserveRadiusMethod = AccessTools.Method(
+        typeof(ComfortDiagnosticCapture),
+        nameof(ComfortDiagnosticCapture.ObserveRadius))
+        ?? throw new MissingMethodException(
+            typeof(ComfortDiagnosticCapture).FullName,
+            nameof(ComfortDiagnosticCapture.ObserveRadius));
 
     [HarmonyTranspiler]
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
@@ -22,8 +29,9 @@ internal static class ComfortFurnitureRangePatch
         List<CodeInstruction> codes = new List<CodeInstruction>(instructions);
         int replaced = 0;
 
-        foreach (CodeInstruction code in codes)
+        for (int index = 0; index < codes.Count; index++)
         {
+            CodeInstruction code = codes[index];
             if (code.opcode != OpCodes.Ldc_R4
                 || !(code.operand is float radius)
                 || radius != NativeComfortRadius)
@@ -32,7 +40,9 @@ internal static class ComfortFurnitureRangePatch
             }
 
             code.operand = ExtendedComfortRadius;
+            codes.Insert(index + 1, new CodeInstruction(OpCodes.Call, ObserveRadiusMethod));
             replaced++;
+            index++;
         }
 
         if (replaced != 1)

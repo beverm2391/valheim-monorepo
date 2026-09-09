@@ -1,0 +1,5 @@
+[{ "prefab": "Cultivator", "amount": 1 },
+ { "prefab": "Raspberry", "amount": 500 },
+ { "prefab": "FeastSwamps", "amount": 1 },
+ { "prefab": "FeastMountains", "amount": 1 },
+ { "prefab": "FeastPlains", "amount": 1 }]

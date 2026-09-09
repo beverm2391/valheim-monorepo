@@ -28,7 +28,7 @@ internal static partial class ShortcutOverlay
         explanation.color = Color.white;
         explanation.text =
             "The master controls Bow Focus, Combat Shake, and Danger Arrival FX. " +
-            "Map labels, gameplay, and native Valheim effects stay on.";
+            "Map labels, gameplay (including Snipe's automatic scope), and native Valheim effects stay on.";
 
         fxMasterToggle = AddConfigToggle(
             parent,
@@ -80,7 +80,7 @@ internal static partial class ShortcutOverlay
         families.fontSize = 17f;
         families.color = new Color(0.78f, 0.8f, 0.82f, 1f);
         families.text =
-            "Bow Focus narrows FOV during bow draw. Combat Shake covers headshots, " +
+            "Bow Focus narrows FOV during ordinary bow draw. Snipe's automatic scope stays active with Bow Focus or Benheim FX off. Combat Shake covers headshots, " +
             "Cleave, mining AOE, and Perfect Impact. Danger Arrival FX covers its " +
             "banner, stinger, and brief edge vignette.";
 

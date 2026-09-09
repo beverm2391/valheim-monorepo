@@ -2,6 +2,8 @@ using System;
 using System.Text.Json;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.ShipSprint;
+using TMPro;
+using UnityEngine;
 
 ExpectFalse(ShipSprintRules.ShouldBoost(true, true, true, Ship.Speed.Stop), "stopped throttle remains native");
 ExpectFalse(ShipSprintRules.ShouldBoost(true, true, true, Ship.Speed.Back), "reverse remains native");
@@ -25,6 +27,22 @@ ExpectFalse(
 ExpectFalse(
     ShipSprintRules.IsAuthorizedSender(10L, 10L, 20L, 20L, false),
     "invalid native controller is rejected");
+ExpectTrue(
+    ShipSprintRules.IsAuthenticatedLocalRequest(
+        true, true, 10L, 10L, 20L, 20L, Ship.Speed.Full),
+    "accepted local request renders sprint state");
+ExpectFalse(
+    ShipSprintRules.IsAuthenticatedLocalRequest(
+        true, true, 10L, 11L, 20L, 20L, Ship.Speed.Full),
+    "another player's accepted request does not render local sprint state");
+ExpectFalse(
+    ShipSprintRules.IsAuthenticatedLocalRequest(
+        true, true, 10L, 10L, 20L, 21L, Ship.Speed.Full),
+    "another peer's accepted request does not render local sprint state");
+ExpectFalse(
+    ShipSprintRules.IsAuthenticatedLocalRequest(
+        true, true, 10L, 10L, 20L, 20L, Ship.Speed.Back),
+    "accepted request does not label native reverse as sprinting");
 
 ShipSprintRequestCadence cadence = new ShipSprintRequestCadence();
 ExpectTrue(cadence.ShouldSend(false, 1f), "first controller sample clears stale owner state");
@@ -96,6 +114,97 @@ ExpectNear(7f, root.GetProperty("peak_speed").GetSingle(), "diagnostic peak spee
 ExpectNear(3f, root.GetProperty("thrust_multiplier").GetSingle(), "diagnostic tuning");
 
 ExpectNear(3f, ShipSprintTuning.ThrustMultiplier, "first tuning candidate");
+
+ExpectNear(5f, ShipSprintGaugeRules.PlanarSpeed(3f, 4f), "world-planar speed ignores vertical motion");
+ExpectEqual("5.0 m/s", ShipSprintGaugeRules.Format(5f, sprintActive: false), "native speed label");
+ExpectEqual(
+    "5.0 m/s  <alpha=#A0>SPRINT</alpha>",
+    ShipSprintGaugeRules.Format(5.04f, sprintActive: true),
+    "active request adds restrained sprint state");
+ExpectEqual("0.0 m/s", ShipSprintGaugeRules.Format(-1f, sprintActive: false), "speed never renders negative");
+
+ShipSprintHud.Destroy();
+RectTransform shipHud = new RectTransform();
+RectTransform windAnchor = new RectTransform
+{
+    parent = shipHud,
+    anchorMin = new Vector2(1f, 1f),
+    anchorMax = new Vector2(1f, 1f),
+    anchoredPosition = new Vector2(-146f, -437f),
+    pivot = new Vector2(0.5f, 0.5f),
+    sizeDelta = new Vector2(130f, 130f),
+    localRotation = Quaternion.Euler(0f, 0f, 42f)
+};
+GameObject rotatedShipControls = new GameObject();
+rotatedShipControls.transform.parent = shipHud;
+rotatedShipControls.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+TMP_Text donor = new TMP_Text();
+donor.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 15f);
+Ship controlledShip = new Ship
+{
+    Body = new Rigidbody { linearVelocity = new Vector3(3f, 9f, 4f) },
+    LocalRequestActive = true
+};
+Player player = new Player { ControlledShip = controlledShip };
+Player.m_localPlayer = player;
+ZNet.instance = new ZNet();
+ZNetScene.instance = new ZNetScene();
+Hud hud = new Hud
+{
+    m_shipWindIndicatorRoot = windAnchor,
+    m_shipControlsRoot = rotatedShipControls,
+    m_healthText = donor
+};
+hud.m_shipHudRoot.SetActive(true);
+
+ShipSprintHud.Update(hud);
+TMP_Text gauge = UnityEngine.Object.LastInstantiated
+    ?? throw new InvalidOperationException("gauge layout: expected cloned native text");
+ExpectTrue(gauge.gameObject.activeSelf, "helm control shows speed gauge");
+ExpectTrue(ReferenceEquals(shipHud, gauge.transform.parent), "gauge uses the wind area's stable unrotated parent");
+ExpectFalse(ReferenceEquals(windAnchor, gauge.transform.parent), "rotating wind indicator never owns gauge orientation");
+ExpectFalse(ReferenceEquals(rotatedShipControls.transform, gauge.transform.parent), "rotating sailing controls never own gauge orientation");
+ExpectNear(0f, gauge.rectTransform.localRotation.ZDegrees, "gauge remains screen-upright beside rotated native controls");
+ExpectNear(-146f, gauge.rectTransform.anchoredPosition.x, "gauge follows native wind horizontal anchor");
+ExpectNear(-524f, gauge.rectTransform.anchoredPosition.y, "gauge sits directly below native wind area");
+ExpectEqual(
+    "5.0 m/s  <alpha=#A0>SPRINT</alpha>",
+    gauge.text,
+    "visible gauge uses planar speed and accepted local request");
+
+windAnchor.anchoredPosition = new Vector2(-220f, -350f);
+windAnchor.sizeDelta = new Vector2(160f, 160f);
+ShipSprintHud.Update(hud);
+ExpectNear(-220f, gauge.rectTransform.anchoredPosition.x, "gauge follows a native wind layout change");
+ExpectNear(-452f, gauge.rectTransform.anchoredPosition.y, "gauge remains directly below a resized native wind area");
+
+controlledShip.LocalRequestActive = false;
+ShipSprintHud.Update(hud);
+ExpectEqual("5.0 m/s", gauge.text, "inactive local request removes SPRINT state");
+controlledShip.LocalRequestActive = true;
+
+hud.Visible = false;
+ShipSprintHud.Update(hud);
+ExpectFalse(gauge.gameObject.activeSelf, "hidden native HUD hides speed gauge");
+hud.Visible = true;
+ShipSprintHud.Update(hud);
+ExpectTrue(gauge.gameObject.activeSelf, "visible native HUD restores speed gauge");
+
+hud.m_shipHudRoot.SetActive(false);
+ShipSprintHud.Update(hud);
+ExpectFalse(gauge.gameObject.activeSelf, "hidden native ship HUD hides speed gauge");
+hud.m_shipHudRoot.SetActive(true);
+ShipSprintHud.Update(hud);
+ExpectTrue(gauge.gameObject.activeSelf, "visible native ship HUD restores speed gauge");
+
+player.ControlledShip = null;
+ShipSprintHud.Update(hud);
+ExpectFalse(gauge.gameObject.activeSelf, "leaving helm hides speed gauge immediately");
+player.ControlledShip = controlledShip;
+ShipSprintHud.Update(hud);
+ExpectTrue(gauge.gameObject.activeSelf, "returning to helm restores speed gauge");
+ShipSprintHud.Destroy(hud);
+ExpectFalse(gauge.gameObject.activeSelf, "HUD teardown destroys visible speed gauge");
 
 Console.WriteLine("Ship Sprint forward-throttle, lifecycle, and diagnostic checks passed");
 return;

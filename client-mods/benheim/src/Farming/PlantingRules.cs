@@ -20,15 +20,46 @@ internal static class PlantingRules
     private static readonly int PlantSpaceMask =
         LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "piece_nonsolid");
 
+    internal static bool TryGetGridSpacing(GameObject prefab, out float spacing)
+    {
+        Plant? plant = prefab.GetComponent<Plant>();
+        if (plant)
+        {
+            spacing = plant.m_growRadius * 2f;
+            return true;
+        }
+
+        // Grid tuning is independent from collision clearance. Registration
+        // still has to establish a native collider footprint before a berry
+        // bush can reach planting, but all three bushes share one exact step.
+        if (PlantableBerries.TryGetFootprint(prefab, out _))
+        {
+            spacing = FarmingSettings.BerryGridSpacing;
+            return true;
+        }
+
+        spacing = 0f;
+        return false;
+    }
+
     internal static bool HasGrowSpace(Vector3 position, GameObject plantPrefab)
     {
         Plant? plant = plantPrefab.GetComponent<Plant>();
-        if (!plant)
+        float radius;
+        if (plant)
+        {
+            radius = plant.m_growRadius;
+        }
+        else if (PlantableBerries.TryGetFootprint(plantPrefab, out float footprint))
+        {
+            radius = footprint * 0.5f;
+        }
+        else
         {
             return true;
         }
 
-        Collider[] nearbyObjects = Physics.OverlapSphere(position, plant.m_growRadius, PlantSpaceMask);
+        Collider[] nearbyObjects = Physics.OverlapSphere(position, radius, PlantSpaceMask);
         return nearbyObjects.Length == 0;
     }
 

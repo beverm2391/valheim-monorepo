@@ -1,5 +1,12 @@
 using System;
 using BenheimQoL.Archery;
+using BenheimQoL.Affinities;
+
+ExpectClose(1.25f, SnipeRules.DistanceMultiplier(0f), "Snipe point blank");
+ExpectClose(1.25f, SnipeRules.DistanceMultiplier(20f), "Snipe near boundary");
+ExpectClose(1.75f, SnipeRules.DistanceMultiplier(40f), "Snipe midpoint is total, not an extra multiplier");
+ExpectClose(2.25f, SnipeRules.DistanceMultiplier(60f), "Snipe far boundary");
+ExpectClose(2.25f, SnipeRules.DistanceMultiplier(120f), "Snipe far cap");
 
 ExpectClose(1.25f, HeadshotRules.DistanceMultiplier(0f), "point blank");
 ExpectClose(1.25f, HeadshotRules.DistanceMultiplier(20f), "near boundary");

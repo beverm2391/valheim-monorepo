@@ -45,6 +45,46 @@ internal static class LeechSpawnPatches
         PendingSpawnSystems.Clear();
     }
 
+    [HarmonyPatch(
+        typeof(SpawnSystem),
+        "Spawn",
+        typeof(SpawnSystem.SpawnData),
+        typeof(Vector3),
+        typeof(bool),
+        typeof(int),
+        typeof(float))]
+    private static class SuccessfulSpawnPatch
+    {
+        [HarmonyPrefix]
+        private static void Prefix(
+            SpawnSystem.SpawnData critter,
+            bool eventSpawner,
+            out bool __state)
+        {
+            // Spawn() has one normal early return: the global no-spawn flag.
+            // A postfix with this state therefore runs only after the adjusted
+            // ordinary SpawnData completed native instantiation and setup.
+            __state = !SpawnSystem.m_nospawn &&
+                !eventSpawner &&
+                Adjusted.Contains(critter);
+        }
+
+        [HarmonyPostfix]
+        private static void Postfix(SpawnSystem.SpawnData critter, bool __state)
+        {
+            if (!__state)
+            {
+                return;
+            }
+
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("Spawning", "leech_spawn_succeeded")
+                    .String("source", "base_world")
+                    .String("prefab", critter.m_prefab.name)
+                    .Number("opportunity_multiplier", LeechSpawnFrequency.OpportunityMultiplier));
+        }
+    }
+
     private static void Adjust(SpawnSystem spawnSystem)
     {
         GameObject? prefab = ResolveLeechPrefab();
@@ -71,14 +111,26 @@ internal static class LeechSpawnPatches
 
             foreach (SpawnSystem.SpawnData spawner in spawnList.m_spawners)
             {
-                if (spawner == null || spawner.m_prefab != prefab || !Adjusted.TryClaim(spawner))
+                if (spawner == null || spawner.m_prefab != prefab)
                 {
                     continue;
                 }
 
-                float nativeInterval = spawner.m_spawnInterval;
-                spawner.m_spawnInterval = LeechSpawnFrequency.AdjustInterval(nativeInterval);
-                LogAdjustmentOnce(nativeInterval, spawner.m_spawnInterval);
+                if (Adjusted.TryClaim(spawner))
+                {
+                    float nativeInterval = spawner.m_spawnInterval;
+                    spawner.m_spawnInterval = LeechSpawnFrequency.AdjustInterval(nativeInterval);
+                    LogAdjustmentOnce(nativeInterval, spawner.m_spawnInterval);
+                }
+
+                // Registration is a lifecycle operation, not part of the
+                // one-time mutation. A world transition clears probe targets,
+                // so an already-adjusted native rule must be able to register
+                // again without applying the interval multiplier twice.
+                SpawnPopulationProbe.RegisterRule(
+                    "base_world",
+                    LeechSpawnFrequency.PrefabName,
+                    spawner);
             }
         }
     }

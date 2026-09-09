@@ -44,6 +44,16 @@ internal static class InputState
         return ZInput.GetButton("Run") || ZInput.GetButton("JoyRun");
     }
 
+    internal static bool IsButtonDown(string name)
+    {
+        if (IsTextEntryActive())
+        {
+            return false;
+        }
+
+        return ZInput.GetButtonDown(name);
+    }
+
     internal static bool IsKeyDown(KeyCode key)
     {
         if (IsTextEntryActive())

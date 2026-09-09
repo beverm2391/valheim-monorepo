@@ -28,6 +28,9 @@ other clouds can be added later.
 The server and optional mod product direction is tracked in
 [`PRODUCT.md`](PRODUCT.md).
 
+Durable research, implementation references, and external source shelves live
+in the [`knowledge-base/`](knowledge-base/README.md).
+
 ## What You Get
 
 - A Hetzner Cloud VM and firewall.

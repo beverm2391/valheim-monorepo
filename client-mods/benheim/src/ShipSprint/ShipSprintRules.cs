@@ -38,4 +38,22 @@ internal static class ShipSprintRules
             && currentUser == requestedPlayer
             && controllingPeer == sender;
     }
+
+    internal static bool IsAuthenticatedLocalRequest(
+        bool controlsShip,
+        bool requested,
+        long localPlayerId,
+        long requestedPlayerId,
+        long localPeerId,
+        long requestedPeerId,
+        Ship.Speed speed)
+    {
+        return controlsShip
+            && requested
+            && localPlayerId != 0L
+            && localPlayerId == requestedPlayerId
+            && localPeerId != 0L
+            && localPeerId == requestedPeerId
+            && IsForwardThrottle(speed);
+    }
 }

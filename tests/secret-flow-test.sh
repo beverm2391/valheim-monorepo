@@ -56,6 +56,7 @@ secret_keys=(
   HCLOUD_TOKEN
   TAILSCALE_AUTHKEY
   VALHEIM_PASSWORD
+  BENHEIM_AXIOM_INGEST_TOKEN
   VALHEIM_R2_ACCESS_KEY_ID
   VALHEIM_R2_SECRET_ACCESS_KEY
 )
@@ -124,6 +125,43 @@ grep -Fq 'VALHEIM_R2_PREFIX=benheim' "$test_root/r2.render" || fail "R2 artifact
 pass "R2 artifact receives process credentials and preserves the backup prefix"
 assert_not_contains "R2 rendering does not print credentials" r2-access-sentinel "$test_root/r2.render.out"
 assert_not_contains "R2 rendering does not print the secret key" r2-secret-sentinel "$test_root/r2.render.out"
+
+cat > "$test_root/diagnostics.env" <<'EOF'
+HETZNER_SERVER_NAME=test-server
+VALHEIM_SERVER_NAME=Test-Server
+VALHEIM_WORLD_NAME=TestWorld
+VALHEIM_PORT=2456
+SSH_HOST=test-host
+SSH_USER=root
+VALHEIM_R2_CONFIGURE=0
+VALHEIM_DIAGNOSTICS_CONFIGURE=1
+BENHEIM_AXIOM_ENDPOINT=https://example.axiom.co
+BENHEIM_AXIOM_DATASET=benheim-test
+VALHEIM_DIAGNOSTICS_SERVER_ID=qa-server
+EOF
+
+VALHEIM_ENV_FILE="$test_root/diagnostics.env" \
+VALHEIM_PASSWORD=server-secret-sentinel \
+BENHEIM_AXIOM_INGEST_TOKEN=test-ingest-value \
+  bash -c 'source "$1"; load_config; render_diagnostics_env "$2"' _ "$lib" "$test_root/diagnostics.render" > "$test_root/diagnostics.render.out" 2>&1
+grep -Fq 'BENHEIM_AXIOM_INGEST_TOKEN=test-ingest-value' "$test_root/diagnostics.render" || fail "diagnostics artifact receives the process ingest token"
+grep -Fq 'BENHEIM_AXIOM_DATASET=benheim-test' "$test_root/diagnostics.render" || fail "diagnostics artifact targets the configured dataset"
+grep -Fq 'VALHEIM_DIAGNOSTICS_SERVER_ID=qa-server' "$test_root/diagnostics.render" || fail "diagnostics artifact carries server identity"
+[[ $(stat -f '%Lp' "$test_root/diagnostics.render" 2>/dev/null || stat -c '%a' "$test_root/diagnostics.render") == 600 ]] || fail "diagnostics artifact is mode 0600"
+pass "diagnostics artifact receives only scoped routing and ingest values"
+assert_not_contains "diagnostics rendering does not print the ingest token" test-ingest-value "$test_root/diagnostics.render.out"
+
+: > "$test_root/remote.log"
+if env -u BENHEIM_AXIOM_INGEST_TOKEN \
+  REMOTE_LOG="$test_root/remote.log" \
+  PATH="$test_root/fake-bin:$PATH" \
+  VALHEIM_ENV_FILE="$test_root/diagnostics.env" \
+  VALHEIM_PASSWORD=server-secret-sentinel \
+  "$repo_root/scripts/install-server.sh" > "$test_root/install-missing-diagnostics.out" 2>&1; then
+  fail "diagnostics install rejects a missing process ingest token"
+fi
+[[ ! -s "$test_root/remote.log" ]] || fail "diagnostics preflight fails before remote calls"
+pass "diagnostics preflight fails before remote calls"
 
 mkdir -p "$test_root/fake-bin"
 cat > "$test_root/fake-bin/ssh" <<'EOF'
@@ -218,13 +256,15 @@ fi
 [[ ! -s "$test_root/remote.log" ]] || fail "config password preflight fails before remote calls"
 pass "config password preflight fails before remote calls"
 
-assert_contains "config rollback snapshots the readiness helper" \
-  'old_waiter="$work/wait-for-valheim.previous"' "$repo_root/scripts/apply-server-config.sh"
-assert_contains "config rollback restores the readiness helper" \
-  'install -m 0755 "$old_waiter" /usr/local/bin/valheim-wait-ready' "$repo_root/scripts/apply-server-config.sh"
+assert_contains "config deployment transfers the remote apply helper" \
+  'server/apply-valheim-config' "$repo_root/scripts/apply-server-config.sh"
 assert_contains "R2 runtime credentials are root-only" \
   'install -m 0600 -o root -g root "$work/r2.env" /etc/valheim/r2.env' "$repo_root/scripts/install-server.sh"
 assert_not_contains "ordinary installs preserve an existing R2 runtime file" \
   'rm -f /etc/valheim/r2.env' "$repo_root/scripts/install-server.sh"
+assert_contains "diagnostics runtime credentials are root-only" \
+  'install -m 0600 -o root -g root "$work/diagnostics.env" /etc/valheim/diagnostics.env' "$repo_root/scripts/install-server.sh"
+assert_not_contains "ordinary installs preserve an existing diagnostics runtime file" \
+  'rm -f /etc/valheim/diagnostics.env' "$repo_root/scripts/install-server.sh"
 
 echo "1..$checks"

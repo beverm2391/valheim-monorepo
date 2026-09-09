@@ -5,7 +5,7 @@ namespace BenheimQoL.Spawning;
 internal static class LeechSpawnFrequency
 {
     internal const string PrefabName = "Leech";
-    internal const float OpportunityMultiplier = 3f;
+    internal const float OpportunityMultiplier = 5f;
 
     internal static float AdjustInterval(float nativeInterval)
     {
@@ -28,6 +28,11 @@ internal sealed class LeechSpawnAdjustmentState<T> where T : class
 
         adjusted.Add(value, Marker.Instance);
         return true;
+    }
+
+    internal bool Contains(T value)
+    {
+        return adjusted.TryGetValue(value, out _);
     }
 
     private sealed class Marker
