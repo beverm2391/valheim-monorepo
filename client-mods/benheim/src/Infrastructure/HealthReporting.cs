@@ -90,30 +90,33 @@ internal static class HealthReporting
             exactFailure.Message));
         Plugin.Log.LogError(
             $"Benheim patch group failed [{owner}] while patching {patchType}: {exception}");
-        Diagnostics.Event(
-            "Health",
-            "patch_group_disabled",
-            $"owner={Diagnostics.Flatten(owner)} patch_type={Diagnostics.Flatten(patchType)} error={Diagnostics.Flatten(exactFailure.Message)}");
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("Health", "patch_group_disabled")
+                .String("owner", owner)
+                .String("patch_type", patchType)
+                .String("error_type", exactFailure.GetType().Name)
+                .String("error", exactFailure.Message));
     }
 
     internal static void ReportPatchCleanupFailure(string owner, Exception exception)
     {
         Plugin.Log.LogError(
             $"Benheim could not remove partial Harmony patches for [{owner}]: {exception}");
-        Diagnostics.Event(
-            "Health",
-            "partial_patch_cleanup_failed",
-            $"owner={Diagnostics.Flatten(owner)} error={Diagnostics.Flatten(exception.Message)}");
+        Exception exactFailure = exception.GetBaseException();
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("Health", "partial_patch_cleanup_failed")
+                .String("owner", owner)
+                .String("error_type", exactFailure.GetType().Name)
+                .String("error", exactFailure.Message));
     }
 
     internal static void ReportPatchCleanupSucceeded(string owner)
     {
         Plugin.Log.LogInfo(
             $"Benheim removed partial Harmony patches for [{owner}] after retrying cleanup.");
-        Diagnostics.Event(
-            "Health",
-            "partial_patches_removed",
-            $"owner={Diagnostics.Flatten(owner)}");
+        Diagnostics.Emit(
+            DiagnosticEvent.Create("Health", "partial_patches_removed")
+                .String("owner", owner));
     }
 
     internal static void ReportKeybindInspectionFailure(string detail)

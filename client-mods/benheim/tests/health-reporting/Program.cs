@@ -28,13 +28,40 @@ namespace BenheimQoL
 
 namespace BenheimQoL.Infrastructure
 {
+    internal sealed class DiagnosticEvent
+    {
+        internal static DiagnosticEvent Create(string domain, string name) => new(domain, name);
+
+        private DiagnosticEvent(string domain, string name)
+        {
+            Domain = domain;
+            Name = name;
+        }
+
+        internal string Domain { get; }
+        internal string Name { get; }
+        internal readonly Dictionary<string, string?> Fields = new();
+
+        internal DiagnosticEvent String(string name, string? value)
+        {
+            Fields.Add(name, value);
+            return this;
+        }
+    }
+
     internal static class Diagnostics
     {
         internal static readonly List<string> Events = new();
+        internal static readonly List<DiagnosticEvent> TypedEvents = new();
 
         internal static void Event(string feature, string action, string details = "")
         {
             Events.Add($"[diag][{feature}] {action} {details}".TrimEnd());
+        }
+
+        internal static void Emit(DiagnosticEvent diagnosticEvent)
+        {
+            TypedEvents.Add(diagnosticEvent);
         }
 
         internal static string Flatten(string value)
@@ -105,8 +132,47 @@ namespace HealthReportingTests
                 "the exact patch type and failure remain visible");
             Require(BenheimQoL.Plugin.Log.Errors.Count == 1,
                 "the patch group writes one exact error");
-            Require(BenheimQoL.Infrastructure.Diagnostics.Events.Count == 2,
-                "the patch group diagnostic is deduplicated");
+            Require(BenheimQoL.Infrastructure.Diagnostics.TypedEvents.Count == 1,
+                "the patch group typed diagnostic is deduplicated");
+            DiagnosticEvent patchFailure = BenheimQoL.Infrastructure.Diagnostics.TypedEvents[0];
+            Require(
+                patchFailure.Domain == "Health"
+                    && patchFailure.Name == "patch_group_disabled"
+                    && patchFailure.Fields["owner"] == "Farming"
+                    && patchFailure.Fields["patch_type"] == "BenheimQoL.Farming.BrokenPatch"
+                    && patchFailure.Fields["error_type"] == nameof(InvalidOperationException)
+                    && patchFailure.Fields["error"] == "target Player.MissingHook was not found",
+                "the startup failure is typed with its exact patch and base exception");
+
+            HealthReporting.ReportPatchCleanupFailure(
+                "Farming",
+                new ApplicationException(
+                    "cleanup wrapper",
+                    new InvalidOperationException("Harmony owner could not be removed")));
+            Require(BenheimQoL.Plugin.Log.Errors.Count == 2,
+                "the cleanup failure keeps its normal BepInEx error");
+            Require(BenheimQoL.Infrastructure.Diagnostics.TypedEvents.Count == 2,
+                "the cleanup failure emits one typed diagnostic");
+            DiagnosticEvent cleanupFailure = BenheimQoL.Infrastructure.Diagnostics.TypedEvents[1];
+            Require(
+                cleanupFailure.Domain == "Health"
+                    && cleanupFailure.Name == "partial_patch_cleanup_failed"
+                    && cleanupFailure.Fields["owner"] == "Farming"
+                    && cleanupFailure.Fields["error_type"] == nameof(InvalidOperationException)
+                    && cleanupFailure.Fields["error"] == "Harmony owner could not be removed",
+                "the cleanup failure is typed with its owner and exact base exception");
+
+            HealthReporting.ReportPatchCleanupSucceeded("Farming");
+            Require(BenheimQoL.Plugin.Log.Infos.Count == 1,
+                "cleanup recovery keeps its normal BepInEx info");
+            Require(BenheimQoL.Infrastructure.Diagnostics.TypedEvents.Count == 3,
+                "cleanup recovery emits one typed terminal outcome");
+            DiagnosticEvent cleanupRecovery = BenheimQoL.Infrastructure.Diagnostics.TypedEvents[2];
+            Require(
+                cleanupRecovery.Domain == "Health"
+                    && cleanupRecovery.Name == "partial_patches_removed"
+                    && cleanupRecovery.Fields["owner"] == "Farming",
+                "the cleanup recovery is typed with its owner");
 
             Player.m_localPlayer = new Player { ThrowNextMessage = true };
             HealthReporting.UpdateCriticalMessage();
@@ -118,8 +184,8 @@ namespace HealthReportingTests
             HealthReporting.DisableCore(new InvalidOperationException("hook <missing>"));
             HealthReporting.DisableCore(new InvalidOperationException("second hook failure"));
             Require(!HealthReporting.GameplayActionsEnabled, "core failure disables gameplay actions");
-            Require(BenheimQoL.Plugin.Log.Errors.Count == 2, "core error is deduplicated");
-            Require(BenheimQoL.Infrastructure.Diagnostics.Events.Count == 3, "core diagnostic is deduplicated");
+            Require(BenheimQoL.Plugin.Log.Errors.Count == 3, "core error is deduplicated");
+            Require(BenheimQoL.Infrastructure.Diagnostics.Events.Count == 2, "core diagnostic is deduplicated");
 
             HealthReporting.UpdateCriticalMessage();
             HealthReporting.UpdateCriticalMessage();
