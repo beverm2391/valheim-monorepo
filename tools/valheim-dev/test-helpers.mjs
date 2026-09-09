@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 const VALHEIM_HASH = "a".repeat(64);
-const BENHEIM_HASH = "b".repeat(64);
+const VALHEIM_DEV_HASH = "b".repeat(64);
 const execFileAsync = promisify(execFile);
 
 export const SOURCE = "public static class ValheimDevCommand { public static string Run(string inputJson) => \"{\\\"ok\\\":true}\"; }";
@@ -165,15 +165,17 @@ export async function executeOfflineVariant(harness, experimentAssembly) {
 
 export async function writeDescriptor(root, reference, port, overrides = {}) {
   const descriptor = {
-    protocol: 4,
+    protocol: 5,
     session_id: randomUUID(),
     host: "127.0.0.1",
     port,
     authorized_at: new Date().toISOString(),
     valheim_version: "1.0.0",
     valheim_sha256: VALHEIM_HASH,
-    benheim_version: "0.2.0",
-    benheim_sha256: BENHEIM_HASH,
+    valheim_dev_version: "0.3.0",
+    valheim_dev_sha256: VALHEIM_DEV_HASH,
+    data_root: root,
+    log_path: join(root, "LogOutput.log"),
     compiler_references: [reference],
     ...overrides,
   };
@@ -215,14 +217,14 @@ export async function startBridge(handler) {
 
 export function bridgeIdentity(descriptor, extra = {}) {
   return {
-    protocol: 4,
+    protocol: 5,
     ok: true,
     error: null,
     session_id: descriptor.session_id,
     valheim_version: descriptor.valheim_version,
     valheim_sha256: descriptor.valheim_sha256,
-    benheim_version: descriptor.benheim_version,
-    benheim_sha256: descriptor.benheim_sha256,
+    valheim_dev_version: descriptor.valheim_dev_version,
+    valheim_dev_sha256: descriptor.valheim_dev_sha256,
     authorized: true,
     restart_required: false,
     active_changes: [],
@@ -243,6 +245,8 @@ export function operationResponse(descriptor, request, extra = {}) {
     cleanup_state: request.kind === "install_change" ? "active" : "not_applicable",
     previous_change_preserved: false,
     evidence_selected: request.evidence_events?.length > 0,
+    evidence_available: true,
+    evidence_unavailable_reason: null,
     evidence_exhaustive: false,
     evidence_truncated: false,
     dropped_evidence_events: 0,

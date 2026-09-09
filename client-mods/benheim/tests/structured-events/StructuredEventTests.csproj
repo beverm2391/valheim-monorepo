@@ -9,5 +9,6 @@
     <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
     <Compile Include="../../src/Infrastructure/DiagnosticEventRouter.cs" Link="DiagnosticEventRouter.cs" />
     <Compile Include="../../src/Infrastructure/Diagnostics.cs" Link="Diagnostics.cs" />
+    <Compile Include="../../src/Infrastructure/ValheimDevEvidenceAdapter.cs" Link="ValheimDevEvidenceAdapter.cs" />
   </ItemGroup>
 </Project>

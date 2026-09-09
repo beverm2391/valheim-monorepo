@@ -1,5 +1,5 @@
-export const BRIDGE_PROTOCOL = 4;
-export const SERVER_VERSION = "0.2.0";
+export const BRIDGE_PROTOCOL = 5;
+export const SERVER_VERSION = "0.3.0";
 export const MAX_BRIDGE_RESPONSE_BYTES = 8 * 1024 * 1024;
 export const MAX_SOURCE_BYTES = 256 * 1024;
 export const MAX_ASSEMBLY_BYTES = 1024 * 1024;

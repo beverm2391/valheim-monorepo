@@ -32,7 +32,7 @@ test("official MCP client crosses spawned stdio boundary and exposes the six wor
   const { client } = await connectClient(root);
   t.after(() => client.close());
 
-  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.2.0" });
+  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.3.0" });
   const listed = await client.listTools();
   assert.deepEqual(listed.tools.map((tool) => tool.name), [
     "lab_status", "run_once", "install_change", "remove_change", "run_recipes", "read_ledger",
@@ -47,6 +47,7 @@ test("official MCP client crosses spawned stdio boundary and exposes the six wor
   assert.equal(status.structuredContent.authorized, false);
   assert.deepEqual(status.structuredContent.active_changes, []);
   assert.match(status.structuredContent.error, /bh lab on/);
+  assert.equal(status.structuredContent.error.includes(root), true);
   assert.equal(status.content[0].text, JSON.stringify(status.structuredContent));
 
   const inspection = await client.callTool({ name: "run_once", arguments: { label: "Inspect", source: SOURCE } });
@@ -60,7 +61,7 @@ test("official MCP client crosses spawned stdio boundary and exposes the six wor
   });
   assert.equal(recipes.isError, true);
   assert.equal(recipes.structuredContent.recipes[0].recipe_id, "infinite-food");
-  assert.match(recipes.structuredContent.recipes[0].error, /install_change refused/);
+  assert.equal(recipes.structuredContent.recipes[0].error.includes(join(root, "registry", "infinite-food", "code.cs")), true);
 });
 
 test("official SDK validates tool input before the service callback", async (t) => {
@@ -137,6 +138,18 @@ test("normal operation responses stay compact while the ledger owns details", ()
   assert.deepEqual(summary, {
     state: "succeeded", operation_id: "operation", result: { position: [1, 2, 3] }, error: null,
   });
+});
+
+test("normal operation responses surface unavailable optional evidence", () => {
+  const summary = operationSummary({
+    state: "succeeded", operation_id: "operation", action: "run_once",
+    result: "{\"ok\":true}", error: null, restart_required: false,
+    evidence_selected: true, evidence_available: false,
+    evidence_unavailable_reason: "optional_provider_absent",
+    evidence_events: [], evidence_truncated: false, dropped_evidence_events: 0,
+  });
+  assert.equal(summary.evidence_available, false);
+  assert.equal(summary.evidence_unavailable_reason, "optional_provider_absent");
 });
 
 test("lab status returns the runtime's active managed changes", async (t) => {

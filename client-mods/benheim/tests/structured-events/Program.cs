@@ -231,7 +231,38 @@ try
         .String("station", "piece_oven#1")
         .String("item", "LoxPieUncooked")
         .Boolean("accepted", false);
+    string? observedDomain = null;
+    string? observedName = null;
+    string? observedJson = null;
+    Expect(
+        "available",
+        ValheimDevEvidenceAdapter.SetExternalObserver(
+            "ValheimDev",
+            (domain, name, jsonLine) =>
+            {
+                observedDomain = domain;
+                observedName = name;
+                observedJson = jsonLine;
+            }),
+        "healthy Benheim exposes optional typed evidence through the primitive adapter");
     Diagnostics.Emit(writtenEvent);
+    Expect("Cooking", observedDomain, "optional adapter preserves the typed event domain");
+    Expect("owner_decision", observedName, "optional adapter preserves the typed event name");
+    Expect(writtenEvent.ToJsonLine(), observedJson, "optional adapter preserves the complete typed event JSON");
+    HealthReporting.GameplayActionsEnabled = false;
+    Expect(
+        "optional_provider_unhealthy",
+        ValheimDevEvidenceAdapter.SetExternalObserver("ValheimDev", (_, _, _) => { }),
+        "unhealthy Benheim declines optional evidence explicitly");
+    HealthReporting.GameplayActionsEnabled = true;
+    Expect(
+        "unsupported_consumer",
+        ValheimDevEvidenceAdapter.SetExternalObserver("unknown", null),
+        "the private adapter rejects unrelated consumers");
+    Expect(
+        "available",
+        ValheimDevEvidenceAdapter.SetExternalObserver("ValheimDev", null),
+        "Valheim Dev can release the optional subscription");
     Diagnostics.EndSession();
 
     string[] records = File.ReadAllLines(Path.Combine(testRoot, Diagnostics.CurrentEventFileName));

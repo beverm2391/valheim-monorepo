@@ -1,6 +1,5 @@
 using BenheimQoL.Infrastructure;
 using BenheimQoL.Affinities;
-using BenheimQoL.ValheimDev;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -55,8 +54,6 @@ internal static class BenheimTestCommandClient
             return true;
         }
 
-        if (ValheimDevRuntime.TryHandleConsole(args.Args, args.Context)) return true;
-
         if (AffinityDebugCommand.TryExecute(args.Args, args.Context)) return true;
 
         if (HengeOverlayProtocol.TryParse(args.Args, out bool hengeEnabled))
@@ -109,7 +106,6 @@ internal static class BenheimTestCommandClient
         context.AddString($"  {HengeOverlayProtocol.Usage}");
         context.AddString("  locally show or remove every native Yagluth-henge candidate");
         AffinityDebugCommand.PrintUsage(context);
-        ValheimDevRuntime.PrintUsage(context);
     }
 
     private static bool EnsureResultRpcRegistered()

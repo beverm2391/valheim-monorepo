@@ -1,11 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { plainObject, validateKeys } from "./bridge-compiler.mjs";
 import { MAX_RUN_LABEL_BYTES, MAX_SOURCE_BYTES } from "./constants.mjs";
-
-export const DEFAULT_RECIPES_ROOT = fileURLToPath(new URL("./registry", import.meta.url));
 
 const ENTRYPOINTS = Object.freeze({
   run_once: /\bpublic\s+static\s+class\s+ValheimDevCommand\b/,

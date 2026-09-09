@@ -24,7 +24,7 @@ identity. Startup publishes that session only after every resource is ready. A
 failed startup closes the listener, removes the descriptor, and publishes no
 authorization.
 
-Every bridge request carries protocol version 4 and the current session ID.
+Every bridge request carries protocol version 5 and the current session ID.
 The bridge rejects an old session and rechecks the captured world before it
 loads or runs code. Player respawn can replace the local `Player` object without
 changing the captured world.
@@ -110,7 +110,8 @@ passes the selected preset or ad hoc inputs through this same contract.
 The response labels selected evidence as non-exhaustive and reports count or
 byte truncation. Feature-specific evidence is an optional integration with the
 mod that owns those events. If its provider is absent or unhealthy, the
-operation continues and reports the requested evidence as unavailable.
+operation continues and reports `evidence_available: false` with an explicit
+reason.
 
 ## Compilation Matches The Running Process
 

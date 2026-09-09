@@ -13,7 +13,7 @@ import {
   MAX_EVIDENCE_TIMEOUT_MS, MAX_RUN_LABEL_BYTES, MAX_SOURCE_BYTES,
 } from "./constants.mjs";
 import { captureLogCursor, optionalArtifactHash, readLedger, writeLedger } from "./ledger.mjs";
-import { createRecipeRunner, DEFAULT_RECIPES_ROOT } from "./recipes.mjs";
+import { createRecipeRunner } from "./recipes.mjs";
 import { validateOperationResponse, validateStatusResponse } from "./response-validation.mjs";
 
 function validateIdentifier(value, name) {
@@ -70,13 +70,13 @@ function validateCodeArguments(args, action) {
   };
 }
 
-function unavailable(error) {
+function unavailable(error, root) {
   const message = error instanceof Error ? error.message : String(error);
   let guidance = message;
   if (error?.code === "ENOENT") {
-    guidance = "Valheim Lab is off. Enter the disposable local world and run 'bh lab on'.";
+    guidance = `Valheim Lab root is unavailable at ${root}. Enter the disposable local world and run 'bh lab on'.`;
   } else if (message.includes("unsupported bridge protocol")) {
-    guidance = "Valheim Lab and this MCP process use different bridge versions. Install matching Benheim code, then refresh Codex.";
+    guidance = "Valheim Lab and this MCP process use different bridge versions. Install matching Valheim Dev code, then refresh Codex.";
   } else if (error?.code === "ECONNREFUSED") {
     guidance = "The Lab descriptor exists, but its bridge is unavailable. Check 'bh lab status', then re-enable Lab if needed.";
   }
@@ -99,8 +99,9 @@ async function authorizedSession(root, bridgeRequest) {
 function baseRecord(descriptor, operationId, action, input, previous, logCursor) {
   const source = input.source ?? null;
   return {
-    schema_version: 4, state: "pending", terminal: false, action, label: input.label,
+    schema_version: 5, state: "pending", terminal: false, action, label: input.label,
     session_id: descriptor.session_id, operation_id: operationId,
+    data_root: descriptor.data_root, log_path: descriptor.log_path,
     change_id: input.change_id ?? null, source, source_sha256: source === null ? null : sha256(source),
     artifact_sha256: null, ...buildIdentity(descriptor), targets: input.targets ?? null, inputs: input.inputs ?? null,
     previous_active_change: previous ?? null, previous_change_preserved: previous ? null : false,
@@ -112,6 +113,8 @@ function baseRecord(descriptor, operationId, action, input, previous, logCursor)
     result: null, exception: null, error: null, cleanup_state: "not_run", restart_required: false,
     active_changes: [], evidence_events: [],
     evidence_selected: (input.evidence_events ?? []).length > 0, evidence_exhaustive: false,
+    evidence_available: false,
+    evidence_unavailable_reason: (input.evidence_events ?? []).length > 0 ? "operation_not_started" : null,
     evidence_truncated: false, dropped_evidence_events: 0,
   };
 }
@@ -145,6 +148,8 @@ function runtimeFields(response) {
     previous_change_preserved: response.previous_change_preserved === true,
     active_changes: response.active_changes, evidence_events: response.evidence_events,
     evidence_selected: response.evidence_selected, evidence_exhaustive: false,
+    evidence_available: response.evidence_available,
+    evidence_unavailable_reason: response.evidence_unavailable_reason,
     evidence_truncated: response.evidence_truncated,
     dropped_evidence_events: response.dropped_evidence_events,
   };
@@ -169,8 +174,8 @@ async function compileFailureRuntimeState(root, descriptor, previous, bridgeRequ
 
 export function createService({
   root,
-  recipesRoot = DEFAULT_RECIPES_ROOT,
-  logPath = join(root ?? "", "..", "LogOutput.log"),
+  recipesRoot,
+  logPath,
   bridgeRequest = requestBridge,
   compilerRunner = runCompiler,
 } = {}) {
@@ -193,7 +198,7 @@ export function createService({
         authorized_at: descriptor.authorized_at, ...buildIdentity(descriptor),
         restart_required: status.restart_required === true, active_changes: status.active_changes,
       };
-    } catch (error) { return unavailable(error); }
+    } catch (error) { return unavailable(error, root); }
   }
 
   async function codeOperation(rawArguments, action) {
@@ -207,9 +212,11 @@ export function createService({
       ? status.active_changes.find((change) => change.change_id === input.change_id) ?? null
       : null;
     const operationId = randomUUID();
-    const logCursor = await captureLogCursor(logPath);
+    const operationLogPath = logPath ?? descriptor.log_path;
+    const ledgerRoot = join(root, "ledger");
+    const logCursor = await captureLogCursor(operationLogPath);
     let record = baseRecord(descriptor, operationId, action, input, previous, logCursor);
-    await writeLedger(root, record);
+    await writeLedger(ledgerRoot, record);
     const workRoot = await mkdtemp(join(tmpdir(), "valheim-dev-"));
     const stem = `${operationId}-${record.source_sha256.slice(0, 16)}`;
     const sourcePath = join(workRoot, `${stem}.cs`);
@@ -226,7 +233,7 @@ export function createService({
           compiler: { outcome: "failed", exit_code: null, signal: null, stdout: "", stderr: "", error: error.message },
           error: `compiler failed: ${error.message}`, ...runtimeState,
         });
-        await writeLedger(root, record);
+        await writeLedger(ledgerRoot, record);
         return record;
       }
       const compiler = compilerLedgerOutcome(compilation);
@@ -237,7 +244,7 @@ export function createService({
           artifact_sha256: await optionalArtifactHash(assemblyPath), error: "C# compilation failed",
           ...runtimeState,
         });
-        await writeLedger(root, record);
+        await writeLedger(ledgerRoot, record);
         return record;
       }
       let artifact;
@@ -248,7 +255,7 @@ export function createService({
           error: `compiler emitted no readable assembly: ${error.message}`,
           ...runtimeState,
         });
-        await writeLedger(root, record);
+        await writeLedger(ledgerRoot, record);
         return record;
       }
       const assemblyHash = sha256(artifact);
@@ -258,7 +265,7 @@ export function createService({
         record = terminalRecord(record, "compile_failed", {
           error: "compiled assembly exceeds size limit", ...runtimeState,
         });
-        await writeLedger(root, record);
+        await writeLedger(ledgerRoot, record);
         return record;
       }
       try {
@@ -269,7 +276,7 @@ export function createService({
           error: `operation revoked before load: ${error.message}`, previous_change_preserved: null,
           active_changes: null,
         });
-        await writeLedger(root, record);
+        await writeLedger(ledgerRoot, record);
         return record;
       }
 
@@ -290,11 +297,11 @@ export function createService({
         record = { ...record, state: "runtime_unresolved", terminal: false,
           error: `${error.message}; the operation final result is unknown`, previous_change_preserved: null,
           active_changes: null };
-        await writeLedger(root, record);
+        await writeLedger(ledgerRoot, record);
         return record;
       }
       record = terminalRecord(record, response.ok === true && !response.exception ? "succeeded" : "runtime_failed", runtimeFields(response));
-      await writeLedger(root, record);
+      await writeLedger(ledgerRoot, record);
       return record;
     } finally { await rm(workRoot, { recursive: true, force: true }); }
   }
@@ -310,9 +317,11 @@ export function createService({
     const previous = status.active_changes.find((change) => change.change_id === args.change_id) ?? null;
     const operationId = randomUUID();
     const input = { label, change_id: args.change_id, evidence_events: [], evidence_timeout_ms: 0 };
-    const logCursor = await captureLogCursor(logPath);
+    const operationLogPath = logPath ?? descriptor.log_path;
+    const ledgerRoot = join(root, "ledger");
+    const logCursor = await captureLogCursor(operationLogPath);
     let record = baseRecord(descriptor, operationId, "remove_change", input, previous, logCursor);
-    await writeLedger(root, record);
+    await writeLedger(ledgerRoot, record);
     try {
       const response = await bridgeRequest(descriptor, {
         kind: "remove_change", operation_id: operationId, change_id: args.change_id,
@@ -327,12 +336,12 @@ export function createService({
         active_changes: null,
       };
     }
-    await writeLedger(root, record);
+    await writeLedger(ledgerRoot, record);
     return record;
   }
 
   const runRecipes = createRecipeRunner({
-    recipesRoot,
+    recipesRoot: recipesRoot ?? join(root, "registry"),
     runCodeOperation: codeOperation,
     readStatus: labStatus,
   });
@@ -344,7 +353,9 @@ export function createService({
       if (name === "install_change") return codeOperation(args, name);
       if (name === "remove_change") return removeChange(args);
       if (name === "run_recipes") return runRecipes(args);
-      if (name === "read_ledger") return readLedger(root, args, logPath);
+      if (name === "read_ledger") {
+        return readLedger(join(root, "ledger"), args, logPath);
+      }
       throw new Error(`unknown tool: ${name}`);
     },
   };

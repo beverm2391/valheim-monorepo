@@ -133,13 +133,13 @@ async function atomicJsonWrite(path, value) {
   }
 }
 
-function ledgerPath(root, operationId) {
+function ledgerPath(ledgerRoot, operationId) {
   if (!OPERATION_PATTERN.test(operationId)) throw new Error("invalid operation_id");
-  return join(root, "ledger", `${operationId}.json`);
+  return join(ledgerRoot, `${operationId}.json`);
 }
 
-export async function writeLedger(root, record) {
-  await atomicJsonWrite(ledgerPath(root, record.operation_id), record);
+export async function writeLedger(ledgerRoot, record) {
+  await atomicJsonWrite(ledgerPath(ledgerRoot, record.operation_id), record);
 }
 
 export async function optionalArtifactHash(path) {
@@ -152,18 +152,18 @@ export async function optionalArtifactHash(path) {
   }
 }
 
-export async function readLedger(root, args, logPath = join(root, "..", "LogOutput.log")) {
+export async function readLedger(ledgerRoot, args, logPath) {
   validateKeys(args, new Set(["operation_id", "limit"]));
   if (args.operation_id !== undefined) {
     if (typeof args.operation_id !== "string" || !OPERATION_PATTERN.test(args.operation_id)) {
       throw new Error("operation_id is invalid");
     }
     try {
-      const record = await readSmallJson(ledgerPath(root, args.operation_id), MAX_LEDGER_RESPONSE_BYTES);
+      const record = await readSmallJson(ledgerPath(ledgerRoot, args.operation_id), MAX_LEDGER_RESPONSE_BYTES);
       return {
         run: runSummary(record),
         details: record,
-        logs_since_run: await logsSinceRun(logPath, record.log_cursor),
+        logs_since_run: await logsSinceRun(logPath ?? record.log_path, record.log_cursor),
       };
     } catch (error) {
       if (error?.code === "ENOENT") return { run: null, details: null, logs_since_run: null };
@@ -176,7 +176,7 @@ export async function readLedger(root, args, logPath = join(root, "..", "LogOutp
   }
   let names;
   try {
-    names = await readdir(join(root, "ledger"));
+    names = await readdir(ledgerRoot);
   } catch (error) {
     if (error?.code === "ENOENT") return { runs: [], truncated: false };
     throw error;
@@ -185,7 +185,7 @@ export async function readLedger(root, args, logPath = join(root, "..", "LogOutp
   for (const name of names) {
     if (!name.endsWith(".json") || !OPERATION_PATTERN.test(name.slice(0, -5))) continue;
     try {
-      records.push(await readSmallJson(join(root, "ledger", name), MAX_LEDGER_RESPONSE_BYTES));
+      records.push(await readSmallJson(join(ledgerRoot, name), MAX_LEDGER_RESPONSE_BYTES));
     } catch {
       // Atomic writes prevent partial records; ignore unrelated or externally corrupted files.
     }

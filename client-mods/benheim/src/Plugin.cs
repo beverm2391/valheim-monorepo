@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using BepInEx;
 using BepInEx.Logging;
 using BenheimQoL.CombatFeedback;
@@ -15,7 +14,6 @@ using BenheimQoL.KillAttribution;
 using BenheimQoL.ShipSprint;
 using BenheimQoL.WorldLabels;
 using BenheimQoL.Affinities;
-using BenheimQoL.ValheimDev;
 using HarmonyLib;
 using UnityEngine;
 
@@ -48,10 +46,6 @@ public sealed class Plugin : BaseUnityPlugin
         DeveloperDiagnosticsRuntime.InitializeConsole();
         BenheimFxSettings.Initialize(Config);
         HealthReporting.BeginSession();
-        ValheimDevRuntime.Initialize(
-            Paths.BepInExRootPath,
-            PluginVersion,
-            Thread.CurrentThread.ManagedThreadId);
         try
         {
             harmony = new Harmony(PluginGuid);
@@ -92,7 +86,6 @@ public sealed class Plugin : BaseUnityPlugin
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
         DeveloperDiagnosticsRuntime.Update();
-        ValheimDevRuntime.Update();
         FarmingGridPicker.Update();
         if (!HealthReporting.GameplayActionsEnabled)
         {
@@ -109,7 +102,6 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
-        ValheimDevRuntime.Revoke("plugin_teardown");
         WorldLabelRuntime.Reset();
         ShipSprintRuntime.Reset("plugin_teardown");
         PlantingPreview.DestroyGhosts();

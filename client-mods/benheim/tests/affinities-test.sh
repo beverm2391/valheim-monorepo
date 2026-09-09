@@ -4,7 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 feature="$root/src/Affinities"
 presentation="$feature/AffinityForgeUiPresentation.cs"
-recipe="${root%/client-mods/benheim}/tools/valheim-dev/registry/lunge-affinity/code.cs"
+recipe="${root%/client-mods/benheim}/tools/valheim-dev/recipe-templates/lunge-affinity/code.cs"
 native_tree="$($root/scripts/ensure-valheim-source.sh)"
 
 rg -Fq 'm_customData.Count' "$native_tree/Inventory.cs"

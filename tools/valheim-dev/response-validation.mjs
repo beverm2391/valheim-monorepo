@@ -10,13 +10,14 @@ const ACTIVE_CHANGE_KEYS = new Set([
 ]);
 const STATUS_KEYS = new Set([
   "protocol", "ok", "error", "session_id", "valheim_version",
-  "valheim_sha256", "benheim_version", "benheim_sha256", "authorized",
+  "valheim_sha256", "valheim_dev_version", "valheim_dev_sha256", "authorized",
   "restart_required", "active_changes",
 ]);
 const OPERATION_KEYS = new Set([
   ...STATUS_KEYS, "action", "operation_id", "change_id", "started_utc",
   "finished_utc", "result", "exception", "cleanup_state",
-  "previous_change_preserved", "evidence_selected", "evidence_exhaustive",
+  "previous_change_preserved", "evidence_selected", "evidence_available",
+  "evidence_unavailable_reason", "evidence_exhaustive",
   "evidence_truncated", "dropped_evidence_events", "evidence_events",
 ]);
 
@@ -149,6 +150,16 @@ export function validateOperationResponse(response, descriptor, record, input) {
   if (typeof response.evidence_selected !== "boolean"
       || response.evidence_selected !== (input.evidence_events.length > 0)) {
     throw new Error("bridge evidence selection label does not match the request");
+  }
+  if (typeof response.evidence_available !== "boolean") {
+    throw new Error("bridge evidence_available must be boolean");
+  }
+  requireNullableString(response.evidence_unavailable_reason, "bridge evidence unavailable reason");
+  if ((response.evidence_available && response.evidence_unavailable_reason !== null)
+      || (response.evidence_selected && !response.evidence_available
+        && response.evidence_unavailable_reason === null)
+      || (!response.evidence_selected && response.evidence_unavailable_reason !== null)) {
+    throw new Error("bridge evidence availability fields are inconsistent");
   }
   if (response.evidence_exhaustive !== false) throw new Error("bridge must label evidence as non-exhaustive");
   if (typeof response.evidence_truncated !== "boolean") throw new Error("bridge evidence_truncated must be boolean");

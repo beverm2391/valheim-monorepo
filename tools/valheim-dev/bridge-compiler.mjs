@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { constants as fsConstants } from "node:fs";
 import { access, readFile, stat } from "node:fs/promises";
 import { createConnection } from "node:net";
-import { isAbsolute, join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 
 import {
   BRIDGE_PROTOCOL,
@@ -47,8 +47,8 @@ export function buildIdentity(value) {
   return {
     valheim_version: value.valheim_version,
     valheim_sha256: value.valheim_sha256,
-    benheim_version: value.benheim_version,
-    benheim_sha256: value.benheim_sha256,
+    valheim_dev_version: value.valheim_dev_version,
+    valheim_dev_sha256: value.valheim_dev_sha256,
   };
 }
 
@@ -73,7 +73,8 @@ export async function loadDescriptor(root) {
   assertString(descriptor.authorized_at, "authorized_at");
   if (!Number.isFinite(Date.parse(descriptor.authorized_at))) throw new Error("authorized_at is invalid");
   validateBuildFields(descriptor, "valheim");
-  validateBuildFields(descriptor, "benheim");
+  validateBuildFields(descriptor, "valheim_dev");
+  validateResolvedPaths(descriptor, root);
   if (!Array.isArray(descriptor.compiler_references) || descriptor.compiler_references.length === 0) {
     throw new Error("compiler_references must be a non-empty array");
   }
@@ -87,6 +88,17 @@ export async function loadDescriptor(root) {
   return Object.freeze({ ...descriptor, compiler_references: [...descriptor.compiler_references] });
 }
 
+function validateResolvedPaths(value, root) {
+  for (const name of ["data_root", "log_path"]) {
+    if (typeof value[name] !== "string" || !isAbsolute(value[name])) {
+      throw new Error(`${name} must be an absolute path`);
+    }
+  }
+  if (resolve(value.data_root) !== resolve(root)) {
+    throw new Error(`data_root conflicts with the selected Valheim Dev root: ${root} <> ${value.data_root}`);
+  }
+}
+
 export function sameSession(left, right) {
   return left.session_id === right.session_id;
 }
@@ -96,7 +108,7 @@ export function validateBridgeIdentity(response, descriptor) {
   if (response.protocol !== BRIDGE_PROTOCOL) throw new Error("bridge response protocol mismatch");
   if (response.session_id !== descriptor.session_id) throw new Error("bridge session identity mismatch");
   validateBuildFields(response, "valheim");
-  validateBuildFields(response, "benheim");
+  validateBuildFields(response, "valheim_dev");
   for (const [key, expected] of Object.entries(buildIdentity(descriptor))) {
     if (response[key] !== expected) throw new Error(`bridge ${key} mismatch`);
   }

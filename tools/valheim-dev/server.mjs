@@ -116,6 +116,8 @@ export function operationSummary(record) {
     summary.restart_required = true;
   }
   if (record.evidence_selected) {
+    summary.evidence_available = record.evidence_available;
+    summary.evidence_unavailable_reason = record.evidence_unavailable_reason;
     summary.evidence_events = record.evidence_events;
     summary.evidence_truncated = record.evidence_truncated;
     summary.dropped_evidence_events = record.dropped_evidence_events;
