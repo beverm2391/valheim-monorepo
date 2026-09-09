@@ -8,6 +8,24 @@ This document owns the technical contract. [PRODUCT.md](PRODUCT.md) owns the
 player promise. [PROMPT.md](PROMPT.md) owns development and registration.
 [COMMON_OPERATIONS.md](COMMON_OPERATIONS.md) is the usage reference.
 
+## Paths Have One Owner
+
+The MCP launcher's own location identifies the external Valheim Dev tool
+source. It does not depend on the repository being checked out at one absolute
+path.
+
+One explicitly resolved Valheim Dev data root owns the session descriptor,
+ledger, and recipe registry. The bridge publishes that root and the paths it
+resolved; the MCP server consumes them rather than inferring a BepInEx profile
+from a hard-coded Steam or game location. Moving the repository, game, or
+BepInEx profile does not require a source change. Missing or conflicting path
+configuration fails with the resolved candidates in the error instead of
+silently using another profile.
+
+Installed plugin files are immutable runtime artifacts. Mutable recipes,
+ledger records, descriptors, and configuration never live beside a plugin DLL
+or in the source tree.
+
 ## One World Owns Installed Code
 
 Ben enables Lab after entering a local single-player world. The bridge captures
