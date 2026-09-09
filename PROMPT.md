@@ -135,18 +135,14 @@ boundary.
 
 Report completed server-mod gates to the Project Lead only after every named
 condition passes. Ben or the Project Lead records the accepted result in
-`PRODUCT.md`. Record one-time rollout evidence in `MIGRATION-1.0.md`.
+`PRODUCT.md`.
 
 ## Valheim 1.0 migration
 
-Until the migration is closed and archived, `MIGRATION-1.0.md` is the canonical
-one-time runbook for the September 9, 2026 upgrade. Update that runbook when
-migration decisions, gates, commands, or proof change. Do not duplicate its
-process in `PRODUCT.md` or treat it as permanent server doctrine.
-
-Migration work must preserve a vanilla launch path, prove the world on a
-temporary server before production, back up server worlds and client
-characters, and restore mods only after vanilla 1.0 is stable.
+Until the migration is closed and archived, read the three migration documents
+in the documentation map below before doing migration work. Follow their
+authority order and do not restate the one-time process in `PRODUCT.md` or turn
+it into permanent server doctrine.
 
 ## Benheim client development
 
@@ -158,6 +154,9 @@ testing, installation, release, gameplay workflow, and client rules. Work under
 
 - `README.md` is the public entrypoint.
 - `PRODUCT.md` owns the overall server and mod product promise.
-- `MIGRATION-1.0.md` temporarily owns the 1.0 cutover and mod-recovery process.
+- `docs/server/1.0-migration.html` temporarily owns Ben's 1.0
+  migration decisions.
+- `knowledge-base/server/1.0-evidence.md` owns the collected 1.0 evidence.
+- `MIGRATION-1.0.md` owns the temporary 1.0 execution checklist.
 - `AGENT_SETUP.md` is for an AI agent helping a human set up a server.
 - `AGENTS.md` owns agent behavior and points here for local workflow.

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Valheim 1.0 migration</title>
+</head>
+<body>
+<main>
+  <h1>Valheim 1.0 migration</h1>
+  <p class="pending"><strong>Draft.</strong> Being written with Ben, one section at a time. Nothing below is decided until this notice is gone.</p>
+
+  <p class="lede"><strong>Preserve the current state → prove vanilla 1.0 in disposable QA → port mods in parallel → promote the proven build.</strong></p>
+
+  <p>
+    Valheim 1.0 releases at 15:00 CEST / 9:00 AM EDT on September 9. Steam can
+    replace the client assemblies automatically; we control when the dedicated
+    server updates. The migration can take as long as it takes.
+  </p>
+
+  <h2>1. Preserve the current state</h2>
+  <ul>
+    <li>
+      <strong>Back up:</strong> the stopped production world. This is the only
+      essential data backup. The game's rolling and possible conversion
+      backups are extra protection, not substitutes for ours.
+    </li>
+    <li>
+      <strong>Preserve for porting:</strong>
+      <ul>
+        <li>the pre-1.0 Mac client and Linux server game assemblies;</li>
+        <li>the matching BepInEx and mod binaries as reference inputs;</li>
+        <li>build IDs and hashes.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>2. Prove vanilla 1.0 in disposable QA</h2>
+  <ol>
+    <li>Make sure nobody is connected, then stop the server.</li>
+    <li>Trigger one fresh world backup and R2 upload.</li>
+    <li>Confirm it succeeded.</li>
+    <li>Create a temporary Hetzner QA server.</li>
+    <li>Install the exact 1.0 dedicated server build with mods disabled.</li>
+    <li>Restore a disposable copy of the preserved world.</li>
+    <li>Start the copied world on vanilla 1.0.</li>
+    <li>Join with real characters, play, and save.</li>
+    <li>Restart the server and rejoin.</li>
+  </ol>
+  <p>If something fails, stop and investigate.</p>
+
+  <h2>3. Port mods and promote the proven build</h2>
+  <ol>
+    <li>Preserve and decompile the 1.0 client and server assemblies.</li>
+    <li>Compare the decompiled pre-1.0 and 1.0 client and server source.</li>
+    <li>Use the comparison to identify the changes relevant to each mod area.</li>
+    <li>Prove BepInEx and the standalone Valheim Dev bridge by themselves.</li>
+    <li>Run all existing mods together on QA before rewriting them.</li>
+    <li>Capture compilation, plugin-load, Harmony patch, runtime, and gameplay failures.</li>
+    <li>Give independent failures to agents working in parallel.</li>
+    <li>Leave candidate builds, hashes, logs, and notes in one shared place.</li>
+    <li>Have one integration lead install and test them on QA.</li>
+    <li>Promote only the exact passing binaries and configuration to production.</li>
+    <li>Join production, play, save, restart, and rejoin.</li>
+  </ol>
+  <p>
+    Fix forward from observed failures. If an existing mod still works, leave it
+    alone. Each failure must identify the mod area and include the exception or
+    failed target when available. The disposable QA server is the fast iteration
+    environment; production remains untouched until the build is proven.
+  </p>
+</main>
+</body>
+</html>

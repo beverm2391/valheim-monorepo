@@ -88,8 +88,9 @@ must prevent compatible clients from entering that flow concurrently.
 
 ## Open Gates
 
-- Complete the temporary [Valheim 1.0 migration](MIGRATION-1.0.md): prove the
-  existing world on vanilla 1.0, then restore or defer each mod deliberately.
+- Complete the temporary [Valheim 1.0 migration](MIGRATION-1.0.md). The gate
+  closes when production is stable on 1.0, each mod works or is explicitly
+  deferred, and the post-migration world backup succeeds.
 - Complete Benheim Eternal Fire's remaining
   [gameplay and restart proof](server-mods/benheim-eternal-fire/PRODUCT.md).
 - Choose Benheim's next gameplay system by balancing the ideal player experience,
