@@ -10,7 +10,9 @@ tabs="$root/src/Shortcuts/ShortcutOverlayTabs.cs"
 # hard-coding the game's defaults or adding a parallel binding registry.
 grep -Fq 'AccessTools.Field(typeof(ZInput), "m_buttons")' "$warnings"
 grep -Fq 'Dictionary<string, ZInput.ButtonDef>' "$warnings"
-grep -Fq 'native.Value.GetActionPath()' "$warnings"
+grep -Fq 'TryGetActionPath(native.Value, out string nativePath)' "$warnings"
+grep -Fq 'catch (ArgumentOutOfRangeException)' "$warnings"
+grep -Fq 'path = button.GetActionPath()' "$warnings"
 grep -Fq 'StringComparison.OrdinalIgnoreCase' "$warnings"
 
 # Loadout Swap owns native Hide on R, but any other native action bound to R is

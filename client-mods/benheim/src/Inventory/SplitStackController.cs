@@ -26,6 +26,9 @@ internal static class SplitStackController
     private static readonly FieldInfo CurrentContainerField =
         AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
 
+    private static readonly MethodInfo HideSplitDialogMethod =
+        AccessTools.Method(typeof(InventoryGui), "HideSplitDialog");
+
     internal static void PrimeNumericInput(InventoryGui inventoryGui)
     {
         ClearTypedAmount(inventoryGui);
@@ -107,7 +110,8 @@ internal static class SplitStackController
     {
         SplitItemField.SetValue(inventoryGui, null);
         SplitInventoryField.SetValue(inventoryGui, null);
-        // SplitDialog.SplitOk closes the dialog after its accepted event returns.
-        // The event owner, not Benheim, owns activation and listener cleanup.
+        // InventoryGui owns the native event subscriptions. A successful
+        // Benheim transfer skips OnSplitOk, so run its normal cleanup boundary.
+        HideSplitDialogMethod.Invoke(inventoryGui, Array.Empty<object>());
     }
 }

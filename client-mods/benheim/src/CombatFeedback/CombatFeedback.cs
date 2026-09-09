@@ -231,7 +231,14 @@ internal static class CombatFeedbackController
         // the mode takes ownership of the camera.
         if (resolvedMainCamera && camera.m_skyCamera)
         {
-            camera.ResetTempFOV();
+            if (snipeFocusActive && focusCamera && focusBaseFov > 0f)
+            {
+                RestoreSnipeFovImmediately(focusCamera);
+            }
+            else
+            {
+                camera.ResetTempFOV();
+            }
         }
 
         Diagnostics.Event(
@@ -260,10 +267,11 @@ internal static class CombatFeedbackController
         if (snipeFocusActive)
         {
             // Snipe's release is deliberately immediate. The native camera
-            // has already restored its own FOV this frame; release both our
-            // projection and edge layer before rendering. Ordinary Bow Focus
-            // keeps its existing smooth restoration below.
-            camera.ResetTempFOV();
+            // updated toward our previous scoped target before this postfix.
+            // Drive its numeric FOV back to the captured base now so a rapid
+            // redraw cannot capture an intermediate scoped value. Ordinary
+            // Bow Focus keeps its existing smooth restoration below.
+            RestoreSnipeFovImmediately(camera);
             Diagnostics.Event("CombatFeedback", "focus_ended", $"reason={reason} snipe=true");
             ClearFocusState();
             return;
@@ -303,6 +311,16 @@ internal static class CombatFeedbackController
     private static void SetCameraFov(GameCamera camera, Camera resolvedMainCamera, float fieldOfView)
     {
         camera.SetTempFOV(fieldOfView);
+    }
+
+    private static void RestoreSnipeFovImmediately(GameCamera camera)
+    {
+        // ResetTempFOV only changes Valheim's target; UpdateFOV performs the
+        // numeric transition. An inertia of one makes that native transition
+        // complete before this lifecycle clears focusBaseFov.
+        camera.SetTempFOV(focusBaseFov, 1f);
+        camera.UpdateFOV();
+        camera.ResetTempFOV();
     }
 
     private static void ClearFocusState()

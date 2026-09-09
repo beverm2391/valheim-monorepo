@@ -24,6 +24,8 @@ protocol_root="$root/../../shared/benheim-inventory-protocol"
 top_left_feedback_hud="$root/src/TopLeftFeedbackHud.cs"
 top_left_feedback_layout="$root/src/TopLeftFeedbackLayout.cs"
 visibility="$root/src/Inventory/InventoryVisibility.cs"
+native_tree="$($root/scripts/ensure-valheim-source.sh)"
+native_inventory_gui="$native_tree/InventoryGui.cs"
 
 grep -Fq 'internal static bool IsTextEntryActive()' "$input_state"
 grep -Fq 'Minimap.InTextInput()' "$input_state"
@@ -59,7 +61,11 @@ if rg -n 'InventoryGrid\), "Element"|m_pos|m_go' "$marker"; then
   exit 1
 fi
 grep -Fq 'm_splitDialog.SliderValue' "$split_controller"
-grep -Fq 'SplitDialog.SplitOk closes the dialog' "$split_controller"
+grep -Fq 'AccessTools.Method(typeof(InventoryGui), "HideSplitDialog")' "$split_controller"
+grep -Fq 'HideSplitDialogMethod.Invoke(inventoryGui, Array.Empty<object>())' "$split_controller"
+hide_split_dialog_block="$(sed -n '/private void HideSplitDialog()/,/private void UpdateSplitDialog()/p' "$native_inventory_gui")"
+grep -Fq 'm_splitDialog.SplitAccepted -= OnSplitOk' <<<"$hide_split_dialog_block"
+grep -Fq 'm_splitDialog.SplitCanceled -= OnSplitCancel' <<<"$hide_split_dialog_block"
 grep -Fq 'm_splitDialog.IsActive' "$split_patches"
 grep -Fq 'ZInput.pointerPosition' "$inventory_patches"
 grep -Fq '[HarmonyPatch(typeof(Container), "RPC_OpenResponse")]' "$interaction_patch"

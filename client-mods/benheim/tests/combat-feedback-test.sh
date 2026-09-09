@@ -75,6 +75,19 @@ if rg -Fq 'm_shakeIntensity +=' "$native_camera"; then
   exit 1
 fi
 
+# ResetTempFOV only retargets Valheim's FOV; the numeric m_fov transition is
+# performed later by UpdateFOV. Snipe release must force that native update to
+# the captured base before clearing the lifecycle, or a rapid redraw captures
+# the still-scoped value as its next base.
+rg -Fq 'm_fovTarget = m_fovBase;' "$native_camera"
+rg -Fq 'm_fov += (m_fovTarget - m_fov) * m_fovInertia;' "$native_camera"
+snipe_restore="$(sed -n '/private static void RestoreSnipeFovImmediately/,/^    }/p' "$feedback")"
+[[ "$snipe_restore" == *'camera.SetTempFOV(focusBaseFov, 1f);'*'camera.UpdateFOV();'*'camera.ResetTempFOV();'* ]]
+snipe_release="$(sed -n '/private static void RestoreFocusSmoothly/,/private static void SetCameraFov/p' "$feedback")"
+[[ "$snipe_release" == *'RestoreSnipeFovImmediately(camera);'*'ClearFocusState();'* ]]
+interruption_lifecycle="$(sed -n '/private static void InterruptFocus/,/private static void RestoreFocusSmoothly/p' "$feedback")"
+[[ "$interruption_lifecycle" == *'snipeFocusActive && focusCamera && focusBaseFov > 0f'*'RestoreSnipeFovImmediately(focusCamera);'*'ClearFocusState();'* ]]
+
 if rg -n 'm_fov\s*=|fieldOfView\s*=|m_distance|FreezeFrame|RPC_|MusicMan|EnvMan|EffectList|Instantiate' "$root/src/CombatFeedback"; then
   printf 'combat feedback must stay local, transient, and camera-only\n' >&2
   exit 1

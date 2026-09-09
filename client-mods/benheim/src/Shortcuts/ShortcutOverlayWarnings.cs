@@ -139,7 +139,8 @@ internal static partial class ShortcutOverlay
                 foreach (KeyValuePair<string, ZInput.ButtonDef> native in buttons)
                 {
                     if (string.Equals(native.Key, binding.IgnoredNativeAction, StringComparison.Ordinal)
-                        || !string.Equals(native.Value.GetActionPath(), binding.Path, StringComparison.OrdinalIgnoreCase))
+                        || !TryGetActionPath(native.Value, out string nativePath)
+                        || !string.Equals(nativePath, binding.Path, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
@@ -155,6 +156,22 @@ internal static partial class ShortcutOverlay
         }
 
         return warnings;
+    }
+
+    private static bool TryGetActionPath(ZInput.ButtonDef button, out string path)
+    {
+        try
+        {
+            path = button.GetActionPath();
+            return !string.IsNullOrEmpty(path);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            // Valheim 1.0 keeps unused ButtonDefs with no bound action path.
+            // Those entries own no native key, so skipping them is authoritative.
+            path = string.Empty;
+            return false;
+        }
     }
 
     private static void AddHealthWarnings(List<ShortcutWarning> warnings)

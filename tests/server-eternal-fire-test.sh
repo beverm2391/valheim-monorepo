@@ -100,6 +100,18 @@ load_line="$(grep -nF 'Logger.LogInfo(LoadMessage);' "$plugin_source" | cut -d: 
 # exercised by the no-Unity C# harness above.
 assert_contains "new-format world loads are normalized" "nameof(ZDO.Load)" "$source_file"
 assert_contains "legacy world loads are normalized" "nameof(ZDO.LoadOldFormat)" "$source_file"
+assert_contains \
+  "new-format world load patch uses Valheim 1.0's typed world version" \
+  'nameof(ZDO.Load), new[] { typeof(ZPackage), typeof(Version.World) }' \
+  "$source_file"
+assert_contains \
+  "legacy world load patch uses Valheim 1.0's typed world version" \
+  'nameof(ZDO.LoadOldFormat), new[] { typeof(ZPackage), typeof(Version.World) }' \
+  "$source_file"
+assert_not_contains \
+  "world load patches must not target the removed integer overload" \
+  'new[] { typeof(ZPackage), typeof(int) }' \
+  "$source_file"
 assert_contains "vanilla-client updates are normalized" "nameof(ZDO.Deserialize)" "$source_file"
 assert_contains "the patch only runs on the server" "!ZNet.instance.IsServer()" "$source_file"
 assert_contains "the patch writes Valheim's native fuel field" "ZDOVars.s_fuel" "$source_file"

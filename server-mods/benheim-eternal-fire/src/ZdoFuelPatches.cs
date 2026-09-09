@@ -52,7 +52,7 @@ internal static class ZdoFuelNormalizer
     }
 }
 
-[HarmonyPatch(typeof(ZDO), nameof(ZDO.Load), new[] { typeof(ZPackage), typeof(int) })]
+[HarmonyPatch(typeof(ZDO), nameof(ZDO.Load), new[] { typeof(ZPackage), typeof(Version.World) })]
 internal static class LoadedWorldFuelPatch
 {
     private static void Postfix(ZDO __instance)
@@ -61,7 +61,7 @@ internal static class LoadedWorldFuelPatch
     }
 }
 
-[HarmonyPatch(typeof(ZDO), nameof(ZDO.LoadOldFormat), new[] { typeof(ZPackage), typeof(int) })]
+[HarmonyPatch(typeof(ZDO), nameof(ZDO.LoadOldFormat), new[] { typeof(ZPackage), typeof(Version.World) })]
 internal static class LoadedLegacyWorldFuelPatch
 {
     private static void Postfix(ZDO __instance)
