@@ -312,10 +312,13 @@ existing UI locations. This unified lane still needs gameplay proof.
 Benheim isolates startup and patch failures by independently useful feature or
 by an actual dependency group. If a feature cannot attach every hook required
 for its behavior, Benheim removes that feature's partial patches and disables
-only that feature. It logs the exact failure and a `[diag][Health]` event,
-keeps the problem visible in the menu Warnings block, and shows one prominent
-message per session that directs the player to `Left Shift + B`. Unrelated
-features remain available.
+only that feature. It keeps the exact failure in the normal BepInEx log and
+emits patch startup and cleanup outcomes through the existing typed Developer
+Diagnostics pipeline, so local NDJSON and configured Axiom delivery carry the
+same session, mod-version, and exact-DLL-build identity as other Benheim
+events. It keeps the problem visible in the menu Warnings block and shows one
+prominent message per session that directs the player to `Left Shift + B`.
+Unrelated features remain available.
 
 Features that share a required client/server or network protocol fail closed
 as one capability group when a required component is missing or incompatible.
