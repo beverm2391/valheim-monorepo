@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Valheim server network boundary</title>
+</head>
+<body>
+<main>
+  <h1>Valheim server network boundary</h1>
+
+  <p>
+    The server has two doors. Players use a narrow public game door.
+    Administration uses a private Tailscale door.
+  </p>
+  <p>
+    A public IP is necessary so ordinary Valheim clients can reach the server.
+    It does not mean the whole machine is exposed.
+  </p>
+
+  <figure>
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 800 350" width="640" height="280" role="img" aria-label="Players reach only Valheim UDP ports through the public IP and Hetzner firewall. Ben reaches SSH and administration through the private Tailscale network. Other public inbound traffic is blocked.">
+        <defs>
+          <marker id="network-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--fg-muted)"/>
+          </marker>
+        </defs>
+
+        <rect x="600" y="25" width="180" height="300" rx="10" fill="var(--bg)" stroke="var(--border)" stroke-width="1.5"/>
+        <text x="690" y="50" text-anchor="middle" font-size="11" font-weight="600" fill="var(--fg-muted)">HETZNER VM</text>
+
+        <rect x="620" y="72" width="140" height="58" rx="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="690" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fg)">Valheim</text>
+        <text x="690" y="115" text-anchor="middle" font-size="10" fill="var(--fg-muted)">UDP 2456–2458</text>
+
+        <rect x="620" y="230" width="140" height="58" rx="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="690" y="254" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fg)">SSH + admin</text>
+        <text x="690" y="273" text-anchor="middle" font-size="10" fill="var(--fg-muted)">private interface</text>
+
+        <rect x="25" y="72" width="130" height="58" rx="8" fill="var(--bg)" stroke="var(--border)" stroke-width="1.5"/>
+        <text x="90" y="106" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fg)">Players</text>
+
+        <line x1="155" y1="101" x2="211" y2="101" stroke="var(--fg-muted)" stroke-width="1.4" marker-end="url(#network-arrow)"/>
+
+        <rect x="215" y="72" width="130" height="58" rx="8" fill="var(--bg)" stroke="var(--border)" stroke-width="1.5"/>
+        <text x="280" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fg)">Public IP</text>
+        <text x="280" y="115" text-anchor="middle" font-size="10" fill="var(--fg-muted)">internet address</text>
+
+        <line x1="345" y1="101" x2="401" y2="101" stroke="var(--fg-muted)" stroke-width="1.4" marker-end="url(#network-arrow)"/>
+
+        <rect x="405" y="52" width="150" height="98" rx="8" fill="var(--bg)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="480" y="77" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fg)">Hetzner firewall</text>
+        <text x="480" y="101" text-anchor="middle" font-size="10" fill="var(--fg-muted)">allow game UDP</text>
+        <line x1="430" y1="114" x2="530" y2="114" stroke="var(--border)" stroke-width="1"/>
+        <text x="480" y="134" text-anchor="middle" font-size="10" fill="var(--fg-muted)">drop other inbound</text>
+
+        <line x1="555" y1="101" x2="616" y2="101" stroke="var(--fg-muted)" stroke-width="1.4" marker-end="url(#network-arrow)"/>
+
+        <text x="280" y="166" text-anchor="middle" font-size="10" fill="var(--fg-muted)">Other public traffic</text>
+        <line x1="345" y1="163" x2="465" y2="142" stroke="var(--fg-muted)" stroke-width="1.2" marker-end="url(#network-arrow)"/>
+
+        <rect x="25" y="230" width="130" height="58" rx="8" fill="var(--bg)" stroke="var(--border)" stroke-width="1.5"/>
+        <text x="90" y="254" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fg)">Ben</text>
+        <text x="90" y="273" text-anchor="middle" font-size="10" fill="var(--fg-muted)">operator</text>
+
+        <line x1="155" y1="259" x2="236" y2="259" stroke="var(--fg-muted)" stroke-width="1.4" marker-end="url(#network-arrow)"/>
+
+        <rect x="240" y="220" width="220" height="78" rx="39" fill="var(--bg)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="350" y="253" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fg)">Tailscale</text>
+        <text x="350" y="273" text-anchor="middle" font-size="10" fill="var(--fg-muted)">authenticated private network</text>
+
+        <line x1="460" y1="259" x2="616" y2="259" stroke="var(--fg-muted)" stroke-width="1.4" marker-end="url(#network-arrow)"/>
+      </svg>
+    </div>
+    <figcaption>
+      The public path ends at the game ports. The administrative path never
+      uses public SSH.
+    </figcaption>
+  </figure>
+
+  <h2>The layers</h2>
+
+  <h3>Public IP</h3>
+  <p>The address ordinary players use to reach the server.</p>
+
+  <h3>Hetzner firewall</h3>
+  <p>
+    Controls what can reach the VM through its public IP. It allows Valheim
+    UDP <code>2456–2458</code> and blocks every other public inbound
+    connection.
+  </p>
+
+  <h3>Tailscale</h3>
+  <p>
+    Creates the authenticated private network used for SSH and administration.
+    Tailscale does not disable the public interface or configure the Hetzner
+    firewall.
+  </p>
+
+  <h3>SSH key</h3>
+  <p>
+    Proves who may log in after an SSH connection reaches the server. It is not
+    a firewall and its private half never leaves the operator’s computer.
+  </p>
+
+  <h2>The finished state</h2>
+  <p>
+    Players connect normally without Tailscale. Ben administers the server
+    through Tailscale. Public SSH is closed. Outbound traffic remains allowed.
+  </p>
+  <p>
+    No dedicated public Tailscale port is required. Tailscale establishes
+    connectivity outward and can relay when a direct connection is
+    unavailable.
+  </p>
+
+  <h2>Bootstrapping a new server</h2>
+  <p>
+    A new VM cannot use Tailscale before Tailscale is installed and authorized.
+    During setup, public SSH is temporarily allowed only from the operator’s
+    current IP.
+  </p>
+  <ol>
+    <li>Tailscale installation</li>
+    <li>Browser authorization</li>
+    <li>Private SSH verification</li>
+    <li>Public SSH removal</li>
+  </ol>
+  <p>
+    Browser authorization avoids storing an auth key for a rare,
+    human-supervised server. Auth keys are for unattended or repeated
+    provisioning.
+  </p>
+</main>
+</body>
+</html>
