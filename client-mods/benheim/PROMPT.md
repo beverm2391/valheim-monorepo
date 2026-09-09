@@ -143,6 +143,20 @@ build, creates the `benheim-v<version>` GitHub release, and uploads stable
 `Benheim-macOS.zip` and `Benheim-Windows.zip` assets. Release assets are
 distribution artifacts, not an update channel.
 
+## Harmony patch groups
+
+`PatchGroupManager` installs Harmony patch classes by the first feature
+namespace beneath `BenheimQoL`. Keep each patch class in the namespace of the
+feature or real dependency group that owns it. Do not add an assembly-wide
+`PatchAll()` call or create a feature-owned Harmony instance outside the
+manager.
+
+When a frame-loop entrypoint depends on that group's patches, gate the
+entrypoint through `IsPatchGroupAvailable` using a type from the same feature
+namespace. Changing group resolution, installation, cleanup, or gating must
+preserve the focused partial-failure proof in `tests/patch-groups` and pass the
+canonical verification.
+
 ## Gameplay development loop
 
 For a gameplay change:
