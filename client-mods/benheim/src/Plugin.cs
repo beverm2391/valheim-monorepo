@@ -40,6 +40,7 @@ public sealed class Plugin : BaseUnityPlugin
         RemoteDiagnostics.Begin(Paths.ConfigPath);
         DiagnosticsSharingSettings.ApplyLegacyPrivateTestDefault(
             RemoteDiagnostics.IsConfigured);
+        RuntimeFailureCapture.Begin(Paths.BepInExRootPath);
         BenheimTestCommandClient.InitializeConsole();
         DeveloperDiagnosticsRuntime.InitializeConsole();
         BenheimFxSettings.Initialize(Config);
@@ -93,6 +94,7 @@ public sealed class Plugin : BaseUnityPlugin
             KillAttributionClient.Update();
         }
         RemoteDiagnostics.Update();
+        RuntimeFailureCapture.Update();
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
         DeveloperDiagnosticsRuntime.Update();
@@ -135,6 +137,8 @@ public sealed class Plugin : BaseUnityPlugin
         BenheimTestCommandClient.Reset();
         ShortcutOverlay.Destroy();
         QuickStack.ResetState();
+        RuntimeFailureCapture.Update();
+        RuntimeFailureCapture.End();
         RemoteDiagnostics.Reset();
         PlayerCombatRuntime.EndSession();
         LungeRuntime.ResetSession();
