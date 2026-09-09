@@ -44,6 +44,15 @@ items on the canonical world during migration.
 5. Join with real characters, play, and save.
 6. Restart the server and rejoin.
 
+Record three identities for the passing QA run:
+
+- the dedicated server's Steam build ID for app `896660`;
+- the joining client's Steam build ID for app `892970`;
+- Valheim's client/server compatibility version.
+
+The two Steam build IDs identify different apps and are not expected to match.
+The QA-to-production gate compares the dedicated-server build ID only.
+
 Do not promote the QA world. It is disposable proof; production will open its
 own preserved world only after the software build passes QA. If 1.0 converts
 the world's save format, that conversion happens first to the disposable QA
@@ -68,15 +77,19 @@ independent lanes. Run them in parallel when useful.
 
 ## Convert production to vanilla 1.0
 
-1. Update production to the exact vanilla Valheim server build proven on QA.
-2. Keep all mods disabled.
-3. Start the untouched frozen pre-1.0 production world and let the production
+1. Confirm Steam's current dedicated-server build for app `896660` is still
+   the build that passed QA. If it changed, repeat vanilla QA on the new server
+   build before touching the production world.
+2. Update production with all mods disabled.
+3. Read production's app `896660` manifest and confirm its build ID matches the
+   QA-passed dedicated-server build ID. If it differs, do not start the world.
+4. Start the untouched frozen pre-1.0 production world and let the production
    1.0 server perform its own save-format conversion if required. Do not copy
    the converted QA world into production.
-4. Join, play, save, restart the server, and rejoin.
-5. Trigger and confirm a fresh vanilla-1.0 world backup and R2 upload.
+5. Join, play, save, restart the server, and rejoin.
+6. Trigger and confirm a fresh vanilla-1.0 world backup and R2 upload.
 
-Until step 5 succeeds, keep the frozen pre-1.0 world backup and matching old
+Until step 6 succeeds, keep the frozen pre-1.0 world backup and matching old
 server installation as one recovery set. Never open a 1.0-converted production
 world with the old server binaries.
 
