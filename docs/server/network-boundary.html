@@ -79,40 +79,16 @@
     </figcaption>
   </figure>
 
-  <h2>The layers</h2>
-
-  <h3>Public IP</h3>
-  <p>The address ordinary players use to reach the server.</p>
-
-  <h3>Hetzner firewall</h3>
+  <h2>The distinction</h2>
   <p>
-    Controls what can reach the VM through its public IP. It allows Valheim
-    UDP <code>2456–2458</code> and blocks every other public inbound
-    connection.
-  </p>
-
-  <h3>Tailscale</h3>
-  <p>
-    Creates the authenticated private network used for SSH and administration.
-    Tailscale does not disable the public interface or configure the Hetzner
-    firewall.
-  </p>
-
-  <h3>SSH key</h3>
-  <p>
-    Proves who may log in after an SSH connection reaches the server. It is not
-    a firewall and its private half never leaves the operator’s computer.
-  </p>
-
-  <h2>The finished state</h2>
-  <p>
-    Players connect normally without Tailscale. Ben administers the server
-    through Tailscale. Public SSH is closed. Outbound traffic remains allowed.
+    The Hetzner firewall controls traffic reaching the VM through its public
+    IP. In the finished state it allows Valheim UDP
+    <code>2456–2458</code> and drops every other public inbound connection.
   </p>
   <p>
-    No dedicated public Tailscale port is required. Tailscale establishes
-    connectivity outward and can relay when a direct connection is
-    unavailable.
+    Tailscale provides the private route for administration; it does not
+    configure the public firewall. The SSH key proves who may log in once that
+    route reaches SSH. Its private half never leaves the operator’s computer.
   </p>
 
   <h2>Bootstrapping a new server</h2>
