@@ -50,9 +50,7 @@ internal static class LeechSpawnPatches
         "Spawn",
         typeof(SpawnSystem.SpawnData),
         typeof(Vector3),
-        typeof(bool),
-        typeof(int),
-        typeof(float))]
+        typeof(bool))]
     private static class SuccessfulSpawnPatch
     {
         [HarmonyPrefix]

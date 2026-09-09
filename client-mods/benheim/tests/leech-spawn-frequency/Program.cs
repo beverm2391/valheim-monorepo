@@ -31,13 +31,11 @@ Type[] expectedParameters =
 {
     typeof(SpawnSystem.SpawnData),
     typeof(Vector3),
-    typeof(bool),
-    typeof(int),
-    typeof(float)
+    typeof(bool)
 };
 ExpectTrue(
     patchedParameters.Select(argument => (Type)argument.Value!).SequenceEqual(expectedParameters),
-    "success patch targets the exact five-argument native Spawn overload");
+    "success patch targets the exact 1.0 three-argument native Spawn overload");
 
 MethodInfo prefix = spawnPatch.GetMethod("Prefix", BindingFlags.NonPublic | BindingFlags.Static)
     ?? throw new InvalidOperationException("successful spawn prefix is missing");

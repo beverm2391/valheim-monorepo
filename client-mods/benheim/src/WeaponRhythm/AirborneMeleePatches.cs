@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
@@ -14,12 +15,12 @@ namespace BenheimQoL.WeaponRhythm;
 [HarmonyPatch]
 internal static class AirborneMeleePatches
 {
-    private const string AreaHitMethod = "<DoAreaAttack>g__checkHits|26_0";
+    private const string AreaHitMethodPrefix = "<DoAreaAttack>g__checkHits|";
 
     private static IEnumerable<MethodBase> TargetMethods()
     {
         yield return RequireAttackMethod("DoMeleeAttack");
-        yield return RequireAttackMethod(AreaHitMethod);
+        yield return RequireAreaHitMethod();
     }
 
     private static IEnumerable<CodeInstruction> Transpiler(
@@ -67,6 +68,20 @@ internal static class AirborneMeleePatches
     {
         return AccessTools.Method(typeof(Attack), name)
             ?? throw new InvalidOperationException($"Required Attack method was not found: {name}");
+    }
+
+    private static MethodInfo RequireAreaHitMethod()
+    {
+        MethodInfo[] matches = AccessTools.GetDeclaredMethods(typeof(Attack))
+            .Where(method => method.Name.StartsWith(AreaHitMethodPrefix, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                $"Expected one generated DoAreaAttack hit method, found {matches.Length}.");
+        }
+
+        return matches[0];
     }
 
     private static bool IsDirectDamageCall(CodeInstruction instruction)

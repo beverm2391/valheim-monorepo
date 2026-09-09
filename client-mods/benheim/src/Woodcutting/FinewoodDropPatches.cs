@@ -6,7 +6,7 @@ using HarmonyLib;
 
 namespace BenheimQoL.Woodcutting;
 
-[HarmonyPatch(typeof(TreeLog), "Destroy", new[] { typeof(HitData) })]
+[HarmonyPatch(typeof(TreeLog), "Destroy", new[] { typeof(HitData), typeof(bool) })]
 internal static class FinewoodDropPatches
 {
     private static IEnumerable<CodeInstruction> Transpiler(

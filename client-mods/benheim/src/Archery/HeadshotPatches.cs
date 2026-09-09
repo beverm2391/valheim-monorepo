@@ -52,24 +52,32 @@ internal static class ProjectileHeadshotPatch
                 $"Expected exactly one direct Projectile damage call, found {damageCallCount}.");
         }
 
+        // The native hit pipeline gained several locals in 1.0.  The direct
+        // IDestructible call is still the semantic boundary we need: its two
+        // immediately preceding loads are the target and the fully populated
+        // HitData.  Resolve those locals from the actual IL rather than
+        // pinning compiler-assigned local slots.
         int targetLoadIndex = damageCallIndex - 2;
         if (targetLoadIndex < 0
-            || !IsLoadLocal(codes[targetLoadIndex], 4)
-            || !IsLoadLocal(codes[targetLoadIndex + 1], 10))
+            || !TryGetLoadLocalIndex(codes[targetLoadIndex], out int targetLocal)
+            || !TryGetLoadLocalIndex(codes[targetLoadIndex + 1], out int hitLocal))
         {
             throw new InvalidOperationException(
-                "Projectile damage seam locals changed; refusing to install headshots.");
+                "Projectile damage seam no longer loads target and HitData locals; refusing to install headshots.");
         }
 
+        CodeInstruction loadProjectile = new CodeInstruction(OpCodes.Ldarg_0);
+        codes[targetLoadIndex].MoveLabelsTo(loadProjectile);
+        codes[targetLoadIndex].MoveBlocksTo(loadProjectile);
         codes.InsertRange(
             targetLoadIndex,
             new[]
             {
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldloc_S, (byte)4),
+                loadProjectile,
+                CreateLoadLocal(targetLocal),
                 new CodeInstruction(OpCodes.Ldarg_1),
                 new CodeInstruction(OpCodes.Ldarg_2),
-                new CodeInstruction(OpCodes.Ldloc_S, (byte)10),
+                CreateLoadLocal(hitLocal),
                 new CodeInstruction(OpCodes.Call, applyMethod)
             });
         return codes;
@@ -90,30 +98,63 @@ internal static class ProjectileHeadshotPatch
             && parameters[0].ParameterType == typeof(HitData);
     }
 
-    private static bool IsLoadLocal(CodeInstruction instruction, int index)
+    private static CodeInstruction CreateLoadLocal(int index)
     {
-        if (index == 0 && instruction.opcode == OpCodes.Ldloc_0
-            || index == 1 && instruction.opcode == OpCodes.Ldloc_1
-            || index == 2 && instruction.opcode == OpCodes.Ldloc_2
-            || index == 3 && instruction.opcode == OpCodes.Ldloc_3)
+        return new CodeInstruction(OpCodes.Ldloc, index);
+    }
+
+    private static bool TryGetLoadLocalIndex(CodeInstruction instruction, out int index)
+    {
+        if (instruction.opcode == OpCodes.Ldloc_0)
         {
+            index = 0;
+            return true;
+        }
+        if (instruction.opcode == OpCodes.Ldloc_1)
+        {
+            index = 1;
+            return true;
+        }
+        if (instruction.opcode == OpCodes.Ldloc_2)
+        {
+            index = 2;
+            return true;
+        }
+        if (instruction.opcode == OpCodes.Ldloc_3)
+        {
+            index = 3;
             return true;
         }
 
         if (instruction.opcode != OpCodes.Ldloc_S && instruction.opcode != OpCodes.Ldloc)
         {
+            index = -1;
             return false;
         }
 
-        return instruction.operand switch
+        switch (instruction.operand)
         {
-            byte value => value == index,
-            sbyte value => value == index,
-            short value => value == index,
-            ushort value => value == index,
-            int value => value == index,
-            LocalBuilder local => local.LocalIndex == index,
-            _ => false
-        };
+            case byte value:
+                index = value;
+                return true;
+            case sbyte value:
+                index = value;
+                return true;
+            case short value:
+                index = value;
+                return true;
+            case ushort value:
+                index = value;
+                return true;
+            case int value:
+                index = value;
+                return true;
+            case LocalBuilder local:
+                index = local.LocalIndex;
+                return true;
+            default:
+                index = -1;
+                return false;
+        }
     }
 }

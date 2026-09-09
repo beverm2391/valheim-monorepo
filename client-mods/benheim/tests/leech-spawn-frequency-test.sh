@@ -22,9 +22,17 @@ grep -Fq 'Adjusted.Contains(critter)' "$patches"
 grep -Fq '!SpawnSystem.m_nospawn' "$patches"
 grep -Fq '!eventSpawner' "$patches"
 grep -Fq 'DiagnosticEvent.Create("Spawning", "leech_spawn_succeeded")' "$patches"
+grep -Fq 'typeof(SpawnSystem.SpawnData),' "$patches"
+grep -Fq 'typeof(Vector3),' "$patches"
+grep -Fq 'typeof(bool))]' "$patches"
 grep -Fq '.String("source", "base_world")' "$patches"
 grep -Fq '.String("prefab", critter.m_prefab.name)' "$patches"
 grep -Fq '.Number("opportunity_multiplier", LeechSpawnFrequency.OpportunityMultiplier)' "$patches"
+
+if rg -Fq 'typeof(int)' "$patches" || rg -Fq 'typeof(float))]' "$patches"; then
+  printf 'leech success patch must target the 1.0 three-argument Spawn overload\n' >&2
+  exit 1
+fi
 
 if rg -n 'CreatureSpawner|RandEventSystem|UpdateSpawning|ZDO|RPC|ZoneSystem' "$frequency" "$patches"; then
   printf 'leech frequency patch must not alter events, ownership, RPCs, or native spawn execution\n' >&2

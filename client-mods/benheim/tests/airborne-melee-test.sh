@@ -2,34 +2,33 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$root/../.." && pwd)"
 logic="$root/src/WeaponRhythm/AirborneMelee.cs"
 patches="$root/src/WeaponRhythm/AirborneMeleePatches.cs"
 outcome="$root/src/WeaponRhythm/PerfectImpactOutcome.cs"
 diagnostics="$root/src/WeaponRhythm/PerfectImpactDiagnostics.cs"
 delivery="$root/src/WeaponRhythm/PerfectImpactOutcomeDelivery.cs"
 tuning="$root/src/WeaponRhythm/AirborneMeleeTuning.cs"
-native_tree="$($root/scripts/ensure-valheim-source.sh)"
+source_hash="210616393e3b997cee6293380ba467d62af326f14d2f4a3c1d37b46094bbaf6b"
+decompiler_id="ilspy-ef475d235f0fcb13c7010d4b7c587a14d055f824b8349b9b5dfdeccb2e1b2406"
+native_tree="$repo_root/backups/migration-1.0-porting/decompiled-source/$source_hash/projects/$decompiler_id"
+native_assembly="$repo_root/backups/migration-1.0-porting/1.0/macos/Managed/assembly_valheim.dll"
+ilspy_path="${ILSPY_PATH:-$HOME/.dotnet/tools/ilspycmd}"
 native_attack="$native_tree/Attack.cs"
 native_character="$native_tree/Character.cs"
 native_humanoid="$native_tree/Humanoid.cs"
 
-# Resolve the installed assembly through the evidence owner used by the source
-# cache. The area-hit method is compiler-shaped, so source text cannot prove
-# that Harmony still resolves and patches the exact generated method.
-# shellcheck source=../scripts/valheim-source-lib.sh
-source "$root/scripts/valheim-source-lib.sh"
-valheim_source_resolve_assembly || {
-  printf 'airborne melee: %s\n' "$VALHEIM_SOURCE_ERROR" >&2
+# The area-hit method is compiler-shaped, so source text alone cannot prove
+# Harmony resolves the exact generated method. Use only the preserved 1.0
+# evidence, never an installed game assembly.
+if [[ ! -x "$ilspy_path" || ! -f "$native_assembly" || ! -f "$native_attack" ]]; then
+  printf 'airborne melee: preserved 1.0 IL evidence is unavailable\n' >&2
   exit 1
-}
-valheim_source_resolve_ilspy || {
-  printf 'airborne melee: %s\n' "$VALHEIM_SOURCE_ERROR" >&2
-  exit 1
-}
+fi
 attack_il="$(mktemp "${TMPDIR:-/tmp}/benheim-airborne-attack.XXXXXX")"
 trap 'rm -f "$attack_il"' EXIT
-"$VALHEIM_SOURCE_ILSPY_PATH" --disable-updatecheck -il -t Attack \
-  "$VALHEIM_SOURCE_ASSEMBLY_PATH" > "$attack_il"
+"$ilspy_path" --disable-updatecheck -il -t Attack \
+  "$native_assembly" > "$attack_il"
 
 assert_one_damage_call() {
   local signature="$1"
@@ -54,11 +53,14 @@ assert_one_damage_call \
   'instance void DoMeleeAttack () cil managed' \
   '} // end of method Attack::DoMeleeAttack'
 assert_one_damage_call \
-  "instance void '<DoAreaAttack>g__checkHits|26_0' (" \
-  "} // end of method Attack::'<DoAreaAttack>g__checkHits|26_0'"
+  "instance void '<DoAreaAttack>g__checkHits|27_0' (" \
+  "} // end of method Attack::'<DoAreaAttack>g__checkHits|27_0'"
 
 rg -Fq 'yield return RequireAttackMethod("DoMeleeAttack")' "$patches"
-rg -Fq 'yield return RequireAttackMethod(AreaHitMethod)' "$patches"
+rg -Fq 'yield return RequireAreaHitMethod()' "$patches"
+rg -Fq 'AreaHitMethodPrefix = "<DoAreaAttack>g__checkHits|"' "$patches"
+rg -Fq 'AccessTools.GetDeclaredMethods(typeof(Attack))' "$patches"
+rg -Fq 'StartsWith(AreaHitMethodPrefix, StringComparison.Ordinal)' "$patches"
 rg -Fq 'if (replaced != 1)' "$patches"
 rg -Fq 'new CodeInstruction(OpCodes.Ldarg_0)' "$patches"
 rg -Fq 'typeof(IDestructible), typeof(HitData), typeof(Attack)' "$patches"
