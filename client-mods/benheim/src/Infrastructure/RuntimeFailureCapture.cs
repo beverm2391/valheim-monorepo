@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using BepInEx.Logging;
 
 namespace BenheimQoL.Infrastructure;
@@ -26,24 +25,6 @@ internal static class RuntimeFailureCapture
     private static readonly object Gate = new object();
     private static readonly Queue<RuntimeFailure> Pending = new Queue<RuntimeFailure>();
     private static readonly HashSet<string> Seen = new HashSet<string>(StringComparer.Ordinal);
-    private static readonly Regex Credential = new Regex(
-        @"(?i)\b(token|password|secret|authorization|api[_-]?key)\s*[:=]\s*(?:""[^""]*""|'[^']*'|[^\s,;]+)",
-        RegexOptions.CultureInvariant);
-    private static readonly Regex Url = new Regex(
-        @"(?i)\bhttps?://[^\s]+",
-        RegexOptions.CultureInvariant);
-    private static readonly Regex WindowsPath = new Regex(
-        @"(?i)\b[a-z]:\\(?:[^\s\\/:*?""<>|]+\\)+[^\s\\:*?""<>|]+",
-        RegexOptions.CultureInvariant);
-    private static readonly Regex UnixPath = new Regex(
-        @"(?<![\w.])/(?:[^\s/:]+/)+[^\s:]+",
-        RegexOptions.CultureInvariant);
-    private static readonly Regex Ipv4 = new Regex(
-        @"(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?(?!\d)",
-        RegexOptions.CultureInvariant);
-    private static readonly Regex LongIdentifier = new Regex(
-        @"(?<!\d)\d{15,20}(?!\d)",
-        RegexOptions.CultureInvariant);
 
     private static FailureLogListener? listener;
     private static bool limitReached;
@@ -63,9 +44,16 @@ internal static class RuntimeFailureCapture
         // Register first so failures that arrive while the startup prefix is
         // inspected cannot fall into a gap. Signature deduplication collapses
         // a record if it is observed by both paths.
-        listener = new FailureLogListener();
-        Logger.Listeners.Add(listener);
-        ScanStartupPrefix(Path.Combine(bepinExRootPath, ActiveLogFileName));
+        try
+        {
+            listener = new FailureLogListener();
+            Logger.Listeners.Add(listener);
+            ScanStartupPrefix(Path.Combine(bepinExRootPath, ActiveLogFileName));
+        }
+        catch
+        {
+            End();
+        }
     }
 
     internal static void Update()
@@ -105,8 +93,18 @@ internal static class RuntimeFailureCapture
         listener = null;
         if (current != null)
         {
-            Logger.Listeners.Remove(current);
-            current.Dispose();
+            try
+            {
+                Logger.Listeners.Remove(current);
+            }
+            catch
+            {
+                // Failure capture never blocks plugin teardown.
+            }
+            finally
+            {
+                current.Dispose();
+            }
         }
     }
 
@@ -220,14 +218,19 @@ internal static class RuntimeFailureCapture
             ? "unity"
             : "bepinex";
         SplitRecord(raw, out string rawMessage, out string rawStack);
-        string message = Sanitize(rawMessage, MaximumMessageCharacters);
-        string stack = Sanitize(rawStack, MaximumStackCharacters);
+        string message = RuntimeFailurePrivacy.Sanitize(rawMessage, MaximumMessageCharacters);
+        string stack = RuntimeFailurePrivacy.Sanitize(rawStack, MaximumStackCharacters);
         if (message.Length == 0)
         {
             return;
         }
 
-        string fingerprint = Fingerprint(source, severity, logger, message, stack);
+        string fingerprint = RuntimeFailurePrivacy.Fingerprint(
+            source,
+            severity,
+            logger,
+            message,
+            stack);
         lock (Gate)
         {
             if (Seen.Contains(fingerprint))
@@ -246,7 +249,7 @@ internal static class RuntimeFailureCapture
                 source,
                 origin,
                 severity.ToLowerInvariant(),
-                Sanitize(logger, 128),
+                RuntimeFailurePrivacy.Sanitize(logger, 128),
                 message,
                 stack,
                 fingerprint));
@@ -288,61 +291,6 @@ internal static class RuntimeFailureCapture
 
         message = raw.Substring(0, newline);
         stack = raw.Substring(newline).TrimStart('\r', '\n');
-    }
-
-    internal static string Sanitize(string value, int maximumCharacters)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-
-        int inspectionLimit = Math.Min(value.Length, maximumCharacters * 4);
-        string sanitized = value.Substring(0, inspectionLimit)
-            .Replace('\0', ' ');
-        sanitized = Credential.Replace(sanitized, "$1=[redacted]");
-        sanitized = Url.Replace(sanitized, "<url>");
-        sanitized = WindowsPath.Replace(sanitized, "<local_path>");
-        sanitized = UnixPath.Replace(sanitized, "<local_path>");
-        sanitized = Ipv4.Replace(sanitized, "<ip>");
-        sanitized = LongIdentifier.Replace(sanitized, "<identifier>");
-
-        StringBuilder printable = new StringBuilder(Math.Min(sanitized.Length, maximumCharacters));
-        foreach (char character in sanitized)
-        {
-            if (printable.Length >= maximumCharacters)
-            {
-                break;
-            }
-
-            if (character == '\r' || character == '\n' || character == '\t' || !char.IsControl(character))
-            {
-                printable.Append(character);
-            }
-        }
-
-        return printable.ToString().Trim();
-    }
-
-    private static string Fingerprint(
-        string source,
-        string severity,
-        string logger,
-        string message,
-        string stack)
-    {
-        // FNV-1a gives a stable, non-secret grouping key without carrying the
-        // full source record into the searchable envelope.
-        const ulong offset = 14695981039346656037UL;
-        const ulong prime = 1099511628211UL;
-        ulong hash = offset;
-        string value = source + "\n" + severity + "\n" + logger + "\n" + message + "\n" + stack;
-        for (int index = 0; index < value.Length; index++)
-        {
-            hash ^= value[index];
-            hash *= prime;
-        }
-        return hash.ToString("x16");
     }
 
     private sealed class FailureLogListener : ILogListener

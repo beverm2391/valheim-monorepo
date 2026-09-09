@@ -13,7 +13,7 @@ try
         Path.Combine(testRoot, "LogOutput.log"),
         "[Info   :   BepInEx] startup\n" +
         "[Warning:   BepInEx] ordinary compatibility notice\n" +
-        "[Error  :   BepInEx] Could not load [Broken 1.0], token=super-secret from /Users/alice/Valheim/Broken.dll at 192.168.1.5 peer 76561198000000000\n" +
+        "[Error  :   BepInEx] Could not load [Broken 1.0], token=super-secret authorization: Bearer bearer-secret from /Users/alice/Valheim/Broken.dll at 192.168.1.5 peer 76561198000000000\n" +
         "System.TypeLoadException: missing type\n" +
         "  at /Users/alice/source/Broken.cs:42\n" +
         "[Error  : Unity Log] DllNotFoundException: BrokenNative\n" +
@@ -34,10 +34,12 @@ try
     string pluginMessage = pluginFailure.GetProperty("message").GetString() ?? string.Empty;
     string pluginStack = pluginFailure.GetProperty("stack_trace").GetString() ?? string.Empty;
     Expect(pluginMessage.Contains("token=[redacted]"), "credential value is redacted");
+    Expect(pluginMessage.Contains("authorization=[redacted]"), "Bearer credential is redacted");
     Expect(pluginMessage.Contains("<local_path>"), "local path is redacted");
     Expect(pluginMessage.Contains("<ip>"), "IP address is redacted");
     Expect(pluginMessage.Contains("<identifier>"), "long account identifier is redacted");
     Expect(!pluginMessage.Contains("super-secret"), "credential does not survive");
+    Expect(!pluginMessage.Contains("bearer-secret"), "Bearer value does not survive");
     Expect(!pluginStack.Contains("/Users/alice"), "stack source path is redacted");
 
     JsonElement unityFailure = Parse(Diagnostics.Emitted[1]);
