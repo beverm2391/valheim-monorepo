@@ -31,6 +31,12 @@ promise.
   visual language over parallel systems that feel pasted onto the game.
 - Mod infrastructure is part of server operations. Players should not need to
   understand BepInEx, systemd, or deployment mechanics to play.
+- Axiom is the single searchable surface for actionable failures from our
+  managed Benheim clients and dedicated server, including BepInEx plugin-load,
+  Harmony, and runtime failures. Local NDJSON, BepInEx logs, and the systemd
+  journal remain the raw fallbacks. Forward bounded structured failure records,
+  not indiscriminate raw logs, with enough source, session, build, and server
+  invocation identity to correlate each record with its original runtime.
 
 ## Gameplay Breakdown
 

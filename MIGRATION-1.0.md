@@ -55,8 +55,9 @@ local.
 3. Leave working mods alone. Turn observed failures into independent mod-area
    assignments that agents can handle in parallel.
 4. Use the existing diagnostics rather than creating a migration logger:
-   client and Harmony events go to local NDJSON and Axiom; server-owned events
-   stay in the systemd journal; normal BepInEx logs remain available.
+   actionable client, Harmony, BepInEx, and dedicated-server failures go to the
+   same searchable Axiom surface as bounded structured records. Local NDJSON,
+   normal BepInEx logs, and the systemd journal remain the raw fallbacks.
 5. One integration owner builds, installs, and tests each combined candidate on
    QA. Parallel agents may edit separate mod areas, but they do not run
    competing builds into the same output directories.

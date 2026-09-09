@@ -109,10 +109,12 @@ technical cost.
   those fields. The developer query command normalizes old flat events and new
   events that use the `fields` map into the same flat result shape.
 
-  Benheim must not construct typed events from credentials, secrets, tokens,
-  passwords, raw BepInEx or Unity logs, chat, arbitrary files, or other untyped
-  payloads. Those sources never enter remote diagnostics. Local NDJSON continues
-  whether sharing succeeds, fails, or is disabled.
+  Benheim must not forward credentials, secrets, tokens, passwords, chat,
+  arbitrary files, or complete BepInEx or Unity logs. A managed private-test
+  client may convert an actionable BepInEx plugin-load or Unity failure into one
+  bounded structured diagnostic record. It does not upload surrounding log
+  lines or replace the original local log. Local NDJSON continues whether
+  sharing succeeds, fails, or is disabled.
 - Private-test diagnostics use one dataset-scoped ingest-only credential for
   Ben, Johnny, and Ozi. The credential is extractable from those installers.
   Never publish a private-test installer. Rotate the credential if an installer
