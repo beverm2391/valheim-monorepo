@@ -26,6 +26,7 @@ pipeline="$root/src/Inventory/QuickStackBatchPipeline.cs"
 transfer="$root/src/Inventory/QuickStackTransfer.cs"
 
 grep -Fq '[HarmonyPatch(typeof(Container), "RPC_OpenResponse")]' "$patches"
+grep -Fq 'typeof(MessageHud.MessageType), typeof(string), typeof(int), typeof(Sprite), typeof(bool),' "$patches"
 if rg -n 'RPC_OpenRespons"' "$patches"; then
   printf 'container open diagnostics must target the 1.0 RPC_OpenResponse seam\n' >&2
   exit 1

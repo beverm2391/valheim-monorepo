@@ -86,6 +86,7 @@ internal static class BuildingRepairResultPatch
     typeof(string),
     typeof(int),
     typeof(Sprite),
+    typeof(bool),
 })]
 internal static class BuildingRepairMessagePatch
 {

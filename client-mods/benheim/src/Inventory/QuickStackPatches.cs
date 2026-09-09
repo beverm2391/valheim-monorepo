@@ -46,7 +46,7 @@ internal static class QuickStackPatches
 
     [HarmonyPatch(typeof(Player), "Message", new[]
     {
-        typeof(MessageHud.MessageType), typeof(string), typeof(int), typeof(Sprite),
+        typeof(MessageHud.MessageType), typeof(string), typeof(int), typeof(Sprite), typeof(bool),
     })]
     private static class SuppressNativeStackMessagePatch
     {
