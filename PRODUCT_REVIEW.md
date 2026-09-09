@@ -8,6 +8,24 @@ Installed on Ben's Mac: **0.1.93**.
 Grid selection, planting, and berry cycles record diagnostics without enabling
 a probe.
 
+## Valheim 1.0 migration state
+
+This is the single coordination view for migration state. Exact commits,
+artifacts, logs, and runtime records stay in Git, the canonical verification
+commands, Valheim Dev `lab_status`, and the dedicated-server journal.
+
+| Component | Static/build | Installed | Runtime | Remaining human proof |
+| --- | --- | --- | --- | --- |
+| Valheim Dev bridge | Passes its canonical verification on 1.0.7. | Yes, `0.3.0`. | Connected in the disposable world on network version `39`. | Only visible recipe outcomes that require Ben's judgment. |
+| Benheim client | The 1.0 port builds; focused checks pass for three follow-up fixes. | Yes; the next exact candidate is not installed yet. | Failed. `0.1.95` starts cleanly, but deep QA found the Shortcut collision crash, split-dialog subscriber leak, and rapid Snipe FOV collapse. | Install and retest the next exact candidate, then complete the checks below. |
+| Benheim Eternal Fire | Not yet assessed against the exact 1.0 Linux server assembly. | No on QA. | Not started. | Prove supported fires refill and still do so after restart. |
+| Benheim Server Support | Not yet assessed against the exact 1.0 Linux server assembly. | No on QA. | Not started. | Prove Put Away authority, peer lifecycle, item provenance, and confirmed-kill delivery. |
+| Benheim Test Commands | Not yet assessed against the exact 1.0 Linux server assembly. | No on QA. | Not started. | Prove administrator requests, Boar ownership migration, and the read-only henge overlay. |
+
+The legacy `benheim-inventory` path is not a separate live mod. Its active
+client behavior belongs to Benheim, its dedicated-server behavior belongs to
+Benheim Server Support, and the shared protocol remains implementation support.
+
 ## Remaining checks
 
 - **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
