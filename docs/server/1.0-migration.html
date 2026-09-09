@@ -57,7 +57,12 @@
     <li>Run all existing mods together on QA before rewriting them.</li>
     <li>Capture compilation, plugin-load, Harmony patch, runtime, and gameplay failures.</li>
     <li>Give independent failures to agents working in parallel.</li>
-    <li>Leave candidate builds, hashes, logs, and notes in one shared place.</li>
+    <li>
+      Use the migration task for assignments and decisions, and Axiom as the
+      single searchable surface for actionable failures. Keep candidate
+      binaries and hashes together; retain local NDJSON, BepInEx logs, and the
+      systemd journal as raw fallbacks.
+    </li>
     <li>Have one integration lead install and test them on QA.</li>
     <li>Promote only the exact passing binaries and configuration to production.</li>
     <li>Join production, play, save, restart, and rejoin.</li>
