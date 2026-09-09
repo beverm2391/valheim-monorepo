@@ -49,11 +49,11 @@ bash -n "$recovery"
 dotnet run --project "$root/tests/refill-policy/RefillPolicyTests.csproj" \
   --configuration Release
 
-expected_checksum=8f452cc68d839b7a843676c89b479e357c2b932db8f0f02106de5c5cfde451f4
+expected_checksum=41b854064777fd939a5f929b4ad4b51baba1255ecbff7c3a88d3a5cb4373afff
 actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 [[ "$actual_checksum" == "$expected_checksum" ]] || fail "first-party plugin checksum changed"
 assert_contains "installer pins the first-party plugin checksum" "$expected_checksum" "$installer"
-test_commands_checksum=27d97b48bb98efa1abb2dd73aaf3b946bb1a06cbcce183563c6154d6dc902a4c
+test_commands_checksum=b0612c309d8fd062bf31d703654736c52d64bb163dd121b928d09792bafdb02b
 actual_test_commands_checksum="$(shasum -a 256 "$test_commands_plugin" | awk '{print $1}')"
 [[ "$actual_test_commands_checksum" == "$test_commands_checksum" ]] || fail "test-command plugin checksum changed"
 assert_contains "installer pins the test-command plugin checksum" "$test_commands_checksum" "$installer"
