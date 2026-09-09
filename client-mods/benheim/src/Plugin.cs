@@ -14,7 +14,6 @@ using BenheimQoL.KillAttribution;
 using BenheimQoL.ShipSprint;
 using BenheimQoL.WorldLabels;
 using BenheimQoL.Affinities;
-using HarmonyLib;
 using UnityEngine;
 
 namespace BenheimQoL;
@@ -28,8 +27,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
-    private Harmony? harmony;
-    private bool patchCleanupFailureLogged;
+    private PatchGroupManager? patchGroups;
 
     private void Awake()
     {
@@ -48,22 +46,34 @@ public sealed class Plugin : BaseUnityPlugin
         HealthReporting.BeginSession();
         try
         {
-            harmony = new Harmony(PluginGuid);
-            harmony.PatchAll();
-            if (ObjectDB.instance != null)
+            patchGroups = PatchGroupManager.Apply(
+                typeof(Plugin).Assembly.GetTypes(),
+                PluginGuid,
+                HealthReporting.ReportPatchGroupFailure,
+                HealthReporting.ReportPatchCleanupFailure,
+                HealthReporting.ReportPatchCleanupSucceeded);
+            if (IsPatchGroupAvailable(typeof(PlayerCombatRuntime)) && ObjectDB.instance != null)
             {
                 PlayerCombatRuntime.RegisterNativeEffects(ObjectDB.instance);
             }
         }
         catch (Exception ex)
         {
-            TryRemoveFailedPatches(logFailure: true);
+            patchGroups?.UnpatchAll();
             HealthReporting.DisableCore(ex);
         }
 
         if (HealthReporting.GameplayActionsEnabled)
         {
-            Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
+            if (HealthReporting.PatchGroupFailures.Count == 0)
+            {
+                Logger.LogInfo($"{PluginName} {PluginVersion} loaded.");
+            }
+            else
+            {
+                Logger.LogWarning(
+                    $"{PluginName} {PluginVersion} loaded with {HealthReporting.PatchGroupFailures.Count} unavailable patch group(s).");
+            }
             Diagnostics.Event("Core", "session_start", $"version={PluginVersion}");
         }
         else
@@ -75,29 +85,41 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void Update()
     {
-        if (!HealthReporting.GameplayActionsEnabled && harmony != null)
-        {
-            TryRemoveFailedPatches(logFailure: false);
-        }
+        patchGroups?.RetryFailedCleanup();
 
         HealthReporting.UpdateCriticalMessage();
-        KillAttributionClient.Update();
+        if (IsPatchGroupAvailable(typeof(KillAttributionClient)))
+        {
+            KillAttributionClient.Update();
+        }
         RemoteDiagnostics.Update();
         ShortcutOverlay.Update();
         DiagnosticLogExporter.Update();
         DeveloperDiagnosticsRuntime.Update();
-        FarmingGridPicker.Update();
+        if (IsPatchGroupAvailable(typeof(FarmingGridPicker)))
+        {
+            FarmingGridPicker.Update();
+        }
         if (!HealthReporting.GameplayActionsEnabled)
         {
             return;
         }
 
-        NativeConsoleShortcut.Update();
+        if (IsPatchGroupAvailable(typeof(NativeConsoleShortcut)))
+        {
+            NativeConsoleShortcut.Update();
+        }
         TopLeftFeedbackHud.Update();
-        BenheimTestCommandClient.Update();
-        WildernessDangerPresentation.Update();
-        QuickStack.Update();
-        QuickStackHotkey.Update();
+        if (IsPatchGroupAvailable(typeof(BenheimTestCommandClient)))
+        {
+            BenheimTestCommandClient.Update();
+            WildernessDangerPresentation.Update();
+        }
+        if (IsPatchGroupAvailable(typeof(QuickStack)))
+        {
+            QuickStack.Update();
+            QuickStackHotkey.Update();
+        }
     }
 
     private void OnDestroy()
@@ -118,29 +140,12 @@ public sealed class Plugin : BaseUnityPlugin
         LungeRuntime.ResetSession();
         Diagnostics.Event("Core", "session_end", $"version={PluginVersion}");
         Diagnostics.EndSession();
-        TryRemoveFailedPatches(logFailure: false);
+        patchGroups?.UnpatchAll();
     }
 
-    private void TryRemoveFailedPatches(bool logFailure)
+    private bool IsPatchGroupAvailable(Type featureType)
     {
-        try
-        {
-            harmony?.UnpatchSelf();
-            harmony = null;
-            if (patchCleanupFailureLogged)
-            {
-                Logger.LogInfo("Benheim removed its partial Harmony patches after retrying cleanup.");
-                Diagnostics.Event("Health", "partial_patches_removed");
-            }
-        }
-        catch (Exception cleanupException)
-        {
-            if (logFailure || !patchCleanupFailureLogged)
-            {
-                Logger.LogError($"Benheim could not remove partial Harmony patches: {cleanupException}");
-            }
-
-            patchCleanupFailureLogged = true;
-        }
+        return HealthReporting.GameplayActionsEnabled
+            && patchGroups?.IsAvailable(featureType) == true;
     }
 }

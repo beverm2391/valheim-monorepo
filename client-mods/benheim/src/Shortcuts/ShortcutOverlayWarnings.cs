@@ -167,6 +167,13 @@ internal static partial class ShortcutOverlay
                 $"{HealthReporting.CoreFailureMessage} {coreFailure}",
                 isCoreFailure: true));
         }
+        foreach (HealthReporting.PatchGroupFailureDetail failure in HealthReporting.PatchGroupFailures)
+        {
+            warnings.Add(new ShortcutWarning(
+                failure.Owner,
+                $"{HealthReporting.PatchGroupFailureMessage} {failure.PatchType}: {failure.Error}",
+                isCoreFailure: false));
+        }
         if (HealthReporting.KeybindInspectionDetail is string keybindFailure)
         {
             warnings.Add(new ShortcutWarning(

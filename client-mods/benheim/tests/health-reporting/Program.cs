@@ -8,9 +8,11 @@ namespace BepInEx.Logging
     {
         internal readonly List<string> Errors = new();
         internal readonly List<string> Warnings = new();
+        internal readonly List<string> Infos = new();
 
         internal void LogError(string message) => Errors.Add(message);
         internal void LogWarning(string message) => Warnings.Add(message);
+        internal void LogInfo(string message) => Infos.Add(message);
     }
 }
 
@@ -85,21 +87,49 @@ namespace HealthReportingTests
             Require(BenheimQoL.Plugin.Log.Warnings.Count == 1, "keybind warning is deduplicated");
             Require(BenheimQoL.Infrastructure.Diagnostics.Events.Count == 1, "keybind diagnostic is deduplicated");
 
-            HealthReporting.DisableCore(new InvalidOperationException("hook <missing>"));
-            HealthReporting.DisableCore(new InvalidOperationException("second hook failure"));
-            Require(!HealthReporting.GameplayActionsEnabled, "core failure disables gameplay actions");
-            Require(BenheimQoL.Plugin.Log.Errors.Count == 1, "core error is deduplicated");
-            Require(BenheimQoL.Infrastructure.Diagnostics.Events.Count == 2, "core diagnostic is deduplicated");
+            HealthReporting.ReportPatchGroupFailure(
+                "Farming",
+                "BenheimQoL.Farming.BrokenPatch",
+                new InvalidOperationException("target Player.MissingHook was not found"));
+            HealthReporting.ReportPatchGroupFailure(
+                "Farming",
+                "BenheimQoL.Farming.SecondBrokenPatch",
+                new InvalidOperationException("second hook failure"));
+            Require(HealthReporting.GameplayActionsEnabled,
+                "one patch group failure leaves unrelated gameplay enabled");
+            Require(HealthReporting.PatchGroupFailures.Count == 1,
+                "a failed patch group is reported once");
+            Require(
+                HealthReporting.PatchGroupFailures[0].PatchType == "BenheimQoL.Farming.BrokenPatch"
+                    && HealthReporting.PatchGroupFailures[0].Error.Contains("Player.MissingHook", StringComparison.Ordinal),
+                "the exact patch type and failure remain visible");
+            Require(BenheimQoL.Plugin.Log.Errors.Count == 1,
+                "the patch group writes one exact error");
+            Require(BenheimQoL.Infrastructure.Diagnostics.Events.Count == 2,
+                "the patch group diagnostic is deduplicated");
 
             Player.m_localPlayer = new Player { ThrowNextMessage = true };
             HealthReporting.UpdateCriticalMessage();
             HealthReporting.UpdateCriticalMessage();
             HealthReporting.UpdateCriticalMessage();
-            Require(Player.m_localPlayer.MessageCount == 1, "critical message retries once and is shown once per session");
+            Require(Player.m_localPlayer.MessageCount == 1,
+                "the feature warning retries once and is shown once per session");
+
+            HealthReporting.DisableCore(new InvalidOperationException("hook <missing>"));
+            HealthReporting.DisableCore(new InvalidOperationException("second hook failure"));
+            Require(!HealthReporting.GameplayActionsEnabled, "core failure disables gameplay actions");
+            Require(BenheimQoL.Plugin.Log.Errors.Count == 2, "core error is deduplicated");
+            Require(BenheimQoL.Infrastructure.Diagnostics.Events.Count == 3, "core diagnostic is deduplicated");
+
+            HealthReporting.UpdateCriticalMessage();
+            HealthReporting.UpdateCriticalMessage();
+            HealthReporting.UpdateCriticalMessage();
+            Require(Player.m_localPlayer.MessageCount == 2, "the global critical message is shown once per session");
 
             HealthReporting.BeginSession();
             Require(HealthReporting.GameplayActionsEnabled, "session reset re-enables gameplay actions");
             Require(HealthReporting.KeybindInspectionDetail == null, "session reset clears old warnings");
+            Require(HealthReporting.PatchGroupFailures.Count == 0, "session reset clears old patch group failures");
 
             HealthReporting.ReportKillAttributionUnavailable("capability timeout");
             HealthReporting.ReportKillAttributionUnavailable("capability timeout");
@@ -111,7 +141,7 @@ namespace HealthReportingTests
             HealthReporting.UpdateCriticalMessage();
             HealthReporting.UpdateCriticalMessage();
             Require(
-                Player.m_localPlayer.MessageCount == 2,
+                Player.m_localPlayer.MessageCount == 3,
                 "the BERSERKER compatibility warning is shown once per session");
 
             HealthReporting.ReportKillAttributionUnavailable("new connection pending");
@@ -126,10 +156,10 @@ namespace HealthReportingTests
             HealthReporting.ReportKillAttributionUnavailable("new connection timeout");
             HealthReporting.UpdateCriticalMessage();
             Require(
-                Player.m_localPlayer.MessageCount == 2,
+                Player.m_localPlayer.MessageCount == 3,
                 "a later connection warning does not replay the session message");
 
-            Console.WriteLine("health reporting state, deduplication, fail-closed, and message checks passed");
+            Console.WriteLine("health reporting state, feature isolation, fail-closed, and message checks passed");
             return 0;
         }
 
