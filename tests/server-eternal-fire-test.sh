@@ -168,7 +168,7 @@ if MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
 fi
 
 printf '%s\n' \
-  'Load world: first (first)' \
+  'ZNet.LoadWorld: first (first)' \
   'Game server connected' \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
   'Benheim Test Commands 0.1.2 loaded with direct peer RPC authorization.' \
@@ -209,7 +209,7 @@ assert_contains \
   "verifier requires Server Support's exact load message" \
   'Benheim Server Support 0.1.6 loaded with Put Away and confirmed-kill coordination.' \
   "$verifier"
-assert_contains "verifier requires the configured world" 'Load world: $world ($world)' "$verifier"
+assert_contains "verifier requires the configured world" 'ZNet.LoadWorld: $world ($world)' "$verifier"
 assert_contains "verifier requires normal readiness" 'Game server connected' "$verifier"
 
 cat > "$tmp_dir/systemctl" <<'MOCK'

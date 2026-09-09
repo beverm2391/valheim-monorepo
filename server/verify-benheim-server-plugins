@@ -9,7 +9,7 @@ sleep_bin=${SLEEP_BIN:-sleep}
 unit=${VALHEIM_SYSTEMD_UNIT:-valheim.service}
 
 expected_logs=(
-  "Load world: $world ($world)"
+  "ZNet.LoadWorld: $world ($world)"
   "Game server connected"
   "Benheim Eternal Fire 0.1.1 loaded after PatchAll."
   "Benheim Test Commands 0.1.2 loaded with direct peer RPC authorization."
