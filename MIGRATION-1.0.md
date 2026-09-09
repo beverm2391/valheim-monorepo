@@ -38,6 +38,14 @@ Record three identities for the passing QA run:
 The two Steam build IDs identify different apps and are not expected to match.
 The QA-to-production gate compares the dedicated-server build ID only.
 
+The vanilla QA run passed on September 9, 2026:
+
+- dedicated-server build `25185644`;
+- client build `25185596`;
+- client and server network version `39`;
+- Ben joined with his real character, placed a bed, logged out, then confirmed
+  the bed remained after a graceful server restart and rejoin.
+
 Do not promote the QA world. It is disposable proof; production will open its
 own preserved world only after the software build passes QA. If 1.0 converts
 the world's save format, that conversion happens first to the disposable QA
