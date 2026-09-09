@@ -61,7 +61,7 @@ internal static class ContainerInteractionDiagnosticsPatch
     }
 }
 
-[HarmonyPatch(typeof(Container), "RPC_OpenRespons")]
+[HarmonyPatch(typeof(Container), "RPC_OpenResponse")]
 internal static class ContainerOpenResponseDiagnosticsPatch
 {
     private static void Prefix(Container __instance, bool granted)

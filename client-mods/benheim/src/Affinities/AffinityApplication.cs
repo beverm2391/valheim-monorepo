@@ -202,7 +202,8 @@ internal static class AffinityApplication
                 1,
                 0,
                 0L,
-                string.Empty);
+                string.Empty,
+                cheated: false);
             if (restored != null) return true;
         }
         catch (Exception exception)

@@ -5,6 +5,10 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 input_state="$root/src/Infrastructure/InputState.cs"
 feedback="$root/src/Infrastructure/WorldFeedback.cs"
 marker="$root/src/Inventory/PocketMarker.cs"
+split_controller="$root/src/Inventory/SplitStackController.cs"
+split_patches="$root/src/Inventory/SplitStackPatches.cs"
+inventory_patches="$root/src/Inventory/InventoryPatches.cs"
+interaction_patch="$root/src/Interaction/ExtendedInteractionPatch.cs"
 controller="$root/src/Inventory/PocketItemController.cs"
 protection="$root/src/Inventory/PocketItems.cs"
 quick_stack="$root/src/Inventory/QuickStack.cs"
@@ -47,6 +51,27 @@ grep -Fq 'item.m_customData[InstancePocketKey] = PocketedValue' "$protection"
 grep -Fq 'GetProtectionScope' "$protection"
 grep -Fq 'scope={PocketItems.GetProtectionScope(item)}' "$controller"
 grep -Fq 'ManualColor' "$marker"
+grep -Fq 'foreach (InventoryElement element in elements)' "$marker"
+grep -Fq 'element.Position' "$marker"
+grep -Fq 'element.gameObject' "$marker"
+if rg -n 'InventoryGrid\), "Element"|m_pos|m_go' "$marker"; then
+  printf 'pocket markers must use the native InventoryElement boundary\n' >&2
+  exit 1
+fi
+grep -Fq 'm_splitDialog.SliderValue' "$split_controller"
+grep -Fq 'SplitDialog.SplitOk closes the dialog' "$split_controller"
+grep -Fq 'm_splitDialog.IsActive' "$split_patches"
+grep -Fq 'ZInput.pointerPosition' "$inventory_patches"
+grep -Fq '[HarmonyPatch(typeof(Container), "RPC_OpenResponse")]' "$interaction_patch"
+if rg -n 'm_splitSlider|m_splitPanel|OnSplitSliderChanged|ZInput\.mousePosition' \
+    "$split_controller" "$split_patches" "$inventory_patches"; then
+  printf 'inventory split and cursor handling must use 1.0 native boundaries\n' >&2
+  exit 1
+fi
+if rg -n 'RPC_OpenRespons"' "$interaction_patch"; then
+  printf 'interaction diagnostics must target the 1.0 container response seam\n' >&2
+  exit 1
+fi
 if grep -Fq 'AutomaticColor' "$marker"; then
   printf 'automatic protection must not have a visible marker\n' >&2
   exit 1

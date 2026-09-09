@@ -45,7 +45,7 @@ internal static class InventoryPatches
                 {
                     InventoryGrid playerGrid = (InventoryGrid)PlayerGridField.GetValue(__instance);
                     ItemDrop.ItemData hoveredItem = playerGrid.GetItem(
-                        new Vector2i((int)ZInput.mousePosition.x, (int)ZInput.mousePosition.y));
+                        new Vector2i((int)ZInput.pointerPosition.x, (int)ZInput.pointerPosition.y));
                     PocketItemController.TryTogglePlayerItem(playerGrid, hoveredItem);
                 }
             }

@@ -19,10 +19,6 @@ internal static class AffinityIconAnimation
 
     private static readonly FieldInfo InventoryElementsField =
         AccessTools.Field(typeof(InventoryGrid), "m_elements");
-    private static readonly FieldInfo InventoryElementPositionField =
-        AccessTools.Field(AccessTools.Inner(typeof(InventoryGrid), "Element"), "m_pos");
-    private static readonly FieldInfo InventoryElementIconField =
-        AccessTools.Field(AccessTools.Inner(typeof(InventoryGrid), "Element"), "m_icon");
     private static readonly FieldInfo HotbarElementsField =
         AccessTools.Field(typeof(HotkeyBar), "m_elements");
     private static readonly FieldInfo HotbarElementIconField =
@@ -48,11 +44,10 @@ internal static class AffinityIconAnimation
     internal static void RefreshInventory(InventoryGrid grid, Inventory inventory)
     {
         IEnumerable elements = (IEnumerable)InventoryElementsField.GetValue(grid);
-        foreach (object element in elements)
+        foreach (InventoryElement element in elements)
         {
-            Vector2i position = (Vector2i)InventoryElementPositionField.GetValue(element);
-            Image icon = (Image)InventoryElementIconField.GetValue(element);
-            Set(icon, inventory.GetItemAt(position.x, position.y));
+            Vector2i position = element.Position;
+            Set(element.m_icon, inventory.GetItemAt(position.x, position.y));
         }
     }
 

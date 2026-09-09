@@ -13,12 +13,6 @@ internal static class PocketMarker
     private static readonly FieldInfo ElementsField =
         AccessTools.Field(typeof(InventoryGrid), "m_elements");
 
-    private static readonly FieldInfo ElementPositionField =
-        AccessTools.Field(AccessTools.Inner(typeof(InventoryGrid), "Element"), "m_pos");
-
-    private static readonly FieldInfo ElementGameObjectField =
-        AccessTools.Field(AccessTools.Inner(typeof(InventoryGrid), "Element"), "m_go");
-
     internal static void Refresh(InventoryGrid inventoryGrid, Inventory inventory)
     {
         Player player = Player.m_localPlayer;
@@ -28,10 +22,10 @@ internal static class PocketMarker
         }
 
         IEnumerable elements = (IEnumerable)ElementsField.GetValue(inventoryGrid);
-        foreach (object element in elements)
+        foreach (InventoryElement element in elements)
         {
-            Vector2i position = (Vector2i)ElementPositionField.GetValue(element);
-            GameObject go = (GameObject)ElementGameObjectField.GetValue(element);
+            Vector2i position = element.Position;
+            GameObject go = element.gameObject;
             TMP_Text? marker = GetOrCreate(go);
             if (marker == null)
             {

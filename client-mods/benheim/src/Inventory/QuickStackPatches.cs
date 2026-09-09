@@ -5,7 +5,7 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static class QuickStackPatches
 {
-    [HarmonyPatch(typeof(Container), "RPC_OpenRespons")]
+    [HarmonyPatch(typeof(Container), "RPC_OpenResponse")]
     private static class OpenResponsePatch
     {
         private static void Postfix(Container __instance, bool granted)

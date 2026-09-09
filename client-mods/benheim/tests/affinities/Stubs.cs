@@ -108,7 +108,16 @@ internal sealed class Inventory
         RemoveCalls++;
         if (name == "$item_wood") Wood = Math.Max(0, Wood - amount);
     }
-    internal ItemDrop.ItemData? AddItem(string name, int amount, int quality, int variant, long crafter, string crafterName)
+    internal ItemDrop.ItemData? AddItem(
+        string name,
+        int amount,
+        int quality,
+        int variant,
+        long crafter,
+        string crafterName,
+        bool cheated,
+        bool pickedUp = false,
+        bool dropIfFullInv = true)
     {
         if (name != "Wood") return null;
         Wood += amount;

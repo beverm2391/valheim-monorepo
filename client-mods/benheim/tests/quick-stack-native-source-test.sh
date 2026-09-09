@@ -25,6 +25,12 @@ scheduler="$root/src/Inventory/QuickStackBatchScheduler.cs"
 pipeline="$root/src/Inventory/QuickStackBatchPipeline.cs"
 transfer="$root/src/Inventory/QuickStackTransfer.cs"
 
+grep -Fq '[HarmonyPatch(typeof(Container), "RPC_OpenResponse")]' "$patches"
+if rg -n 'RPC_OpenRespons"' "$patches"; then
+  printf 'container open diagnostics must target the 1.0 RPC_OpenResponse seam\n' >&2
+  exit 1
+fi
+
 # The requester reserves first and never writes its cached destination chest.
 grep -Fq 'InventoryTransactions.TryBeginDeposit' "$lease_validation"
 grep -Fq 'PutAwayLeaseClient.TryValidate(' "$quick_stack"

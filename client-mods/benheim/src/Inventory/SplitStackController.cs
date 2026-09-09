@@ -26,9 +26,6 @@ internal static class SplitStackController
     private static readonly FieldInfo CurrentContainerField =
         AccessTools.Field(typeof(InventoryGui), "m_currentContainer");
 
-    private static readonly MethodInfo OnSplitSliderChangedMethod =
-        AccessTools.Method(typeof(InventoryGui), "OnSplitSliderChanged");
-
     internal static void PrimeNumericInput(InventoryGui inventoryGui)
     {
         ClearTypedAmount(inventoryGui);
@@ -39,8 +36,10 @@ internal static class SplitStackController
     internal static void ClearAmount(InventoryGui inventoryGui)
     {
         ClearTypedAmount(inventoryGui);
-        inventoryGui.m_splitSlider.value = 1f;
-        OnSplitSliderChangedMethod.Invoke(inventoryGui, new object[] { 1f });
+        // SplitDialog owns slider notification and its normal/touch presentation.
+        // Use its public state boundary rather than reproducing the retired
+        // InventoryGui panel and callback lifecycle.
+        inventoryGui.m_splitDialog.SliderValue = 1f;
         Diagnostics.Event("Inventory", "split_amount_reset", "amount=1");
     }
 
@@ -73,7 +72,7 @@ internal static class SplitStackController
             return false;
         }
 
-        int amount = Mathf.Clamp((int)inventoryGui.m_splitSlider.value, 1, item.m_stack);
+        int amount = Mathf.Clamp((int)inventoryGui.m_splitDialog.SliderValue, 1, item.m_stack);
         if (!targetInventory.CanAddItem(item, amount))
         {
             Diagnostics.Event("Inventory", "split_auto_move_skipped", $"reason=target_full amount={amount}");
@@ -90,7 +89,7 @@ internal static class SplitStackController
 
         sourceInventory.RemoveItem(item, amount);
         inventoryGui.m_moveItemEffects.Create(inventoryGui.transform.position, Quaternion.identity);
-        CloseDialog(inventoryGui);
+        ClearNativeSplitState(inventoryGui);
         Diagnostics.Event(
             "Inventory",
             "split_auto_moved",
@@ -104,10 +103,11 @@ internal static class SplitStackController
         LastSplitInputField.SetValue(inventoryGui, DateTime.MinValue);
     }
 
-    private static void CloseDialog(InventoryGui inventoryGui)
+    private static void ClearNativeSplitState(InventoryGui inventoryGui)
     {
         SplitItemField.SetValue(inventoryGui, null);
         SplitInventoryField.SetValue(inventoryGui, null);
-        inventoryGui.m_splitPanel.gameObject.SetActive(false);
+        // SplitDialog.SplitOk closes the dialog after its accepted event returns.
+        // The event owner, not Benheim, owns activation and listener cleanup.
     }
 }
