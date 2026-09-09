@@ -21,6 +21,7 @@ internal static class CombatFeedbackController
     private static Camera? mainCamera;
     private static float currentFocusReduction;
     private static float focusReductionVelocity;
+    private static float focusBaseFov;
     private static bool snipeFocusActive;
 
     private static float lastShakeAt = float.NegativeInfinity;
@@ -64,10 +65,13 @@ internal static class CombatFeedbackController
         bool drawing = drawPercentage > 0f;
         if (drawing && focusPhase != FocusPhase.Drawing)
         {
+            focusBaseFov = focusPhase == FocusPhase.Idle || focusBaseFov <= 0f
+                ? camera.m_fov
+                : focusBaseFov;
             Diagnostics.Event(
                 "CombatFeedback",
                 "focus_started",
-                $"draw={drawPercentage:0.###} base_fov={camera.m_fov:0.##} snipe={Diagnostics.Bool(snipe)} resumed={Diagnostics.Bool(focusPhase == FocusPhase.Restoring)}");
+                $"draw={drawPercentage:0.###} base_fov={focusBaseFov:0.##} snipe={Diagnostics.Bool(snipe)} resumed={Diagnostics.Bool(focusPhase == FocusPhase.Restoring)}");
             focusPhase = FocusPhase.Drawing;
         }
         else if (!drawing)
@@ -82,7 +86,7 @@ internal static class CombatFeedbackController
         // Snipe is the bow's required handling, independent of optional FX.
         // Keep one FOV owner so native Bow Focus cannot stack with its scope.
         float targetReduction = snipe
-            ? camera.m_fov - SnipeRules.ScopedFieldOfView(camera.m_fov)
+            ? focusBaseFov - SnipeRules.ScopedFieldOfView(focusBaseFov)
             : CombatFeedbackTuning.FocusReduction(drawPercentage);
         currentFocusReduction = Mathf.SmoothDamp(
             currentFocusReduction,
@@ -95,7 +99,7 @@ internal static class CombatFeedbackController
         SetCameraFov(
             camera,
             resolvedMainCamera,
-            Mathf.Max(1f, camera.m_fov - currentFocusReduction));
+            Mathf.Max(1f, focusBaseFov - currentFocusReduction));
     }
 
     internal static void RequestShake(CombatFeedbackTrigger trigger)
@@ -159,7 +163,7 @@ internal static class CombatFeedbackController
     {
         if (focusCamera && mainCamera)
         {
-            SetCameraFov(focusCamera, mainCamera, focusCamera.m_fov);
+            focusCamera.ResetTempFOV();
         }
 
         ClearFocusState();
@@ -227,7 +231,7 @@ internal static class CombatFeedbackController
         // the mode takes ownership of the camera.
         if (resolvedMainCamera && camera.m_skyCamera)
         {
-            SetCameraFov(camera, resolvedMainCamera, camera.m_fov);
+            camera.ResetTempFOV();
         }
 
         Diagnostics.Event(
@@ -259,7 +263,7 @@ internal static class CombatFeedbackController
             // has already restored its own FOV this frame; release both our
             // projection and edge layer before rendering. Ordinary Bow Focus
             // keeps its existing smooth restoration below.
-            SetCameraFov(camera, resolvedMainCamera, camera.m_fov);
+            camera.ResetTempFOV();
             Diagnostics.Event("CombatFeedback", "focus_ended", $"reason={reason} snipe=true");
             ClearFocusState();
             return;
@@ -284,7 +288,7 @@ internal static class CombatFeedbackController
 
         if (currentFocusReduction <= FocusEndEpsilonDegrees)
         {
-            SetCameraFov(camera, resolvedMainCamera, camera.m_fov);
+            camera.ResetTempFOV();
             Diagnostics.Event("CombatFeedback", "focus_ended", $"reason={reason}");
             ClearFocusState();
             return;
@@ -293,13 +297,12 @@ internal static class CombatFeedbackController
         SetCameraFov(
             camera,
             resolvedMainCamera,
-            Mathf.Max(1f, camera.m_fov - currentFocusReduction));
+            Mathf.Max(1f, focusBaseFov - currentFocusReduction));
     }
 
     private static void SetCameraFov(GameCamera camera, Camera resolvedMainCamera, float fieldOfView)
     {
-        resolvedMainCamera.fieldOfView = fieldOfView;
-        camera.m_skyCamera.fieldOfView = fieldOfView;
+        camera.SetTempFOV(fieldOfView);
     }
 
     private static void ClearFocusState()
@@ -310,6 +313,7 @@ internal static class CombatFeedbackController
         mainCamera = null;
         currentFocusReduction = 0f;
         focusReductionVelocity = 0f;
+        focusBaseFov = 0f;
         snipeFocusActive = false;
         SnipeVignette.Show(0f);
     }

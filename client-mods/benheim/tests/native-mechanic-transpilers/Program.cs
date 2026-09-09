@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using BenheimQoL.Interaction;
 using BenheimQoL.Production;
-using BenheimQoL.Farming;
 using HarmonyLib;
 
 FieldInfo chanceField = typeof(InventoryGui).GetField(nameof(InventoryGui.m_craftBonusChance))!;
@@ -33,7 +32,7 @@ VerifyComfortPatch();
 StationBuildCoverageTests.Run();
 VerifyTarPolicy();
 VerifyTarTranspilers();
-VerifyPlantingStamina();
+PlantingStaminaTests.Run();
 
 System.Console.WriteLine("native mechanic transpiler behavior checks passed");
 return;
@@ -42,76 +41,6 @@ static MethodInfo Resolver(string name)
 {
     return typeof(CookingBonus).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static)
         ?? throw new InvalidOperationException($"Missing Cooking bonus resolver {name}.");
-}
-
-static void VerifyPlantingStamina()
-{
-    Expect(PlantingStamina.Cost(0f) == 0f);
-    Expect(PlantingStamina.Cost(10f) == 2.5f);
-    Expect(PlantingStamina.Cost(7.5f) == 1.875f);
-
-    Piece plantPiece = new Piece();
-    plantPiece.gameObject.AddComponent(new Plant());
-    Piece berryPiece = new Piece();
-    berryPiece.gameObject.name = "RaspberryBush";
-    Piece ordinaryPiece = new Piece();
-    PieceTable plantTable = new PieceTable(plantPiece);
-    PieceTable berryTable = new PieceTable(berryPiece);
-    PieceTable ordinaryTable = new PieceTable(ordinaryPiece);
-    float resolvedCost = 10f;
-    PlantingStamina.ApplyResolvedCost(plantTable, ref resolvedCost);
-    Expect(resolvedCost == 2.5f);
-    resolvedCost = 10f;
-    PlantingStamina.ApplyResolvedCost(berryTable, ref resolvedCost);
-    Expect(resolvedCost == 2.5f);
-    resolvedCost = 10f;
-    PlantingStamina.ApplyResolvedCost(ordinaryTable, ref resolvedCost);
-    Expect(resolvedCost == 10f);
-
-    Player player = new Player(station: null) { Stamina = 2.5f, ResolvedBuildStamina = 2.5f };
-    Expect(PlantingStamina.HasPlacementStamina(player, 10f, plantPiece));
-    Expect(player.LastStaminaCheck == 2.5f);
-    Expect(PlantingStamina.HasPlacementStamina(player, 10f, berryPiece));
-    Expect(player.LastStaminaCheck == 2.5f);
-    Expect(!PlantingStamina.HasPlacementStamina(player, 10f, ordinaryPiece));
-    Expect(player.LastStaminaCheck == 10f);
-
-    MethodInfo getSelectedPiece = typeof(PieceTable).GetMethod(nameof(PieceTable.GetSelectedPiece))!;
-    // Player overrides Character.HaveStamina, but installed Valheim 0.221.12 calls the
-    // base-declared virtual slot from Player.UpdatePlacement.
-    MethodInfo haveStamina = typeof(Character).GetMethod(nameof(Character.HaveStamina))!;
-    MethodInfo tryPlacePiece = typeof(Player).GetMethod(nameof(Player.TryPlacePiece))!;
-    MethodInfo replacement = typeof(PlantingStamina).GetMethod(
-        nameof(PlantingStamina.HasPlacementStamina),
-        BindingFlags.NonPublic | BindingFlags.Static)!;
-    List<CodeInstruction> input = Frame(
-        new CodeInstruction(OpCodes.Callvirt, getSelectedPiece),
-        new CodeInstruction(OpCodes.Stloc_2),
-        new CodeInstruction(OpCodes.Ldarg_0),
-        new CodeInstruction(OpCodes.Ldc_R4, 10f),
-        new CodeInstruction(OpCodes.Callvirt, haveStamina),
-        new CodeInstruction(OpCodes.Brfalse_S, default(Label)),
-        new CodeInstruction(OpCodes.Ldarg_0),
-        new CodeInstruction(OpCodes.Ldloc_2),
-        new CodeInstruction(OpCodes.Callvirt, tryPlacePiece));
-    List<CodeInstruction> output = Invoke(typeof(PlantingStaminaPatches), input);
-    int replacementIndex = output.FindIndex(instruction => Equals(instruction.operand, replacement));
-    Expect(replacementIndex > 0);
-    Expect(output[replacementIndex].opcode == OpCodes.Call);
-    Expect(output[replacementIndex - 1].opcode == OpCodes.Ldloc_2);
-    Expect(output[replacementIndex - 1].labels.Count == 1);
-    Expect(output[replacementIndex - 1].blocks.Count == 1);
-    Expect(output[replacementIndex].labels.Count == 0);
-    Expect(output[replacementIndex].blocks.Count == 0);
-    Expect(output.Count == input.Count + 1);
-
-    ExpectThrows(() => Invoke(
-        typeof(PlantingStaminaPatches),
-        Frame(
-            new CodeInstruction(OpCodes.Callvirt, getSelectedPiece),
-            new CodeInstruction(OpCodes.Stloc_2),
-            new CodeInstruction(OpCodes.Ldarg_0),
-            new CodeInstruction(OpCodes.Callvirt, tryPlacePiece))));
 }
 
 static void VerifyCookingPatch(
@@ -182,7 +111,20 @@ static void VerifyCookingScope()
     Expect(CookingBonus.ForCrafting(inventoryGui) == 0.25f);
     Player.m_localPlayer = null;
     Expect(CookingBonus.ForCrafting(inventoryGui) == 0.25f);
+    CookingStation? previous = CookingBonus.EnterCookingStation(new CookingStation
+    {
+        m_skill = Skills.SkillType.Cooking,
+        m_canGiveBonusYield = true
+    });
     Expect(CookingBonus.ForCookingStation(inventoryGui) == 0.50f);
+    CookingBonus.RestoreCookingStation(previous);
+    previous = CookingBonus.EnterCookingStation(new CookingStation
+    {
+        m_skill = Skills.SkillType.Other,
+        m_canGiveBonusYield = true
+    });
+    Expect(CookingBonus.ForCookingStation(inventoryGui) == 0.25f);
+    CookingBonus.RestoreCookingStation(previous);
 }
 
 static void VerifyCookingRollObservation()
@@ -213,6 +155,11 @@ static void VerifyCookingRollObservation()
     {
         m_craftingSkill = Skills.SkillType.Other
     });
+    CookingStation? previousStation = CookingBonus.EnterCookingStation(new CookingStation
+    {
+        m_skill = Skills.SkillType.Cooking,
+        m_canGiveBonusYield = true
+    });
     before = BenheimQoL.Infrastructure.Diagnostics.Emitted;
     Expect(CookingBonus.RollForCrafting(0.24f, 1f, inventoryGui.m_craftBonusChance, 0));
     Expect(CookingBonus.RollForCrafting(0.24f, 1f, inventoryGui.m_craftBonusChance, 1));
@@ -224,6 +171,7 @@ static void VerifyCookingRollObservation()
     Expect(!CookingBonus.RollForCookingStation(0.25f, 0.50f, 0.50f, 1));
     Expect(BenheimQoL.Infrastructure.Diagnostics.Last!.IntegerValue("native_result_count") == 1);
     Expect(BenheimQoL.Infrastructure.Diagnostics.Emitted == before + 2);
+    CookingBonus.RestoreCookingStation(previousStation);
 }
 
 static void VerifyComfortPatch()

@@ -6,6 +6,7 @@ using UnityEngine;
 namespace BenheimQoL.EnemyTiers;
 
 [HarmonyPatch]
+[PatchGroup("EnemyTiers.Boar")]
 internal static class BoarTierIdentityPatches
 {
     private static bool profileObservationFailureLogged;

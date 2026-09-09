@@ -112,9 +112,9 @@ public sealed class Plugin : BaseUnityPlugin
             NativeConsoleShortcut.Update();
         }
         TopLeftFeedbackHud.Update();
-        if (IsPatchGroupAvailable(typeof(BenheimTestCommandClient)))
+        BenheimTestCommandClient.Update();
+        if (IsPatchGroupAvailable(typeof(WildernessDangerPresentationPatches)))
         {
-            BenheimTestCommandClient.Update();
             WildernessDangerPresentation.Update();
         }
         if (IsPatchGroupAvailable(typeof(QuickStack)))

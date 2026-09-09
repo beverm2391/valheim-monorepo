@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using BenheimQoL.Infrastructure;
 using HarmonyLib;
@@ -8,6 +9,7 @@ using UnityEngine;
 namespace BenheimQoL.EnemyTiers;
 
 [HarmonyPatch]
+[PatchGroup("EnemyTiers.Map")]
 internal static class WildernessMapHover
 {
     private static readonly HashSet<HoverProbeStage> LoggedProbeStages = new();
@@ -56,8 +58,8 @@ internal static class WildernessMapHover
     [HarmonyPatch(typeof(Minimap), "UpdateBiome")]
     private static void UpdateBiomePostfix(
         Minimap __instance,
-        bool[] ___m_explored,
-        bool[] ___m_exploredOthers,
+        BitArray ___m_explored,
+        BitArray ___m_exploredOthers,
         bool ___m_showSharedMapData)
     {
         TMP_Text label = __instance.m_biomeNameLarge;
@@ -180,13 +182,13 @@ internal static class WildernessMapHover
 
     private static bool TryGetHoveredDanger(
         Minimap minimap,
-        bool[] explored,
-        bool[] exploredOthers,
+        BitArray explored,
+        BitArray exploredOthers,
         bool showSharedMapData,
         out HoveredDanger hovered)
     {
         Vector2 screenPoint = ZInput.IsMouseActive()
-            ? ZInput.mousePosition
+            ? new Vector2(ZInput.pointerPosition.x, ZInput.pointerPosition.y)
             : new Vector2(Screen.width / 2f, Screen.height / 2f);
         RectTransform mapRect = minimap.m_mapImageLarge.rectTransform;
         if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(mapRect, screenPoint, null, out Vector2 localPoint))

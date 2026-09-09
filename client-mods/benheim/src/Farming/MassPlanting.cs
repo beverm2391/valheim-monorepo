@@ -92,8 +92,17 @@ internal static class MassPlanting
                 return;
             }
 
-            player.PlacePiece(anchorPiece, point.Position, PlantingState.AnchorRotation, doAttack: false);
-            Game.instance.IncrementPlayerStat(PlayerStatType.Builds);
+            bool cheated = (player.GetInventory().ItemCheated(anchorPiece.m_resources)
+                || player.NoCostCheat())
+                && !PlayerProfile.s_bypassCheatChecks;
+            player.PlacePiece(
+                anchorPiece,
+                point.Position,
+                PlantingState.AnchorRotation,
+                doAttack: false,
+                cheated: cheated);
+            Game.instance.IncrementPlayerStat(PlayerStatType.Builds, 1f, cheated);
+            Game.instance.GetPlayerProfile().IncrementStatBuildPiecePlaced(anchorPiece.m_name, 1f, cheated);
             if (!freeBuild)
             {
                 player.ConsumeResources(anchorPiece.m_resources, 0, -1);
@@ -105,7 +114,7 @@ internal static class MassPlanting
             planted++;
             if (tool.m_shared.m_useDurability)
             {
-                tool.m_durability -= FarmingReflection.GetPlaceDurability(player, tool);
+                tool.m_durability -= FarmingReflection.GetPlaceDurability(player, tool) * Game.m_durabilityRate;
                 if (tool.m_durability <= 0f)
                 {
                     LogStopped(point, reason: null, planted, notCultivated, blocked, toolBroke: true);

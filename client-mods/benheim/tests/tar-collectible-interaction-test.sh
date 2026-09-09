@@ -12,7 +12,7 @@ native_humanoid="$source_tree/Humanoid.cs"
 native_player="$source_tree/Player.cs"
 native_floating="$source_tree/Floating.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(0, 221, 12);' "$native_version"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 7);' "$native_version"
 
 # Valheim already distinguishes tar from other liquids. ItemDrop.InTar checks
 # Floating for LiquidType.Tar, so bypassing that result only at pickup calls
@@ -39,7 +39,7 @@ grep -Fq 'if (CanPickup())' "$native_item_drop"
 grep -Fq 'RequestOwn();' "$native_item_drop"
 grep -Fq 'bool flag = m_inventory.AddItem(component.m_itemData);' "$native_humanoid"
 grep -Fq 'Message(MessageHud.MessageType.Center, "$msg_noroom");' "$native_humanoid"
-grep -Fq 'm_pickupEffects.Create(base.transform.position, Quaternion.identity);' "$native_humanoid"
+grep -Fq 'm_pickupEffects.Create(base.transform.position, Quaternion.identity, null, 1f, -1, GetZDOID());' "$native_humanoid"
 
 # Auto-pickup keeps Valheim's ownership request, capacity and carry-weight
 # checks, range check, item movement, and final Pickup call. Benheim replaces
@@ -49,7 +49,7 @@ grep -Fq 'component.RequestOwn();' "$native_player"
 grep -Fq 'if (component.InTar())' "$native_player"
 grep -Fq '!m_inventory.CanAddItem(component.m_itemData)' "$native_player"
 grep -Fq 'component.m_itemData.GetWeight() + m_inventory.GetTotalWeight() > GetMaxCarryWeight()' "$native_player"
-grep -Fq 'if (num > m_autoPickupRange)' "$native_player"
+grep -Fq 'if (num2 > m_autoPickupRange)' "$native_player"
 grep -Fq 'component.transform.position += vector3;' "$native_player"
 grep -Fq 'Pickup(component.gameObject);' "$native_player"
 

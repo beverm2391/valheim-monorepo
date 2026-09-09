@@ -10,9 +10,9 @@ source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native="$source_tree/SE_Rested.cs"
 piece="$source_tree/Piece.cs"
 
-# Valheim 0.221.12 owns the complete comfort calculation. Its isolated helper
+# Valheim 1.0.7 owns the complete comfort calculation. Its isolated helper
 # passes the native 10-meter radius directly to the comfort-piece query.
-grep -Fq 'CurrentVersion { get; } = new GameVersion(0, 221, 12);' "$source_tree/Version.cs"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 7);' "$source_tree/Version.cs"
 grep -Fq 'private static List<Piece> GetNearbyComfortPieces(Vector3 point)' "$native"
 grep -Fq 'Piece.GetAllComfortPiecesInRadius(point, 10f, s_tempPieces);' "$native"
 grep -Fq 'nearbyComfortPieces.Sort(PieceComfortSort);' "$native"

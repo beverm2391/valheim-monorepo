@@ -32,6 +32,12 @@ assert_source 'ApplyResolvedCost\(___m_buildPieces, ref __result\)' 'src/Farming
 assert_source 'HarmonyPatch\(typeof\(Player\), "UpdatePlacement"\)' 'src/Farming/PlantingStaminaPatches.cs'
 assert_source 'PlantingStamina\.HasPlacementStamina' 'src/Farming/PlantingStaminaPatches.cs'
 assert_source 'return player\.HaveStamina\(FarmingReflection\.GetBuildStamina\(player\)\)' 'src/Farming/PlantingStamina.cs'
+assert_source 'ItemCheated\(anchorPiece\.m_resources\)' 'src/Farming/MassPlanting.cs'
+assert_source 'NoCostCheat\(\)' 'src/Farming/MassPlanting.cs'
+assert_source 'PlayerProfile\.s_bypassCheatChecks' 'src/Farming/MassPlanting.cs'
+assert_source 'cheated: cheated' 'src/Farming/MassPlanting.cs'
+assert_source 'IncrementStatBuildPiecePlaced\(anchorPiece\.m_name, 1f, cheated\)' 'src/Farming/MassPlanting.cs'
+assert_source 'GetPlaceDurability\(player, tool\) \* Game\.m_durabilityRate' 'src/Farming/MassPlanting.cs'
 assert_source 'InputState\.IsTextEntryActive\(\)' 'src/Farming/FarmingInput.cs'
 assert_source 'FarmingGridSelection\.CurrentSize\)' 'src/Farming/PlantingPreview.cs'
 assert_source 'GridSize = FarmingGridSelection\.CurrentSize' 'src/Farming/PlantingState.cs'
@@ -40,7 +46,7 @@ assert_source 'Left Shift \+ interact' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'Left Shift \+ plant' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'MassFarming v1\.12' 'THIRD_PARTY_NOTICES.md'
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(0, 221, 12);' "$native_version"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 7);' "$native_version"
 grep -Fq 'if (TryPlacePiece(selectedPiece))' "$native_player"
 grep -Fq 'UseStamina(GetBuildStamina());' "$native_player"
 grep -Fq 'private float GetBuildStamina()' "$native_player"
@@ -58,7 +64,7 @@ fi
 # Grid placement reaches its only stamina debit after every rejection and after
 # the successful placement call. Skipped, failed, and rejected positions are free.
 test "$(grep -Fc 'player.UseStamina(staminaCost);' "$mass_planting")" -eq 1
-place_line="$(grep -nF 'player.PlacePiece(anchorPiece' "$mass_planting" | cut -d: -f1)"
+place_line="$(grep -nF 'player.PlacePiece(' "$mass_planting" | cut -d: -f1)"
 stamina_line="$(grep -nF 'player.UseStamina(staminaCost);' "$mass_planting" | cut -d: -f1)"
 test "$stamina_line" -gt "$place_line"
 

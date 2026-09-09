@@ -13,6 +13,8 @@ public class InventoryGui
 
 public class CookingStation
 {
+    public Skills.SkillType m_skill;
+    public bool m_canGiveBonusYield;
 }
 
 public class SE_Rested
@@ -333,6 +335,16 @@ namespace HarmonyLib
 
     [AttributeUsage(AttributeTargets.Method)]
     internal sealed class HarmonyTranspiler : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class HarmonyPrefix : Attribute
+    {
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    internal sealed class HarmonyFinalizer : Attribute
     {
     }
 

@@ -8,6 +8,9 @@ plugin="$root/src/Plugin.cs"
 grep -Fq 'CreateClassProcessor(patchType).Patch();' "$manager"
 grep -Fq 'harmony?.UnpatchSelf();' "$manager"
 grep -Fq 'ResolveOwner(patchType)' "$manager"
+grep -Fq 'PatchGroupAttribute' "$manager"
+grep -Fq 'EnemyTiers.Presentation' "$root/src/EnemyTiers/WildernessDangerPresentationPatches.cs"
+grep -Fq 'EnemyTiers.Spawn' "$root/src/EnemyTiers/WildernessStarPatches.cs"
 grep -Fq 'typeof(Plugin).Assembly.GetTypes()' "$plugin"
 if grep -Fq '.PatchAll(' "$plugin"; then
   printf 'Benheim must not patch the whole assembly as one Harmony transaction\n' >&2

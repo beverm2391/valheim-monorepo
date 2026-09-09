@@ -14,25 +14,25 @@ softref_manifest="$data_dir/StreamingAssets/SoftRef/manifest_extended"
 softref_manifest_text="$(strings "$softref_manifest")"
 
 rpc_damage="$(sed -n '/private void RPC_Damage(long sender, HitData hit)/,/^}/p' "$native_tree_log")"
-destroy="$(sed -n '/private void Destroy(HitData hitData = null)/,/^}/p' "$native_tree_log")"
+destroy="$(sed -n '/private void Destroy(HitData hitData, bool cheatedTool)/,/^}/p' "$native_tree_log")"
 
-# Installed Valheim 0.221.12 sends damage to the current ZDO owner. Only that
+# Installed Valheim 1.0.7 sends damage to the current ZDO owner. Only that
 # owner enters Destroy, realizes the native drop list, and performs spawning.
 [[ "$(grep -Fc 'if (!m_nview.IsOwner())' <<<"$rpc_damage")" -eq 1 ]]
-[[ "$(grep -Fc 'Destroy(hitData);' <<<"$rpc_damage")" -eq 1 ]]
-[[ "$(grep -Fc 'Destroy(hitData);' "$native_tree_log")" -eq 1 ]]
+[[ "$(grep -Fc 'Destroy(hitData, flag);' <<<"$rpc_damage")" -eq 1 ]]
+[[ "$(grep -Fc 'Destroy(hitData, flag);' "$native_tree_log")" -eq 1 ]]
 owner_guard_line="$(grep -nF 'if (!m_nview.IsOwner())' <<<"$rpc_damage" | cut -d: -f1)"
 owner_return_line="$(grep -nF 'return;' <<<"$rpc_damage" | head -n 1 | cut -d: -f1)"
-destroy_call_line="$(grep -nF 'Destroy(hitData);' <<<"$rpc_damage" | cut -d: -f1)"
+destroy_call_line="$(grep -nF 'Destroy(hitData, flag);' <<<"$rpc_damage" | cut -d: -f1)"
 ((owner_guard_line < owner_return_line))
 ((owner_return_line < destroy_call_line))
 
 [[ "$(grep -Fc 'List<GameObject> dropList = m_dropWhenDestroyed.GetDropList();' <<<"$destroy")" -eq 1 ]]
 [[ "$(grep -Fc 'gameObject = Game.instance.CheckDropConversion(hitData, component, gameObject, ref dropCount);' <<<"$destroy")" -eq 1 ]]
-[[ "$(grep -Fc 'ItemDrop.OnCreateNew(UnityEngine.Object.Instantiate(gameObject, position, rotation));' <<<"$destroy")" -eq 1 ]]
+[[ "$(grep -Fc 'ItemDrop.OnCreateNew(UnityEngine.Object.Instantiate(gameObject, position, rotation), cheatedTool);' <<<"$destroy")" -eq 1 ]]
 drop_list_line="$(grep -nF 'List<GameObject> dropList = m_dropWhenDestroyed.GetDropList();' <<<"$destroy" | cut -d: -f1)"
 native_conversion_line="$(grep -nF 'gameObject = Game.instance.CheckDropConversion(hitData, component, gameObject, ref dropCount);' <<<"$destroy" | cut -d: -f1)"
-native_spawn_line="$(grep -nF 'ItemDrop.OnCreateNew(UnityEngine.Object.Instantiate(gameObject, position, rotation));' <<<"$destroy" | cut -d: -f1)"
+native_spawn_line="$(grep -nF 'ItemDrop.OnCreateNew(UnityEngine.Object.Instantiate(gameObject, position, rotation), cheatedTool);' <<<"$destroy" | cut -d: -f1)"
 ((drop_list_line < native_conversion_line))
 ((native_conversion_line < native_spawn_line))
 

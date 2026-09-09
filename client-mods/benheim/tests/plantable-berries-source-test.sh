@@ -18,11 +18,11 @@ valheim_data="$(dirname "$(dirname "$VALHEIM_SOURCE_ASSEMBLY_PATH")")"
 softref_manifest="$valheim_data/StreamingAssets/SoftRef/manifest_extended"
 cultivator_bundle="$valheim_data/StreamingAssets/SoftRef/Bundles/c4210710"
 grep -Fq 'path in bundle: Assets/GameElements/Pieces/_CultivatorPieceTable.prefab' "$softref_manifest"
-test "$(valheim_source_sha256_file "$cultivator_bundle")" = '2d1e17fa941213747868face6b8fb13e23332292454007255c42562119e31448'
+test "$(valheim_source_sha256_file "$cultivator_bundle")" = '6ccebb616690a19eafb2813b9c9372233a4725120935657ebe13c3da47e6d3f8'
 grep -Fq 'var pieceTable = new PieceTable { m_canRemovePieces = false };' "$behavior"
 grep -Fq '!toolPieces.m_canRemovePieces' "$behavior"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(0, 221, 12);' "$source_tree/Version.cs"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 7);' "$source_tree/Version.cs"
 
 # The feature modifies only the three native berry prefabs. It adds build
 # metadata to their existing network/pickable/destructible lifecycle.
@@ -114,7 +114,7 @@ done
 grep -Fq 'm_namedPrefabs.Add(prefab.name.GetStableHashCode(), prefab);' "$source_tree/ZNetScene.cs"
 grep -Fq 'return GetPrefab(name.GetStableHashCode());' "$source_tree/ZNetScene.cs"
 grep -Fq 'GameObject gameObject = UnityEngine.Object.Instantiate(original, pos, rot);' "$source_tree/Player.cs"
-grep -Fq 'component.SetCreator(GetPlayerID());' "$source_tree/Player.cs"
+grep -Fq 'component.SetCreator(GetPlayerID(), PlatformManager.DistributionPlatform.LocalUser.PlatformUserID);' "$source_tree/Player.cs"
 grep -Fq 'm_picked = zDO.GetBool(ZDOVars.s_picked, m_defaultPicked);' "$source_tree/Pickable.cs"
 grep -Fq 'm_pickedTime = m_nview.GetZDO().GetLong(ZDOVars.s_pickedTime, 0L);' "$source_tree/Pickable.cs"
 grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_picked, m_picked);' "$source_tree/Pickable.cs"
@@ -159,7 +159,7 @@ fi
 # Grid resources are checked before placement and consumed only after a
 # successful PlacePiece call. Every skip happens before either operation.
 requirements_line="$(grep -nF 'player.HaveRequirements(anchorPiece' "$mass_planting" | cut -d: -f1)"
-place_line="$(grep -nF 'player.PlacePiece(anchorPiece' "$mass_planting" | cut -d: -f1)"
+place_line="$(grep -nF 'player.PlacePiece(' "$mass_planting" | cut -d: -f1)"
 consume_line="$(grep -nF 'player.ConsumeResources(anchorPiece.m_resources' "$mass_planting" | cut -d: -f1)"
 test "$requirements_line" -lt "$place_line"
 test "$place_line" -lt "$consume_line"

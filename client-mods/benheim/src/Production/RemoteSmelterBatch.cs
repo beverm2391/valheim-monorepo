@@ -142,8 +142,7 @@ internal static class RemoteSmelterBatch
         ZPackage package = new ZPackage();
         package.Write(requested);
         package.Write(prefab);
-        // Append correlation after the established payload. Older owners read
-        // the same requested/item fields and ignore the tail.
+        package.Write(material.m_cheated);
         package.Write(operationId);
         try
         {
@@ -169,14 +168,14 @@ internal static class RemoteSmelterBatch
         string operationId = string.Empty;
         int requested = 0;
         string prefab = string.Empty;
+        bool cheated = false;
         bool valid = false;
         try
         {
             requested = package.ReadInt();
             prefab = package.ReadString();
-            operationId = package.GetPos() < package.Size()
-                ? package.ReadString()
-                : string.Empty;
+            cheated = package.ReadBool();
+            operationId = package.ReadString();
             int limit = input == OreInput ? station.m_maxOre : station.m_maxFuel;
             valid = (input == OreInput || input == FuelInput) &&
                 requested > 0 && requested <= limit && IsAllowed(station, input, prefab);
@@ -203,7 +202,7 @@ internal static class RemoteSmelterBatch
         int accepted = StationFillBatchRules.AcceptedCount(before, capacity, requested, valid);
         if (accepted > 0)
         {
-            Apply(station, input, prefab, accepted, before);
+            Apply(station, input, prefab, cheated, accepted, before);
         }
 
         string result = accepted == 0 ? "rejected" : accepted < requested ? "partial" : "complete";
@@ -282,13 +281,13 @@ internal static class RemoteSmelterBatch
         return Convert.ToSingle((input == OreInput ? GetQueue : GetFuel).Invoke(station, null));
     }
 
-    private static void Apply(Smelter station, int input, string prefab, int accepted, float before)
+    private static void Apply(Smelter station, int input, string prefab, bool cheated, int accepted, float before)
     {
         if (input == OreInput)
         {
             for (int index = 0; index < accepted; index++)
             {
-                QueueOre.Invoke(station, new object[] { prefab });
+                QueueOre.Invoke(station, new object[] { prefab, cheated });
                 station.m_oreAddedEffects.Create(station.transform.position, station.transform.rotation);
             }
             return;

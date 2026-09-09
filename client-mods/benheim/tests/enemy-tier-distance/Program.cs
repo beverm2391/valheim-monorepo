@@ -24,15 +24,15 @@ ExpectClose(16f, exampleBiome.ChanceAt(2f), "biome curve clamps beyond world edg
 
 ExpectClose(
     8f,
-    WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, 0f, WorldSize),
+    WildernessStarChance.AdjustEffectiveChance(10f, exampleBiome, 0f, WorldSize),
     "biome minimum applies at center");
 ExpectClose(
     17f,
-    WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, 5_000f, WorldSize),
+    WildernessStarChance.AdjustEffectiveChance(10f, exampleBiome, 5_000f, WorldSize),
     "biome midpoint adds global distance");
 ExpectClose(
     26f,
-    WildernessStarChance.AdjustEffectiveChance(10f, 1f, exampleBiome, WorldSize, WorldSize),
+    WildernessStarChance.AdjustEffectiveChance(10f, exampleBiome, WorldSize, WorldSize),
     "biome maximum adds world-edge term");
 
 ExpectClose(
@@ -46,19 +46,14 @@ ExpectClose(
 
 ExpectClose(
     0f,
-    WildernessStarChance.AdjustEffectiveChance(0f, 1f, exampleBiome, WorldSize, WorldSize),
+    WildernessStarChance.AdjustEffectiveChance(0f, exampleBiome, WorldSize, WorldSize),
     "native zero chance remains zero");
 ExpectClose(
     26f,
-    WildernessStarChance.AdjustEffectiveChance(35f, 1f, exampleBiome, WorldSize, WorldSize),
+    WildernessStarChance.AdjustEffectiveChance(35f, exampleBiome, WorldSize, WorldSize),
     "native chance above the previous cap does not bypass the resolved formula");
-ExpectClose(
-    26f,
-    WildernessStarChance.AdjustEffectiveChance(10f, 2f, exampleBiome, WorldSize, WorldSize),
-    "biome composition defines the final chance");
-
 var maximumBiome = new BiomeChanceCurve(30f, 30f);
-ExpectClose(40f, WildernessStarChance.AdjustEffectiveChance(10f, 1f, maximumBiome, WorldSize, WorldSize), "constructed maximum has no hard cap");
+ExpectClose(40f, WildernessStarChance.AdjustEffectiveChance(10f, maximumBiome, WorldSize, WorldSize), "constructed maximum has no hard cap");
 
 ExpectTrue(!BoarTierPhysicalProfile.TryForLevel(1, out _), "ordinary Boar keeps native physical behavior");
 ExpectTrue(BoarTierPhysicalProfile.TryForLevel(2, out BoarTierPhysicalProfile oneStarBoar), "one-star Boar profile exists");

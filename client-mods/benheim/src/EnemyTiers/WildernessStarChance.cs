@@ -24,13 +24,11 @@ internal static class WildernessStarChance
 
     internal static float AdjustEffectiveChance(
         float nativeChance,
-        float nativeLevelUpMultiplier,
         BiomeChanceCurve biomeCurve,
         float distanceFromWorldCenter,
         float worldSize)
     {
-        float nativeEffectiveChance = nativeChance * nativeLevelUpMultiplier;
-        if (nativeEffectiveChance <= 0f)
+        if (nativeChance <= 0f)
         {
             return 0f;
         }

@@ -18,9 +18,8 @@ internal static class WildernessStarPatches
         "Spawn",
         typeof(SpawnSystem.SpawnData),
         typeof(Vector3),
-        typeof(bool),
-        typeof(int),
-        typeof(float))]
+        typeof(bool))]
+    [PatchGroup("EnemyTiers.Spawn")]
     private static class SpawnPatch
     {
         [HarmonyPrefix]
@@ -28,7 +27,6 @@ internal static class WildernessStarPatches
             SpawnSystem.SpawnData critter,
             Vector3 spawnPoint,
             bool eventSpawner,
-            float levelUpMultiplier,
             out SpawnContext? __state)
         {
             __state = activeSpawn;
@@ -63,8 +61,7 @@ internal static class WildernessStarPatches
                 critter,
                 biome,
                 biomeCurve,
-                Utils.LengthXZ(spawnPoint),
-                levelUpMultiplier);
+                Utils.LengthXZ(spawnPoint));
         }
 
         [HarmonyFinalizer]
@@ -78,11 +75,13 @@ internal static class WildernessStarPatches
     [HarmonyPatch(
         typeof(SpawnSystem),
         nameof(SpawnSystem.GetLevelUpChance),
+        typeof(Vector3),
         typeof(SpawnSystem.SpawnData))]
+    [PatchGroup("EnemyTiers.Spawn")]
     private static class LevelUpChancePatch
     {
         [HarmonyPostfix]
-        private static void Postfix(SpawnSystem.SpawnData creature, ref float __result)
+        private static void Postfix(Vector3 position, SpawnSystem.SpawnData creature, ref float __result)
         {
             if (!activeSpawn.HasValue || !ReferenceEquals(activeSpawn.Value.SpawnData, creature))
             {
@@ -90,23 +89,13 @@ internal static class WildernessStarPatches
             }
 
             SpawnContext context = activeSpawn.Value;
-            if (context.NativeLevelUpMultiplier <= 0f)
-            {
-                return;
-            }
-
-            float nativeEffectiveChance = __result * context.NativeLevelUpMultiplier;
+            float nativeEffectiveChance = __result;
             float adjustedEffectiveChance = WildernessStarChance.AdjustEffectiveChance(
-                __result,
-                context.NativeLevelUpMultiplier,
+                nativeEffectiveChance,
                 context.BiomeCurve,
                 context.DistanceFromWorldCenter,
                 WorldGenerator.worldSize);
-
-            // Spawn() applies this native multiplier immediately after the
-            // patched call. Divide it out here so that its final per-step chance
-            // equals the resolved calculation above.
-            __result = adjustedEffectiveChance / context.NativeLevelUpMultiplier;
+            __result = adjustedEffectiveChance;
             LogAdjustment(context, nativeEffectiveChance, adjustedEffectiveChance);
         }
     }
@@ -146,20 +135,17 @@ internal static class WildernessStarPatches
             SpawnSystem.SpawnData spawnData,
             Heightmap.Biome biome,
             BiomeChanceCurve biomeCurve,
-            float distanceFromWorldCenter,
-            float nativeLevelUpMultiplier)
+            float distanceFromWorldCenter)
         {
             SpawnData = spawnData;
             Biome = biome;
             BiomeCurve = biomeCurve;
             DistanceFromWorldCenter = distanceFromWorldCenter;
-            NativeLevelUpMultiplier = nativeLevelUpMultiplier;
         }
 
         internal SpawnSystem.SpawnData SpawnData { get; }
         internal Heightmap.Biome Biome { get; }
         internal BiomeChanceCurve BiomeCurve { get; }
         internal float DistanceFromWorldCenter { get; }
-        internal float NativeLevelUpMultiplier { get; }
     }
 }

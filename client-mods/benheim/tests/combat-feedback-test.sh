@@ -19,8 +19,11 @@ native_accessibility="$source_tree/Valheim/SettingsGui/AccessibilitySettings.cs"
 
 rg -Fq '[HarmonyPatch(typeof(GameCamera), "LateUpdate")]' "$patches"
 rg -Fq 'player.GetAttackDrawPercentage()' "$feedback"
-rg -Fq 'camera.m_fov - currentFocusReduction' "$feedback"
-rg -Fq 'camera.m_skyCamera.fieldOfView = fieldOfView' "$feedback"
+rg -Fq 'focusBaseFov - currentFocusReduction' "$feedback"
+rg -Fq 'camera.SetTempFOV(fieldOfView);' "$feedback"
+rg -Fq 'camera.ResetTempFOV();' "$feedback"
+rg -Fq 'focusPhase == FocusPhase.Idle || focusBaseFov <= 0f' "$feedback"
+rg -Fq ': focusBaseFov;' "$feedback"
 rg -Fq 'Time.unscaledDeltaTime' "$feedback"
 rg -Fq 'player.IsDead()' "$feedback"
 rg -Fq 'player.IsTeleporting()' "$feedback"
@@ -72,7 +75,7 @@ if rg -Fq 'm_shakeIntensity +=' "$native_camera"; then
   exit 1
 fi
 
-if rg -n 'm_fov\s*=|m_distance|FreezeFrame|RPC_|MusicMan|EnvMan|EffectList|Instantiate' "$root/src/CombatFeedback"; then
+if rg -n 'm_fov\s*=|fieldOfView\s*=|m_distance|FreezeFrame|RPC_|MusicMan|EnvMan|EffectList|Instantiate' "$root/src/CombatFeedback"; then
   printf 'combat feedback must stay local, transient, and camera-only\n' >&2
   exit 1
 fi

@@ -1,9 +1,11 @@
+using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using UnityEngine;
 
 namespace BenheimQoL.EnemyTiers;
 
 [HarmonyPatch]
+[PatchGroup("EnemyTiers.Presentation")]
 internal static class WildernessDangerPresentationPatches
 {
     [HarmonyPostfix]

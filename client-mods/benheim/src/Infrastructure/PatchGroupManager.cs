@@ -5,6 +5,17 @@ using HarmonyLib;
 
 namespace BenheimQoL.Infrastructure;
 
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+internal sealed class PatchGroupAttribute : Attribute
+{
+    internal PatchGroupAttribute(string owner)
+    {
+        Owner = owner;
+    }
+
+    internal string Owner { get; }
+}
+
 /// <summary>
 /// Installs Harmony patch classes under feature-owned Harmony IDs. Patch types
 /// are still visited in assembly order so successful startup preserves the old
@@ -150,6 +161,15 @@ internal sealed class PatchGroupManager
 
     private static string ResolveOwner(Type featureType)
     {
+        PatchGroupAttribute? explicitGroup = (PatchGroupAttribute?)Attribute.GetCustomAttribute(
+            featureType,
+            typeof(PatchGroupAttribute),
+            inherit: false);
+        if (explicitGroup?.Owner is { Length: > 0 })
+        {
+            return explicitGroup.Owner;
+        }
+
         string patchNamespace = featureType.Namespace ?? string.Empty;
         if (!patchNamespace.StartsWith(BenheimNamespacePrefix, StringComparison.Ordinal))
         {

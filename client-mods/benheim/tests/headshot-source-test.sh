@@ -5,9 +5,6 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 logic="$root/src/Archery/HeadshotLogic.cs"
 patch="$root/src/Archery/HeadshotPatches.cs"
 rules="$root/src/Archery/HeadshotRules.cs"
-repo_root="$(cd "$root/../.." && pwd)"
-native_assembly="$repo_root/backups/migration-1.0-porting/1.0/macos/Managed/assembly_valheim.dll"
-ilspy_path="${ILSPY_PATH:-$HOME/.dotnet/tools/ilspycmd}"
 
 # The hook is the shooter-side collision seam, before native Damage serializes
 # the freshly-built HitData. It must fail closed if the pinned call shape drifts.
@@ -24,15 +21,22 @@ grep -Fq 'projectile.m_aoe > 0f' "$logic"
 grep -Fq 'ProjectileType.Arrow' "$logic"
 
 # The 1.0 Projectile hit path still has one direct native Damage call, but its
-# local numbering changed. The transpiler resolves the two operand locals from
-# that exact call rather than preserving the 0.221.12 slots.
-if [[ ! -x "$ilspy_path" || ! -f "$native_assembly" ]]; then
-  printf 'headshots: preserved 1.0 IL evidence is unavailable\n' >&2
+# local numbering changed. Resolve the installed assembly that owns the native
+# source contract and prove the two operands around that exact call.
+# shellcheck source=../scripts/valheim-source-lib.sh
+source "$root/scripts/valheim-source-lib.sh"
+valheim_source_resolve_assembly || {
+  printf 'headshots: %s\n' "$VALHEIM_SOURCE_ERROR" >&2
   exit 1
-fi
+}
+valheim_source_resolve_ilspy || {
+  printf 'headshots: %s\n' "$VALHEIM_SOURCE_ERROR" >&2
+  exit 1
+}
 projectile_il="$(mktemp "${TMPDIR:-/tmp}/benheim-headshot-projectile.XXXXXX")"
 trap 'rm -f "$projectile_il"' EXIT
-"$ilspy_path" --disable-updatecheck -il -t Projectile "$native_assembly" > "$projectile_il"
+"$VALHEIM_SOURCE_ILSPY_PATH" --disable-updatecheck -il -t Projectile \
+  "$VALHEIM_SOURCE_ASSEMBLY_PATH" > "$projectile_il"
 awk '
   /instance void OnHit \(/ { active = 1; calls = 0; matching_call = 0; prior = ""; before = "" }
   active && /callvirt instance void IDestructible::Damage\(class HitData\)/ {

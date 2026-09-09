@@ -11,6 +11,8 @@ internal static class CookingBonus
 {
     internal const float ChanceCeiling = 0.50f;
     private static bool nonCookingGuardReported;
+    [ThreadStatic]
+    private static CookingStation? activeCookingStation;
 
     internal static float ForCrafting(InventoryGui inventoryGui)
     {
@@ -22,10 +24,24 @@ internal static class CookingBonus
 
     internal static float ForCookingStation(InventoryGui inventoryGui)
     {
-        // Touch the native field so a missing InventoryGui still fails at the
-        // same seam instead of changing CookingStation's initialization rules.
-        _ = inventoryGui.m_craftBonusChance;
-        return ChanceCeiling;
+        CookingStation? station = activeCookingStation;
+        return station != null
+            && station.m_skill == Skills.SkillType.Cooking
+            && station.m_canGiveBonusYield
+            ? ChanceCeiling
+            : inventoryGui.m_craftBonusChance;
+    }
+
+    internal static CookingStation? EnterCookingStation(CookingStation station)
+    {
+        CookingStation? previous = activeCookingStation;
+        activeCookingStation = station;
+        return previous;
+    }
+
+    internal static void RestoreCookingStation(CookingStation? previous)
+    {
+        activeCookingStation = previous;
     }
 
     internal static bool RollForCrafting(
@@ -77,6 +93,11 @@ internal static class CookingBonus
         float configuredBaseChance,
         int nativeResultCountBefore)
     {
+        CookingStation? station = activeCookingStation;
+        Skills.SkillType skill = station?.m_skill ?? Skills.SkillType.None;
+        bool cookingGate = station != null
+            && station.m_skill == Skills.SkillType.Cooking
+            && station.m_canGiveBonusYield;
         float effectiveChance = nativeSkillFactor * configuredBaseChance;
         bool succeeded = nativeRoll < effectiveChance;
         int configuredBonusAmount = InventoryGui.instance.m_craftBonusAmount;
@@ -86,8 +107,8 @@ internal static class CookingBonus
             CreateNativeRollEvent(
                 "CookingStation.OnInteract",
                 "completed_food_retrieval",
-                Skills.SkillType.Cooking,
-                true,
+                skill,
+                cookingGate,
                 nativeRoll,
                 nativeSkillFactor,
                 configuredBaseChance,
@@ -148,6 +169,19 @@ internal static class CookingCraftBonusPatch
 [HarmonyPatch(typeof(CookingStation), "OnInteract")]
 internal static class CookingStationBonusPatch
 {
+    [HarmonyPrefix]
+    private static void Prefix(CookingStation __instance, out CookingStation? __state)
+    {
+        __state = CookingBonus.EnterCookingStation(__instance);
+    }
+
+    [HarmonyFinalizer]
+    private static Exception? Finalizer(Exception? __exception, CookingStation? __state)
+    {
+        CookingBonus.RestoreCookingStation(__state);
+        return __exception;
+    }
+
     private static IEnumerable<CodeInstruction> Transpiler(
         IEnumerable<CodeInstruction> instructions)
     {

@@ -24,10 +24,26 @@ namespace BenheimQoL.Healthy
     }
 }
 
+namespace BenheimQoL.Split
+{
+    [HarmonyPatch]
+    [PatchGroup("EnemyTiers.Map")]
+    internal static class MapPatch
+    {
+    }
+
+    [HarmonyPatch]
+    [PatchGroup("EnemyTiers.Spawn")]
+    internal static class SpawnPatch
+    {
+    }
+}
+
 namespace PatchGroupTests
 {
     using BenheimQoL.Broken;
     using BenheimQoL.Healthy;
+    using BenheimQoL.Split;
 
     internal static class Program
     {
@@ -61,6 +77,16 @@ namespace PatchGroupTests
                 "the failure names its owner and exact patch type");
             Require(cleanupFailures.Count == 0, "partial cleanup succeeds");
             Require(cleanupRecoveries.Count == 0, "no cleanup retry is needed");
+
+            PatchGroupManager splitManager = PatchGroupManager.Apply(
+                new[] { typeof(MapPatch), typeof(SpawnPatch) },
+                "com.benheim.patch-group-test.split",
+                (owner, patchType, exception) => throw exception,
+                (owner, exception) => throw exception,
+                owner => { });
+            Require(splitManager.IsAvailable(typeof(MapPatch)), "an explicit map owner is available");
+            Require(splitManager.IsAvailable(typeof(SpawnPatch)), "an explicit spawn owner is available");
+            splitManager.UnpatchAll();
 
             manager.UnpatchAll();
             Require(!PatchState.IsApplied(typeof(HealthyPatch)),
