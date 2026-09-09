@@ -33,7 +33,10 @@ items on the canonical world during migration.
 6. Restart the server and rejoin.
 
 Do not promote the QA world. It is disposable proof; production will open its
-own preserved world only after the software build passes QA.
+own preserved world only after the software build passes QA. If 1.0 converts
+the world's save format, that conversion happens first to the disposable QA
+copy. The converted QA copy proves the migration path but never becomes the
+canonical world.
 
 ## Preserve the 1.0 porting inputs
 
@@ -71,9 +74,15 @@ working mods continue.
 
 1. Update production to the exact Valheim server build proven on QA.
 2. Install only the exact candidate binaries and configuration that passed QA.
-3. Start the preserved production world.
+3. Start the untouched frozen pre-1.0 production world and let the production
+   1.0 server perform its own save-format conversion if required. Do not copy
+   the converted QA world into production.
 4. Join, play, save, restart the server, and rejoin.
 5. Trigger and confirm a fresh post-migration world backup and R2 upload.
+
+Until step 5 succeeds, keep the frozen pre-1.0 world backup and matching old
+server installation as one recovery set. Never open a 1.0-converted production
+world with the old server binaries.
 
 Delete this checklist after production is stable on 1.0, every mod is working or
 explicitly deferred, the post-migration backup succeeds, and the disposable QA
