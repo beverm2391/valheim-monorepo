@@ -7,11 +7,13 @@ load_config
 root="$(repo_root)"
 tmp_env="$(mktemp)"
 tmp_r2=""
+tmp_diagnostics=""
 remote_stage_created=0
 cleanup_local() {
   local status=$?
   rm -f "$tmp_env"
   [[ -z "$tmp_r2" ]] || rm -f "$tmp_r2"
+  [[ -z "$tmp_diagnostics" ]] || rm -f "$tmp_diagnostics"
   if (( remote_stage_created == 1 )); then
     remote_ssh "rm -rf /tmp/valheim-server" >/dev/null 2>&1 || true
   fi
@@ -29,16 +31,31 @@ if r2_config_requested; then
   r2_configured=1
 fi
 
+diagnostics_configured=0
+if diagnostics_config_requested; then
+  require_diagnostics_config
+  tmp_diagnostics="$(mktemp)"
+  render_diagnostics_env "$tmp_diagnostics"
+  diagnostics_configured=1
+fi
+
 remote_ssh "install -d -m 0700 /tmp/valheim-server"
 remote_stage_created=1
 remote_scp "$root/systemd/valheim.service" "/tmp/valheim-server/valheim.service"
+remote_scp "$root/systemd/valheim-diagnostics.service" "/tmp/valheim-server/valheim-diagnostics.service"
 remote_scp "$root/server/valheim-start" "/tmp/valheim-server/valheim-start"
+remote_scp "$root/server/forward-valheim-failures.py" "/tmp/valheim-server/forward-valheim-failures.py"
 remote_scp "$root/server/wait-for-valheim" "/tmp/valheim-server/wait-for-valheim"
 remote_scp "$tmp_env" "/tmp/valheim-server/server.env"
 if (( r2_configured == 1 )); then
   remote_scp "$tmp_r2" "/tmp/valheim-server/r2.env"
 else
   remote_ssh "rm -f /tmp/valheim-server/r2.env"
+fi
+if (( diagnostics_configured == 1 )); then
+  remote_scp "$tmp_diagnostics" "/tmp/valheim-server/diagnostics.env"
+else
+  remote_ssh "rm -f /tmp/valheim-server/diagnostics.env"
 fi
 
 remote_ssh 'bash -s' <<'REMOTE'
@@ -55,7 +72,7 @@ dpkg --add-architecture i386
 echo steamcmd steam/question select "I AGREE" | debconf-set-selections
 echo steamcmd steam/license note "" | debconf-set-selections
 apt-get update
-apt-get install -y ca-certificates curl libatomic1 libpulse0 steamcmd tar unzip
+apt-get install -y ca-certificates curl libatomic1 libpulse0 python3 steamcmd tar unzip
 if ! command -v rclone >/dev/null 2>&1; then
   curl -fsSL https://rclone.org/install.sh | bash
 fi
@@ -71,8 +88,13 @@ install -m 0640 -o root -g valheim "$work/server.env" /etc/valheim/server.env
 if [[ -f "$work/r2.env" ]]; then
   install -m 0600 -o root -g root "$work/r2.env" /etc/valheim/r2.env
 fi
+if [[ -f "$work/diagnostics.env" ]]; then
+  install -m 0600 -o root -g root "$work/diagnostics.env" /etc/valheim/diagnostics.env
+fi
 install -m 0644 "$work/valheim.service" /etc/systemd/system/valheim.service
+install -m 0644 "$work/valheim-diagnostics.service" /etc/systemd/system/valheim-diagnostics.service
 install -m 0755 "$work/valheim-start" /usr/local/bin/valheim-start
+install -m 0755 "$work/forward-valheim-failures.py" /usr/local/bin/valheim-forward-failures
 install -m 0755 "$work/wait-for-valheim" /usr/local/bin/valheim-wait-ready
 
 cat > /usr/local/bin/valheim-update <<'EOF'
@@ -169,8 +191,13 @@ EOF
 /usr/local/bin/valheim-update
 chown -R valheim:valheim /opt/valheim /var/lib/valheim
 systemctl daemon-reload
-systemctl enable valheim.service valheim-backup.timer
+systemctl enable valheim.service valheim-backup.timer valheim-diagnostics.service
 systemctl restart valheim-backup.timer
+if [[ -f /etc/valheim/diagnostics.env ]]; then
+  systemctl restart valheim-diagnostics.service
+else
+  systemctl stop valheim-diagnostics.service
+fi
 REMOTE
 remote_stage_created=0
 

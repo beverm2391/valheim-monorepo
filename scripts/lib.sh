@@ -10,6 +10,7 @@ secret_config_keys=(
   HCLOUD_TOKEN
   TAILSCALE_AUTHKEY
   VALHEIM_PASSWORD
+  BENHEIM_AXIOM_INGEST_TOKEN
   VALHEIM_R2_ACCESS_KEY_ID
   VALHEIM_R2_SECRET_ACCESS_KEY
 )
@@ -75,10 +76,18 @@ load_config() {
   : "${VALHEIM_PORT:=2456}"
   : "${SSH_USER:=root}"
   : "${VALHEIM_R2_CONFIGURE:=0}"
+  : "${VALHEIM_DIAGNOSTICS_CONFIGURE:=0}"
   case "$VALHEIM_R2_CONFIGURE" in
     0|1) ;;
     *)
       echo "Invalid VALHEIM_R2_CONFIGURE: expected 0 or 1." >&2
+      exit 1
+      ;;
+  esac
+  case "$VALHEIM_DIAGNOSTICS_CONFIGURE" in
+    0|1) ;;
+    *)
+      echo "Invalid VALHEIM_DIAGNOSTICS_CONFIGURE: expected 0 or 1." >&2
       exit 1
       ;;
   esac
@@ -93,6 +102,31 @@ require_server_password() {
 
 r2_config_requested() {
   [[ "${VALHEIM_R2_CONFIGURE:-0}" == 1 ]]
+}
+
+diagnostics_config_requested() {
+  [[ "${VALHEIM_DIAGNOSTICS_CONFIGURE:-0}" == 1 ]]
+}
+
+require_diagnostics_config() {
+  : "${BENHEIM_AXIOM_ENDPOINT:=https://us-east-1.aws.edge.axiom.co}"
+  if [[ ! "$BENHEIM_AXIOM_ENDPOINT" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]]; then
+    echo "BENHEIM_AXIOM_ENDPOINT must be an HTTPS origin when diagnostics are enabled." >&2
+    return 1
+  fi
+  if [[ ! "${BENHEIM_AXIOM_DATASET:-}" =~ ^[A-Za-z0-9_.-]{1,200}$ ]]; then
+    echo "Missing or invalid BENHEIM_AXIOM_DATASET in server.env when diagnostics are enabled." >&2
+    return 1
+  fi
+  if [[ -z "${BENHEIM_AXIOM_INGEST_TOKEN:-}" ]]; then
+    echo "Missing BENHEIM_AXIOM_INGEST_TOKEN in the process environment when diagnostics are enabled." >&2
+    return 1
+  fi
+  : "${VALHEIM_DIAGNOSTICS_SERVER_ID:=$HETZNER_SERVER_NAME}"
+  if [[ ! "$VALHEIM_DIAGNOSTICS_SERVER_ID" =~ ^[A-Za-z0-9_.-]{1,128}$ ]]; then
+    echo "VALHEIM_DIAGNOSTICS_SERVER_ID must contain only letters, numbers, dots, dashes, or underscores." >&2
+    return 1
+  fi
 }
 
 require_r2_config() {
@@ -144,6 +178,18 @@ render_r2_env() {
   printf 'VALHEIM_R2_ACCESS_KEY_ID=%q\n' "$VALHEIM_R2_ACCESS_KEY_ID" >> "$destination"
   printf 'VALHEIM_R2_SECRET_ACCESS_KEY=%q\n' "$VALHEIM_R2_SECRET_ACCESS_KEY" >> "$destination"
   printf 'VALHEIM_R2_PREFIX=%q\n' "${VALHEIM_R2_PREFIX:-benheim}" >> "$destination"
+}
+
+render_diagnostics_env() {
+  local destination=$1
+
+  require_diagnostics_config
+  : > "$destination"
+  chmod 0600 "$destination"
+  printf 'BENHEIM_AXIOM_ENDPOINT=%q\n' "$BENHEIM_AXIOM_ENDPOINT" >> "$destination"
+  printf 'BENHEIM_AXIOM_DATASET=%q\n' "$BENHEIM_AXIOM_DATASET" >> "$destination"
+  printf 'BENHEIM_AXIOM_INGEST_TOKEN=%q\n' "$BENHEIM_AXIOM_INGEST_TOKEN" >> "$destination"
+  printf 'VALHEIM_DIAGNOSTICS_SERVER_ID=%q\n' "$VALHEIM_DIAGNOSTICS_SERVER_ID" >> "$destination"
 }
 
 hcloud_cmd() {
