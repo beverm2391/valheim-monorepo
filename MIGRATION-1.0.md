@@ -5,21 +5,6 @@ decisions. [The evidence file](knowledge-base/server/1.0-evidence.md) owns the
 research. This file exists only to execute the migration safely, then gets
 deleted.
 
-```text
-Preserve current state
-          |
-Prove vanilla 1.0 in QA
-          |
-          +---------------------------+
-          |                           |
-Production: vanilla 1.0          QA: restore mods
-convert → E2E → R2 backup        port → integrate → prove
-          |                           |
-          +-------------+-------------+
-                        |
-               Promote proven mods
-```
-
 The pre-1.0 Mac and Linux binaries are verified locally and in R2. Their
 decompiled source is verified locally. The snapshot manifests own their exact
 build identities and hashes.
