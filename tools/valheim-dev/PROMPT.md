@@ -25,26 +25,35 @@ test or checking registration in a fresh process:
 safe npm ci --prefix tools/valheim-dev
 ```
 
-Run the focused MCP test with:
+Run the canonical Valheim Dev verification with the active Valheim/BepInEx
+profile root:
 
 ```bash
-safe node --test tools/valheim-dev/server.test.mjs
+safe VALHEIM_GAME_DIR=/absolute/path/to/Valheim \
+  tools/valheim-dev/scripts/verify.sh
 ```
 
-Run the focused in-process bridge test with:
+This runs the standalone runtime, installer, launcher, MCP, and build proofs.
+Build the standalone plugin without installing it with:
 
 ```bash
-safe client-mods/benheim/tests/valheim-dev-runtime-test.sh
+safe VALHEIM_GAME_DIR=/absolute/path/to/Valheim \
+  tools/valheim-dev/scripts/build.sh
 ```
 
-The bridge test compiles the production `DiagnosticEvent` implementation. Do not
-reproduce its fields or envelope rules in a test double.
-
-After changing either the MCP server or the in-process bridge, run the
-canonical Benheim verification:
+When changing the optional Benheim evidence adapter, also run Benheim's
+structured-event proof and canonical verification:
 
 ```bash
+safe client-mods/benheim/tests/structured-events-test.sh
 safe client-mods/benheim/scripts/verify.sh
+```
+
+After explicit authorization to install, use:
+
+```bash
+safe VALHEIM_GAME_DIR=/absolute/path/to/Valheim \
+  tools/valheim-dev/scripts/install-local.sh
 ```
 
 The focused suites must prove:
