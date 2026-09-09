@@ -5,8 +5,20 @@ decisions. [The evidence file](knowledge-base/server/1.0-evidence.md) owns the
 research. This file exists only to execute the migration safely, then gets
 deleted.
 
-**Preserve the current state → prove vanilla 1.0 in disposable QA → port mods
-in parallel → promote the proven build.**
+```text
+Preserve current state
+          |
+Prove vanilla 1.0 in QA
+          |
+          +---------------------------+
+          |                           |
+Production: vanilla 1.0          QA: restore mods
+convert → E2E → R2 backup        port → integrate → prove
+          |                           |
+          +-------------+-------------+
+                        |
+               Promote proven mods
+```
 
 The pre-1.0 Mac and Linux binaries are verified locally and in R2. Their
 decompiled source is verified locally. The snapshot manifests own their exact
@@ -51,6 +63,23 @@ canonical world.
 Raw snapshots belong locally and in R2. Decompiled source is derived and stays
 local.
 
+After vanilla QA passes, production conversion and QA mod restoration are
+independent lanes. Run them in parallel when useful.
+
+## Convert production to vanilla 1.0
+
+1. Update production to the exact vanilla Valheim server build proven on QA.
+2. Keep all mods disabled.
+3. Start the untouched frozen pre-1.0 production world and let the production
+   1.0 server perform its own save-format conversion if required. Do not copy
+   the converted QA world into production.
+4. Join, play, save, restart the server, and rejoin.
+5. Trigger and confirm a fresh vanilla-1.0 world backup and R2 upload.
+
+Until step 5 succeeds, keep the frozen pre-1.0 world backup and matching old
+server installation as one recovery set. Never open a 1.0-converted production
+world with the old server binaries.
+
 ## Port mods on QA
 
 1. Prove BepInEx and the standalone Valheim Dev bridge without gameplay mods.
@@ -70,19 +99,12 @@ local.
 Fix forward from observed failures. A failed mod stays disabled while unrelated
 working mods continue.
 
-## Promote the proven build
+## Promote the proven mods
 
-1. Update production to the exact Valheim server build proven on QA.
-2. Install only the exact candidate binaries and configuration that passed QA.
-3. Start the untouched frozen pre-1.0 production world and let the production
-   1.0 server perform its own save-format conversion if required. Do not copy
-   the converted QA world into production.
-4. Join, play, save, restart the server, and rejoin.
-5. Trigger and confirm a fresh post-migration world backup and R2 upload.
-
-Until step 5 succeeds, keep the frozen pre-1.0 world backup and matching old
-server installation as one recovery set. Never open a 1.0-converted production
-world with the old server binaries.
+1. Install only the exact mod binaries and configuration that passed QA onto
+   the already-proven production 1.0 server.
+2. Join, play, save, restart the server, and rejoin.
+3. Trigger and confirm a fresh post-mod-restoration world backup and R2 upload.
 
 Delete this checklist after production is stable on 1.0, every mod is working or
 explicitly deferred, the post-migration backup succeeds, and the disposable QA
