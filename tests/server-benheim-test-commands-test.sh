@@ -6,18 +6,20 @@ boar_server="$root/server-mods/benheim-test-commands/src/BoarTestCommandServer.c
 henge_server="$root/server-mods/benheim-test-commands/src/HengeOverlayServer.cs"
 plugin="$root/server-mods/benheim-test-commands/src/Plugin.cs"
 diagnostics="$root/server-mods/benheim-test-commands/src/ServerDiagnostics.cs"
+authorization="$root/server-mods/benheim-test-commands/src/ServerAdminAuthorization.cs"
 profile_patches="$root/server-mods/benheim-test-commands/src/BoarTierIdentityPatches.cs"
 project="$root/server-mods/benheim-test-commands/src/BenheimTestCommands.csproj"
+authorization_policy_project="$root/tests/fixtures/server-admin-authorization-policy/PolicyTest.csproj"
 build_script="$root/server-mods/benheim-test-commands/scripts/build.sh"
 source_tree="$($root/client-mods/benheim/scripts/ensure-valheim-source.sh)"
 
-grep -Fq 'PluginVersion = "0.1.2"' "$plugin"
+grep -Fq 'PluginVersion = "0.1.4"' "$plugin"
 grep -Fq 'ZNet.instance.IsServer()' "$boar_server"
 grep -Fq '[HarmonyPatch(typeof(ZNet), "OnNewConnection")]' "$boar_server"
 grep -Fq 'peer.m_rpc.Register<string, int>(' "$boar_server"
 grep -Fq 'peer.IsReady()' "$boar_server"
 grep -Fq 'ReferenceEquals(rpc, peer.m_rpc)' "$boar_server"
-grep -Fq 'ZNet.instance.IsAdmin(rpc.GetSocket().GetHostName())' "$boar_server"
+grep -Fq 'ServerAdminAuthorization.IsAdmin(rpc)' "$boar_server"
 grep -Fq 'peer.m_refPos + SpawnOffset' "$boar_server"
 grep -Fq 'GameObject? prefab = scene.GetPrefab(BoarPrefabName);' "$boar_server"
 grep -Fq 'Character? character = spawned.GetComponent<Character>();' "$boar_server"
@@ -32,7 +34,11 @@ grep -Fq '[HarmonyPatch(typeof(ZNet), "OnNewConnection")]' "$henge_server"
 grep -Fq 'peer.m_rpc.Register<string>(' "$henge_server"
 grep -Fq 'ReferenceEquals(rpc, peer.m_rpc)' "$henge_server"
 grep -Fq 'peer.IsReady()' "$henge_server"
-grep -Fq 'ZNet.instance.IsAdmin(rpc.GetSocket().GetHostName())' "$henge_server"
+grep -Fq 'ServerAdminAuthorization.IsAdmin(rpc)' "$henge_server"
+grep -Fq 'ZNet.instance.IsAdmin(host)' "$authorization"
+grep -Fq 'var adminList = ZNet.instance.GetAdminList();' "$authorization"
+grep -Fq 'adminList.Contains(host)' "$authorization"
+grep -Fq 'IsDecimalIdentity(host) && adminList.Contains("Steam_" + host)' "$authorization"
 grep -Fq 'if (!zoneSystem.LocationsGenerated)' "$henge_server"
 grep -Fq 'zoneSystem.GetLocationList()' "$henge_server"
 grep -Fq 'location.m_location.m_prefabName' "$henge_server"
@@ -81,4 +87,5 @@ if rg -n 'm_placed|GenerateLocations|CreateLocalZones|CreateGhostZones|\.Load\(|
 fi
 
 dotnet build "$project" --configuration Release
+dotnet run --project "$authorization_policy_project" --configuration Release
 printf 'Benheim dedicated-server test-command checks passed\n'

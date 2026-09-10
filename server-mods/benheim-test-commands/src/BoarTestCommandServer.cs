@@ -69,7 +69,7 @@ internal static class BoarTestCommandServer
             return;
         }
 
-        if (!ZNet.instance.IsAdmin(rpc.GetSocket().GetHostName()))
+        if (!ServerAdminAuthorization.IsAdmin(rpc))
         {
             Reject(rpc, safeOperationId, requester, stars, "not_admin");
             return;

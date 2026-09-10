@@ -59,7 +59,7 @@ internal static class HengeOverlayServer
             return;
         }
 
-        if (!ZNet.instance.IsAdmin(rpc.GetSocket().GetHostName()))
+        if (!ServerAdminAuthorization.IsAdmin(rpc))
         {
             Reject(rpc, safeOperationId, requester, "not_admin");
             return;

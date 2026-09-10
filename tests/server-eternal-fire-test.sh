@@ -54,7 +54,7 @@ expected_checksum=e177c73e456344b8ced3d320505e4c6ad071351076319ac01eb43a1af7fb56
 actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 [[ "$actual_checksum" == "$expected_checksum" ]] || fail "first-party plugin checksum changed"
 assert_contains "installer pins the first-party plugin checksum" "$expected_checksum" "$installer"
-test_commands_checksum=b0612c309d8fd062bf31d703654736c52d64bb163dd121b928d09792bafdb02b
+test_commands_checksum=5c444b66e071adcfec368fd018d87b9431219dd25e70cfa7a1ca829d538a3523
 actual_test_commands_checksum="$(shasum -a 256 "$test_commands_plugin" | awk '{print $1}')"
 [[ "$actual_test_commands_checksum" == "$test_commands_checksum" ]] || fail "test-command plugin checksum changed"
 assert_contains "installer pins the test-command plugin checksum" "$test_commands_checksum" "$installer"
@@ -87,7 +87,7 @@ if strings "$plugin" | grep -Fiq "Jotunn"; then
   fail "plugin binary depends on Jotunn"
 fi
 assert_contains "plugin source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$plugin_source"
-assert_contains "test-command source pins version 0.1.2" 'PluginVersion = "0.1.2"' "$test_commands_source"
+assert_contains "test-command source pins version 0.1.4" 'PluginVersion = "0.1.4"' "$test_commands_source"
 assert_contains "server-support source pins version 0.1.6" 'PluginVersion = "0.1.6"' "$server_support_source"
 assert_contains \
   "plugin logs the exact post-PatchAll message" \
