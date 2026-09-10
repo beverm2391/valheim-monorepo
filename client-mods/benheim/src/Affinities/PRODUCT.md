@@ -279,7 +279,15 @@ The first Affinity slice is implemented as a playable candidate. Live `0.1.80`
 testing accepted Lunge's movement and feel, the basic Forge-tab presentation,
 and the disabled same-affinity action. That test used a max-quality base-game
 Club, a Forge Affinity tab, versioned item state, a temporary cost of 1 Wood, and a
-diagonal Lunge impulse. Static proof also covers:
+diagonal Lunge impulse.
+
+An automated exact-`0.1.97` Valheim 1.0 runtime pass confirmed that a native
+Snipe draw narrowed the field of view from 65° to 23.98°, consumed one arrow,
+and restored the field of view to 65° after firing. This proves the scope and
+ammo lifecycle, not the vignette presentation, 25% draw-time tuning, headshot
+scaling, or gameplay feel.
+
+Static proof also covers:
 
 - guards for the selected item and resources;
 - rejection of the affinity already installed on the exact item;

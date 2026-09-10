@@ -7,6 +7,9 @@ use it to find controls and passive features.
 
 - `Left Shift + B` shows or hides the menu unless the player is typing.
   `Escape` and the native Close button also hide it.
+- While the menu is open, it owns the native cursor and blocks gameplay input.
+  Closing it restores the cursor visibility and lock state that existed before
+  the menu opened.
 - The dimmed, Valheim-styled menu uses Controls and Features tabs.
 - The header shows the loaded Benheim version.
 - The Controls tab uses aligned key and action columns grouped by Inventory,

@@ -13,6 +13,8 @@ without requiring players to refill them. It runs only on the dedicated server.
 - The server synchronizes ordinary Valheim fuel state, so vanilla and modded
   clients see the same result without installing this mod.
 - The mod creates no custom world objects or custom persistent item data.
+- An empty bathtub refilled to its native capacity before and after a graceful
+  dedicated-server restart.
 
 ## Player Experience
 
@@ -25,7 +27,7 @@ without requiring players to refill them. It runs only on the dedicated server.
 
 ## In Development
 
-- Confirm under normal burn conditions that every supported piece refills
+- Confirm under normal burn conditions that every other supported piece refills
   before it visibly extinguishes during at least one refill cycle.
-- Confirm after a dedicated-server restart that supported pieces still refill
-  under normal burn conditions.
+- Confirm after a dedicated-server restart that at least one non-bathtub piece
+  still refills under normal burn conditions.

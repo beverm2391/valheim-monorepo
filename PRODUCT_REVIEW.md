@@ -3,7 +3,7 @@
 Outstanding hands-on checks for the Benheim build currently installed on Ben's
 Mac.
 
-Installed on Ben's Mac: **0.1.93**.
+Installed on Ben's Mac: **0.1.97**.
 
 Grid selection, planting, and berry cycles record diagnostics without enabling
 a probe.
@@ -20,11 +20,13 @@ a probe.
   same depth and alignment as the native Craft and Upgrade tabs.
   Other bows must remain ineligible. Native upgrades may erase the affinity;
   confirm that it can be applied again afterward.
-- **Snipe handling:** Draw, fire, and cancel with Bow Focus and Benheim FX off.
-  Confirm useful 3x zoom, soft edges that darken with draw progress, a clear
-  center, and an immediate return to normal view. Compare with an ordinary
-  Huntsman Bow: Snipe should take 25% longer to reach full draw while keeping
-  native partial shots and stamina use. Check the close-range tradeoff by feel.
+- **Snipe handling and feel:** Automated Valheim 1.0 QA proved native draw,
+  3x zoom from 65° to 23.98°, one-arrow consumption, and restoration to 65°
+  after firing. With Bow Focus and Benheim FX off, confirm that the soft edges
+  darken with draw progress, keep the center clear, and disappear immediately
+  after firing or canceling. Compare with an ordinary Huntsman Bow: Snipe
+  should take 25% longer to reach full draw while keeping native partial shots
+  and stamina use. Check the close-range tradeoff by feel.
 - **Snipe headshots:** Land headshots near 20 m, 40 m, and 60 m. Confirm total
   multipliers of 1.25x, 1.75x, and 2.25x, including a partial draw and an arrow
   that hits after switching weapons. Body shots, native WeakSpots, and ammo

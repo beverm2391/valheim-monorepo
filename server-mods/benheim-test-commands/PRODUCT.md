@@ -7,7 +7,7 @@ surface.
 ## Current Behavior
 
 The plugin exposes exactly three spawn requests to a connected native
-administrator using Benheim `0.1.73`. `bh spawn boar 0` creates one native
+administrator using Benheim `0.1.97`. `bh spawn boar 0` creates one native
 unstarred Boar as a control. `bh spawn boar 1` creates one native one-star
 Boar. `bh spawn boar 2` creates one native two-star Boar. `bh help` lists
 `bh spawn boar 0|1|2` and explains that `0` is the unstarred control, `1` is one
@@ -22,17 +22,10 @@ world-key, kill, or general command execution. It does not enable remote
 developer commands or create another permission system. The spawned Boar keeps
 its native prefab identity and native saved level.
 
-Using the commands requires Benheim `0.1.73` on the requesting player and
-Benheim Test Commands `0.1.2` on the dedicated server. Ben confirmed that
-each of the three spawn requests created the requested native Boar tier exactly
-once.
-
-## In Development
-
-The server component derives the starred-Boar physical profile while it owns a
-spawned test Boar. Other connected players derive the same profile if they
-later own that creature. Ownership migration and physical-profile coherence
-remain unproven.
+Using the commands requires Benheim `0.1.97` on the requesting player and
+Benheim Test Commands `0.1.4` on the dedicated server. Valheim 1.0 QA confirmed
+that each of the three spawn requests was accepted once and created native
+Boar levels `1`, `2`, and `3` for requested stars `0`, `1`, and `2`.
 
 ### Native henge overlay
 
@@ -59,10 +52,20 @@ This read-only overlay preserves the pre-1.0 Deep North boundary. It reads
 Valheim's existing world plan without generating, loading, placing, or
 exploring any zone.
 
+Valheim 1.0 QA confirmed that one authenticated request returned 35 planned
+henge coordinates.
+
 The implementation adapts the location lookup and `Icon3` temporary-pin
 pattern from the Unlicense-licensed
 [`valheim-dev` `find` command](https://github.com/JereKuusela/valheim-dev/blob/359e59c3d2fd2c40a6e2bb1e447723d6180c89b1/ServerDevcommands/Commands/Find.cs),
 without importing its general remote-command framework.
+
+## In Development
+
+The server component derives the starred-Boar physical profile while it owns a
+spawned test Boar. Other connected players derive the same profile if they
+later own that creature. Ownership migration and physical-profile coherence
+remain unproven.
 
 [`../../client-mods/benheim/src/EnemyTiers/PRODUCT.md`](../../client-mods/benheim/src/EnemyTiers/PRODUCT.md)
 owns the Boar physical experiment and its gameplay acceptance boundary.
