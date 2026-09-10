@@ -25,4 +25,14 @@ Expect(false, 0f, 0f, "invalid max fuel is ignored");
 Expect(false, float.NaN, 4f, "NaN current fuel is ignored");
 Expect(false, 0f, float.PositiveInfinity, "infinite max fuel is ignored");
 
+if (!MissingServerPrefabFuelCapacity.TryGet("piece_bathtub", out float bathtubMaxFuel) ||
+    bathtubMaxFuel != 10f)
+{
+    throw new InvalidOperationException("the stripped 1.0 server bathtub keeps its native capacity");
+}
+if (MissingServerPrefabFuelCapacity.TryGet("hearth", out _))
+{
+    throw new InvalidOperationException("normal server prefabs must not use a hard-coded capacity");
+}
+
 Console.WriteLine("PASS: refill policy decision boundary");

@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../server-mods/benheim-eternal-fire/src/MissingServerPrefabFuelCapacity.cs" Link="MissingServerPrefabFuelCapacity.cs" />
     <Compile Include="../../server-mods/benheim-eternal-fire/src/RefillPolicy.cs" Link="RefillPolicy.cs" />
   </ItemGroup>
 </Project>

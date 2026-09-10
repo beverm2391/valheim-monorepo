@@ -7,6 +7,7 @@ namespace BenheimEternalFire;
 internal static class ZdoFuelNormalizer
 {
     private static readonly HashSet<int> LoggedMissingPrefabs = new HashSet<int>();
+    private static readonly HashSet<int> LoggedCapacityFallbacks = new HashSet<int>();
 
     internal static void Normalize(ZDO zdo, string source)
     {
@@ -23,7 +24,21 @@ internal static class ZdoFuelNormalizer
 
         GameObject? prefab = ZNetScene.instance?.GetPrefab(prefabHash);
         Fireplace? fireplace = prefab?.GetComponent<Fireplace>();
-        if (fireplace == null || fireplace.m_maxFuel <= 0f)
+        float maxFuel;
+        if (fireplace != null && fireplace.m_maxFuel > 0f)
+        {
+            maxFuel = fireplace.m_maxFuel;
+        }
+        else if (MissingServerPrefabFuelCapacity.TryGet(prefabName, out maxFuel))
+        {
+            if (LoggedCapacityFallbacks.Add(prefabHash))
+            {
+                Plugin.Log.LogInfo(
+                    $"[diag][EternalFire] capacity_fallback prefab={prefabName} " +
+                    $"hash={prefabHash} max_fuel={maxFuel:0.###}");
+            }
+        }
+        else
         {
             if (LoggedMissingPrefabs.Add(prefabHash))
             {
@@ -35,7 +50,7 @@ internal static class ZdoFuelNormalizer
         }
 
         float currentFuel = zdo.GetFloat(ZDOVars.s_fuel, -1f);
-        if (!RefillPolicy.ShouldRefill(currentFuel, fireplace.m_maxFuel))
+        if (!RefillPolicy.ShouldRefill(currentFuel, maxFuel))
         {
             return;
         }
@@ -45,10 +60,10 @@ internal static class ZdoFuelNormalizer
         // the server copy after deserialization advances its data revision, so
         // Valheim sends the corrected native fuel field back to that client.
         // The low-water policy avoids revising the ZDO on every client tick.
-        zdo.Set(ZDOVars.s_fuel, fireplace.m_maxFuel);
+        zdo.Set(ZDOVars.s_fuel, maxFuel);
         Plugin.Log.LogInfo(
             $"[diag][EternalFire] refilled source={source} prefab={prefabName} " +
-            $"from={currentFuel:0.###} to={fireplace.m_maxFuel:0.###} zdo={zdo.m_uid}");
+            $"from={currentFuel:0.###} to={maxFuel:0.###} zdo={zdo.m_uid}");
     }
 }
 

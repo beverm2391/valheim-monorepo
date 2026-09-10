@@ -4,6 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 installer="$root/scripts/install-server-mods.sh"
 source_file="$root/server-mods/benheim-eternal-fire/src/ZdoFuelPatches.cs"
+missing_prefab_capacity="$root/server-mods/benheim-eternal-fire/src/MissingServerPrefabFuelCapacity.cs"
 supported_file="$root/server-mods/benheim-eternal-fire/src/SupportedFireplaces.cs"
 plugin_source="$root/server-mods/benheim-eternal-fire/src/Plugin.cs"
 plugin="$root/server-mods/benheim-eternal-fire/dist/BenheimEternalFire.dll"
@@ -49,7 +50,7 @@ bash -n "$recovery"
 dotnet run --project "$root/tests/refill-policy/RefillPolicyTests.csproj" \
   --configuration Release
 
-expected_checksum=41b854064777fd939a5f929b4ad4b51baba1255ecbff7c3a88d3a5cb4373afff
+expected_checksum=e177c73e456344b8ced3d320505e4c6ad071351076319ac01eb43a1af7fb56d3
 actual_checksum="$(shasum -a 256 "$plugin" | awk '{print $1}')"
 [[ "$actual_checksum" == "$expected_checksum" ]] || fail "first-party plugin checksum changed"
 assert_contains "installer pins the first-party plugin checksum" "$expected_checksum" "$installer"
@@ -119,6 +120,14 @@ assert_contains \
   "ZDO updates use the tested refill boundary" \
   "RefillPolicy.ShouldRefill" \
   "$source_file"
+assert_contains \
+  "the stripped 1.0 server bathtub uses its probed native capacity" \
+  'prefabName == "piece_bathtub"' \
+  "$missing_prefab_capacity"
+assert_contains \
+  "the stripped 1.0 server bathtub keeps native max fuel" \
+  'maxFuel = 10f' \
+  "$missing_prefab_capacity"
 assert_not_contains \
   "actual refills must each be logged" \
   "LoggedRefills" \
