@@ -50,6 +50,8 @@ grep -Fq 'ResetUiState(destroyRoot: false)' "$source_file"
 grep -Fq 'ResetUiState(destroyRoot: true)' "$source_file"
 grep -Fq 'ShortcutOverlayPlayerInputPatch' "$patches_file"
 grep -Fq 'ShortcutOverlayMenuVisibilityPatch' "$patches_file"
+grep -Fq 'ShortcutOverlayMenuActivePatch' "$patches_file"
+grep -Fq '[HarmonyPatch(typeof(Menu), "IsActive", new Type[] { })]' "$patches_file"
 grep -Fq 'if (!visible)' "$source_file"
 grep -Fq 'AddTab(buttons, templates, ShortcutTab.Controls, "Controls"' "$tabs_file"
 grep -Fq 'AddTab(buttons, templates, ShortcutTab.Features, "Features"' "$tabs_file"
@@ -155,6 +157,14 @@ grep -Fq 'Stackables protect every stack of that item type; non-stackable gear p
 grep -Fq 'Left Shift + B / Escape' "$content_file"
 grep -Fq 'ShortcutOverlay.Destroy();' "$plugin"
 grep -Fq 'RestoreCursor();' "$source_file"
+grep -Fq 'previousCursorVisible = ZCursor.IsVisible' "$source_file"
+grep -Fq 'previousCursorLock = ZCursor.LockState' "$source_file"
+grep -Fq 'ZCursor.Show();' "$source_file"
+grep -Fq 'ZCursor.Hide();' "$source_file"
+if rg -n 'Cursor\.(visible|lockState)' "$source_file"; then
+  printf 'shortcut panel must use Valheim 1.0 ZCursor ownership\n' >&2
+  exit 1
+fi
 
 # The config panel describes every effect controlled by Combat Shake.
 grep -Fq 'Cleave, mining AOE, and Perfect Impact' "$root/src/Shortcuts/ShortcutOverlayConfig.cs"

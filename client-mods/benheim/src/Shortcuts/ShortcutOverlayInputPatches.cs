@@ -27,6 +27,18 @@ internal static class ShortcutOverlayMenuVisibilityPatch
     }
 }
 
+[HarmonyPatch(typeof(Menu), "IsActive", new Type[] { })]
+internal static class ShortcutOverlayMenuActivePatch
+{
+    private static void Postfix(ref bool __result)
+    {
+        // Valheim 1.0 uses IsActive, rather than only IsVisible, when deciding
+        // whether GameCamera may capture the mouse. Treat this modal overlay as
+        // an active menu so its native buttons keep the cursor and pointer input.
+        __result = __result || ShortcutOverlay.IsOpen;
+    }
+}
+
 [HarmonyPatch(typeof(Menu), "Update", new Type[] { })]
 internal static class ShortcutOverlayMenuUpdatePatch
 {

@@ -99,13 +99,13 @@ internal static partial class ShortcutOverlay
             RefreshControlsWarnings(templates);
         }
 
-        previousCursorVisible = Cursor.visible;
-        previousCursorLock = Cursor.lockState;
+        previousCursorVisible = ZCursor.IsVisible;
+        previousCursorLock = ZCursor.LockState;
         visible = true;
         root!.SetActive(true);
         root.transform.SetAsLastSibling();
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
+        ZCursor.Show();
+        ZCursor.LockState = CursorLockMode.None;
         ResizeWindowIfNeeded(force: true);
         EventSystem.current?.SetSelectedGameObject(closeButton!.gameObject);
         Diagnostics.Event("Shortcuts", "panel_toggled", "visible=true ui=native");
@@ -131,8 +131,16 @@ internal static partial class ShortcutOverlay
 
     private static void RestoreCursor()
     {
-        Cursor.visible = previousCursorVisible;
-        Cursor.lockState = previousCursorLock;
+        if (previousCursorVisible)
+        {
+            ZCursor.Show();
+        }
+        else
+        {
+            ZCursor.Hide();
+        }
+
+        ZCursor.LockState = previousCursorLock;
     }
 
     private static ScrollRect CreateNativeScrollView(RectTransform parent, NativeTemplates templates)
