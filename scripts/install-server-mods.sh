@@ -214,5 +214,5 @@ fi
 
 trap - EXIT
 rm -rf "$work"
-echo "Installed BepInEx 5.4.2333, Benheim Eternal Fire 0.1.1, Benheim Test Commands 0.1.2, and Benheim Server Support 0.1.6."
+echo "Installed BepInEx 5.4.2333, Benheim Eternal Fire 0.1.1, Benheim Test Commands 0.1.4, and Benheim Server Support 0.1.6."
 REMOTE

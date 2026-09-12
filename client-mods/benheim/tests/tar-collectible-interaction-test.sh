@@ -12,7 +12,7 @@ native_humanoid="$source_tree/Humanoid.cs"
 native_player="$source_tree/Player.cs"
 native_floating="$source_tree/Floating.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 7);' "$native_version"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 12);' "$native_version"
 
 # Valheim already distinguishes tar from other liquids. ItemDrop.InTar checks
 # Floating for LiquidType.Tar, so bypassing that result only at pickup calls

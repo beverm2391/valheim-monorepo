@@ -180,7 +180,7 @@ printf '%s\n' \
   'ZNet.LoadWorld: first (first)' \
   'Game server connected' \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
-  'Benheim Test Commands 0.1.2 loaded with direct peer RPC authorization.' \
+  'Benheim Test Commands 0.1.4 loaded with direct peer RPC authorization.' \
   'Benheim Server Support 0.1.6 loaded with Put Away and confirmed-kill coordination.' \
   > "$tmp_dir/journal.log"
 printf '%s\n' 0 > "$tmp_dir/journal.count"
@@ -212,7 +212,7 @@ assert_contains \
   "$verifier"
 assert_contains \
   "verifier requires Test Commands' exact load message" \
-  'Benheim Test Commands 0.1.2 loaded with direct peer RPC authorization.' \
+  'Benheim Test Commands 0.1.4 loaded with direct peer RPC authorization.' \
   "$verifier"
 assert_contains \
   "verifier requires Server Support's exact load message" \

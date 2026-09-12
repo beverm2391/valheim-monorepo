@@ -12,7 +12,7 @@ expected_logs=(
   "ZNet.LoadWorld: $world ($world)"
   "Game server connected"
   "Benheim Eternal Fire 0.1.1 loaded after PatchAll."
-  "Benheim Test Commands 0.1.2 loaded with direct peer RPC authorization."
+  "Benheim Test Commands 0.1.4 loaded with direct peer RPC authorization."
   "Benheim Server Support 0.1.6 loaded with Put Away and confirmed-kill coordination."
 )
 

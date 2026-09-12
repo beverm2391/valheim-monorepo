@@ -41,7 +41,7 @@ internal static class PlantingStaminaTests
         Expect(player.LastStaminaCheck == 10f);
 
         MethodInfo getSelectedPiece = typeof(PieceTable).GetMethod(nameof(PieceTable.GetSelectedPiece))!;
-        // Player overrides Character.HaveStamina, but Valheim 1.0.7 calls the
+        // Player overrides Character.HaveStamina, but Valheim 1.0.12 calls the
         // base-declared virtual slot from Player.UpdatePlacement.
         MethodInfo haveStamina = typeof(Character).GetMethod(nameof(Character.HaveStamina))!;
         MethodInfo tryPlacePiece = typeof(Player).GetMethod(nameof(Player.TryPlacePiece))!;
