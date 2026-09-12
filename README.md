@@ -5,15 +5,6 @@ public so people from Discord and the wider Valheim community can use it. They
 can also lift working code for their own projects. This is a working personal
 project, not a polished framework. Ben does not promise support.
 
-> [!WARNING]
-> The current server and mod builds target pre-1.0 Valheim. Valheim 1.0 is
-> scheduled for September 9, 2026, according to the
-> [official release announcement](https://www.valheimgame.com/news/valheim-has-a-release-date-/).
-> These builds may stop working after that update until Ben migrates and
-> verifies them.
-
-Run a Valheim dedicated server on a small cloud VM.
-
 This repo is for the common friend-group case: you already have a Valheim world,
 you want it online all the time, and you do not want to keep your gaming PC
 running under your desk. It provisions a normal Linux VM, installs the official
@@ -25,11 +16,8 @@ simple infrastructure: a stable public IP, UDP ports, persistent disk, and a
 boring Linux service. The provider scripts are separate from the installer so
 other clouds can be added later.
 
-The server and optional mod product direction is tracked in
-[`PRODUCT.md`](PRODUCT.md).
-
-Durable research, implementation references, and external source shelves live
-in the [`knowledge-base/`](knowledge-base/README.md).
+[`PRODUCT.md`](PRODUCT.md) tracks product direction. Durable references live in
+the [`knowledge-base/`](knowledge-base/README.md).
 
 ## What You Get
 
@@ -194,6 +182,24 @@ On macOS with Steam Cloud, worlds are commonly under:
 
 After you upload a world and play on the server, the server copy becomes the
 source of truth. Your old local save will not stay in sync automatically.
+
+## Switching Worlds
+
+Select an existing save; an unknown name fails before any server change:
+
+```bash
+scripts/switch-world.sh FriendWorld
+```
+
+New worlds require a separate command with the name repeated exactly:
+
+```bash
+scripts/switch-world.sh --create-new NewWorld --confirm NewWorld
+```
+
+Both forms stop Valheim, create and validate a full-storage backup, restart,
+verify the requested world in the log and on disk, then update local
+`server.env` so later configuration deployments keep the selection.
 
 ## Private Admin Access
 
@@ -440,13 +446,3 @@ providers/hetzner/destroy.sh
 
 If you use R2 backups, confirm the latest archive is present off-box before
 destroying the VM.
-
-## What This Does Not Do
-
-- It does not copy or redistribute Valheim binaries.
-- It does not manage arbitrary modpacks or client installations.
-- It does not provide a web dashboard.
-- It does not automatically update Valheim.
-- It does not make the server ephemeral or scale-to-zero.
-
-The goal is a small, durable, understandable dedicated server.

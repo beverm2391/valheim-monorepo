@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<EOF
+Usage:
+  $0 switch WORLD_NAME
+  $0 create WORLD_NAME CONFIRM_WORLD_NAME
+
+Switch selects an existing legacy or chunked world save. Create is allowed only
+when no save exists, and CONFIRM_WORLD_NAME must exactly repeat WORLD_NAME.
+EOF
+}
+
+die() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+[[ $# -ge 1 ]] || { usage >&2; exit 1; }
+action=$1
+shift
+
+case "$action" in
+  switch)
+    [[ $# -eq 1 ]] || { usage >&2; exit 1; }
+    world=$1
+    ;;
+  create)
+    [[ $# -eq 2 ]] || { usage >&2; exit 1; }
+    world=$1
+    confirmation=$2
+    [[ "$confirmation" == "$world" ]] || die "creation confirmation must exactly repeat WORLD_NAME"
+    ;;
+  *)
+    usage >&2
+    exit 1
+    ;;
+esac
+
+if [[ ! "$world" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]]; then
+  die "WORLD_NAME must be 1-64 letters, numbers, dashes, or underscores, and must start with a letter or number"
+fi
+
+root=${VALHEIM_CONFIG_ROOT:-}
+env_path="$root/etc/valheim/server.env"
+worlds_path=${VALHEIM_WORLDS_PATH:-"$root/var/lib/valheim/worlds_local"}
+backup_root=${VALHEIM_BACKUP_ROOT:-"$root/var/backups/valheim"}
+backup_command=${VALHEIM_BACKUP_COMMAND:-valheim-backup-and-upload}
+waiter=${VALHEIM_WAIT_READY:-"$root/usr/local/bin/valheim-wait-ready"}
+systemctl_bin=${SYSTEMCTL_BIN:-systemctl}
+journalctl_bin=${JOURNALCTL_BIN:-journalctl}
+date_bin=${DATE_BIN:-date}
+
+[[ -f "$env_path" ]] || die "runtime environment does not exist: $env_path"
+[[ -d "$worlds_path" ]] || die "world storage does not exist: $worlds_path"
+[[ -d "$backup_root" ]] || die "backup directory does not exist: $backup_root"
+[[ -x "$waiter" ]] || die "readiness helper is not executable: $waiter"
+[[ $(grep -c '^VALHEIM_WORLD_NAME=' "$env_path" || true) -eq 1 ]] || \
+  die "runtime environment must contain exactly one VALHEIM_WORLD_NAME assignment"
+
+world_save_kind() {
+  local name=$1
+  local db="$worlds_path/$name.db"
+  local fwl="$worlds_path/$name.fwl"
+  local directory="$worlds_path/$name"
+  local legacy_parts=0
+  local chunked_meta=""
+
+  [[ -e "$db" ]] && legacy_parts=$((legacy_parts + 1))
+  [[ -e "$fwl" ]] && legacy_parts=$((legacy_parts + 1))
+
+  if (( legacy_parts > 0 )) && [[ -e "$directory" ]]; then
+    die "world '$name' has both legacy and chunked primary saves; refusing an ambiguous selection"
+  fi
+
+  if (( legacy_parts == 2 )); then
+    [[ -f "$db" && ! -L "$db" && -s "$db" && -f "$fwl" && ! -L "$fwl" && -s "$fwl" ]] || \
+      die "legacy save for '$name' is not a non-empty regular .db/.fwl pair"
+    echo legacy
+    return
+  fi
+  if (( legacy_parts == 1 )); then
+    die "legacy save for '$name' is incomplete; both $name.db and $name.fwl are required"
+  fi
+
+  if [[ -e "$directory" ]]; then
+    [[ -d "$directory" && ! -L "$directory" ]] || \
+      die "chunked save path for '$name' is not a regular directory"
+    chunked_meta=$(find "$directory" -maxdepth 1 -type f -name '_main.[01].fwl2' -size +0c -print -quit)
+    [[ -n "$chunked_meta" ]] || die "chunked save for '$name' has no non-empty _main.0.fwl2 or _main.1.fwl2 metadata file"
+    echo chunked
+    return
+  fi
+
+  echo missing
+}
+
+save_kind=$(world_save_kind "$world")
+case "$action:$save_kind" in
+  switch:missing)
+    die "world '$world' does not exist; refusing to create it from a possible typo"
+    ;;
+  create:legacy|create:chunked)
+    die "world '$world' already exists; use switch instead of create"
+    ;;
+esac
+
+old_env=$(mktemp "${TMPDIR:-/tmp}/valheim-server-env.previous.XXXXXX")
+new_env=$(mktemp "${TMPDIR:-/tmp}/valheim-server-env.next.XXXXXX")
+backup_marker=$(mktemp "${TMPDIR:-/tmp}/valheim-world-backup-marker.XXXXXX")
+was_active=0
+env_changed=0
+if "$systemctl_bin" is-active --quiet valheim.service; then
+  was_active=1
+fi
+cp -p "$env_path" "$old_env"
+
+cleanup() {
+  local status=$?
+  if (( status != 0 )); then
+    echo "World switch failed; restoring the previous runtime configuration." >&2
+    "$systemctl_bin" stop valheim.service >/dev/null 2>&1 || true
+    if (( env_changed == 1 )); then
+      if [[ -z "$root" ]]; then
+        install -m 0640 -o root -g valheim "$old_env" "$env_path"
+      else
+        install -m 0640 "$old_env" "$env_path"
+      fi
+    fi
+    if (( was_active == 1 )); then
+      "$systemctl_bin" start valheim.service >/dev/null 2>&1 || true
+    fi
+  fi
+  rm -f "$old_env" "$new_env" "$backup_marker"
+  exit "$status"
+}
+trap cleanup EXIT
+
+"$systemctl_bin" stop valheim.service
+"$backup_command"
+
+backup_archive=$(find "$backup_root" -maxdepth 1 -type f -name 'worlds-*.tar.gz' \
+  -newer "$backup_marker" -size +0c -print | sort | tail -n 1)
+[[ -n "$backup_archive" ]] || die "backup command did not create a new non-empty worlds-*.tar.gz archive"
+tar -tzf "$backup_archive" >/dev/null || die "new backup archive is unreadable: $backup_archive"
+
+awk -v world="$world" '
+  /^VALHEIM_WORLD_NAME=/ { print "VALHEIM_WORLD_NAME=" world; next }
+  { print }
+' "$env_path" > "$new_env"
+if [[ -z "$root" ]]; then
+  install -m 0640 -o root -g valheim "$new_env" "$env_path"
+else
+  install -m 0640 "$new_env" "$env_path"
+fi
+env_changed=1
+
+started_at=$("$date_bin" --iso-8601=seconds)
+"$systemctl_bin" start valheim.service
+"$waiter" "$started_at"
+
+logs=$("$journalctl_bin" -u valheim.service --since "$started_at" --no-pager)
+grep -Fq "Load world: $world ($world)" <<< "$logs" || \
+  die "Valheim became ready but did not report loading '$world'"
+
+loaded_kind=$(world_save_kind "$world")
+[[ "$loaded_kind" != missing ]] || die "Valheim reported '$world' loaded but no save appeared on disk"
+
+trap - EXIT
+rm -f "$old_env" "$new_env" "$backup_marker"
+echo "Valheim loaded world '$world' from its $loaded_kind save."
+echo "Verified backup: $backup_archive"

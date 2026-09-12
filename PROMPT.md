@@ -99,6 +99,7 @@ Useful operator commands are:
 scripts/status.sh
 scripts/logs.sh
 scripts/restart.sh
+scripts/switch-world.sh WORLD_NAME
 scripts/download-backups.sh
 scripts/apply-server-config.sh
 scripts/install-server-mods.sh
