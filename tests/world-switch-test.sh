@@ -51,7 +51,12 @@ case "$1" in
       printf 'new metadata\n' > "$WORLD_TEST_WORLDS/$world/_main.0.fwl2"
     fi
     reported=${REPORT_WORLD_AS:-$world}
-    printf 'Load world: %s (%s)\nGame server connected\n' "$reported" "$reported" >> "$WORLD_TEST_JOURNAL"
+    if [[ -d "$WORLD_TEST_WORLDS/$world" ]]; then
+      printf 'ZNet.LoadWorld: %s (%s), save number 0\n' "$reported" "$reported" >> "$WORLD_TEST_JOURNAL"
+    else
+      printf 'Load world: %s (%s)\n' "$reported" "$reported" >> "$WORLD_TEST_JOURNAL"
+    fi
+    printf 'Game server connected\n' >> "$WORLD_TEST_JOURNAL"
     ;;
   *) exit 2 ;;
 esac
@@ -119,6 +124,13 @@ run_helper "$helper" create NewWorld NewWorld > "$fixture/out"
 [[ -s "$fixture_root/var/lib/valheim/worlds_local/NewWorld/_main.0.fwl2" ]] || fail "explicit creation produces a chunked save"
 pass "explicit creation produces a chunked save"
 assert_contains "explicit creation becomes the runtime selection" 'VALHEIM_WORLD_NAME=NewWorld' "$fixture_root/etc/valheim/server.env"
+
+make_fixture chunked
+mkdir -p "$fixture_root/var/lib/valheim/worlds_local/ChunkedWorld"
+printf 'chunked metadata\n' > "$fixture_root/var/lib/valheim/worlds_local/ChunkedWorld/_main.1.fwl2"
+run_helper "$helper" switch ChunkedWorld > "$fixture/out"
+assert_contains "existing chunked world passes the 1.0 log proof" \
+  "Valheim loaded world 'ChunkedWorld' from its chunked save" "$fixture/out"
 
 make_fixture confirmation
 if run_helper "$helper" create NewWorld NewWrold > "$fixture/out" 2>&1; then fail "mismatched creation confirmation is rejected"; fi

@@ -161,8 +161,10 @@ started_at=$("$date_bin" --iso-8601=seconds)
 "$waiter" "$started_at"
 
 logs=$("$journalctl_bin" -u valheim.service --since "$started_at" --no-pager)
-grep -Fq "Load world: $world ($world)" <<< "$logs" || \
+if ! grep -Eq "Load world: .* \($world\)" <<< "$logs" && \
+  ! grep -Eq "ZNet\.LoadWorld: .* \($world\), save number [0-9]+" <<< "$logs"; then
   die "Valheim became ready but did not report loading '$world'"
+fi
 
 loaded_kind=$(world_save_kind "$world")
 [[ "$loaded_kind" != missing ]] || die "Valheim reported '$world' loaded but no save appeared on disk"
