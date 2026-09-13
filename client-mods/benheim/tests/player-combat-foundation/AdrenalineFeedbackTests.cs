@@ -17,7 +17,15 @@ internal static class AdrenalineFeedbackTests
         EarnedStatePresentation presentation = new EarnedStatePresentation();
         PlayerCombatRuntime.Presentation = presentation;
 
-        presentation.BeginPerfectDefense(PlayerCombatContext.Capture(player));
+        PlayerCombatContext lockedDefense = PlayerCombatContext.Capture(player);
+        presentation.BeginPerfectDefense(lockedDefense);
+        presentation.Observe(
+            new EarnedStateTransition(
+                lockedDefense,
+                EarnedCombatState.Clutch,
+                tier: 1,
+                EarnedStateTransitionKind.Activated,
+                EarnedStateTransitionReason.NativeEffectApplied));
         AdrenalineFeedback.ShowAward(
             player,
             new AdrenalineFeedback.Award("Perfect dodge", before: 0f, maximum: 0f));
@@ -26,11 +34,16 @@ internal static class AdrenalineFeedbackTests
             player,
             new AdrenalineFeedback.Award("Perfect parry", before: 0f, maximum: 0f));
 
-        Expect(WorldFeedback.Messages.Count == 2,
-            "locked native adrenaline still emits one message per confirmed defense");
-        Expect(WorldFeedback.Messages[0] == "Perfect dodge"
-                && WorldFeedback.Messages[1] == "Perfect parry",
-            "locked native adrenaline omits a misleading numeric gain");
+        Expect(WorldFeedback.Messages.Count == 0,
+            "locked native adrenaline suppresses perfect-defense feedback");
+        Expect(!AdrenalineAvailability.IsUnlocked(player),
+            "zero native capacity keeps the adrenaline-combat layer dormant");
+        Expect(AdrenalineFeedback.CaptureAward(player, 10f) == null,
+            "locked native adrenaline cannot capture a perfect-defense award");
+
+        player.MaximumAdrenaline = 100f;
+        Expect(AdrenalineAvailability.IsUnlocked(player),
+            "positive native capacity unlocks the adrenaline-combat layer");
 
         int messagesBeforeOrdinaryDefense = WorldFeedback.Messages.Count;
         AdrenalineFeedback.Reset();

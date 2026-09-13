@@ -34,7 +34,10 @@ internal static class AdrenalineFeedback
 
     internal static Award? CaptureAward(Player player, float value)
     {
-        if (player != Player.m_localPlayer || currentSource == null || value <= 0f)
+        if (player != Player.m_localPlayer
+            || !AdrenalineAvailability.IsUnlocked(player)
+            || currentSource == null
+            || value <= 0f)
         {
             return null;
         }
@@ -77,20 +80,17 @@ internal static class AdrenalineFeedback
 
     internal static void ShowAward(Player player, Award? award)
     {
+        if (!AdrenalineAvailability.IsUnlocked(player))
+        {
+            PlayerCombatRuntime.CompletePerfectDefensePresentation(
+                player,
+                adrenalineLine: null);
+            return;
+        }
+
         string? text = null;
         bool nativeCharmActivated = false;
-        if (award != null && award.Maximum <= 0f)
-        {
-            // The native AddAdrenaline callback still confirms the defense
-            // before the player has unlocked any meter capacity. Keep that
-            // earned-action feedback visible without claiming a numeric gain.
-            text = award.Source;
-            Diagnostics.Event(
-                "Adrenaline",
-                "feedback_shown",
-                $"source=\"{award.Source}\" amount=0 before={award.Before:0.###} after={player.GetAdrenaline():0.###} reason=native_adrenaline_locked");
-        }
-        else if (award != null && award.NativeModifiedAmount.HasValue)
+        if (award != null && award.NativeModifiedAmount.HasValue)
         {
             nativeCharmActivated =
                 award.Before + Mathf.Max(0f, award.NativeModifiedAmount.Value)

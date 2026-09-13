@@ -16,6 +16,8 @@ effects="$root/src/PlayerCombat/EarnedStateEffects.cs"
 presentation="$root/src/PlayerCombat/EarnedStatePresentation.cs"
 activation_audio="$root/src/PlayerCombat/EarnedStateActivationAudio.cs"
 adrenaline_feedback="$root/src/Adrenaline/AdrenalineFeedback.cs"
+adrenaline_availability="$root/src/Adrenaline/AdrenalineAvailability.cs"
+kill_attribution="$root/src/KillAttribution/KillAttributionClient.cs"
 plugin="$root/src/Plugin.cs"
 
 # The outer hooks only open candidates. Valheim's nested adrenaline callback
@@ -48,6 +50,8 @@ grep -Fq 'attack.m_loopingAttack' "$observation"
 grep -Fq 'new OutcomeIdentity(hit, "ranged_hit")' "$observation"
 grep -Fq '"duplicate_native_outcome"' "$observation"
 grep -Fq 'new PerfectDefenseConfirmed(' "$observation"
+grep -Fq 'AdrenalineAvailability.IsUnlocked((Player)defender)' "$observation"
+grep -Fq 'AdrenalineAvailability.IsUnlocked(player)' "$observation"
 
 # Gameplay subscribers are ordered before whole-event diagnostics. Remote
 # diagnostics remain behind the existing DiagnosticEvent route.
@@ -92,6 +96,9 @@ grep -Fq 'EarnedStateTransitionReason.AcceptedDamage' "$controller"
 grep -Fq 'AdvanceUntouchable(' "$controller"
 grep -Fq 'transition.Kind != BerserkerChainTransitionKind.Expired' "$controller"
 grep -Fq 'transition.ServerSequence' "$controller"
+grep -Fq '!AdrenalineAvailability.IsUnlocked(player)' "$controller"
+grep -Fq 'return player.GetMaxAdrenaline() > 0f;' "$adrenaline_availability"
+grep -Fq '!AdrenalineAvailability.IsUnlocked(localPlayer)' "$kill_attribution"
 grep -Fq 'Subscribe<ConfirmedKill>(PlayerCombatDiagnostics.Project)' "$runtime"
 if grep -Fq 'Subscribe<ConfirmedKill>(ObserveConfirmedKill)' "$runtime" \
     || grep -Fq 'Observe(ConfirmedKill confirmedKill)' "$controller"; then
@@ -122,11 +129,17 @@ grep -Fq '"SLAUGHTERHOUSE!"' "$berserker"
 # state presentation seams.
 grep -Fq 'string.Join("\n", lines)' "$presentation"
 grep -Fq 'WorldFeedback.ShowAbovePlayer(player' "$presentation"
+grep -Fq '!AdrenalineAvailability.IsUnlocked(context.Player)' "$presentation"
+grep -Fq '!AdrenalineAvailability.IsUnlocked(transition.Context.Player)' "$presentation"
+grep -Fq '!AdrenalineAvailability.IsUnlocked(player)' "$presentation"
 grep -Fq 'pendingCharmTransition' "$presentation"
 grep -Fq '!nativeCharmActivated' "$presentation"
 grep -Fq 'player.GetAdrenaline() < award.Maximum' "$adrenaline_feedback"
-grep -Fq 'award.Maximum <= 0f' "$adrenaline_feedback"
-grep -Fq 'reason=native_adrenaline_locked' "$adrenaline_feedback"
+grep -Fq '!AdrenalineAvailability.IsUnlocked(player)' "$adrenaline_feedback"
+if grep -Fq 'award.Maximum <= 0f' "$adrenaline_feedback"; then
+  printf 'locked native adrenaline must not emit perfect-defense feedback\n' >&2
+  exit 1
+fi
 grep -Fq 'm_adrenalinePopEffects' "$presentation"
 grep -Fq 'activationEffects.Create(' "$presentation"
 grep -Fq 'NativeEffectPrefab = "fx_Adrenaline1"' "$activation_audio"

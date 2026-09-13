@@ -11,6 +11,7 @@ using static TestSupport;
 SupportTests.TestOrderedFailureIsolationAndReset();
 SupportTests.TestClutchDecisionRefreshAndDamageLifecycle();
 PerfectDefenseOutcomeIdentityTests.Run();
+AdrenalineCombatGateTests.Run();
 TestUntouchableMixedDefenseTiersAndDamageReset();
 TestUntouchableSharesQualifiedKillsAndPerfectDefenses();
 SupportTests.TestHealthLossWithoutUntouchableStateIsNotAReset();
@@ -28,7 +29,7 @@ SupportTests.TestConfirmedKillFactsAreImmutable();
 Console.WriteLine("player combat earned-state checks passed");
 static void TestUntouchableMixedDefenseTiersAndDamageReset()
 {
-    Player player = new Player(80f, 100f);
+    Player player = UnlockedPlayer(80f, 100f);
     FakeOutput output = new FakeOutput();
     FactRecorder facts = new FactRecorder();
     PlayerCombatController controller = new PlayerCombatController(player, output, facts);
@@ -77,7 +78,7 @@ static void TestUntouchableMixedDefenseTiersAndDamageReset()
 
 static void TestUntouchableSharesQualifiedKillsAndPerfectDefenses()
 {
-    Player player = new Player(80f, 100f);
+    Player player = UnlockedPlayer(80f, 100f);
     FakeOutput output = new FakeOutput();
     FactRecorder facts = new FactRecorder();
     PlayerCombatController controller = new PlayerCombatController(player, output, facts);
@@ -146,7 +147,7 @@ static void TestUntouchableSharesQualifiedKillsAndPerfectDefenses()
 
 static void TestRejectedUntouchableEscalationKeepsPriorTier()
 {
-    Player player = new Player(80f, 100f);
+    Player player = UnlockedPlayer(80f, 100f);
     FakeOutput output = new FakeOutput();
     FactRecorder facts = new FactRecorder();
     PlayerCombatController controller = new PlayerCombatController(player, output, facts);
@@ -223,7 +224,7 @@ static void TestNativeEffectsRegistrationHealingAndReplacement()
     Expect(untouchable1.Effect.m_icon != firstUntouchableIcon,
         "registration rebinds the icon from the current ObjectDB instead of retaining an earlier lifecycle donor");
     PlayerCombatRuntime.ResetStops();
-    Player player = new Player(20f, 70f);
+    Player player = UnlockedPlayer(20f, 70f);
     NativeEarnedStateOutput output = new NativeEarnedStateOutput(catalog);
     Expect(output.Activate(player, EarnedCombatState.Clutch, 1).Outcome
             == EarnedStateOutputOutcome.Activated,
@@ -234,7 +235,7 @@ static void TestNativeEffectsRegistrationHealingAndReplacement()
     }
     Expect(player.Health == 70f, "native healing is capped by maximum health");
     Expect(PlayerCombatRuntime.ExpiredEffects == 1, "native duration reports CLUTCH expiry");
-    Player refreshPlayer = new Player(20f, 200f);
+    Player refreshPlayer = UnlockedPlayer(20f, 200f);
     output.Activate(refreshPlayer, EarnedCombatState.Clutch, 1);
     refreshPlayer.GetSEMan().Tick(1.01f);
     Expect(output.Activate(refreshPlayer, EarnedCombatState.Clutch, 1).Outcome
@@ -303,7 +304,7 @@ static void TestEarnedStatePayloadTelemetryIsBoundedAndResolved()
         berserker2);
     catalog.Register(database);
     NativeEarnedStateOutput output = new NativeEarnedStateOutput(catalog);
-    Player player = new Player(20f, 200f);
+    Player player = UnlockedPlayer(20f, 200f);
 
     Diagnostics.Reset();
     output.Activate(player, EarnedCombatState.Clutch, 1);
@@ -450,7 +451,7 @@ static void TestMissingNativeIconRejectsRegistration()
 static void TestBerserkerConsumesAuthoritativeChainTransitions()
 {
     ZNet.instance = new ZNet { TimeSeconds = 104d };
-    Player player = new Player(100f, 100f);
+    Player player = UnlockedPlayer(100f, 100f);
     FakeOutput output = new FakeOutput();
     FactRecorder facts = new FactRecorder();
     PlayerCombatController controller = new PlayerCombatController(player, output, facts);
@@ -514,7 +515,7 @@ static void TestBerserkerConsumesAuthoritativeChainTransitions()
 static void TestExpiredBerserkerTransitionClearsPriorOutput()
 {
     ZNet.instance = new ZNet { TimeSeconds = 100d };
-    Player player = new Player(100f, 100f);
+    Player player = UnlockedPlayer(100f, 100f);
     FakeOutput output = new FakeOutput();
     FactRecorder facts = new FactRecorder();
     PlayerCombatController controller = new PlayerCombatController(player, output, facts);
@@ -544,7 +545,7 @@ static void TestExpiredBerserkerTransitionClearsPriorOutput()
 static void TestEntryPresentationAndPerDefenseCharmCoalescing()
 {
     WorldFeedback.Reset();
-    Player player = new Player(20f, 100f);
+    Player player = UnlockedPlayer(20f, 100f);
     Player.m_localPlayer = player;
     player.m_adrenalinePopEffects.Available = true;
     EarnedStatePresentation presentation = new EarnedStatePresentation();
@@ -620,11 +621,8 @@ static void TestEntryPresentationAndPerDefenseCharmCoalescing()
 static void TestNativeCharmActivationSuppressesDuplicateEarnedStateCue()
 {
     WorldFeedback.Reset();
-    Player player = new Player(20f, 100f)
-    {
-        Adrenaline = 0f,
-        MaximumAdrenaline = 100f
-    };
+    Player player = UnlockedPlayer(20f, 100f);
+    player.Adrenaline = 0f;
     Player.m_localPlayer = player;
     player.m_adrenalinePopEffects.Available = true;
     EarnedStatePresentation presentation = new EarnedStatePresentation();
@@ -655,7 +653,7 @@ static void TestNativeCharmActivationSuppressesDuplicateEarnedStateCue()
 
 static void TestBerserkerTransitionValidation()
 {
-    Player player = new Player(100f, 100f);
+    Player player = UnlockedPlayer(100f, 100f);
     BerserkerChainTransition transition = new BerserkerChainTransition(
         PlayerCombatContext.Capture(player),
         BerserkerChainTransitionKind.Activated,

@@ -4,10 +4,14 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 patches="$root/src/Adrenaline/AdrenalinePatches.cs"
 feedback="$root/src/Adrenaline/AdrenalineFeedback.cs"
+availability="$root/src/Adrenaline/AdrenalineAvailability.cs"
 
 # Positive grants are doubled before Player.AddAdrenaline applies Valheim's rate,
 # fill curve, status effects, cap, full-meter behavior, and decay-delay logic.
 grep -Fq 'Prefix(Player __instance, ref float v' "$patches"
+grep -Fq 'if (!AdrenalineAvailability.IsUnlocked(__instance))' "$patches"
+grep -Fq 'reason", "native_adrenaline_locked"' "$patches"
+grep -Fq 'return player.GetMaxAdrenaline() > 0f;' "$availability"
 grep -Fq 'if (v > 0f)' "$patches"
 grep -Fq 'v *= 2f;' "$patches"
 grep -Fq 'positive_grant_doubled' "$patches"
@@ -21,6 +25,7 @@ fi
 grep -Fq '[HarmonyPatch(typeof(SEMan), nameof(SEMan.ModifyAdrenaline))]' "$patches"
 grep -Fq 'AdrenalineFeedback.CaptureModifiedAmount(__instance, use)' "$patches"
 grep -Fq 'award.NativeModifiedAmount.HasValue' "$feedback"
+grep -Fq '!AdrenalineAvailability.IsUnlocked(player)' "$feedback"
 grep -Fq 'Mathf.Min(award.NativeModifiedAmount.Value, headroom)' "$feedback"
 if rg -n 'm_adrenalineGainMultiplier|ModifyAdrenaline' "$feedback"; then
   printf 'feedback must not reimplement native adrenaline modifiers\n' >&2

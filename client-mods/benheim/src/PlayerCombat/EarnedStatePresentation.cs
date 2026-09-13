@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BenheimQoL.Adrenaline;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
 
@@ -17,6 +18,12 @@ internal sealed class EarnedStatePresentation
 
     internal void BeginPerfectDefense(PlayerCombatContext context)
     {
+        if (!AdrenalineAvailability.IsUnlocked(context.Player))
+        {
+            Reset();
+            return;
+        }
+
         pendingDefense = context;
         pendingTitles.Clear();
         pendingCharmTransition = null;
@@ -25,6 +32,7 @@ internal sealed class EarnedStatePresentation
     internal void Observe(EarnedStateTransition transition)
     {
         if (transition.Kind != EarnedStateTransitionKind.Activated
+            || !AdrenalineAvailability.IsUnlocked(transition.Context.Player)
             || transition.Context.Player != Player.m_localPlayer)
         {
             return;
@@ -61,6 +69,12 @@ internal sealed class EarnedStatePresentation
         string? adrenalineLine,
         bool nativeCharmActivated)
     {
+        if (!AdrenalineAvailability.IsUnlocked(player))
+        {
+            Reset();
+            return;
+        }
+
         if (pendingDefense == null || pendingDefense.Player != player)
         {
             return;

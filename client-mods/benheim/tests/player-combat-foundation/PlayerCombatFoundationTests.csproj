@@ -17,6 +17,7 @@
     <Compile Include="../../src/PlayerCombat/PlayerCombatController.cs" Link="PlayerCombatController.cs" />
     <Compile Include="../../src/PlayerCombat/EarnedStateEffects.cs" Link="EarnedStateEffects.cs" />
     <Compile Include="../../src/PlayerCombat/EarnedStatePresentation.cs" Link="EarnedStatePresentation.cs" />
+    <Compile Include="../../src/Adrenaline/AdrenalineAvailability.cs" Link="AdrenalineAvailability.cs" />
     <Compile Include="../../src/Adrenaline/AdrenalineFeedback.cs" Link="AdrenalineFeedback.cs" />
   </ItemGroup>
 </Project>

@@ -36,7 +36,7 @@ internal static class SupportTests
 
     internal static void TestClutchDecisionRefreshAndDamageLifecycle()
     {
-        Player player = new Player(30f, 100f);
+        Player player = UnlockedPlayer(30f, 100f);
         FakeOutput output = new FakeOutput();
         FactRecorder facts = new FactRecorder();
         PlayerCombatController controller = new PlayerCombatController(player, output, facts);
@@ -72,7 +72,7 @@ internal static class SupportTests
 
     internal static void TestConfirmedKillFactsAreImmutable()
     {
-        Player player = new Player(40f, 100f);
+        Player player = UnlockedPlayer(40f, 100f);
         ConfirmedKill confirmedKill = new ConfirmedKill(
             PlayerCombatContext.Capture(player),
             new ZDOID(1),
@@ -97,7 +97,7 @@ internal static class SupportTests
 
     internal static void TestHealthLossWithoutUntouchableStateIsNotAReset()
     {
-        Player player = new Player(100f, 100f);
+        Player player = UnlockedPlayer(100f, 100f);
         FactRecorder facts = new FactRecorder();
         PlayerCombatController controller = new PlayerCombatController(
             player,
@@ -119,6 +119,11 @@ internal static class SupportTests
 
 internal static class TestSupport
 {
+    internal static Player UnlockedPlayer(float health, float maximumHealth)
+    {
+        return new Player(health, maximumHealth) { MaximumAdrenaline = 100f };
+    }
+
     internal static ObjectDB CreateNativeIconDatabase()
     {
         ObjectDB database = new ObjectDB();

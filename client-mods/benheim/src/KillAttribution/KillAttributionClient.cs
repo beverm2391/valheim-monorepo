@@ -1,3 +1,4 @@
+using BenheimQoL.Adrenaline;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.PlayerCombat;
 using HarmonyLib;
@@ -72,6 +73,11 @@ internal static class KillAttributionClient
 
     internal static void Update()
     {
+        Player? localPlayer = Player.m_localPlayer;
+        if (localPlayer == null || !AdrenalineAvailability.IsUnlocked(localPlayer))
+        {
+            return;
+        }
         float now = Time.realtimeSinceStartup;
         ZRpc? serverRpc = ZNet.instance?.GetServerRPC();
         if (serverRpc == null || !ReferenceEquals(serverRpc, connectionServerRpc))
@@ -119,8 +125,13 @@ internal static class KillAttributionClient
         {
             return;
         }
-
         string operationId = Diagnostics.NewOperationId();
+        Player? localPlayer = Player.m_localPlayer;
+        if (localPlayer == null || !AdrenalineAvailability.IsUnlocked(localPlayer))
+        {
+            EmitReport(operationId, observation, "not_sent", "native_adrenaline_locked");
+            return;
+        }
         ZRpc? serverRpc = ZNet.instance.GetServerRPC();
         if (serverRpc == null || !HasCompatibleServer)
         {
@@ -282,7 +293,11 @@ internal static class KillAttributionClient
             EmitDeliveryRejected("killer_not_local_player");
             return;
         }
-
+        if (!AdrenalineAvailability.IsUnlocked(localPlayer))
+        {
+            EmitDeliveryRejected("native_adrenaline_locked");
+            return;
+        }
         PlayerCombatRuntime.Publish(
             new ConfirmedKill(
                 PlayerCombatContext.Capture(localPlayer),
@@ -320,7 +335,11 @@ internal static class KillAttributionClient
             EmitDeliveryRejected("chain_killer_not_local_player");
             return;
         }
-
+        if (!AdrenalineAvailability.IsUnlocked(localPlayer))
+        {
+            EmitDeliveryRejected("native_adrenaline_locked");
+            return;
+        }
         if (deathResetPending)
         {
             EmitDeliveryRejected("chain_transition_before_death_barrier");

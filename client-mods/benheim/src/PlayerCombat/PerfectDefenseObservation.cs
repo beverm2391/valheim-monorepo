@@ -29,7 +29,9 @@ internal static class PerfectDefenseObservation
     internal static void BeginParry(Humanoid defender, HitData hit, Character attacker)
     {
         End();
-        if (defender != Player.m_localPlayer || !attacker)
+        if (defender != Player.m_localPlayer
+            || !AdrenalineAvailability.IsUnlocked((Player)defender)
+            || !attacker)
         {
             return;
         }
@@ -59,7 +61,9 @@ internal static class PerfectDefenseObservation
     {
         End();
         bool alreadyAwarded = (bool)BeenHitWhileDodgingField.GetValue(player);
-        if (player == Player.m_localPlayer && !alreadyAwarded)
+        if (player == Player.m_localPlayer
+            && AdrenalineAvailability.IsUnlocked(player)
+            && !alreadyAwarded)
         {
             candidate = new Candidate(
                 PlayerCombatContext.Capture(player),

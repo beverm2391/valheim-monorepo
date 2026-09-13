@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BenheimQoL.Adrenaline;
 
 namespace BenheimQoL.PlayerCombat;
 
@@ -82,7 +83,8 @@ internal sealed class PlayerCombatController
 
     internal void Observe(PerfectDefenseConfirmed perfectDefense)
     {
-        if (perfectDefense.Context.Player != player)
+        if (perfectDefense.Context.Player != player
+            || !AdrenalineAvailability.IsUnlocked(player))
         {
             return;
         }
@@ -174,7 +176,8 @@ internal sealed class PlayerCombatController
 
     internal void Observe(BerserkerChainTransition transition)
     {
-        if (transition.Context.Player != player)
+        if (transition.Context.Player != player
+            || !AdrenalineAvailability.IsUnlocked(player))
         {
             return;
         }
@@ -263,6 +266,11 @@ internal sealed class PlayerCombatController
         if (tier <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(tier));
+        }
+
+        if (!AdrenalineAvailability.IsUnlocked(player))
+        {
+            return false;
         }
 
         bool replacingTier = activeStates.TryGetValue(state, out int currentTier)

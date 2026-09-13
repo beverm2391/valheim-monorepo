@@ -40,6 +40,22 @@ internal static class AdrenalineAwardFeedbackPatch
 {
     private static void Prefix(Player __instance, ref float v, out AdrenalineFeedback.Award? __state)
     {
+        if (!AdrenalineAvailability.IsUnlocked(__instance))
+        {
+            if (v > 0f && __instance == Player.m_localPlayer)
+            {
+                Diagnostics.Emit(
+                    DiagnosticEvent.Create("Adrenaline", "native_unlock_gate")
+                        .String("operation_phase", "grant")
+                        .String("status", "passthrough")
+                        .String("reason", "native_adrenaline_locked")
+                        .Number("requested", v));
+            }
+
+            __state = null;
+            return;
+        }
+
         // The outer parry/dodge Prefix only identifies a candidate. Reaching
         // Valheim's nested adrenaline callback confirms the perfect defense,
         // even when the configured native award is zero.
