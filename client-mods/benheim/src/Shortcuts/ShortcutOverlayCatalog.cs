@@ -146,7 +146,9 @@ internal static partial class ShortcutOverlay
                 new Entry(
                     "Perfect Impact",
                     $"While airborne, descend at least {-AirborneMeleeTuning.DescentThreshold:0.#} m/s and approach the contact horizontally at {AirborneMeleeTuning.ApproachSpeedThreshold:0.#} m/s: ×{AirborneMeleeTuning.DamageMultiplier:0.##} damage and ×{AirborneMeleeTuning.StaggerMultiplier:0.#} stagger"),
-                new Entry("Adrenaline", "Positive gains are doubled; perfect defenses show the actual gain"),
+                new Entry(
+                    "Adrenaline",
+                    "Positive gains are doubled; perfect defenses still show while adrenaline is locked and add the actual gain when available"),
                 new Entry(
                     "CLUTCH",
                     $"Perfect parry or dodge below {ClutchMechanic.HealthThreshold:0} health: recover 60 health over {ClutchMechanic.DurationSeconds:0} seconds"),

@@ -21,6 +21,7 @@ TestNativeEffectsRegistrationHealingAndReplacement();
 TestEarnedStatePayloadTelemetryIsBoundedAndResolved();
 TestMissingNativeIconRejectsRegistration();
 TestEntryPresentationAndPerDefenseCharmCoalescing();
+AdrenalineFeedbackTests.Run();
 TestNativeCharmActivationSuppressesDuplicateEarnedStateCue();
 TestBerserkerTransitionValidation();
 SupportTests.TestConfirmedKillFactsAreImmutable();

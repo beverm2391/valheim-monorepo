@@ -33,7 +33,7 @@ fi
 grep -Fq 'BuildControlsWarnings((RectTransform)controls.transform)' "$tabs"
 grep -Fq 'controlsWarnings.SetActive(warnings.Count > 0)' "$warnings"
 grep -Fq 'conflicts with native {warning.NativeAction}' "$warnings"
-grep -Fq 'Positive gains are doubled; perfect defenses show the actual gain' "$catalog"
+grep -Fq 'Positive gains are doubled; perfect defenses still show while adrenaline is locked and add the actual gain when available' "$catalog"
 grep -Fq 'Baking and done-to-burn timing are halved; fuel stays normal' "$catalog"
 
 printf 'shortcut collision warning source checks passed\n'
