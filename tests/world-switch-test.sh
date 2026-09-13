@@ -127,9 +127,9 @@ assert_contains "explicit creation becomes the runtime selection" 'VALHEIM_WORLD
 
 make_fixture chunked
 mkdir -p "$fixture_root/var/lib/valheim/worlds_local/ChunkedWorld"
-printf 'chunked metadata\n' > "$fixture_root/var/lib/valheim/worlds_local/ChunkedWorld/_main.1.fwl2"
+printf 'chunked metadata\n' > "$fixture_root/var/lib/valheim/worlds_local/ChunkedWorld/_main.154.fwl2"
 run_helper "$helper" switch ChunkedWorld > "$fixture/out"
-assert_contains "existing chunked world passes the 1.0 log proof" \
+assert_contains "established chunked world with a multi-digit save number passes the 1.0 log proof" \
   "Valheim loaded world 'ChunkedWorld' from its chunked save" "$fixture/out"
 
 make_fixture confirmation

@@ -87,8 +87,13 @@ world_save_kind() {
   if [[ -e "$directory" ]]; then
     [[ -d "$directory" && ! -L "$directory" ]] || \
       die "chunked save path for '$name' is not a regular directory"
-    chunked_meta=$(find "$directory" -maxdepth 1 -type f -name '_main.[01].fwl2' -size +0c -print -quit)
-    [[ -n "$chunked_meta" ]] || die "chunked save for '$name' has no non-empty _main.0.fwl2 or _main.1.fwl2 metadata file"
+    # Valheim names chunked metadata after the current save number. Fresh
+    # worlds begin at 0, but established worlds can be far beyond 1 (for
+    # example, _main.154.fwl2). Match the numeric save-number contract instead
+    # of assuming only the first two generations are valid.
+    chunked_meta=$(find "$directory" -maxdepth 1 -type f -name '_main.*.fwl2' -size +0c -print \
+      | awk '/\/_main\.[0-9]+\.fwl2$/ { print; exit }')
+    [[ -n "$chunked_meta" ]] || die "chunked save for '$name' has no non-empty numeric _main.SAVE_NUMBER.fwl2 metadata file"
     echo chunked
     return
   fi
