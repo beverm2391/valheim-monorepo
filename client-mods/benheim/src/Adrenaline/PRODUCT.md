@@ -5,7 +5,10 @@ successful perfect defenses, and shows decay timing on Valheim's meter.
 
 ## Current Behavior
 
-- Perfect parries and perfect dodges show yellow `+N` feedback above the player.
+- Perfect parries and perfect dodges always show yellow confirmation above the
+  player. Before Valheim unlocks adrenaline capacity, the confirmation says
+  `Perfect parry` or `Perfect dodge`. Once adrenaline can be gained, it says
+  `Perfect parry +N` or `Perfect dodge +N`.
 - Valheim's adrenaline meter shows a countdown before and during decay.
 - The decay countdown appears below the meter, remains readable during
   gameplay, and disappears at zero.
@@ -18,8 +21,8 @@ successful perfect defenses, and shows decay timing on Valheim's meter.
   rate, how the current meter fill affects each grant, status modifiers, meter
   cap, and full-meter behavior.
 - The normal 10-second delay and subsequent decay remain unchanged.
-- Perfect-parry and perfect-dodge feedback must show the amount the doubled
-  native grant actually adds to the meter.
+- When a perfect defense adds adrenaline, its feedback shows the amount the
+  doubled native grant actually adds to the meter.
 - `0.1.48` gameplay diagnostics confirmed doubled positive grants, actual
   perfect-parry feedback, and the unchanged 10-second delay.
 
