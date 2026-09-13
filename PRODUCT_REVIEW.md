@@ -3,7 +3,7 @@
 Outstanding hands-on checks for the Benheim build currently installed on Ben's
 Mac.
 
-Installed on Ben's Mac: **0.1.97**.
+Installed on Ben's Mac: **0.1.98**.
 
 Grid selection, planting, and berry cycles record diagnostics without enabling
 a probe.

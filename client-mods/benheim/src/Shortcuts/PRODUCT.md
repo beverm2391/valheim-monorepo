@@ -49,7 +49,9 @@ use it to find controls and passive features.
   cost that Valheim has already resolved. Skipped, failed, and rejected
   placements cost no stamina. It preserves the menu's named combat states and
   useful tuning detail. UNTOUCHABLE now says that qualifying kills as well as
-  perfect defenses add streak points. Combat Shake also names Perfect Impact.
+  perfect defenses add streak points. The Combat section says that adrenaline
+  feedback and earned combat states remain unavailable until Valheim unlocks
+  native adrenaline for the player. Combat Shake also names Perfect Impact.
   The updated presentation still needs gameplay proof.
 - The Ship Sprint entry explains that the helm readout shows planar speed and
   marks `SPRINT` while the local player has an active Ship Sprint request.

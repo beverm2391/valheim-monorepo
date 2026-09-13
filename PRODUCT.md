@@ -8,8 +8,7 @@ Our regular group runs compatible Benheim versions. Versions need not be
 identical if they preserve the behavior and shared data of every Benheim
 feature the group uses. The product does not promise that an unmodded PC or
 console client can join a Benheim session. Keep the vanilla launch path for
-recovery and the Valheim 1.0 migration, not as a multiplayer compatibility
-promise.
+recovery, not as a multiplayer compatibility promise.
 
 ## Product Boundaries
 
@@ -45,7 +44,7 @@ promise.
 | Benheim | Curated quality-of-life, balance, and gameplay changes for our group. | Client | Yes for our regular group. Each member must use a version compatible with those used by every other member. |
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Benheim Test Commands | Runs a fixed native-admin command allowlist for selected Benheim gameplay experiments. | Client command and server component | Only the requesting native admin needs the matching client command. The server component is required. Every peer that can own the spawned test creature still needs compatible Benheim gameplay behavior. |
-| Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Benheim `0.1.76` through `0.1.97` use Benheim Server Support `0.1.6` for Put Away and BERSERKER/SLAUGHTERHOUSE. Put Away uses lease generation `v2` and transaction generation `v4`. Kill Attribution V3 uses client-requested capability responses. |
+| Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Required for Put Away and BERSERKER/SLAUGHTERHOUSE. Current clients use Put Away lease generation `v2`, transaction generation `v4`, and Kill Attribution V3. |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 
@@ -94,9 +93,6 @@ must prevent compatible clients from entering that flow concurrently.
 
 ## Open Gates
 
-- Complete the temporary [Valheim 1.0 migration](MIGRATION-1.0.md). The gate
-  closes when production is stable on 1.0, each mod works or is explicitly
-  deferred, and the post-migration world backup succeeds.
 - Complete Benheim Eternal Fire's remaining
   [gameplay and restart proof](server-mods/benheim-eternal-fire/PRODUCT.md).
 - Choose Benheim's next gameplay system by balancing the ideal player experience,
