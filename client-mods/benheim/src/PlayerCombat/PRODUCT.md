@@ -20,6 +20,13 @@ every other reset source.
 
 ## In Development
 
+Benheim's earned combat states remain dormant until Valheim unlocks native
+adrenaline capacity for the player. Before that unlock, perfect defenses and
+kills do not activate or advance CLUTCH, UNTOUCHABLE, BERSERKER, or
+SLAUGHTERHOUSE, and Benheim shows no earned-state feedback. Once unlocked, the
+behavior below applies. [Adrenaline](../Adrenaline/PRODUCT.md) owns the matching
+gate for adrenaline gain, feedback, and meter behavior.
+
 Player Combat gives two types of reward:
 
 - Frequent skilled or risky actions add adrenaline.

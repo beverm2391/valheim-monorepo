@@ -1,14 +1,13 @@
 # Adrenaline
 
-The Adrenaline module makes adrenaline gains more rewarding, shows feedback for
-successful perfect defenses, and shows decay timing on Valheim's meter.
+After Valheim unlocks adrenaline, the Adrenaline module makes its gains more
+rewarding, shows feedback for successful perfect defenses, and shows decay
+timing on Valheim's meter.
 
 ## Current Behavior
 
-- Perfect parries and perfect dodges always show yellow confirmation above the
-  player. Before Valheim unlocks adrenaline capacity, the confirmation says
-  `Perfect parry` or `Perfect dodge`. Once adrenaline can be gained, it says
-  `Perfect parry +N` or `Perfect dodge +N`.
+- Once adrenaline can be gained, perfect parries and perfect dodges show yellow
+  confirmation above the player: `Perfect parry +N` or `Perfect dodge +N`.
 - Valheim's adrenaline meter shows a countdown before and during decay.
 - The decay countdown appears below the meter, remains readable during
   gameplay, and disappears at zero.
@@ -27,6 +26,13 @@ successful perfect defenses, and shows decay timing on Valheim's meter.
   perfect-parry feedback, and the unchanged 10-second delay.
 
 ## In Development
+
+Benheim's adrenaline features remain dormant until Valheim unlocks native
+adrenaline capacity for the player. Before that unlock, Benheim does not modify
+adrenaline grants or show perfect-defense feedback. Once unlocked, the gain,
+feedback, and meter behavior above applies. [Player
+Combat](../PlayerCombat/PRODUCT.md) owns the matching gate for earned combat
+states.
 
 Doubling every positive adrenaline grant is a proven baseline, not the intended
 final adrenaline economy. The next tuning pass will combine three parts:
