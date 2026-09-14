@@ -3,13 +3,19 @@
 Outstanding hands-on checks for the Benheim build currently installed on Ben's
 Mac.
 
-Installed on Ben's Mac: **0.1.98**.
+Installed on Ben's Mac: **0.1.99**.
 
 Grid selection, planting, and berry cycles record diagnostics without enabling
 a probe.
 
 ## Remaining checks
 
+- **Native adrenaline unlock gate:** With a character whose native adrenaline
+  meter is still locked, complete five perfect parries or dodges without losing
+  health. Confirm that Benheim shows no yellow perfect-defense feedback, changes
+  no adrenaline, and does not activate UNTOUCHABLE I. Then use a character with
+  native adrenaline unlocked and complete one perfect defense. Confirm that the
+  yellow feedback and doubled native adrenaline gain resume.
 - **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
   Huntsman Bow at any native quality. Confirm its inventory title and
   description, the disabled same-affinity action, and persistence after storage
