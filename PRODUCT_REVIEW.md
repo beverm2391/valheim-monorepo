@@ -3,7 +3,7 @@
 Outstanding hands-on checks for the Benheim build currently installed on Ben's
 Mac.
 
-Installed on Ben's Mac: **0.1.99**.
+Installed on Ben's Mac: **0.1.101**.
 
 Grid selection, planting, and berry cycles record diagnostics without enabling
 a probe.
@@ -71,13 +71,13 @@ a probe.
   transfer zone ownership to another compatible client and confirm that the
   same behavior continues.
 
-- **Tar-pit pickup:** Manual pickup of submerged Tar worked, but other items
-  remained stuck and auto-pickup failed. Valheim disables auto-pickup for items
-  dropped from inventory. Use naturally dropped loot for auto-pickup checks.
-  Retest the correction with native Tar, Stone, and one other ordinary item in
-  a native tar pit. Confirm that each item supports normal manual pickup and
-  normal auto-pickup. Confirm that
-  native range, inventory-space, carry-weight, and ownership failures still
+- **Liquid item recovery:** Drop native Tar, Stone, and one other ordinary item
+  into ordinary water and a native tar pit. Confirm that each rises and settles
+  at the surface without launching upward, then supports normal manual pickup.
+  Use naturally dropped loot for auto-pickup checks because Valheim disables
+  auto-pickup for items dropped from inventory. Confirm that Wood and other
+  items that already floated keep their native behavior. Native range,
+  inventory-space, carry-weight, ownership, and auto-pickup settings must still
   block collection normally.
 
 - **Farming stamina:** Place one plant normally, then use `Left Shift` mass
