@@ -126,9 +126,10 @@ a probe.
   - reload the save and confirm persistence; and
   - in multiplayer, confirm shared placement and harvesting, creator ownership,
     and reconnect behavior.
-- **Pine Finewood:** Destroy one native Pine log half. Confirm that it produces
-  15 native item drops. Confirm that none is ordinary Wood and that the drops
-  still include Core Wood. If a compatible peer is available, let a
+- **Pine Core Wood (corrected package; not installed in 0.1.99):** After the
+  corrected package is installed, destroy one native Pine log half. Confirm
+  that it produces 15 native item drops, with no ordinary Wood or Finewood and
+  all wood drops converted to Core Wood. If a compatible peer is available, let a
   non-owner deliver the final hit once and confirm the owner still converts the
   drops.
 - **Club + Lunge Affinity:** Confirm that the Affinity tab shows Forge level `1`

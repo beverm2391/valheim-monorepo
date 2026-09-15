@@ -1,7 +1,7 @@
 # Woodcutting
 
-The Woodcutting module reduces repetitive axe swings and makes Finewood easier
-to obtain without increasing native drop counts.
+The Woodcutting module reduces repetitive axe swings and makes each tree's
+native specialty wood easier to obtain without increasing native drop counts.
 
 ## Current Behavior
 
@@ -19,9 +19,9 @@ to obtain without increasing native drop counts.
 
 ## In Development
 
-- Each final ordinary Wood drop from a native Pine log becomes Finewood.
-  Native Core Wood drops remain unchanged. The conversion keeps each Pine
-  log's native item count unchanged.
+- Each final ordinary Wood drop from a native Pine log becomes Core Wood.
+  Native Core Wood drops remain unchanged. Pine never gains Finewood, and the
+  conversion keeps each log's native item count unchanged.
 - Cleave unlocks at Wood Cutting 25 for local-player axe hits against standing
   trees and fallen logs.
 - Cleave chance increases from 30% at Wood Cutting 25 to 85% at Wood Cutting
