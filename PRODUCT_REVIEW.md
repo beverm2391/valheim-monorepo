@@ -1,156 +1,59 @@
 # Product Review
 
-Outstanding hands-on checks for the Benheim build currently installed on Ben's
-Mac.
+Only player-visible behavior that still needs Ben's hands belongs here.
+Automated contracts, diagnostics, and exhaustive edge cases stay with the
+feature that owns them.
 
 Installed on Ben's Mac: **0.1.101**.
 
-Grid selection, planting, and berry cycles record diagnostics without enabling
-a probe.
+## Next play session
 
-## Remaining checks
+- **Cultivator grid selection:** Open the Cultivator picker and confirm that
+  the `1x1`, `3x3`, `5x5`, `7x7`, and `9x9` row appears with `5x5`
+  highlighted. Select another size, reopen the picker, and confirm that the
+  choice remains highlighted and controls the next `Left Shift` preview and
+  placement. The Hammer must show no row, and number keys must remain native.
+- **Floating drops:** Drop Tar, Stone, and another ordinary item into water.
+  Confirm that each rises, settles without launching upward, and remains
+  pickable. Repeat in a tar pit when convenient.
+- **Pine specialty wood:** Destroy one native Pine log half. Confirm that all
+  ordinary Wood becomes Core Wood, Pine produces no Finewood, and the total
+  native drop count remains unchanged.
 
-- **Native adrenaline unlock gate:** With a character whose native adrenaline
-  meter is still locked, complete five perfect parries or dodges without losing
-  health. Confirm that Benheim shows no yellow perfect-defense feedback, changes
-  no adrenaline, and does not activate UNTOUCHABLE I. Then use a character with
-  native adrenaline unlocked and complete one perfect defense. Confirm that the
-  yellow feedback and doubled native adrenaline gain resume.
-- **Snipe application:** At a level-1 Forge, spend 1 Wood to apply Snipe to a
-  Huntsman Bow at any native quality. Confirm its inventory title and
-  description, the disabled same-affinity action, and persistence after storage
-  and reconnect.
-  The station-level requirement icon beneath the level must reuse Valheim's
-  native gold star, matching the other crafting-station requirements.
-  The Affinity tab must sit beneath the Forge panel's bronze divider at the
-  same depth and alignment as the native Craft and Upgrade tabs.
-  Other bows must remain ineligible. Native upgrades may erase the affinity;
-  confirm that it can be applied again afterward.
-- **Snipe handling and feel:** Automated Valheim 1.0 QA proved native draw,
-  3x zoom from 65° to 23.98°, one-arrow consumption, and restoration to 65°
-  after firing. With Bow Focus and Benheim FX off, confirm that the soft edges
-  darken with draw progress, keep the center clear, and disappear immediately
-  after firing or canceling. Compare with an ordinary Huntsman Bow: Snipe
-  should take 25% longer to reach full draw while keeping native partial shots
-  and stamina use. Check the close-range tradeoff by feel.
-- **Snipe headshots:** Land headshots near 20 m, 40 m, and 60 m. Confirm total
-  multipliers of 1.25x, 1.75x, and 2.25x, including a partial draw and an arrow
-  that hits after switching weapons. Body shots, native WeakSpots, and ammo
-  effects must retain their normal behavior.
-- **Cleave tree lifecycle:** Chop a standing tree and the new log and log
-  halves. Confirm normal primary and nearby Cleave hits without tree-lifecycle
-  errors.
-- **Wisp discovery:** Run `bhrun wispecho` in a loaded world. Confirm a bounded
-  discovery summary and matching detailed diagnostics. This build adds no
-  mead, Wisp Echo rendering, or cyan highlights.
+## Later solo play
 
-- **Earned-state audio:** In multiplayer, trigger an earned combat state near
-  one compatible player and far from another. The nearby player may hear the
-  native charm cue. The distant player must not hear it.
+- **Native adrenaline unlock:** Before native Adrenaline is unlocked, perfect
+  defenses must produce no Benheim reward text, Adrenaline, or UNTOUCHABLE
+  state. After the native unlock, the same actions must activate Benheim's
+  feedback and rewards normally.
+- **Snipe:** Apply Snipe to a Huntsman Bow at a level-1 Forge for 1 Wood.
+  Confirm that the Affinity tab looks native, the bow's title and description
+  persist through ordinary inventory and storage, and applying Snipe twice is
+  disabled. During use, confirm the zoom, clear-center vignette, slower draw,
+  and close-range tradeoff feel right. Headshots should scale at roughly 20,
+  40, and 60 meters while body shots and ordinary ammo behavior stay native.
+- **Cleave tree lifecycle:** Use Cleave against a standing tree, its fallen
+  log, and both log halves. Confirm that primary and nearby hits behave normally
+  without lifecycle errors.
+- **Sailing:** While steering, confirm that the upright speed gauge follows
+  Valheim's wind UI. Hold Run at forward throttle and confirm the `SPRINT`
+  state and stronger thrust; releasing Run, reversing, or leaving the helm
+  must immediately restore native behavior.
+- **Berry planting:** Confirm ordinary Blueberry and Cloudberry planting plus
+  a centered `9x9` grid. Each bush must cost five matching berries, start
+  empty, regrow, preserve state after reload, and return five berries when an
+  authorized Hammer removal destroys a player-planted bush. Natural bushes
+  must remain non-removable.
+- **Lunge:** Apply Lunge to a max-quality Club at a level-1 Forge for 1 Wood.
+  Confirm that the native-looking Affinity UI, title, and description are
+  correct; the affinity persists through ordinary inventory, storage, drops,
+  and reconnect; grounded swings remain native; and airborne primary swings
+  produce the intended diagonal movement.
 
-- **Workbench and Stonecutter range:** Place a Workbench-required piece around
-  22 m and 38 m from an isolated level-1 Workbench. Confirm that placement fails
-  beyond 40 m. Repeat with a Stonecutter-required piece. Station use, crafting,
-  repair, and upgrades must keep their normal Valheim behavior.
-- **Sailing:** While steering, confirm the upright speed gauge sits directly
-  below Valheim's native wind UI on the right and follows that UI. It must show
-  planar speed and disappear when you leave the helm. Hold Run at forward
-  throttle. Confirm that `SPRINT` appears and `3x` thrust applies. Release Run,
-  reverse the throttle, and leave the helm. Each action must restore normal
-  Valheim behavior.
-- **Developer command discovery:** In Valheim's built-in console, confirm that
-  the console completes the first argument for each command: `bhcatalog`,
-  `bhrun`, and `bhwatch`. Run the effects, text, and UI catalog commands.
-  Confirm that each snapshot returns a result within its defined limit and
-  leaves no temporary state in the running game.
-- **Leech spawning:** The interval between Leech spawn opportunities is
-  confirmed at one-fifth of normal. A successful adjusted spawn and a
-  zone-owner transfer remain unproven.
-  Stay in an active Swamp zone until one logged
-  success records source `base_world`, prefab `Leech`, and multiplier `5`. Then
-  transfer zone ownership to another compatible client and confirm that the
-  same behavior continues.
+## When a compatible peer is available
 
-- **Liquid item recovery:** Drop native Tar, Stone, and one other ordinary item
-  into ordinary water and a native tar pit. Confirm that each rises and settles
-  at the surface without launching upward, then supports normal manual pickup.
-  Use naturally dropped loot for auto-pickup checks because Valheim disables
-  auto-pickup for items dropped from inventory. Confirm that Wood and other
-  items that already floated keep their native behavior. Native range,
-  inventory-space, carry-weight, ownership, and auto-pickup settings must still
-  block collection normally.
-
-- **Farming stamina:** Place one plant normally, then use `Left Shift` mass
-  planting on an area that contains valid and
-  invalid cells. Each successful normal or grid-cell placement must cost 25%
-  of the native stamina cost after Valheim applies the Farming skill adjustment.
-  A failed, skipped, or rejected placement must cost no stamina.
-- **Cultivator grid selection:** In one plugin session, open the Cultivator
-  picker and confirm that 5x5 is highlighted. Select another size, close the
-  picker, and reopen it without restarting the game. Confirm that the selected
-  size remains highlighted and controls the next `Left Shift` preview and
-  placement. The Hammer picker must have no grid-size row, and number keys must
-  keep their native behavior. Fully quit and relaunch the game to start a fresh
-  plugin session. Confirm that the Cultivator picker starts at 5x5.
-- **Comfort summary:** The Comfort calculation is accepted. Test the shorter
-  output for Valheim's non-scrollable console. Run
-  `bhrun comfort`. Confirm that the console shows a short readable summary with
-  calculated comfort and counts for **Counted**, **Ignored**, and **Just outside
-  range**.
-  Confirm that complete per-piece evidence remains in typed diagnostics.
-- **Berry planting:** Raspberry placement worked. Ben accepted Hammer removal
-  with a five-berry refund. The new bush previously started with berries. We
-  still need to confirm that newly planted bushes start empty. Test the
-  remaining berry behavior:
-
-  - confirm ordinary Blueberry and Cloudberry placement and centered 9x9
-    placement for all three bushes;
-  - for Raspberry, Blueberry, and Cloudberry, measure adjacent grid positions
-    along each grid axis. Confirm exactly 1.75 meters between adjacent preview
-    positions and between the corresponding placed bushes. Confirm that
-    default-on logs report 1.75 meters for both preview and placement;
-  - confirm that each placement costs exactly five matching berries;
-  - confirm that each newly planted bush starts empty;
-  - confirm that Benheim assigns each planted or naturally spawned bush a wait
-    of 4,000 to 5,000 seconds before each yield, including the first yield of a
-    planted bush;
-  - use default-on logs to follow one bush's cycle start, chosen duration,
-    actual transition to harvestable, and harvest; distinguish a state seen on
-    loading from a transition observed while the bush was loaded;
-  - confirm unrelated `Pickable` objects keep native timing;
-  - use the Hammer to remove one player-planted Blueberry bush and one
-    player-planted Cloudberry bush; confirm that each returns exactly five
-    matching berries when native access and ward rules allow removal;
-  - confirm naturally spawned bushes cannot be removed with the Hammer and the
-    Cultivator removes no planted or naturally spawned berry bush;
-  - reload the save and confirm persistence; and
-  - in multiplayer, confirm shared placement and harvesting, creator ownership,
-    and reconnect behavior.
-- **Pine Core Wood (corrected package; not installed in 0.1.99):** After the
-  corrected package is installed, destroy one native Pine log half. Confirm
-  that it produces 15 native item drops, with no ordinary Wood or Finewood and
-  all wood drops converted to Core Wood. If a compatible peer is available, let a
-  non-owner deliver the final hit once and confirm the owner still converts the
-  drops.
-- **Club + Lunge Affinity:** Confirm that the Affinity tab shows Forge level `1`
-  in the native station-requirement slot and keeps Wood in the following
-  material slot. Choose a max-quality Club without Lunge. Spend
-  1 Wood to apply Lunge. In the ordinary inventory, confirm that the weapon
-  title is `Club · Lunge` and its hover description preserves the native Club text while
-  adding Lunge's behavior and persistent bias. Switch from Affinity back to
-  Craft and Upgrade and confirm that each native tab returns unchanged. Move,
-  equip, store, and drop the Club, then reconnect. Confirm that the same Club
-  retains Lunge after every action. Grounded Club swings must remain native.
-  In ordinary multiplayer play, if a compatible peer is available, confirm
-  that the peer sees the Lunge movement. Separately, in a disposable local
-  world, equip a below-max-quality native Club and run
-  `bh debug affinity apply lunge`. Confirm that an airborne primary swing
-  Lunges despite the normal Forge quality requirement.
-- **Developer probes:** Run `bhwatch` and confirm that `spawns` is enabled by
-  default and `colliders` is disabled by default. Confirm that `spawns` records
-  the registered Leech rule, bounded population changes, cap transitions, and a
-  low-frequency
-  heartbeat without changing spawn behavior. Enable `colliders` before each
-  independent cleanup check. Then test `off`, `default`, world exit, and logout.
-  Confirm that every path removes all overlay objects. Confirm that the default
-  state is disabled.
+- Confirm that earned-state audio is audible nearby but not at long distance.
+- Confirm that berry placement, harvesting, removal authority, and regrowth
+  remain shared and correct after reconnecting.
+- Confirm that other players observe Lunge movement and that affinity state
+  survives multiplayer storage and reconnects.
