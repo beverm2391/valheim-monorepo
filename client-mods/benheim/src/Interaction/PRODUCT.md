@@ -30,11 +30,16 @@ behavior remain native. Ben accepted the extended Feast targeting in live play.
 
 ## In Development
 
-Nearby ordinary dropped items should support auto-pickup while submerged in
-water. The candidate must preserve normal pickup distance, inventory capacity,
-carry-weight limits, ownership, and the player's auto-pickup setting. It must
-not float items to the surface or retrieve distant seabed loot. This candidate
-still needs feasibility work and live acceptance.
+All dropped items use Valheim's native buoyancy behavior in water and tar.
+Items that already float keep their native behavior. Items that do not reuse
+the native Wood buoyancy profile so they rise and settle at the liquid surface
+without launching upward.
+
+The behavior changes no item identity, count, ownership, pickup rule, or saved
+item and world data. Native manual and automatic pickup range, inventory
+capacity, carry weight, ownership, and the player's auto-pickup setting still
+apply. Benheim does not move or mutate the liquid, terrain, or location. This
+behavior still needs live acceptance.
 
 The installed `0.1.81` build prints a readable summary in the console.
 The summary includes the calculated comfort and **Counted**, **Ignored**, and
@@ -61,21 +66,3 @@ Installed `0.1.81` still needs gameplay proof for:
 - the extended area beyond 20 meters and through 40 meters;
 - the area beyond 40 meters; and
 - each station's native crafting, repair, upgrade, and interaction behavior.
-
-Live `0.1.80` testing proved that players can manually collect native Tar while
-it is submerged in a native tar pit. It also showed that other submerged items
-remain stuck and auto-pickup does not work there.
-
-The installed `0.1.81` build contains the approved correction, which
-removes the tar-pit pickup block for every item.
-Submerged items support both ordinary manual pickup and Valheim's normal
-auto-pickup. Native interaction and auto-pickup range, ownership, pickup
-requests, inventory capacity, carry weight, effects, and ordinary failure
-behavior still apply. Benheim does not:
-
-- move Tar or change its status hazards;
-- drain or mutate the pit;
-- change terrain or locations; or
-- write new world or character state.
-
-The corrected behavior needs gameplay proof.
