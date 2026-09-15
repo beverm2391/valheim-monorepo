@@ -51,10 +51,9 @@ for asset_path in \
   [[ "$(grep -Fc "path in bundle: $asset_path" <<<"$softref_manifest_text")" -eq 1 ]]
 done
 
-# Inspect only the serialized Pine contract that the conversion depends on.
-# This fails closed on identity, TreeLog component shape, sublog behavior, or
-# destruction-drop changes without coupling the proof to unrelated assets in
-# the same bundle.
+# Inspect the serialized Birch, Oak, and Pine contracts that the conversion
+# depends on. This fails closed if native species identities, sublog behavior,
+# or specialty-wood ownership change.
 pine_bundle_id="$(awk '
   /^  bundle: / { bundle = $2 }
   /^  path in bundle: Assets\/world\/Props\/PineTree\/logs\/PineTree_log.prefab$/ {
@@ -74,6 +73,10 @@ import UnityPy
 environment = UnityPy.load(sys.argv[1])
 full_path = "Assets/world/Props/PineTree/logs/PineTree_log.prefab"
 half_path = "Assets/world/Props/PineTree/logs/PineTree_log_half.prefab"
+birch_full_path = "Assets/world/Props/Birch/logs/Birch_log.prefab"
+birch_half_path = "Assets/world/Props/Birch/logs/Birch_log_half.prefab"
+oak_full_path = "Assets/world/Props/oak/logs/Oak_log.prefab"
+oak_half_path = "Assets/world/Props/oak/logs/Oak_log_half.prefab"
 
 
 def prefab_contract(path):
@@ -91,6 +94,33 @@ def prefab_contract(path):
     assert len(tree_logs) == 1
     return root, root_tree["m_Name"], tree_logs[0]
 
+
+def item_names(root, drop_table):
+    return {
+        root.assetsfile.objects[drop["m_item"]["m_PathID"]].read_typetree()["m_Name"]
+        for drop in drop_table["m_drops"]
+    }
+
+
+birch_full_root, birch_full_name, birch_full_log = prefab_contract(birch_full_path)
+birch_half_root, birch_half_name, birch_half_log = prefab_contract(birch_half_path)
+assert birch_full_name == "Birch_log"
+assert birch_half_name == "Birch_log_half"
+assert birch_full_log["m_dropWhenDestroyed"]["m_drops"] == []
+assert len(birch_full_log["m_subLogPoints"]) == 2
+birch_sublog_id = birch_full_log["m_subLogPrefab"]["m_PathID"]
+assert birch_full_root.assetsfile.objects[birch_sublog_id].read_typetree()["m_Name"] == birch_half_name
+assert item_names(birch_half_root, birch_half_log["m_dropWhenDestroyed"]) == {"Wood", "FineWood"}
+
+oak_full_root, oak_full_name, oak_full_log = prefab_contract(oak_full_path)
+oak_half_root, oak_half_name, oak_half_log = prefab_contract(oak_half_path)
+assert oak_full_name == "Oak_log"
+assert oak_half_name == "Oak_log_half"
+assert oak_full_log["m_dropWhenDestroyed"]["m_drops"] == []
+assert len(oak_full_log["m_subLogPoints"]) == 2
+oak_sublog_id = oak_full_log["m_subLogPrefab"]["m_PathID"]
+assert oak_full_root.assetsfile.objects[oak_sublog_id].read_typetree()["m_Name"] == oak_half_name
+assert item_names(oak_half_root, oak_half_log["m_dropWhenDestroyed"]) == {"Wood", "FineWood"}
 
 full_root, full_name, full_log = prefab_contract(full_path)
 half_root, half_name, half_log = prefab_contract(half_path)

@@ -8,14 +8,22 @@ internal static class FinewoodDrops
 {
     private const string WoodPrefab = "Wood";
     private const string FinewoodPrefab = "FineWood";
+    private const string CorewoodPrefab = "RoundLog";
 
+    // Exact vanilla prefab identities keep modded or similarly named logs unchanged.
     private static readonly HashSet<string> FinewoodLogPrefabs = new HashSet<string>(
         new[]
         {
             "Birch_log",
             "Birch_log_half",
             "Oak_log",
-            "Oak_log_half",
+            "Oak_log_half"
+        },
+        StringComparer.Ordinal);
+
+    private static readonly HashSet<string> CorewoodLogPrefabs = new HashSet<string>(
+        new[]
+        {
             "PineTree_log",
             "PineTree_log_half"
         },
@@ -23,14 +31,21 @@ internal static class FinewoodDrops
 
     internal static GameObject? ConvertNativeWood(GameObject? drop, TreeLog log)
     {
-        if (!FinewoodLogPrefabs.Contains(Utils.GetPrefabName(log.gameObject))
-            || drop == null
-            || Utils.GetPrefabName(drop) != WoodPrefab)
+        if (drop == null || Utils.GetPrefabName(drop) != WoodPrefab)
         {
             return drop;
         }
 
-        GameObject? finewood = ObjectDB.instance?.GetItemPrefab(FinewoodPrefab);
-        return finewood ?? drop;
+        string logPrefab = Utils.GetPrefabName(log.gameObject);
+        string? specialtyWoodPrefab = FinewoodLogPrefabs.Contains(logPrefab)
+            ? FinewoodPrefab
+            : CorewoodLogPrefabs.Contains(logPrefab)
+                ? CorewoodPrefab
+                : null;
+
+        GameObject? specialtyWood = specialtyWoodPrefab == null
+            ? null
+            : ObjectDB.instance?.GetItemPrefab(specialtyWoodPrefab);
+        return specialtyWood ?? drop;
     }
 }

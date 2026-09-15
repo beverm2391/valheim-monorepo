@@ -13,6 +13,7 @@ GameObject corewood = new GameObject("RoundLog");
 GameObject resin = new GameObject("Resin");
 ObjectDB objectDb = new ObjectDB();
 objectDb.Add(finewood);
+objectDb.Add(corewood);
 ObjectDB.instance = objectDb;
 
 foreach (string prefabName in new[]
@@ -20,13 +21,24 @@ foreach (string prefabName in new[]
              "Birch_log",
              "Birch_log_half",
              "Oak_log",
-             "Oak_log_half",
+             "Oak_log_half"
+         })
+{
+    TreeLog log = new TreeLog(prefabName);
+    Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(wood, log), finewood));
+    Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(finewood, log), finewood));
+    Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(corewood, log), corewood));
+    Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(resin, log), resin));
+}
+
+foreach (string prefabName in new[]
+         {
              "PineTree_log",
              "PineTree_log_half"
          })
 {
     TreeLog log = new TreeLog(prefabName);
-    Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(wood, log), finewood));
+    Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(wood, log), corewood));
     Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(finewood, log), finewood));
     Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(corewood, log), corewood));
     Expect(ReferenceEquals(FinewoodDrops.ConvertNativeWood(resin, log), resin));
@@ -50,6 +62,9 @@ foreach (string prefabName in new[]
 ObjectDB.instance = new ObjectDB();
 Expect(ReferenceEquals(
     FinewoodDrops.ConvertNativeWood(wood, new TreeLog("Birch_log_half")),
+    wood));
+Expect(ReferenceEquals(
+    FinewoodDrops.ConvertNativeWood(wood, new TreeLog("PineTree_log_half")),
     wood));
 
 VerifyOwnerDropSeamTranspiler();
