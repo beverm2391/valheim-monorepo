@@ -158,6 +158,11 @@ public class Pickable
 
 public class Floating
 {
+    public float m_waterLevelOffset;
+    public float m_forceDistance = 1f;
+    public float m_force = 0.5f;
+    public float m_balanceForceFraction = 0.02f;
+    public float m_damping = 0.05f;
     public bool InTar { get; set; }
     public bool IsInTar() => InTar;
 }
@@ -170,6 +175,10 @@ public class ItemDrop
 
     public bool Interact(Humanoid user, bool hold, bool alt) => false;
     public bool InTar() => TarState;
+
+    public T? GetComponent<T>() where T : class => gameObject.GetComponent<T>();
+
+    public T? GetComponentInChildren<T>() where T : class => gameObject.GetComponentInChildren<T>();
 
     public sealed class ItemData
     {
@@ -200,6 +209,15 @@ public static class Utils
 
 namespace UnityEngine
 {
+    public sealed class Rigidbody
+    {
+        public Vector3 centerOfMass;
+    }
+
+    public sealed class Collider
+    {
+    }
+
     public struct Vector3
     {
         public Vector3(float x, float y, float z)
@@ -243,12 +261,21 @@ namespace UnityEngine
             components[typeof(T)] = component;
         }
 
+        public T AddComponent<T>() where T : class, new()
+        {
+            T component = new T();
+            components[typeof(T)] = component;
+            return component;
+        }
+
         public T? GetComponent<T>() where T : class
         {
             return components.TryGetValue(typeof(T), out object? component)
                 ? (T)component
                 : null;
         }
+
+        public T? GetComponentInChildren<T>() where T : class => GetComponent<T>();
     }
 
     public static class Random
@@ -285,6 +312,8 @@ namespace BenheimQoL.Infrastructure
             Last = diagnosticEvent;
             Emitted++;
         }
+
+        internal static string Flatten(string value) => value;
     }
 }
 

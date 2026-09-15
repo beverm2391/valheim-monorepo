@@ -30,6 +30,7 @@ VerifyCookingScope();
 VerifyCookingRollObservation();
 VerifyComfortPatch();
 StationBuildCoverageTests.Run();
+LiquidItemRecoveryTests.Run();
 VerifyTarPolicy();
 VerifyTarTranspilers();
 PlantingStaminaTests.Run();
@@ -201,10 +202,10 @@ static void VerifyComfortPatch()
 static void VerifyTarPolicy()
 {
     Pickable smallTar = TarPickable("Pickable_Tar", tarGate: true);
-    Expect(!TarCollectibleInteraction.ShouldBlockPickable(smallTar));
+    Expect(!LiquidItemRecovery.ShouldBlockPickable(smallTar));
 
     Pickable ordinaryPickable = TarPickable("Pickable_Stone", tarGate: true);
-    Expect(!TarCollectibleInteraction.ShouldBlockPickable(ordinaryPickable));
+    Expect(!LiquidItemRecovery.ShouldBlockPickable(ordinaryPickable));
 
     foreach ((string prefab, string itemName) in new[]
              {
@@ -218,45 +219,45 @@ static void VerifyTarPolicy()
             itemName,
             ItemDrop.ItemData.ItemType.Material,
             inTar: true);
-        Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(itemDrop));
+        Expect(!LiquidItemRecovery.ShouldBlockItemDrop(itemDrop));
 
         itemDrop.TarState = false;
-        Expect(!TarCollectibleInteraction.ShouldBlockItemDrop(itemDrop));
+        Expect(!LiquidItemRecovery.ShouldBlockItemDrop(itemDrop));
     }
 }
 
 static void VerifyTarTranspilers()
 {
     FieldInfo pickableGate = typeof(Pickable).GetField(nameof(Pickable.m_tarPreventsPicking))!;
-    MethodInfo pickableReplacement = typeof(TarCollectibleInteraction).GetMethod(
-        nameof(TarCollectibleInteraction.ShouldBlockPickable),
+    MethodInfo pickableReplacement = typeof(LiquidItemRecovery).GetMethod(
+        nameof(LiquidItemRecovery.ShouldBlockPickable),
         BindingFlags.NonPublic | BindingFlags.Static)!;
     CodeInstruction pickableRead = new CodeInstruction(OpCodes.Ldfld, pickableGate);
     VerifyReplacement(
-        typeof(TarPickableInteractionPatch),
+        typeof(LiquidPickableTarInteractionPatch),
         Frame(pickableRead),
         pickableRead,
         OpCodes.Call,
         pickableReplacement);
     ExpectThrows(() => Invoke(
-        typeof(TarPickableInteractionPatch),
+        typeof(LiquidPickableTarInteractionPatch),
         Frame(new CodeInstruction(OpCodes.Nop))));
     ExpectThrows(() => Invoke(
-        typeof(TarPickableInteractionPatch),
+        typeof(LiquidPickableTarInteractionPatch),
         Frame(
             new CodeInstruction(OpCodes.Ldfld, pickableGate),
             new CodeInstruction(OpCodes.Ldfld, pickableGate))));
 
     MethodInfo itemDropGate = typeof(ItemDrop).GetMethod(nameof(ItemDrop.InTar))!;
-    MethodInfo itemDropReplacement = typeof(TarCollectibleInteraction).GetMethod(
-        nameof(TarCollectibleInteraction.ShouldBlockItemDrop),
+    MethodInfo itemDropReplacement = typeof(LiquidItemRecovery).GetMethod(
+        nameof(LiquidItemRecovery.ShouldBlockItemDrop),
         BindingFlags.NonPublic | BindingFlags.Static)!;
     VerifyItemDropTarGatePatch(
-        typeof(TarItemDropInteractionPatch),
+        typeof(LiquidItemDropTarInteractionPatch),
         itemDropGate,
         itemDropReplacement);
     VerifyItemDropTarGatePatch(
-        typeof(TarItemDropAutoPickupPatch),
+        typeof(LiquidItemDropTarAutoPickupPatch),
         itemDropGate,
         itemDropReplacement);
 }
