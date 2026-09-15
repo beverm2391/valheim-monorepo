@@ -6,6 +6,7 @@ source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_player="$source_tree/Player.cs"
 native_version="$source_tree/Version.cs"
 mass_planting="$root/src/Farming/MassPlanting.cs"
+grid_picker_view="$root/src/Farming/FarmingGridPickerView.cs"
 
 assert_source() {
   local pattern="$1"
@@ -42,6 +43,9 @@ assert_source 'InputState\.IsTextEntryActive\(\)' 'src/Farming/FarmingInput.cs'
 assert_source 'FarmingGridSelection\.CurrentSize\)' 'src/Farming/PlantingPreview.cs'
 assert_source 'GridSize = FarmingGridSelection\.CurrentSize' 'src/Farming/PlantingState.cs'
 assert_source 'PlantingState\.GridSize\)' 'src/Farming/MassPlanting.cs'
+assert_source 'BuildUi\? buildUi = hud\.m_buildUi' 'src/Farming/FarmingGridPickerView.cs'
+assert_source 'AccessTools\.Field\(typeof\(BuildUi\), "m_pieceView"\)' 'src/Farming/FarmingGridPickerView.cs'
+assert_source 'InventoryGui\.instance\?\.m_takeAllButton' 'src/Farming/FarmingGridPickerView.cs'
 assert_source 'Left Shift \+ interact' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'Left Shift \+ plant' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'MassFarming v1\.12' 'THIRD_PARTY_NOTICES.md'
@@ -58,6 +62,13 @@ grep -Fq 'Skipped, failed, and rejected placements cost no stamina' "$root/src/S
 # The clickable selector must not intercept native number keys or hotbar use.
 if rg -n 'UseHotbarItem|"Hotbar|KeyCode\.(Alpha|Keypad)|typeof\(ZInput\)' "$root/src/Farming" --glob '*.cs'; then
   printf 'Farming must not intercept native number-key or hotbar input\n' >&2
+  exit 1
+fi
+
+# Valheim 1.0 moved the active picker into BuildUi. The retired Hud field must
+# not return as the row's parent.
+if rg -n 'hud\.m_pieceSelectionWindow' "$grid_picker_view"; then
+  printf 'Farming grid picker still depends on the retired Hud picker\n' >&2
   exit 1
 fi
 

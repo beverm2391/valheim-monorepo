@@ -1,14 +1,19 @@
 using System;
+using System.Reflection;
+using HarmonyLib;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace BenheimQoL.Farming;
 
-// Copy only presentation from the loaded native donors. Cloning TakeAll or a
-// piece cell would also copy native handlers that transfer items or close Hud.
+// Copy only presentation from the loaded native donor. Cloning TakeAll or a
+// build piece would also copy native handlers that transfer items or close Hud.
 internal sealed class FarmingGridPickerView
 {
+    private static readonly FieldInfo? PieceViewField =
+        AccessTools.Field(typeof(BuildUi), "m_pieceView");
+
     private readonly GameObject root;
     private readonly Button[] buttons;
     private readonly TMP_Text[] labels;
@@ -31,14 +36,17 @@ internal sealed class FarmingGridPickerView
     internal static FarmingGridPickerView? TryCreate(Hud hud, Action<int> select, out string failure)
     {
         failure = string.Empty;
-        Transform? panel = hud.m_pieceSelectionWindow?.transform.Find("Bkg2");
-        RectTransform? panelRect = panel as RectTransform;
-        Image? panelImage = panel?.GetComponent<Image>();
-        Transform? donor = InventoryGui.instance?.transform.Find("root/Container/TakeAll");
-        Button? nativeButton = donor?.GetComponent<Button>();
+        BuildUi? buildUi = hud.m_buildUi;
+        RectTransform? buildRoot = buildUi?.transform as RectTransform;
+        RectTransform? pieceView = buildUi == null || PieceViewField == null
+            ? null
+            : PieceViewField.GetValue(buildUi) as RectTransform;
+        Button? nativeButton = InventoryGui.instance?.m_takeAllButton;
+        Transform? donor = nativeButton?.transform;
         Image? buttonImage = nativeButton?.targetGraphic as Image ?? donor?.GetComponent<Image>();
         TMP_Text? text = donor?.GetComponentInChildren<TMP_Text>(includeInactive: true);
-        if (panelRect == null || panelImage == null) failure = "picker_panel_missing";
+        if (buildRoot == null) failure = "build_ui_missing";
+        else if (pieceView == null) failure = "piece_view_missing";
         else if (nativeButton == null || buttonImage == null) failure = "native_button_missing";
         else if (text == null || text.font == null || text.fontSharedMaterial == null) failure = "native_button_text_missing";
         if (failure.Length > 0) return null;
@@ -46,15 +54,18 @@ internal sealed class FarmingGridPickerView
         RectTransform? row = null;
         try
         {
-            row = CreateRect("BenheimPlantingGrid", panelRect!);
-            // The loaded picker has clear space immediately above its wood
-            // panel. Anchor to that panel, never to resolution-specific pixels
-            // or the native piece-list layout that changes with categories.
-            row.anchorMin = row.anchorMax = new Vector2(0.5f, 1f);
+            row = CreateRect("BenheimPlantingGrid", buildRoot!);
+            // Valheim 1.0 moved the live picker from Hud.m_pieceSelectionWindow
+            // into BuildUi. Place the row above the live piece viewport so it
+            // follows that UI at every resolution without entering its scroll
+            // mask or depending on the retired picker hierarchy.
+            Vector3 pieceTop = buildRoot!.InverseTransformPoint(pieceView!.TransformPoint(
+                new Vector3(pieceView.rect.center.x, pieceView.rect.yMax, 0f)));
+            row.anchorMin = row.anchorMax = new Vector2(0.5f, 0.5f);
             row.pivot = new Vector2(0.5f, 0f);
-            row.anchoredPosition = new Vector2(0f, 6f);
             row.sizeDelta = new Vector2(356f, 44f);
-            CopyImage(panelImage!, row.gameObject.AddComponent<Image>()).raycastTarget = false;
+            row.localPosition = new Vector3(pieceTop.x, pieceTop.y + 6f, 0f);
+            row.SetAsLastSibling();
 
             Button[] buttons = new Button[5];
             TMP_Text[] labels = new TMP_Text[buttons.Length];
