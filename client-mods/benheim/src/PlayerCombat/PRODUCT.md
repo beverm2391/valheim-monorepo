@@ -18,14 +18,14 @@ tested native parry chip damage, and native status presentation. It does not
 prove the outgoing damage bonuses, the hostile-kill progression, or
 every other reset source.
 
-## In Development
-
 Benheim's earned combat states remain dormant until Valheim unlocks native
 adrenaline capacity for the player. Before that unlock, perfect defenses and
 kills do not activate or advance CLUTCH, UNTOUCHABLE, BERSERKER, or
 SLAUGHTERHOUSE, and Benheim shows no earned-state feedback. Once unlocked, the
 behavior below applies. [Adrenaline](../Adrenaline/PRODUCT.md) owns the matching
 gate for adrenaline gain, feedback, and meter behavior.
+
+## In Development
 
 Player Combat gives two types of reward:
 

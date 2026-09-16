@@ -6,6 +6,9 @@ timing on Valheim's meter.
 
 ## Current Behavior
 
+- Benheim's adrenaline features remain dormant until Valheim unlocks native
+  adrenaline capacity for the player. Before that unlock, Benheim does not
+  modify adrenaline grants or show perfect-defense feedback.
 - Once adrenaline can be gained, perfect parries and perfect dodges show yellow
   confirmation above the player: `Perfect parry +N` or `Perfect dodge +N`.
 - Valheim's adrenaline meter shows a countdown before and during decay.
@@ -26,13 +29,6 @@ timing on Valheim's meter.
   perfect-parry feedback, and the unchanged 10-second delay.
 
 ## In Development
-
-Benheim's adrenaline features remain dormant until Valheim unlocks native
-adrenaline capacity for the player. Before that unlock, Benheim does not modify
-adrenaline grants or show perfect-defense feedback. Once unlocked, the gain,
-feedback, and meter behavior above applies. [Player
-Combat](../PlayerCombat/PRODUCT.md) owns the matching gate for earned combat
-states.
 
 Doubling every positive adrenaline grant is a proven baseline, not the intended
 final adrenaline economy. The next tuning pass will combine three parts:

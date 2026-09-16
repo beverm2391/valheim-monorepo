@@ -8,24 +8,12 @@ Installed on Ben's Mac: **0.1.101**.
 
 ## Next play session
 
-- **Cultivator grid selection:** Open the Cultivator picker and confirm that
-  the `1x1`, `3x3`, `5x5`, `7x7`, and `9x9` row appears with `5x5`
-  highlighted. Select another size, reopen the picker, and confirm that the
-  choice remains highlighted and controls the next `Left Shift` preview and
-  placement. The Hammer must show no row, and number keys must remain native.
-- **Floating drops:** Drop Tar, Stone, and another ordinary item into water.
-  Confirm that each rises, settles without launching upward, and remains
-  pickable. Repeat in a tar pit when convenient.
 - **Pine specialty wood:** Destroy one native Pine log half. Confirm that all
   ordinary Wood becomes Core Wood, Pine produces no Finewood, and the total
   native drop count remains unchanged.
 
 ## Later solo play
 
-- **Native adrenaline unlock:** Before native Adrenaline is unlocked, perfect
-  defenses must produce no Benheim reward text, Adrenaline, or UNTOUCHABLE
-  state. After the native unlock, the same actions must activate Benheim's
-  feedback and rewards normally.
 - **Snipe:** Apply Snipe to a Huntsman Bow at a level-1 Forge for 1 Wood.
   Confirm that the Affinity tab looks native, the bow's title and description
   persist through ordinary inventory and storage, and applying Snipe twice is

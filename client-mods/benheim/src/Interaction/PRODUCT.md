@@ -28,8 +28,6 @@ range to Benheim's existing 8-meter interaction range. Food eligibility,
 remaining portions, owner-authoritative requests, effects, and all other feast
 behavior remain native. Ben accepted the extended Feast targeting in live play.
 
-## In Development
-
 All dropped items use Valheim's native buoyancy behavior in water and tar.
 Items that already float keep their native behavior. Items that do not reuse
 the native Wood buoyancy profile so they rise and settle at the liquid surface
@@ -38,8 +36,9 @@ without launching upward.
 The behavior changes no item identity, count, ownership, pickup rule, or saved
 item and world data. Native manual and automatic pickup range, inventory
 capacity, carry weight, ownership, and the player's auto-pickup setting still
-apply. Benheim does not move or mutate the liquid, terrain, or location. This
-behavior still needs live acceptance.
+apply. Benheim does not move or mutate the liquid, terrain, or location.
+
+## In Development
 
 The installed `0.1.81` build prints a readable summary in the console.
 The summary includes the calculated comfort and **Counted**, **Ignored**, and

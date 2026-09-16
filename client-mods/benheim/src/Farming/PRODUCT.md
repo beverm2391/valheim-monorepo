@@ -7,18 +7,25 @@ Valheim's normal farming restrictions.
 
 - Hold `Left Shift` while harvesting a crop, pickup, or beehive. The mod then
   harvests matching targets within 10 meters.
-- Hold `Left Shift` while planting to place a centered 5x5 grid.
+- Hold `Left Shift` while planting to place a centered grid at the selected
+  odd size. A fresh Benheim plugin session starts at 5x5.
 - Grid planting preserves Valheim's native rules for resource consumption,
   stamina use, tool durability, plant spacing, cultivated-ground checks,
   creator ownership, placement effects, statistics, skill gain, and rotation.
 - Planting previews show which grid positions are valid before placement.
 - Farming diagnostics record harvest totals and the reason for each invalid
   planting position.
+- The Cultivator picker contains a compact native-styled row for 1x1, 3x3,
+  5x5, 7x7, and 9x9. The selected size remains active for the current Benheim
+  plugin session and controls the existing `Left Shift` preview and placement.
+  The row appears only for the Cultivator, and number keys keep their native
+  behavior.
 
 ## In Development
 
-- Compared with the accepted centered 5x5 grid, the candidate adds selectable
-  odd grid sizes and changes the stamina cost of successful planting.
+- Clicking a grid size should immediately close the Cultivator picker after
+  selecting that size.
+- The candidate changes the stamina cost of successful planting.
 - Each successful ordinary or grid plant placement costs 25% of the native
   planting stamina cost that Valheim has already resolved. Skipped, failed, and
   rejected placements cost no stamina.
@@ -68,15 +75,6 @@ Valheim's normal farming restrictions.
 - The current source derives each bush's placement footprint from its native
   collider shapes and transforms. It no longer reads world-space bounds during
   registration.
-- The Cultivator piece picker contains a compact, native-styled row of clickable
-  sizes: 1x1, 3x3, 5x5, 7x7, and 9x9. Clicking a size keeps the picker open and
-  highlights the choice. After the picker closes, the selected size controls
-  the existing `Left Shift` mass-plant preview and placement.
-- The selected grid size remains active for the current Benheim plugin session,
-  including after the Cultivator picker closes and reopens. A fresh plugin
-  session starts at 5x5.
-- The clickable row replaces the grid-size number shortcut. Number keys keep
-  native behavior. The row appears only in the Cultivator picker.
 - Live `0.1.80` proved ordinary Raspberry placement. It also showed that newly
   planted Raspberry bushes did not start empty and that Cultivator grid-size
   selection intercepted keys outside the required `Left Shift` combinations.
@@ -107,8 +105,5 @@ Valheim's normal farming restrictions.
   - a peer who did not plant the bush can remove it when native access and ward
     rules permit removal, while those rules still block unauthorized removal
   - reconnect behavior
-- The number-key selector failed in live play. Ben approved replacing it with
-  clickable sizes. The row, selection feedback, session persistence,
-  fresh-session 5x5 default, and exact 1.75-meter preview and placement spacing
-  for Raspberry, Blueberry, and Cloudberry bushes remain unaccepted until live
-  review.
+- Exact 1.75-meter preview and placement spacing for Raspberry, Blueberry, and
+  Cloudberry bushes remains unaccepted until live review.
