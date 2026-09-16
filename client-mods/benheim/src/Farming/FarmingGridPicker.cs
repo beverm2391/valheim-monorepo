@@ -101,6 +101,7 @@ internal static class FarmingGridPicker
             FarmingGridSelection.TrySelect(size);
             PlantingPreview.DestroyGhosts();
             view!.Highlight(size);
+            Hud.CloseBuildUi();
             ChoiceResult(size, "selected", "button_click");
         }
         catch (Exception exception)

@@ -22,45 +22,55 @@ for (int i = 0; i < 60; i++) FarmingGridPicker.Update();
 Require(Diagnostics.CoreEvents.Count == events && FarmingGridPickerView.CreateCount == creates,
     "unchanged picker frames neither allocate duplicate rows nor repeat state evidence");
 
+FarmingGridPickerView active = first;
 foreach (int size in new[] { 1, 3, 5, 7, 9 })
 {
     int invalidations = PlantingPreview.DestroyCalls;
-    first.Click(size);
-    Require(FarmingGridSelection.CurrentSize == size && first.HighlightedSize == size && Hud.PickerVisible,
-        "every allowed click selects and highlights its size without closing the native picker");
+    active.Click(size);
+    Require(FarmingGridSelection.CurrentSize == size && active.HighlightedSize == size && !Hud.PickerVisible && !active.IsAlive,
+        "every allowed click selects and highlights its size before closing the native picker");
     Require(PlantingPreview.DestroyCalls == invalidations + 1,
         "selection invalidates the prior preview");
     Require(Last().GetProperty("result").GetString() == "selected" &&
         Last().GetProperty("highlighted_size").GetInt32() == size &&
-        Last().GetProperty("picker_visible").GetBoolean(),
-        "selection result records actual state after applying the choice");
+        !Last().GetProperty("picker_visible").GetBoolean() &&
+        !Last().GetProperty("row_visible").GetBoolean(),
+        "selection result records the selected size and closed picker state");
     Require(Diagnostics.CoreEvents[^2].Name == "plant_grid_choice_attempt",
         "each result has a preceding click attempt even for repeated choices");
+
+    FarmingGridPicker.Update();
+    Hud.PickerVisible = true;
+    FarmingGridPicker.Update();
+    active = FarmingGridPickerView.Last!;
+    Require(active.HighlightedSize == size && FarmingGridSelection.CurrentSize == size,
+        "reopening restores the plugin-session selection after the automatic close");
 }
 foreach (int size in new[] { -1, 0, 2, 4, 6, 8, 10, 11 })
 {
-    first.Click(size);
-    Require(FarmingGridSelection.CurrentSize == 9 && Reason() == "unsupported_size", "invalid choices do not mutate state");
+    active.Click(size);
+    Require(FarmingGridSelection.CurrentSize == 9 && Reason() == "unsupported_size" && Hud.PickerVisible,
+        "invalid choices do not mutate state or close the picker");
 }
 InputState.TextEntryActive = true;
 FarmingGridPicker.Update();
-first.Click(3);
-Require(first.IsAlive && FarmingGridSelection.CurrentSize == 9 && Reason() == "text_entry",
+active.Click(3);
+Require(active.IsAlive && FarmingGridSelection.CurrentSize == 9 && Reason() == "text_entry",
     "transient console or chat focus blocks a click without resetting its still-open picker");
 InputState.TextEntryActive = false;
 
 Hud.PickerVisible = false;
 FarmingGridPicker.Update();
-Require(!first.IsAlive && FarmingGridSelection.CurrentSize == 9,
+Require(!active.IsAlive && FarmingGridSelection.CurrentSize == 9,
     "closing removes the controls while preserving size for Shift preview and placement");
-first.Click(3);
+active.Click(3);
 Require(FarmingGridSelection.CurrentSize == 9 && Reason() == "picker_closed", "closed picker callbacks cannot select");
 Hud.PickerVisible = true;
 FarmingGridPicker.Update();
 FarmingGridPickerView second = FarmingGridPickerView.Last!;
-Require(second != first && FarmingGridSelection.CurrentSize == 9 && second.HighlightedSize == 9,
+Require(second != active && FarmingGridSelection.CurrentSize == 9 && second.HighlightedSize == 9,
     "reopening creates fresh controls for the plugin-session selection");
-first.Click(1);
+active.Click(1);
 Require(FarmingGridSelection.CurrentSize == 9 && Reason() == "stale_picker",
     "a retained callback from the prior row cannot mutate a new same-player session");
 second.Click(3);
@@ -83,6 +93,7 @@ player.RightItem.m_shared.m_buildPieces = null;
 FarmingGridPicker.Update();
 Require(FarmingGridPickerView.Last == second, "a tool without build pieces does not get a row");
 player.RightItem.m_shared.m_buildPieces = new PieceTable();
+Hud.PickerVisible = true;
 FarmingGridPicker.Update();
 FarmingGridPickerView third = FarmingGridPickerView.Last!;
 Require(third != second && third.HighlightedSize == 3, "returning to the Cultivator preserves the plugin-session choice");
@@ -95,6 +106,7 @@ Player.m_localPlayer = null;
 FarmingGridPicker.Update();
 Require(!current.IsAlive, "world exit/player absence removes the row");
 Player.m_localPlayer = player;
+Hud.PickerVisible = true;
 FarmingGridPicker.Update();
 current = FarmingGridPickerView.Last!;
 HealthReporting.GameplayActionsEnabled = false;
@@ -134,6 +146,7 @@ Require(FarmingGridSelection.CurrentSize == 3 && current.HighlightedSize == 3,
 FarmingGridPicker.Reset();
 Require(!current.IsAlive && FarmingGridSelection.CurrentSize == 5, "plugin reset cleans the row and restores the next session's 5x5 default even with a failed sink");
 Diagnostics.ThrowOnEmit = false;
+Hud.PickerVisible = true;
 FarmingGridPickerView.ThrowOnCreate = true;
 FarmingGridPicker.Update();
 Require(Last().GetProperty("result").GetString() == "failed", "creation exceptions are contained and recorded");

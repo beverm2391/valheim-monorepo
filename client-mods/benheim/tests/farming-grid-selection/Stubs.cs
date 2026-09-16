@@ -23,6 +23,7 @@ public sealed class Hud
     public static Hud? instance;
     public static bool PickerVisible;
     public static bool IsPieceSelectionVisible() => instance != null && PickerVisible;
+    public static void CloseBuildUi() => PickerVisible = false;
 }
 public static class ZInput
 {
@@ -83,7 +84,8 @@ namespace BenheimQoL.Farming
         internal static string MissingReason = string.Empty;
         internal static bool ThrowOnCreate;
         internal bool ThrowOnHighlight;
-        internal bool IsAlive { get; private set; } = true;
+        private bool exists = true;
+        internal bool IsAlive => exists && Hud.IsPieceSelectionVisible();
         internal int HighlightedSize { get; private set; }
         internal readonly Action<int> Click;
         private FarmingGridPickerView(Action<int> click) { Click = click; }
@@ -100,6 +102,6 @@ namespace BenheimQoL.Farming
             if (ThrowOnHighlight) throw new InvalidOperationException("highlight failed");
             HighlightedSize = size;
         }
-        internal void Destroy() { IsAlive = false; }
+        internal void Destroy() { exists = false; }
     }
 }
