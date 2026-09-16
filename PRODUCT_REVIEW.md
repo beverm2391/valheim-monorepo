@@ -8,6 +8,9 @@ Installed on Ben's Mac: **0.1.101**.
 
 ## Next play session
 
+- **Cultivator grid selection:** Open the picker, click a different grid size,
+  and confirm the picker closes immediately. Reopen it and confirm the selected
+  size remains highlighted and controls the next Left Shift preview and plant.
 - **Pine specialty wood:** Destroy one native Pine log half. Confirm that all
   ordinary Wood becomes Core Wood, Pine produces no Finewood, and the total
   native drop count remains unchanged.
