@@ -25,6 +25,12 @@ Valheim's normal farming restrictions.
 
 - Clicking a grid size should immediately close the Cultivator picker after
   selecting that size.
+- Hold `Left Shift` with the Hoe to use exactly three times the native radius
+  for every Hoe terrain action. Releasing `Left Shift` restores the native
+  radius immediately.
+- The Hoe preview must show the same expanded area that the action will affect.
+  An expanded action keeps one native action's stamina, durability, and
+  resource costs. It does not change the Cultivator and has no menu or setting.
 - The candidate changes the stamina cost of successful planting.
 - Each successful ordinary or grid plant placement costs 25% of the native
   planting stamina cost that Valheim has already resolved. Skipped, failed, and
