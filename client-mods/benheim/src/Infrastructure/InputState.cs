@@ -8,6 +8,17 @@ namespace BenheimQoL.Infrastructure;
 
 internal static class InputState
 {
+    internal static bool IsLeftShiftHeld()
+    {
+        if (IsTextEntryActive())
+        {
+            return false;
+        }
+
+        return Input.GetKey(KeyCode.LeftShift)
+            || ZInput.GetKey(KeyCode.LeftShift);
+    }
+
     internal static bool IsShiftHeld()
     {
         if (IsTextEntryActive())

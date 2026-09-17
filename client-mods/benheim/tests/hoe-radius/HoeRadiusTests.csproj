@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Farming/HoeRadiusExpansion.cs" Link="HoeRadiusExpansion.cs" />
+    <Compile Include="../../src/Farming/HoeRadiusPreview.cs" Link="HoeRadiusPreview.cs" />
+    <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
+  </ItemGroup>
+</Project>

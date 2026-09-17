@@ -34,6 +34,7 @@ public sealed class Plugin : BaseUnityPlugin
         Log = Logger;
         Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
         FarmingGridPicker.Reset();
+        HoeRadiusPreview.Reset();
         LungeRuntime.ResetSession();
         PlayerCombatRuntime.BeginSession();
         DiagnosticsSharingSettings.Initialize(Config);
@@ -129,6 +130,7 @@ public sealed class Plugin : BaseUnityPlugin
         WorldLabelRuntime.Reset();
         ShipSprintRuntime.Reset("plugin_teardown");
         PlantingPreview.DestroyGhosts();
+        HoeRadiusPreview.Reset();
         FarmingGridPicker.Reset();
         CombatFeedbackController.Reset();
         TopLeftFeedbackHud.Destroy();
