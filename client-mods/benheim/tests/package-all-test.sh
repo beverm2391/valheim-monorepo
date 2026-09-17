@@ -18,7 +18,7 @@ printf 'fixture release dll\n' > "$dll"
 
 for script in \
   package-all.sh package-private-test.sh package-macos.sh package-windows.sh \
-  install-macos.command macos-launcher.sh 'Install Benheim.cmd' \
+  install-macos.command check-valheim-stopped.sh macos-launcher.sh 'Install Benheim.cmd' \
   install-windows.ps1 launch-windows.ps1 windows-doorstop-config.ps1; do
   cp "$root/scripts/$script" "$scripts/$script"
 done

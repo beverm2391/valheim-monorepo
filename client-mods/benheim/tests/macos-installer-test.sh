@@ -8,11 +8,18 @@ trap 'rm -rf "$test_root"' EXIT
 game_dir="$test_root/Valheim"
 app_dir="$test_root/Applications"
 fixture="$test_root/BepInExPack_Valheim"
+mock_bin="$test_root/bin"
 mkdir -p \
   "$game_dir/valheim.app/Contents/Resources" \
   "$game_dir/BepInEx/plugins/BenheimQoL" \
   "$game_dir/BepInEx/plugins/MassFarming" \
-  "$fixture/BepInEx/core"
+  "$fixture/BepInEx/core" \
+  "$mock_bin"
+cat > "$mock_bin/pgrep" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+chmod +x "$mock_bin/pgrep"
 touch "$game_dir/valheim.app/Contents/Resources/PlayerIcon.icns"
 touch "$game_dir/BepInEx/plugins/MassFarming/MassFarming.dll"
 printf '0.1.33\n' > "$game_dir/BepInEx/plugins/BenheimQoL/VERSION"
@@ -40,6 +47,7 @@ PLIST
 
 run_installer() {
   private_diagnostics="${3:-$test_root/no-private-diagnostics.cfg}"
+  PATH="$mock_bin:$PATH" \
   BENHEIM_QOL_GAME_DIR="$game_dir" \
   BENHEIM_QOL_APP_DIR="$1" \
   BENHEIM_QOL_DLL="${2:-$test_root/BenheimQoL.dll}" \
@@ -141,7 +149,8 @@ test ! -e "$root/tests/macos-updater-test.sh"
 ! grep -Fq 'BENHEIM_UPDATE' "$root/scripts/install-macos.command"
 ! grep -Fq 'update-macos.sh' "$root/scripts/package-macos.sh"
 
-# The shareable package contains exactly the installer, launcher, version, and DLL.
+# The shareable package contains exactly the installer, process check, launcher,
+# version, and DLL.
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
 BENHEIM_QOL_DIST="$test_root/dist" \
 BENHEIM_QOL_SKIP_BUILD=1 \
@@ -154,8 +163,56 @@ expected_entries="$(printf '%s\n' \
   "Benheim-macOS-$version/BenheimQoL.dll" \
   "Benheim-macOS-$version/Install Benheim.command" \
   "Benheim-macOS-$version/VERSION" \
+  "Benheim-macOS-$version/check-valheim-stopped.sh" \
   "Benheim-macOS-$version/macos-launcher.sh" | sort)"
 test "$package_entries" = "$expected_entries"
-grep -Fq 'BENHEIM_QOL_VERSION_FILE="$version_file"' "$root/scripts/install-local.sh"
+
+# The local package workflow validates the archive, invokes its shipped
+# installer, and verifies the installed VERSION and DLL against that payload.
+packaged_game_dir="$test_root/Packaged Valheim"
+packaged_app_dir="$test_root/Packaged Applications"
+mkdir -p "$packaged_game_dir/valheim.app/Contents/Resources"
+touch "$packaged_game_dir/valheim.app/Contents/Resources/PlayerIcon.icns"
+package_output="$(
+  PATH="$mock_bin:$PATH" \
+  BENHEIM_QOL_GAME_DIR="$packaged_game_dir" \
+  BENHEIM_QOL_APP_DIR="$packaged_app_dir" \
+  BENHEIM_QOL_DLL="$test_root/NewBenheimQoL.dll" \
+  BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
+  BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
+    "$root/scripts/install-local.sh" --package "$package"
+)"
+grep -Fq 'install-local: source=package' <<<"$package_output"
+grep -Fq "install-local: version=$version" <<<"$package_output"
+grep -Fq 'install-local: result=verified' <<<"$package_output"
+cmp -s \
+  "$test_root/BenheimQoL.dll" \
+  "$packaged_game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll"
+grep -Fqx "$version" "$packaged_game_dir/BepInEx/plugins/BenheimQoL/VERSION"
+
+# A directory/version mismatch fails before the shipped installer can mutate
+# the selected game directory.
+bad_package_root="$test_root/bad-package/Benheim-macOS-$version"
+bad_package="$test_root/Benheim-macOS-mismatched.zip"
+mkdir -p "$(dirname "$bad_package_root")"
+unzip -qq "$package" -d "$test_root/bad-package"
+printf '9.9.9\n' > "$bad_package_root/VERSION"
+(
+  cd "$test_root/bad-package"
+  zip -qr "$bad_package" "Benheim-macOS-$version"
+)
+bad_game_dir="$test_root/Bad Package Valheim"
+mkdir -p "$bad_game_dir/valheim.app/Contents/Resources"
+touch "$bad_game_dir/valheim.app/Contents/Resources/PlayerIcon.icns"
+if PATH="$mock_bin:$PATH" \
+  BENHEIM_QOL_GAME_DIR="$bad_game_dir" \
+  BENHEIM_QOL_APP_DIR="$test_root/Bad Package Applications" \
+  BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
+  BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
+    "$root/scripts/install-local.sh" --package "$bad_package" >/dev/null 2>&1; then
+  echo "local package install accepted a mismatched VERSION" >&2
+  exit 1
+fi
+test ! -e "$bad_game_dir/BepInEx"
 
 echo "macOS installer, migration, and package checks passed"

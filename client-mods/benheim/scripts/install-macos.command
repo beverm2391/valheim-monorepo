@@ -12,6 +12,7 @@ plugin="$plugin_dir/BenheimQoL.dll"
 dll="${BENHEIM_QOL_DLL:-$script_dir/BenheimQoL.dll}"
 launcher_source="${BENHEIM_QOL_LAUNCHER_SOURCE:-$script_dir/macos-launcher.sh}"
 version_source="${BENHEIM_QOL_VERSION_FILE:-$script_dir/VERSION}"
+process_check="$script_dir/check-valheim-stopped.sh"
 private_diagnostics_source="${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE:-$script_dir/PRIVATE-TEST-DIAGNOSTICS.cfg}"
 private_diagnostics="$game_dir/BepInEx/config/BenheimPrivateDiagnostics.cfg"
 bepinex_url="${BENHEIM_QOL_BEPINEX_URL:-https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip}"
@@ -94,17 +95,15 @@ fail() {
   exit 1
 }
 
-valheim_running() {
-  pgrep -x valheim >/dev/null 2>&1 \
-    || pgrep -x valheim.x86_64 >/dev/null 2>&1 \
-    || pgrep -f "$game_dir/valheim.app/Contents/MacOS" >/dev/null 2>&1
-}
-
 if [[ "$(uname -m)" == "arm64" ]] && ! arch -x86_64 /usr/bin/true >/dev/null 2>&1; then
   fail "Rosetta 2 is required on Apple Silicon. Install Rosetta, then run this installer again."
 fi
 
-if valheim_running; then
+if [[ ! -x "$process_check" ]]; then
+  fail "The Valheim process check is missing beside the installer."
+fi
+
+if ! "$process_check" --quiet; then
   fail "Valheim is running. Quit the game completely, then run the installer again."
 fi
 
@@ -169,7 +168,7 @@ if [[ ! -f "$bepinex_root/start_game_bepinex.sh" ]]; then
   fail "The BepInEx package had an unexpected layout."
 fi
 
-if valheim_running; then
+if ! "$process_check" --quiet; then
   fail "Valheim started during setup. Quit the game completely, then run the installer again."
 fi
 

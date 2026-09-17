@@ -38,6 +38,7 @@ fi
 rm -rf "$stage" "$dist/$package_name.zip"
 install -d "$stage"
 install -m 0755 "$root/scripts/install-macos.command" "$stage/Install Benheim.command"
+install -m 0755 "$root/scripts/check-valheim-stopped.sh" "$stage/check-valheim-stopped.sh"
 install -m 0755 "$root/scripts/macos-launcher.sh" "$stage/macos-launcher.sh"
 install -m 0644 "$dll" "$stage/BenheimQoL.dll"
 printf '%s\n' "$version" > "$stage/VERSION"

@@ -99,7 +99,16 @@ client-mods/benheim/scripts/install-local.sh
 ```
 
 `install-local.sh` builds the DLL and invokes the same Mac installer shipped to
-players. To create the shareable Mac and Windows packages, run:
+players. To install one already-built macOS package and verify that its exact
+version and DLL bytes landed, run:
+
+```bash
+client-mods/benheim/scripts/install-local.sh --package /path/to/Benheim-macOS-X.Y.Z.zip
+```
+
+Both paths use `client-mods/benheim/scripts/check-valheim-stopped.sh` for the
+same exact-process safety gate. To create the shareable Mac and Windows
+packages, run:
 
 ```bash
 client-mods/benheim/scripts/package-all.sh

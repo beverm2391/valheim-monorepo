@@ -72,15 +72,21 @@ Build, install locally on Mac, and package both platforms with:
 
 ```bash
 client-mods/benheim/scripts/build.sh
+client-mods/benheim/scripts/check-valheim-stopped.sh
 client-mods/benheim/scripts/install-local.sh
+client-mods/benheim/scripts/install-local.sh --package /path/to/Benheim-macOS-X.Y.Z.zip
 client-mods/benheim/scripts/package-macos.sh
 client-mods/benheim/scripts/package-windows.sh
 ```
 
-`install-local.sh` must run the same Mac installer shipped to players. The
-installer must be safe to run repeatedly. Keep BepInEx installation,
-legacy-plugin cleanup, and launcher generation in it. The Mac launcher starts
-Steam when needed before Valheim.
+`check-valheim-stopped.sh` owns the exact Mac client process identities used by
+the operator workflow and shipped installer. `install-local.sh` with no
+arguments builds the DLL and runs that installer from the source tree. Its
+`--package` form validates a selected versioned macOS ZIP, runs the installer
+inside that exact package, then verifies the installed version and DLL bytes
+against the package. The installer must be safe to run repeatedly. Keep BepInEx
+installation, legacy-plugin cleanup, and launcher generation in it. The Mac
+launcher starts Steam when needed before Valheim.
 
 Normal Steam launch remains vanilla on Mac and Windows. `Benheim.app` on Mac
 and the managed `Benheim` shortcut on Windows are the explicit modded paths.
