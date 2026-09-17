@@ -4,10 +4,14 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.101**.
+Installed on Ben's Mac: **0.1.103**.
 
 ## Next play session
 
+- **Hoe expanded radius:** Compare every native Hoe terrain action once with
+  `Left Shift` released and held. The preview and affected area should both be
+  exactly 3x native radius only while held; each click should charge once, and
+  the Cultivator should remain native.
 - **Cultivator grid selection:** Open the picker, click a different grid size,
   and confirm the picker closes immediately. Reopen it and confirm the selected
   size remains highlighted and controls the next Left Shift preview and plant.
