@@ -42,21 +42,57 @@ internal static class StationBuildCoverageTests
         Expect(StationBuildCoverage.FindForPlacement("$piece_forge", Point(230f)) == null);
         Expect(StationBuildCoverage.FindForPlacement(StationBuildCoverage.WorkbenchName, Point(330f)) == null);
 
+        Expect(StationBuildCoverage.FindForMaintenance(StationBuildCoverage.WorkbenchName, extendedPoint) == workbench);
+        Expect(StationBuildCoverage.FindForMaintenance(StationBuildCoverage.StonecutterName, Point(130f, 100f)) == stonecutter);
+        Expect(StationBuildCoverage.FindForMaintenance(StationBuildCoverage.WorkbenchName, beyondPoint) == null);
+        int maintenanceEvents = BenheimQoL.Infrastructure.Diagnostics.Emitted;
+        Expect(StationBuildCoverage.FindForMaintenance(StationBuildCoverage.WorkbenchName, beyondPoint) == null);
+        Expect(BenheimQoL.Infrastructure.Diagnostics.Emitted == maintenanceEvents);
+        Expect(StationBuildCoverage.FindForMaintenance(StationBuildCoverage.WorkbenchName, extendedPoint) == workbench);
+        Expect(BenheimQoL.Infrastructure.Diagnostics.Emitted == maintenanceEvents + 1);
+        Expect(StationBuildCoverage.FindForMaintenance(StationBuildCoverage.WorkbenchName, extendedPoint) == workbench);
+        Expect(BenheimQoL.Infrastructure.Diagnostics.Emitted == maintenanceEvents + 1);
+
+        CircleProjector workbenchMarker = workbench.m_areaMarker.GetComponent<CircleProjector>()!;
+        CircleProjector forgeMarker = forge.m_areaMarker.GetComponent<CircleProjector>()!;
+        CircleProjector spoofedMarker = spoofedWorkbench.m_areaMarker.GetComponent<CircleProjector>()!;
+        Expect(workbenchMarker.m_radius == 20f);
+        Expect(StationBuildCoverage.FindForHammerUi(StationBuildCoverage.WorkbenchName, extendedPoint) == workbench);
+        Expect(workbenchMarker.m_radius == 40f);
+        Expect(StationBuildCoverage.FindForHammerUi("$piece_forge", Point(210f)) == forge);
+        Expect(forgeMarker.m_radius == 20f);
+        Expect(StationBuildCoverage.FindForHammerUi(StationBuildCoverage.WorkbenchName, Point(310f)) == spoofedWorkbench);
+        Expect(spoofedMarker.m_radius == 20f);
+        Expect(StationBuildCoverage.FindForHammerUi(StationBuildCoverage.WorkbenchName, beyondPoint) == null);
+
         workbench.NativeBuildRange = 28f;
         Expect(StationBuildCoverage.FindForPlacement(StationBuildCoverage.WorkbenchName, Point(55f)) == workbench);
+        Expect(StationBuildCoverage.FindForHammerUi(StationBuildCoverage.WorkbenchName, Point(55f)) == workbench);
+        Expect(workbenchMarker.m_radius == 56f);
 
-        VerifyTranspilerShape();
+        VerifyTranspilerShape(
+            typeof(StationBuildPlacementCoveragePatch),
+            nameof(StationBuildCoverage.FindForPlacement));
+        VerifyTranspilerShape(
+            typeof(StationBuildMaintenanceCoveragePatch),
+            nameof(StationBuildCoverage.FindForMaintenance));
+        VerifyTranspilerShape(
+            typeof(StationBuildUiCoveragePatch),
+            nameof(StationBuildCoverage.FindForHammerUi));
     }
 
     private static CraftingStation Station(string name, string prefab, float x, float y)
     {
-        return new CraftingStation
+        CraftingStation station = new CraftingStation
         {
             m_name = name,
             NativeBuildRange = 20f,
             gameObject = new UnityEngine.GameObject(prefab),
+            m_areaMarker = new UnityEngine.GameObject($"{prefab}_marker"),
             transform = new UnityEngine.Transform { position = Point(x, y) }
         };
+        station.m_areaMarker.AddComponent(new CircleProjector { m_radius = 20f });
+        return station;
     }
 
     private static UnityEngine.Vector3 Point(float x, float y = 0f)
@@ -64,14 +100,14 @@ internal static class StationBuildCoverageTests
         return new UnityEngine.Vector3(x, y, 0f);
     }
 
-    private static void VerifyTranspilerShape()
+    private static void VerifyTranspilerShape(Type patchType, string replacementName)
     {
         MethodInfo nativeLookup = typeof(CraftingStation).GetMethod(nameof(CraftingStation.HaveBuildStationInRange))!;
         MethodInfo placementLookup = typeof(StationBuildCoverage).GetMethod(
-            nameof(StationBuildCoverage.FindForPlacement),
+            replacementName,
             BindingFlags.NonPublic | BindingFlags.Static)!;
         CodeInstruction nativeCall = new CodeInstruction(OpCodes.Call, nativeLookup);
-        List<CodeInstruction> output = Invoke(Frame(nativeCall));
+        List<CodeInstruction> output = Invoke(patchType, Frame(nativeCall));
         Expect(output.Count == 3);
         Expect(output[1] == nativeCall);
         Expect(nativeCall.opcode == OpCodes.Call);
@@ -79,8 +115,8 @@ internal static class StationBuildCoverageTests
         Expect(nativeCall.labels.Count == 1);
         Expect(nativeCall.blocks.Count == 1);
 
-        ExpectThrows(() => Invoke(Frame(new CodeInstruction(OpCodes.Nop))));
-        ExpectThrows(() => Invoke(Frame(
+        ExpectThrows(() => Invoke(patchType, Frame(new CodeInstruction(OpCodes.Nop))));
+        ExpectThrows(() => Invoke(patchType, Frame(
             new CodeInstruction(OpCodes.Call, nativeLookup),
             new CodeInstruction(OpCodes.Call, nativeLookup))));
     }
@@ -98,12 +134,12 @@ internal static class StationBuildCoverageTests
         return instructions;
     }
 
-    private static List<CodeInstruction> Invoke(IEnumerable<CodeInstruction> instructions)
+    private static List<CodeInstruction> Invoke(Type patchType, IEnumerable<CodeInstruction> instructions)
     {
-        MethodInfo transpiler = typeof(StationBuildCoveragePatch).GetMethod(
+        MethodInfo transpiler = patchType.GetMethod(
             "Transpiler",
             BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new InvalidOperationException("Missing StationBuildCoveragePatch.Transpiler.");
+            ?? throw new InvalidOperationException($"Missing {patchType.Name}.Transpiler.");
         try
         {
             return ((IEnumerable<CodeInstruction>)transpiler.Invoke(null, new object[] { instructions })!).ToList();

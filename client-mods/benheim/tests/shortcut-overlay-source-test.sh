@@ -84,9 +84,10 @@ if grep -Fq 'WorldLabelVisibility' "$catalog_file"; then
 fi
 grep -Fq '"Building"' "$catalog_file"
 grep -Fq '"Station coverage"' "$catalog_file"
-grep -Fq 'Workbench and Stonecutter build-piece placement coverage is 2× Valheim' "$catalog_file"
+grep -Fq 'Workbench and Stonecutter Hammer work zones are 2× Valheim' "$catalog_file"
 grep -Fq '20 m to 40 m for level-1 stations' "$catalog_file"
-grep -Fq 'Workbench suppression, enemy spawning, and all other station behavior stay native.' "$catalog_file"
+grep -Fq 'Placement, repair, dismantling, the dashed boundary, and Hammer station-range UI use the same zone.' "$catalog_file"
+grep -Fq 'upgrade attachment, comfort, Workbench suppression, enemy spawning, wards, and all other station behavior stay native.' "$catalog_file"
 grep -Fq '"Ship Sprint"' "$catalog_file"
 grep -Fq 'ShipSprintTuning.ThrustMultiplier' "$catalog_file"
 grep -Fq '"Combat"' "$catalog_file"

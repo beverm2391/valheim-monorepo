@@ -19,6 +19,15 @@ Installed on Ben's Mac: **0.1.103**.
   ordinary Wood becomes Core Wood, Pine produces no Finewood, and the total
   native drop count remains unchanged.
 
+## After the next install
+
+- **Workbench and Stonecutter Hammer work zone:** At each level-1 station,
+  cross the native, extended, and out-of-range boundaries while placing,
+  repairing, and dismantling station-required pieces. The actions, dashed
+  boundary, and Hammer station-range UI should agree at each boundary. Crafting
+  and station use, upgrade attachment, comfort, Workbench suppression and enemy
+  spawning, and wards should remain native.
+
 ## Later solo play
 
 - **Snipe:** Apply Snipe to a Huntsman Bow at a level-1 Forge for 1 Wood.

@@ -29,6 +29,7 @@ public class CraftingStation
     public string m_name = "";
     public float NativeBuildRange;
     public UnityEngine.GameObject gameObject = new UnityEngine.GameObject("");
+    public UnityEngine.GameObject m_areaMarker = new UnityEngine.GameObject("marker");
     public UnityEngine.Transform transform = new UnityEngine.Transform();
 
     public static CraftingStation? HaveBuildStationInRange(string name, UnityEngine.Vector3 point)
@@ -56,6 +57,15 @@ public class CraftingStation
     }
 
     public float GetStationBuildRange() => NativeBuildRange;
+}
+
+public class CircleProjector
+{
+    public float m_radius;
+}
+
+public class Hud
+{
 }
 
 public static class Skills

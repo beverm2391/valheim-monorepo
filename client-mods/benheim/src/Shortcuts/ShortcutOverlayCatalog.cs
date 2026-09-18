@@ -66,9 +66,9 @@ internal static partial class ShortcutOverlay
             {
                 new Entry(
                     "Station coverage",
-                    "Workbench and Stonecutter build-piece placement coverage is 2× Valheim's native range (20 m to 40 m for level-1 stations)"),
+                    "Workbench and Stonecutter Hammer work zones are 2× Valheim's native range (20 m to 40 m for level-1 stations)"),
             },
-            "Crafting, repair, station interaction, Workbench suppression, enemy spawning, and all other station behavior stay native."),
+            "Placement, repair, dismantling, the dashed boundary, and Hammer station-range UI use the same zone. Crafting, station interaction, upgrade attachment, comfort, Workbench suppression, enemy spawning, wards, and all other station behavior stay native."),
         new(
             "World & Travel",
             TravelAccent,
