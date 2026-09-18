@@ -209,13 +209,10 @@ distant players must not hear it.
 [Affinities](src/Affinities/PRODUCT.md) owns weapon eligibility, application,
 playtest exceptions, and each affinity's mechanics and acceptance.
 
-The candidate doubles only native Workbench and Stonecutter build-piece
-placement coverage. In installed Valheim `0.221.12`, both level-1 stations have
-a native 20-meter build radius. The candidate doubles each build radius to 40
-meters. Benheim includes native Workbench extension contributions when it
-resolves the range, then doubles the total. The [Interaction
-module](src/Interaction/PRODUCT.md) defines the exact client-only boundary and
-gameplay proof requirements.
+The candidate gives native Workbench and Stonecutter stations a coherent 2x
+Hammer work zone for placement, repair, dismantling, and matching range UI. The
+[Interaction module](src/Interaction/PRODUCT.md) owns the exact client-only
+boundary, excluded station behaviors, and gameplay proof requirements.
 
 The candidate includes Ship Sprint's first `3x` native-thrust tuning. Holding
 Valheim's logical Run control at the helm boosts forward paddle, half sail, and

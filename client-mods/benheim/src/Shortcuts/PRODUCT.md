@@ -55,10 +55,11 @@ use it to find controls and passive features.
   The updated presentation still needs gameplay proof.
 - The Ship Sprint entry explains that the helm readout shows planar speed and
   marks `SPRINT` while the local player has an active Ship Sprint request.
-- The installed `0.1.80` build includes a Building section. It says Workbench and
-  Stonecutter build-piece placement coverage is `2x` Valheim's native range,
-  from 20 meters to 40 meters for level-1 stations. It also names the station
-  behaviors that remain native.
+- The Building section explains that the Workbench and Stonecutter Hammer work
+  zone is `2x` Valheim's native range, from 20 meters to 40 meters for level-1
+  stations. It names placement, repair, dismantling, and the matching range UI,
+  then identifies the station behaviors that remain native. The [Interaction
+  module](../Interaction/PRODUCT.md) owns the exact boundary.
 - The candidate renames the Skills section to **Gathering & Skills**. It adds a
   Finewood entry. The entry says that the compatible client that owns a native
   Birch or Oak log converts each final ordinary Wood drop to Finewood. This

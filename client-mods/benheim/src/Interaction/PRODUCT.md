@@ -46,22 +46,24 @@ The summary includes the calculated comfort and **Counted**, **Ignored**, and
 diagnostic in its structured form and writes the evidence to the log. The
 summary needs live console proof.
 
-Benheim doubles only the build-piece placement coverage resolved from native
-Workbench and Stonecutter stations. In installed Valheim `0.221.12`, both
-level-1 stations have a native 20-meter build radius, so their candidate radius
-is 40 meters. Benheim includes native Workbench extension contributions when
-it resolves the range, then doubles the total.
+Benheim gives native Workbench and Stonecutter stations a coherent Hammer work
+zone at twice their native range. In installed Valheim `0.221.12`, both level-1
+stations have a native 20-meter build radius, so their candidate Hammer work
+zone is 40 meters. Benheim includes native Workbench extension contributions
+when it resolves that range, then doubles the total.
 
-This client-only behavior changes only whether the game considers the required
-Workbench or Stonecutter in range during piece placement. Each player who wants
-this coverage needs a compatible Benheim client. Benheim does not change station
-interaction, crafting, repair, upgrade attachment, comfort, Workbench suppression,
-enemy spawning, wards, other crafting stations, persistence, networking, or world
-data.
+Inside the extended zone, a compatible client can place pieces that require the
+station, repair eligible pieces, and dismantle pieces. Valheim's dashed station
+boundary and Hammer station-range state show the same extended zone. Beyond the
+extended boundary, each action and indicator returns to native out-of-range
+behavior.
 
-Installed `0.1.81` still needs gameplay proof for:
+This client-only behavior does not extend station interaction or crafting,
+upgrade-piece attachment, comfort, Workbench suppression, enemy spawning,
+wards, other crafting stations, persistence, networking, or world data. Each
+player who wants the extended Hammer work zone needs a compatible Benheim
+client.
 
-- the native 20-meter boundary at each level-1 station;
-- the extended area beyond 20 meters and through 40 meters;
-- the area beyond 40 meters; and
-- each station's native crafting, repair, upgrade, and interaction behavior.
+Gameplay proof must establish that each station's boundary and Hammer actions
+agree throughout the native, extended, and out-of-range areas while every
+excluded station behavior remains native.
