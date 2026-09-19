@@ -4,7 +4,7 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.103**.
+Installed on Ben's Mac: **0.1.104**.
 
 ## Next play session
 
@@ -18,9 +18,11 @@ Installed on Ben's Mac: **0.1.103**.
 - **Pine specialty wood:** Destroy one native Pine log half. Confirm that all
   ordinary Wood becomes Core Wood, Pine produces no Finewood, and the total
   native drop count remains unchanged.
-
-## After the next install
-
+- **Auto-pickup reach:** With auto-pickup on, approach an ordinary dropped item
+  from beyond native pickup reach and confirm it collects at roughly twice that
+  distance. If convenient, repeat with an item floating in water or tar. Turn
+  auto-pickup off and confirm it no longer collects automatically; full
+  inventory and carry-weight limits should still behave natively.
 - **Workbench and Stonecutter Hammer work zone:** At each level-1 station,
   cross the native, extended, and out-of-range boundaries while placing,
   repairing, and dismantling station-required pieces. The actions, dashed
