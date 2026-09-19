@@ -29,7 +29,12 @@ internal static class HoeRadiusPreview
                 return;
             }
 
-            Vector3 desired = active ? nativeScale * HoeRadiusExpansion.RadiusMultiplier : nativeScale;
+            // Terrain-tool ghosts animate a nested particle system. Its local scale is the
+            // radius ratio, not a multiplier applied to the authored _GhostOnly scale.
+            // Leaving that shared parent native also keeps unrelated ghost feedback native.
+            Vector3 desired = active
+                ? Vector3.one * HoeRadiusExpansion.RadiusMultiplier
+                : nativeScale;
             if (Vector3.Distance(trackedVisual.localScale, desired) > 0.001f)
             {
                 trackedVisual.localScale = desired;
@@ -74,7 +79,8 @@ internal static class HoeRadiusPreview
         }
 
         trackedGhost = ghost;
-        trackedVisual = ghost?.transform.Find("_GhostOnly");
+        Transform? ghostOnly = ghost?.transform.Find("_GhostOnly");
+        trackedVisual = ghostOnly?.GetComponentInChildren<ParticleSystem>()?.transform;
         nativeScale = trackedVisual?.localScale ?? Vector3.zero;
         lastState = string.Empty;
     }

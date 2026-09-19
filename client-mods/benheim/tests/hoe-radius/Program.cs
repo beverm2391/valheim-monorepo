@@ -63,21 +63,34 @@ Require(!HoeRadiusExpansion.TryPrepareOperation(ghostOperation), "native placeme
 TerrainOp.m_forceDisableTerrainOps = false;
 
 GameObject ghost = new("paved_road");
-Transform ghostVisual = ghost.transform.Add("_GhostOnly", new Vector3(2f, 1f, 4f));
+Transform ghostOnly = ghost.transform.Add("_GhostOnly", new Vector3(2f, 1f, 4f));
+Transform nonTerrainFeedback = ghostOnly.Add("NonTerrainFeedback", new Vector3(0.5f, 2f, 0.25f));
+ParticleSystem ghostEffect = new(new Vector3(0.25f, 0.5f, 0.75f));
+ghostOnly.AddComponentInChildren(ghostEffect);
+Transform ghostVisual = ghostEffect.transform;
 player.m_placementGhost = ghost;
 InputState.LeftShiftHeld = true;
 HoeRadiusPreview.Update(player);
-Require(Scale(ghostVisual.localScale, 6f, 3f, 12f), "the held preview is exactly three times its loaded native scale");
+Require(Scale(ghostVisual.localScale, 3f, 3f, 3f),
+    "the held preview uses the absolute three-times radius ratio on the nested terrain particle effect");
+Require(Scale(ghostOnly.localScale, 2f, 1f, 4f),
+    "preview expansion does not scale the authored _GhostOnly transform");
+Require(Scale(nonTerrainFeedback.lossyScale, 1f, 2f, 1f),
+    "preview expansion cannot broaden unrelated grass, foliage, or interaction feedback under _GhostOnly");
 int previewEvents = Diagnostics.Events.Count;
 HoeRadiusPreview.Update(player);
 Require(Diagnostics.Events.Count == previewEvents, "an unchanged held preview does not emit frame-loop spam");
 InputState.LeftShiftHeld = false;
 HoeRadiusPreview.Update(player);
-Require(Scale(ghostVisual.localScale, 2f, 1f, 4f), "releasing Left Shift restores the same preview immediately");
+Require(Scale(ghostVisual.localScale, 0.25f, 0.5f, 0.75f),
+    "releasing Left Shift restores the particle effect's loaded native scale immediately");
+Require(Scale(ghostOnly.localScale, 2f, 1f, 4f) && Scale(nonTerrainFeedback.lossyScale, 1f, 2f, 1f),
+    "releasing Left Shift leaves all non-terrain ghost feedback at native radius");
 player.RightItem.m_dropPrefab = new GameObject("Cultivator");
 InputState.LeftShiftHeld = true;
 HoeRadiusPreview.Update(player);
-Require(Scale(ghostVisual.localScale, 2f, 1f, 4f), "the Cultivator preview remains native even while Left Shift is held");
+Require(Scale(ghostVisual.localScale, 0.25f, 0.5f, 0.75f),
+    "the Cultivator preview remains native even while Left Shift is held");
 player.RightItem.m_dropPrefab = new GameObject("Hoe");
 player.m_placementGhost = new GameObject("paved_road_missing_visual");
 HoeRadiusPreview.Update(player);

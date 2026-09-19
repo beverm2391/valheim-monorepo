@@ -116,6 +116,9 @@ namespace UnityEngine
         public float z;
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
         public static Vector3 zero => new(0f, 0f, 0f);
+        public static Vector3 one => new(1f, 1f, 1f);
+        public static Vector3 Scale(Vector3 left, Vector3 right) =>
+            new(left.x * right.x, left.y * right.y, left.z * right.z);
         public static Vector3 operator *(Vector3 value, float scale) => new(value.x * scale, value.y * scale, value.z * scale);
         public static float Distance(Vector3 left, Vector3 right)
         {
@@ -129,14 +132,29 @@ namespace UnityEngine
     public sealed class Transform
     {
         private readonly Dictionary<string, Transform> children = new(StringComparer.Ordinal);
+        private ParticleSystem? particleSystem;
         public Vector3 localScale = new(1f, 1f, 1f);
+        public Transform? parent;
+        public Vector3 lossyScale => parent == null ? localScale : Vector3.Scale(parent.lossyScale, localScale);
         public Transform? Find(string name) => children.TryGetValue(name, out Transform? child) ? child : null;
+        public T? GetComponentInChildren<T>() where T : class => particleSystem as T;
+        public void AddComponentInChildren(ParticleSystem value)
+        {
+            particleSystem = value;
+            value.transform.parent = this;
+        }
         public Transform Add(string name, Vector3 scale)
         {
-            var child = new Transform { localScale = scale };
+            var child = new Transform { localScale = scale, parent = this };
             children.Add(name, child);
             return child;
         }
+    }
+
+    public sealed class ParticleSystem
+    {
+        public ParticleSystem(Vector3 scale) { transform.localScale = scale; }
+        public Transform transform { get; } = new();
     }
 
     public sealed class GameObject
