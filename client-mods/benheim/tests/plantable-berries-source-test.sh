@@ -7,7 +7,7 @@ registration="$root/src/Farming/PlantableBerries.cs"
 mass_planting="$root/src/Farming/MassPlanting.cs"
 behavior="$root/tests/plantable-berries/Program.cs"
 
-# UnityPy 1.25.3 resolves the installed Valheim 1.0.12
+# UnityPy 1.25.3 resolves the installed Valheim 1.0.15
 # _CultivatorPieceTable.prefab in this pinned soft-reference bundle with
 # m_canRemovePieces=0. Pinning the bundle makes the behavioral fixture fail
 # closed when installed prefab data changes.
@@ -18,11 +18,11 @@ valheim_data="$(dirname "$(dirname "$VALHEIM_SOURCE_ASSEMBLY_PATH")")"
 softref_manifest="$valheim_data/StreamingAssets/SoftRef/manifest_extended"
 cultivator_bundle="$valheim_data/StreamingAssets/SoftRef/Bundles/c4210710"
 grep -Fq 'path in bundle: Assets/GameElements/Pieces/_CultivatorPieceTable.prefab' "$softref_manifest"
-test "$(valheim_source_sha256_file "$cultivator_bundle")" = '98337bb44daff75e285ddc3a4196c18b8ff45fcbad9a59fe1f226d3690e74918'
+test "$(valheim_source_sha256_file "$cultivator_bundle")" = 'b94bc360a0a534f8c21cdea609d3cea44e52033f246e0b001b1565a9a3220a1d'
 grep -Fq 'var pieceTable = new PieceTable { m_canRemovePieces = false };' "$behavior"
 grep -Fq '!toolPieces.m_canRemovePieces' "$behavior"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 12);' "$source_tree/Version.cs"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$source_tree/Version.cs"
 
 # The feature modifies only the three native berry prefabs. It adds build
 # metadata to their existing network/pickable/destructible lifecycle.

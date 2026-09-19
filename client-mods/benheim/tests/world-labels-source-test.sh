@@ -10,7 +10,7 @@ native_version="$native_tree/Version.cs"
 native_sign="$native_tree/Sign.cs"
 native_portal="$native_tree/TeleportWorld.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 12);' "$native_version"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$native_version"
 grep -Fq 'public TextMeshProUGUI m_textWidget;' "$native_sign"
 grep -Fq 'm_textWidget.text = m_currentText;' "$native_sign"
 grep -Fq 'public string GetText()' "$native_portal"

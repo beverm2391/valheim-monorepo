@@ -7,7 +7,7 @@ source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_inventory="$source_tree/InventoryGui.cs"
 native_station="$source_tree/CookingStation.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 12);' "$source_tree/Version.cs"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$source_tree/Version.cs"
 grep -Fq 'public float m_craftBonusChance = 0.25f;' "$native_inventory"
 grep -Fq 'public int m_craftBonusAmount = 1;' "$native_inventory"
 grep -Fq 'currentCraftingStation.m_craftingSkill != Skills.SkillType.None' "$native_inventory"

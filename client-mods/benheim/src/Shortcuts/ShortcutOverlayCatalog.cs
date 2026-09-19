@@ -49,8 +49,9 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("Left Shift + interact", $"Harvest matching targets within {FarmingSettings.HarvestRadius:0.#} m"),
-                new Entry("Click a grid size", "Choose 1x1, 3x3, 5x5, 7x7, or 9x9 in the Cultivator picker; the picker stays open and highlights your choice"),
+                new Entry("Click a grid size", "Choose 1x1, 3x3, 5x5, 7x7, or 9x9 in the Cultivator picker; it closes after your choice and highlights the size when reopened"),
                 new Entry("Left Shift + plant", $"Plant the centered selected grid (starts at {FarmingSettings.DefaultGridSize}x{FarmingSettings.DefaultGridSize} each game session; your choice persists when the picker reopens)"),
+                new Entry("Left Shift + Hoe", "Preview and apply each Hoe terrain action at 3× its native radius; releasing Shift immediately restores the native radius"),
                 new Entry("Cultivator berries", $"Plant native Raspberry, Blueberry, and Cloudberry bushes for {PlantableBerries.BerryCost} matching berries each"),
                 new Entry("Hammer berries", $"Remove a player-planted berry bush when native access and ward rules allow it; receive {PlantableBerries.BerryCost} matching berries"),
             },

@@ -16,7 +16,7 @@ softref_manifest_text="$(strings "$softref_manifest")"
 rpc_damage="$(sed -n '/private void RPC_Damage(long sender, HitData hit)/,/^}/p' "$native_tree_log")"
 destroy="$(sed -n '/private void Destroy(HitData hitData, bool cheatedTool)/,/^}/p' "$native_tree_log")"
 
-# Installed Valheim 1.0.12 sends damage to the current ZDO owner. Only that
+# Installed Valheim 1.0.15 sends damage to the current ZDO owner. Only that
 # owner enters Destroy, realizes the native drop list, and performs spawning.
 [[ "$(grep -Fc 'if (!m_nview.IsOwner())' <<<"$rpc_damage")" -eq 1 ]]
 [[ "$(grep -Fc 'Destroy(hitData, flag);' <<<"$rpc_damage")" -eq 1 ]]

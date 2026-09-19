@@ -76,7 +76,7 @@ rg -Fq 'ShipSprintHud.Destroy()' "$runtime"
 ! rg -Fq 'Diagnostics.' "$gauge"
 rg -Fq 'CultureInfo.InvariantCulture' "$gauge_rules"
 
-rg -Fq 'bool flag8 = ZInput.GetButton("Run") || ZInput.GetButton("JoyRun");' "$native_player_controller"
+rg -Fq 'ZInput.GetButton("Run") || ZInput.GetButton("JoyRun")' "$native_player_controller"
 rg -Fq 'magnitude < 0.05f && m_lastMagnitude < 0.05f' "$native_player_controller"
 rg -Fq 'public void ApplyControlls(Vector3 moveDir, Vector3 lookDir, bool run' "$native_controls"
 rg -Fq 'm_ship.ApplyControlls(moveDir);' "$native_controls"

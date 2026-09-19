@@ -12,7 +12,7 @@ native_humanoid="$source_tree/Humanoid.cs"
 native_player="$source_tree/Player.cs"
 native_floating="$source_tree/Floating.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 12);' "$native_version"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$native_version"
 
 # Every ItemDrop gets Valheim's own Floating component before native Awake
 # caches that component. Native Floating applies forces only for the ZDO owner

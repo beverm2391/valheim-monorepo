@@ -58,7 +58,7 @@ assert_source 'Left Shift \+ interact' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'Left Shift \+ plant' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'MassFarming v1\.12' 'THIRD_PARTY_NOTICES.md'
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 12);' "$native_version"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$native_version"
 grep -Fq 'if (TryPlacePiece(selectedPiece))' "$native_player"
 grep -Fq 'UseStamina(GetBuildStamina());' "$native_player"
 grep -Fq 'private float GetBuildStamina()' "$native_player"
