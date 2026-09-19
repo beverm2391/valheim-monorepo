@@ -95,6 +95,7 @@ public class Player : Humanoid
     }
 
     public static Player? m_localPlayer;
+    public float m_autoPickupRange = 2f;
     public float Stamina { get; set; }
     public float ResolvedBuildStamina { get; set; }
     public float LastStaminaCheck { get; private set; }
@@ -299,6 +300,7 @@ namespace BenheimQoL.Infrastructure
     internal sealed class DiagnosticEvent
     {
         private readonly Dictionary<string, int> integers = new Dictionary<string, int>();
+        private readonly Dictionary<string, float> numbers = new Dictionary<string, float>();
 
         internal static DiagnosticEvent Create(string domain, string name) => new DiagnosticEvent();
         internal DiagnosticEvent String(string name, string? value) => this;
@@ -307,9 +309,10 @@ namespace BenheimQoL.Infrastructure
             integers[name] = value;
             return this;
         }
-        internal DiagnosticEvent Number(string name, float value) => this;
+        internal DiagnosticEvent Number(string name, float value) { numbers[name] = value; return this; }
         internal DiagnosticEvent Boolean(string name, bool value) => this;
         internal int IntegerValue(string name) => integers[name];
+        internal float NumberValue(string name) => numbers[name];
     }
 
     internal static class Diagnostics

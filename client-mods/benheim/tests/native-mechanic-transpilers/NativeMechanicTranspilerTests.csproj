@@ -11,6 +11,7 @@
     <Compile Include="../../src/Interaction/StationBuildCoveragePatch.cs" Link="StationBuildCoveragePatch.cs" />
     <Compile Include="../../src/Interaction/LiquidItemRecovery.cs" Link="LiquidItemRecovery.cs" />
     <Compile Include="../../src/Interaction/LiquidItemRecoveryPatches.cs" Link="LiquidItemRecoveryPatches.cs" />
+    <Compile Include="../../src/Interaction/AutoPickupRangePatch.cs" Link="AutoPickupRangePatch.cs" />
     <Compile Include="../../src/Farming/PlantingStamina.cs" Link="PlantingStamina.cs" />
     <Compile Include="../../src/Farming/PlantingStaminaPatches.cs" Link="PlantingStaminaPatches.cs" />
   </ItemGroup>

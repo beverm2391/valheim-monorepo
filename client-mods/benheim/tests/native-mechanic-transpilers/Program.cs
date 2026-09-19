@@ -33,6 +33,7 @@ StationBuildCoverageTests.Run();
 LiquidItemRecoveryTests.Run();
 VerifyTarPolicy();
 VerifyTarTranspilers();
+VerifyAutoPickupRange();
 PlantingStaminaTests.Run();
 
 System.Console.WriteLine("native mechanic transpiler behavior checks passed");
@@ -197,6 +198,26 @@ static void VerifyComfortPatch()
         Frame(
             new CodeInstruction(OpCodes.Ldc_R4, 10f),
             new CodeInstruction(OpCodes.Ldc_R4, 10f))));
+}
+
+static void VerifyAutoPickupRange()
+{
+    MethodInfo postfix = typeof(AutoPickupRangePatch).GetMethod(
+        "Postfix",
+        BindingFlags.NonPublic | BindingFlags.Static)!;
+    foreach (float nativeRange in new[] { 2f, 3.5f })
+    {
+        Player player = new Player(null) { m_autoPickupRange = nativeRange };
+        int emittedBefore = BenheimQoL.Infrastructure.Diagnostics.Emitted;
+
+        postfix.Invoke(null, new object[] { player });
+
+        Expect(player.m_autoPickupRange == nativeRange * AutoPickupRangePatch.Multiplier);
+        Expect(BenheimQoL.Infrastructure.Diagnostics.Emitted == emittedBefore + 1);
+        Expect(BenheimQoL.Infrastructure.Diagnostics.Last!.NumberValue("native_range") == nativeRange);
+        Expect(BenheimQoL.Infrastructure.Diagnostics.Last!.NumberValue("effective_range") == player.m_autoPickupRange);
+        Expect(BenheimQoL.Infrastructure.Diagnostics.Last!.NumberValue("multiplier") == 2f);
+    }
 }
 
 static void VerifyTarPolicy()
