@@ -34,10 +34,9 @@ the native Wood buoyancy profile so they rise and settle at the liquid surface
 without launching upward.
 
 The behavior changes no item identity, count, ownership, pickup rule, or saved
-item and world data. In the installed build, manual and automatic pickup range,
-inventory capacity, carry weight, ownership, and the player's auto-pickup
-setting remain native. Benheim does not move or mutate the liquid, terrain, or
-location.
+item and world data. Manual pickup range, inventory capacity, carry weight,
+ownership, and the player's auto-pickup setting remain native. Benheim does
+not move or mutate the liquid, terrain, or location.
 
 ## In Development
 
@@ -48,7 +47,7 @@ eligibility, ownership, inventory capacity, carry weight, and failure behavior.
 The change does not pull or relocate items before native pickup, alter their
 identity or count, or persist new world or character data.
 
-The installed `0.1.81` build prints a readable summary in the console.
+The `bhrun comfort` command prints a readable summary in the console.
 The summary includes the calculated comfort and **Counted**, **Ignored**, and
 **Just outside range** sections. The command still records the complete
 diagnostic in its structured form and writes the evidence to the log. The
