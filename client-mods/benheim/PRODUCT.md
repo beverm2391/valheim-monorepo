@@ -242,10 +242,10 @@ removal and return five matching berries. Those modules own the unproven
 behavior and live acceptance gates.
 
 The candidate also lets a player manually or automatically collect ordinary
-items submerged in a native tar pit. Native pickup range, capacity, carry
-weight, ownership, effects, and failure behavior remain unchanged.
-The [Interaction module](src/Interaction/PRODUCT.md) owns the exact behavior
-and live proof gate.
+items submerged in a native tar pit. Manual pickup range, capacity, carry
+weight, ownership, effects, and failure behavior remain unchanged. The
+[Interaction module](src/Interaction/PRODUCT.md) owns the separate automatic
+pickup radius candidate and the exact behavior and live proof gate.
 
 Perfect Impact now qualifies only at the first `Character` contact authored for
 the attack. That contact requires horizontal approach speed of at least `5.5

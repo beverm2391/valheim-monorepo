@@ -34,11 +34,19 @@ the native Wood buoyancy profile so they rise and settle at the liquid surface
 without launching upward.
 
 The behavior changes no item identity, count, ownership, pickup rule, or saved
-item and world data. Native manual and automatic pickup range, inventory
-capacity, carry weight, ownership, and the player's auto-pickup setting still
-apply. Benheim does not move or mutate the liquid, terrain, or location.
+item and world data. In the installed build, manual and automatic pickup range,
+inventory capacity, carry weight, ownership, and the player's auto-pickup
+setting remain native. Benheim does not move or mutate the liquid, terrain, or
+location.
 
 ## In Development
+
+Benheim doubles Valheim's native automatic pickup radius for ordinary dropped
+items, including items floating in water or tar. This applies only when the
+player has auto-pickup enabled. Manual pickup range stays native, as do item
+eligibility, ownership, inventory capacity, carry weight, and failure behavior.
+The change does not pull or relocate items before native pickup, alter their
+identity or count, or persist new world or character data.
 
 The installed `0.1.81` build prints a readable summary in the console.
 The summary includes the calculated comfort and **Counted**, **Ignored**, and
