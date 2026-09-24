@@ -19,17 +19,20 @@ Valheim's normal farming restrictions.
   5x5, 7x7, and 9x9. The selected size remains active for the current Benheim
   plugin session and controls the existing `Left Shift` preview and placement.
   The row appears only for the Cultivator, and number keys keep their native
-  behavior. Clicking a grid size immediately closes the picker. Ben confirmed
-  the selection works in live play with `0.1.104`.
-- Hold `Left Shift` with the Hoe to use three times the native radius for every
-  Hoe terrain action. Releasing `Left Shift` restores the native radius
-  immediately. The preview shows the expanded area that the action affects.
-  An expanded action keeps one native action's stamina, durability, and
-  resource costs. It does not change the Cultivator and has no menu or setting.
-  Ben confirmed the Hoe behavior in live play with `0.1.104`.
+  behavior. Ben reported that the Cultivator and Hoe changes worked well in
+  live play with `0.1.104`.
 
 ## In Development
 
+- Clicking a grid size should immediately close the Cultivator picker after
+  selecting that size. Its selected size should remain highlighted and control
+  the next `Left Shift` preview and plant after reopening the picker.
+- Hold `Left Shift` with the Hoe to use exactly three times the native radius
+  for every Hoe terrain action. Releasing `Left Shift` restores the native
+  radius immediately.
+- The Hoe preview must show the same expanded area that the action will affect.
+  An expanded action keeps one native action's stamina, durability, and
+  resource costs. It does not change the Cultivator and has no menu or setting.
 - The candidate changes the stamina cost of successful planting.
 - Each successful ordinary or grid plant placement costs 25% of the native
   planting stamina cost that Valheim has already resolved. Skipped, failed, and

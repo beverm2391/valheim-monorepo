@@ -38,18 +38,17 @@ item and world data. Manual pickup range, inventory capacity, carry weight,
 ownership, and the player's auto-pickup setting remain native. Benheim does
 not move or mutate the liquid, terrain, or location.
 
-Benheim doubles Valheim's native automatic pickup radius for ordinary dropped
-items when the player has auto-pickup enabled. Ben confirmed the extended reach
-in live play with `0.1.104`. Manual pickup range stays native, as do item
-eligibility, ownership, inventory capacity, carry weight, and failure behavior.
-The change does not pull or relocate items before native pickup, alter their
-identity or count, or persist new world or character data.
+Ben reported that the extended automatic pickup reach worked well in live play
+with `0.1.104`.
 
 ## In Development
 
-The extended automatic pickup range also applies to items floating in water or
-tar. Live play has not yet confirmed that case or the disabled, full-inventory,
-and carry-weight boundaries in `0.1.104`.
+Benheim doubles Valheim's native automatic pickup radius for ordinary dropped
+items, including items floating in water or tar. This applies only when the
+player has auto-pickup enabled. Manual pickup range stays native, as do item
+eligibility, ownership, inventory capacity, carry weight, and failure behavior.
+The change does not pull or relocate items before native pickup, alter their
+identity or count, or persist new world or character data.
 
 The `bhrun comfort` command prints a readable summary in the console.
 The summary includes the calculated comfort and **Counted**, **Ignored**, and

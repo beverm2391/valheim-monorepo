@@ -17,9 +17,17 @@ Installed on Ben's Mac: **0.1.104**.
 
 ## Later solo play
 
-- **Auto-pickup boundaries:** If convenient, try an item floating in water or
-  tar at extended reach. Confirm that turning auto-pickup off, filling the
-  inventory, or exceeding carry weight still blocks automatic collection.
+- **Hoe precision:** When convenient, compare every native Hoe terrain action
+  with `Left Shift` released and held. Check that the preview and affected area
+  are 3x native radius only while held, and each click charges once.
+- **Cultivator picker:** Check that clicking a new grid size closes the picker,
+  and reopening it shows that size selected for the next preview and plant.
+- **Pine drop details:** Check that a native Pine log half replaces all ordinary
+  Wood with Core Wood, produces no Finewood, and keeps the native total count.
+- **Auto-pickup details:** Check that an ordinary drop collects from roughly
+  twice native reach. If convenient, try one floating in water or tar. Confirm
+  that turning auto-pickup off, filling the inventory, or exceeding carry
+  weight still blocks automatic collection.
 - **Snipe:** Apply Snipe to a Huntsman Bow at a level-1 Forge for 1 Wood.
   Confirm that the Affinity tab looks native, the bow's title and description
   persist through ordinary inventory and storage, and applying Snipe twice is

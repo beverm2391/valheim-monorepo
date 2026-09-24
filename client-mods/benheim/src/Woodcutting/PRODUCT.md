@@ -16,13 +16,14 @@ native specialty wood easier to obtain without increasing native drop counts.
   unchanged.
 - A compatible client converts the drops when it attacks a log owned by
   another compatible client.
-- Each final ordinary Wood drop from a native Pine log becomes Core Wood.
-  Native Core Wood drops remain unchanged. Pine never gains Finewood, and the
-  conversion keeps each log's native item count unchanged. Ben confirmed Pine
-  specialty wood in live play with `0.1.104`.
+- Ben reported that Pine specialty wood worked well in live play with
+  `0.1.104`.
 
 ## In Development
 
+- Each final ordinary Wood drop from a native Pine log becomes Core Wood.
+  Native Core Wood drops remain unchanged. Pine never gains Finewood, and the
+  conversion keeps each log's native item count unchanged.
 - Cleave unlocks at Wood Cutting 25 for local-player axe hits against standing
   trees and fallen logs.
 - Cleave chance increases from 30% at Wood Cutting 25 to 85% at Wood Cutting
