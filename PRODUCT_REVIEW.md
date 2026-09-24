@@ -8,21 +8,6 @@ Installed on Ben's Mac: **0.1.104**.
 
 ## Next play session
 
-- **Hoe expanded radius:** Compare every native Hoe terrain action once with
-  `Left Shift` released and held. The preview and affected area should both be
-  exactly 3x native radius only while held; each click should charge once, and
-  the Cultivator should remain native.
-- **Cultivator grid selection:** Open the picker, click a different grid size,
-  and confirm the picker closes immediately. Reopen it and confirm the selected
-  size remains highlighted and controls the next Left Shift preview and plant.
-- **Pine specialty wood:** Destroy one native Pine log half. Confirm that all
-  ordinary Wood becomes Core Wood, Pine produces no Finewood, and the total
-  native drop count remains unchanged.
-- **Auto-pickup reach:** With auto-pickup on, approach an ordinary dropped item
-  from beyond native pickup reach and confirm it collects at roughly twice that
-  distance. If convenient, repeat with an item floating in water or tar. Turn
-  auto-pickup off and confirm it no longer collects automatically; full
-  inventory and carry-weight limits should still behave natively.
 - **Workbench and Stonecutter Hammer work zone:** At each level-1 station,
   cross the native, extended, and out-of-range boundaries while placing,
   repairing, and dismantling station-required pieces. The actions, dashed
@@ -32,6 +17,9 @@ Installed on Ben's Mac: **0.1.104**.
 
 ## Later solo play
 
+- **Auto-pickup boundaries:** If convenient, try an item floating in water or
+  tar at extended reach. Confirm that turning auto-pickup off, filling the
+  inventory, or exceeding carry weight still blocks automatic collection.
 - **Snipe:** Apply Snipe to a Huntsman Bow at a level-1 Forge for 1 Wood.
   Confirm that the Affinity tab looks native, the bow's title and description
   persist through ordinary inventory and storage, and applying Snipe twice is
