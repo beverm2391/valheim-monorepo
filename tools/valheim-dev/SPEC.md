@@ -24,7 +24,7 @@ identity. Startup publishes that session only after every resource is ready. A
 failed startup closes the listener, removes the descriptor, and publishes no
 authorization.
 
-Every bridge request carries protocol version 5 and the current session ID.
+Every bridge request carries protocol version 6 and the current session ID.
 The bridge rejects an old session and rechecks the captured world before it
 loads or runs code. Player respawn can replace the local `Player` object without
 changing the captured world.
@@ -32,7 +32,9 @@ changing the captured world.
 `bh lab off` closes access. It stops the listener, deletes the descriptor, and
 cancels queued work. It does not run installed cleanup functions. Re-enabling
 Lab in the same world creates a new session and exposes the same installed-code
-registry.
+registry. If that registry is locked by `restart_required`, same-world
+reauthorization exposes status and `reset_lab`; every other mutation remains
+blocked. A different world cannot receive that recovery authorization.
 
 Leaving the world, loading a different world, or tearing down the plugin ends
 tracking for the current world. The bridge then attempts to clean installed
@@ -50,10 +52,10 @@ conditions apply:
 
 Benheim presence, absence, and gameplay health are not authorization inputs.
 
-## Six General Tools
+## Seven General Tools
 
 The official TypeScript MCP SDK owns stdio framing, initialization, discovery,
-input validation, and result envelopes. Valheim Dev exposes six tools:
+input validation, and result envelopes. Valheim Dev exposes seven tools:
 
 1. `lab_status({})`
    - Reports connection and authorization state, exact build identity,
@@ -69,7 +71,12 @@ input validation, and result envelopes. Valheim Dev exposes six tools:
 4. `remove_change({label, change_id})`
    - Calls the installed cleanup entrypoint.
    - Removes the registry entry only after cleanup succeeds.
-5. `run_recipes({recipes: [{id, preset_index?, inputs?}, ...]})`
+5. `reset_lab({})`
+   - Retries every registered cleanup in reverse installation order, including
+     while normal mutation is locked by `restart_required`.
+   - Clears the lockout only after every managed change is removed. A remaining
+     cleanup failure preserves the lockout and still requires a game restart.
+6. `run_recipes({recipes: [{id, preset_index?, inputs?}, ...]})`
    - Reads each `registry/<id>/code.cs` when that recipe is reached.
    - Accepts an optional zero-based preset index from `presets.json` or optional
      ad hoc structured inputs. Omit both to run without supplied inputs. Do not
@@ -81,7 +88,7 @@ input validation, and result envelopes. Valheim Dev exposes six tools:
    - Continues after a safe per-recipe failure. It does not attempt later
      recipes after `runtime_unresolved` or `restart_required` makes mutation
      safety uncertain.
-6. `read_ledger({operation_id?, limit?})`
+7. `read_ledger({operation_id?, limit?})`
    - Returns either a compact newest-first history or one run's compact summary
      and complete details, including warnings or errors observed since that run
      started.
@@ -154,9 +161,10 @@ A successful install is `active`. A successful removal is `cleaned`. A failed
 candidate that restores the prior version is `restored` for that operation.
 
 If cleanup or restoration is uncertain, the bridge sets `restart_required`.
-It keeps the uncertain registry entry visible and refuses every code operation.
-Status remains available so Codex can explain the state. Ben decides whether
-to restart Valheim.
+It keeps the uncertain registry entry visible and refuses every code operation
+except `reset_lab`. Status remains available so Codex can explain the state.
+`reset_lab` may retry registered cleanup; if any retry fails, Ben must restart
+Valheim.
 
 ## Responses Stay Small; The Ledger Keeps Detail
 

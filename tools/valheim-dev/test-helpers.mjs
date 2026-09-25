@@ -165,14 +165,14 @@ export async function executeOfflineVariant(harness, experimentAssembly) {
 
 export async function writeDescriptor(root, reference, port, overrides = {}) {
   const descriptor = {
-    protocol: 5,
+    protocol: 6,
     session_id: randomUUID(),
     host: "127.0.0.1",
     port,
     authorized_at: new Date().toISOString(),
     valheim_version: "1.0.0",
     valheim_sha256: VALHEIM_HASH,
-    valheim_dev_version: "0.3.0",
+    valheim_dev_version: "0.4.0",
     valheim_dev_sha256: VALHEIM_DEV_HASH,
     data_root: root,
     log_path: join(root, "LogOutput.log"),
@@ -217,7 +217,7 @@ export async function startBridge(handler) {
 
 export function bridgeIdentity(descriptor, extra = {}) {
   return {
-    protocol: 5,
+    protocol: 6,
     ok: true,
     error: null,
     session_id: descriptor.session_id,

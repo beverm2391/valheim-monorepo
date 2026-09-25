@@ -58,19 +58,19 @@ internal static partial class Program
         Require(!ValheimDevProtocol.TryParseRequest(fractional, out _, out error)
             && error == "missing_code_fields", "fractional protocol integers are rejected");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"remove_change\",\"protocol\":5,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"bad id\"}",
+                "{\"kind\":\"remove_change\",\"protocol\":6,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"bad id\"}",
                 out _, out error)
             && error == "invalid_change_id", "change identifiers are bounded protocol values");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"remove_change\",\"protocol\":5,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"caf\\u00e9\"}",
+                "{\"kind\":\"remove_change\",\"protocol\":6,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"caf\\u00e9\"}",
                 out _, out error)
             && error == "invalid_change_id", "change identifiers use the same ASCII grammar as the MCP schema");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"remove_change\",\"protocol\":5,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"affinity.icon\"}",
+                "{\"kind\":\"remove_change\",\"protocol\":6,\"session_id\":\"s\",\"operation_id\":\"op\",\"change_id\":\"affinity.icon\"}",
                 out _, out error)
             && error == "invalid_expected_operation_id", "mutations require an explicit expected prior version or absence");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"status\",\"protocol\":5,\"session_id\":\"s\",\"extra\":true}",
+                "{\"kind\":\"status\",\"protocol\":6,\"session_id\":\"s\",\"extra\":true}",
                 out _, out error)
             && error == "unexpected_request_field", "request kinds reject unexpected fields");
 
@@ -88,17 +88,21 @@ internal static partial class Program
             && error.StartsWith("input_json_invalid:", StringComparison.Ordinal),
             "structured input requires a JSON object or array");
 
-        string unicodeEnvelope = "{\"kind\":\"stat\\u0075s\",\"protocol\":5,\"session_id\":\"\\u0073\"}";
+        string reset = "{\"kind\":\"reset_lab\",\"protocol\":6,\"session_id\":\"s\",\"operation_id\":\"reset\"}";
+        Require(ValheimDevProtocol.TryParseRequest(reset, out ValheimDevRequest resetRequest, out error)
+            && resetRequest.Kind == "reset_lab", "Lab reset is a bounded code-free operation");
+
+        string unicodeEnvelope = "{\"kind\":\"stat\\u0075s\",\"protocol\":6,\"session_id\":\"\\u0073\"}";
         Require(ValheimDevProtocol.TryParseRequest(unicodeEnvelope, out ValheimDevRequest unicode, out error)
             && unicode.Kind == "status" && unicode.SessionId == "s", "Unicode escapes decode in protocol strings");
         Require(!ValheimDevProtocol.TryParseRequest(
-                "{\"kind\":\"status\",\"protocol\":5,\"session_id\":\"s\",}",
+                "{\"kind\":\"status\",\"protocol\":6,\"session_id\":\"s\",}",
                 out _, out error)
             && error.StartsWith("invalid_json:", StringComparison.Ordinal), "malformed JSON is rejected");
 
         string deepValue = new string('[', ValheimDevProtocol.MaximumJsonDepth) + "0"
             + new string(']', ValheimDevProtocol.MaximumJsonDepth);
-        string deeplyNested = "{\"kind\":\"status\",\"protocol\":5,\"session_id\":\"s\",\"extra\":"
+        string deeplyNested = "{\"kind\":\"status\",\"protocol\":6,\"session_id\":\"s\",\"extra\":"
             + deepValue + "}";
         Require(!ValheimDevProtocol.TryParseRequest(deeplyNested, out _, out error)
             && error.Contains("nesting exceeds", StringComparison.Ordinal), "deep JSON is rejected before validation");

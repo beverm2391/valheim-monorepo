@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 namespace ValheimDev;
 
 internal static partial class ValheimDevRuntime
@@ -110,10 +111,11 @@ internal static partial class ValheimDevRuntime
         pending.Complete(response.ToJson(includeOperation: true));
     }
 
-    private static Dictionary<string, string> CleanupManagedChanges()
+    private static Dictionary<string, string> CleanupManagedChanges(bool clearRecoveredUncertainty = false)
     {
         List<KeyValuePair<string, ValheimDevManagedChange>> changes;
         lock (Gate) changes = new List<KeyValuePair<string, ValheimDevManagedChange>>(ManagedChanges);
+        changes.Sort((left, right) => right.Value.InstallSequence.CompareTo(left.Value.InstallSequence));
         Dictionary<string, string> results = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (KeyValuePair<string, ValheimDevManagedChange> item in changes)
         {
@@ -122,6 +124,10 @@ internal static partial class ValheimDevRuntime
             if (TryCleanup(change.Code, out string? cleanupException))
             {
                 RemoveManagedChangeIfSame(changeId, change);
+                if (clearRecoveredUncertainty)
+                {
+                    lock (Gate) RestartRequiredChanges.Remove(changeId);
+                }
                 results[changeId] = ValheimDevCleanupState.Cleaned;
                 continue;
             }
@@ -132,6 +138,52 @@ internal static partial class ValheimDevRuntime
                 + ValheimDevDiagnostics.Flatten(cleanupException ?? "unknown"));
         }
         return results;
+    }
+
+    private static void ResetLabChanges(
+        ValheimDevPendingRequest pending,
+        ValheimDevResponse response)
+    {
+        Dictionary<string, string> results = CleanupManagedChanges(clearRecoveredUncertainty: true);
+        string cleanupState = AggregateCleanupState(results);
+        bool cleaned = cleanupState != ValheimDevCleanupState.RestartRequired
+            && ManagedChangeCount() == 0;
+        if (cleaned)
+        {
+            lock (Gate) RestartRequiredChanges.Clear();
+            restartRequired = false;
+        }
+
+        response.Result = ResetResultJson(results);
+        response.Ok = cleaned;
+        response.Error = cleaned ? null : "reset_cleanup_failed";
+        response.CleanupState = cleanupState;
+        response.RestartRequired = restartRequired;
+        response.FinishedUtc = UtcNow();
+        SnapshotActiveChanges(response);
+        pending.Complete(response.ToJson(includeOperation: true));
+    }
+
+    private static string ResetResultJson(Dictionary<string, string> results)
+    {
+        List<string> cleaned = new List<string>();
+        List<string> failed = new List<string>();
+        foreach (KeyValuePair<string, string> item in results)
+        {
+            if (item.Value == ValheimDevCleanupState.Cleaned) cleaned.Add(item.Key);
+            else failed.Add(item.Key);
+        }
+        cleaned.Sort(StringComparer.Ordinal);
+        failed.Sort(StringComparer.Ordinal);
+
+        StringBuilder builder = new StringBuilder(128);
+        builder.Append('{');
+        ValheimDevJson.AppendProperty(builder, "attempted", results.Count);
+        builder.Append(',');
+        ValheimDevJson.AppendStringArrayProperty(builder, "cleaned", cleaned);
+        builder.Append(',');
+        ValheimDevJson.AppendStringArrayProperty(builder, "failed", failed);
+        return builder.Append('}').ToString();
     }
 
     private static string AggregateCleanupState(Dictionary<string, string> results)
@@ -232,7 +284,11 @@ internal static partial class ValheimDevRuntime
 
     private static void SetManagedChange(string changeId, ValheimDevManagedChange change)
     {
-        lock (Gate) ManagedChanges[changeId] = change;
+        lock (Gate)
+        {
+            if (change.InstallSequence == 0) change.InstallSequence = ++nextInstallSequence;
+            ManagedChanges[changeId] = change;
+        }
     }
 
     private static void MarkRestartRequired(string changeId, ValheimDevManagedChange change)

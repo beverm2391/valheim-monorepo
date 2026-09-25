@@ -37,6 +37,12 @@ internal static partial class ValheimDevRuntime
         }
 
         response.StartedUtc = UtcNow();
+        if (request.Kind == "reset_lab")
+        {
+            if (!CheckEligibility(response, pending, "reset")) return;
+            ResetLabChanges(pending, response);
+            return;
+        }
         if (restartRequired)
         {
             Complete(pending, response, ValheimDevCleanupState.RestartRequired);

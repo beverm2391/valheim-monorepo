@@ -26,21 +26,22 @@ async function connectClient(root) {
   return { client, transport };
 }
 
-test("official MCP client crosses spawned stdio boundary and exposes the six workbench tools", async (t) => {
+test("official MCP client crosses spawned stdio boundary and exposes the seven workbench tools", async (t) => {
   const { root } = await temporaryRoot();
   t.after(() => rm(root, { recursive: true, force: true }));
   const { client } = await connectClient(root);
   t.after(() => client.close());
 
-  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.3.0" });
+  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.4.0" });
   const listed = await client.listTools();
   assert.deepEqual(listed.tools.map((tool) => tool.name), [
-    "lab_status", "run_once", "install_change", "remove_change", "run_recipes", "read_ledger",
+    "lab_status", "run_once", "install_change", "remove_change", "reset_lab", "run_recipes", "read_ledger",
   ]);
   assert.deepEqual(listed.tools[1].inputSchema.required, ["label", "source"]);
   assert.deepEqual(listed.tools[2].inputSchema.required, ["label", "change_id", "source"]);
   assert.deepEqual(listed.tools[3].inputSchema.required, ["label", "change_id"]);
-  assert.deepEqual(listed.tools[4].inputSchema.required, ["recipes"]);
+  assert.deepEqual(listed.tools[4].inputSchema.required, undefined);
+  assert.deepEqual(listed.tools[5].inputSchema.required, ["recipes"]);
   assert.equal(listed.tools.every((tool) => tool.inputSchema.additionalProperties === false), true);
 
   const status = await client.callTool({ name: "lab_status", arguments: {} });

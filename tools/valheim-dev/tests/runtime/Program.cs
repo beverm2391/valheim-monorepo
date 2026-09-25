@@ -225,30 +225,7 @@ internal static partial class Program
             && !ValheimDevTestSurface.Visible,
             "installed code remains explicitly removable after reauthorization");
 
-        ResetRuntime();
-        Authorize();
-        Environment.SetEnvironmentVariable("VALHEIM_DEV_FAIL_CLEANUP_ONCE", "1");
-        JsonElement failing = Install("failing-cleanup", "affinity.weapon-icon", fixtures[4]);
-        Require(failing.GetProperty("ok").GetBoolean(), "change with a callable cleanup can install");
-        JsonElement cleanupFailure = Remove("remove-failing-cleanup", "affinity.weapon-icon");
-        Require(cleanupFailure.GetProperty("error").GetString() == "change_cleanup_failed"
-            && cleanupFailure.GetProperty("cleanup_state").GetString() == "restart_required",
-            "failed cleanup is explicit on the operation that attempted it");
-        Require(Status().GetProperty("restart_required").GetBoolean(),
-            "status exposes the sticky restart requirement");
-        Require(Install("blocked-after-cleanup", "another-change", fixtures[0])
-                .GetProperty("error").GetString() == "restart_required",
-            "cleanup uncertainty blocks further mutation for the process lifetime");
-        Terminal dirtyStatus = new Terminal();
-        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "status" }, dirtyStatus);
-        Require(dirtyStatus.Lines[0].Contains("restart is required", StringComparison.Ordinal)
-            && dirtyStatus.Lines[0].Contains("affinity.weapon-icon", StringComparison.Ordinal),
-            "authorized console status surfaces sticky cleanup uncertainty");
-        Terminal dirtyOff = new Terminal();
-        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, dirtyOff);
-        Require(dirtyOff.Lines[0].Contains("restart is required", StringComparison.Ordinal)
-            && dirtyOff.Lines[0].Contains("affinity.weapon-icon", StringComparison.Ordinal),
-            "off preserves sticky restart reporting without another cleanup attempt");
+        LabResetRecovery(fixtures);
 
         ResetRuntime();
         Authorize();
@@ -318,6 +295,8 @@ internal static partial class Program
         Environment.SetEnvironmentVariable("VALHEIM_DEV_FAIL_CLEANUP_ONCE", null);
         Environment.SetEnvironmentVariable("VALHEIM_DEV_VARIANT", null);
         Environment.SetEnvironmentVariable("VALHEIM_DEV_COMMAND_VARIANT", null);
+        Environment.SetEnvironmentVariable("VALHEIM_DEV_CLEANUP_MARKER", null);
+        Environment.SetEnvironmentVariable("VALHEIM_DEV_CLEANUP_LABEL", null);
         state = EligibleState();
         ValheimDevTestSurface.Reset();
         ValheimDevRuntime.Initialize(root, Path.Combine(root, "LogOutput.log"), "test-valheim-dev", Thread.CurrentThread.ManagedThreadId);

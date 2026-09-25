@@ -338,6 +338,11 @@ public static class ValheimDevChange
 Use a descriptive `change_id` such as `movement.run-speed`. Reuse that ID to
 replace the code. Use `remove_change` to call `Cleanup`.
 
+If a failed cleanup or restoration locks the Lab with `restart_required`, call
+`reset_lab({})`. It retries all registered cleanups in reverse installation
+order and clears the lockout only when no managed change remains. If reset still
+reports `restart_required`, restart Valheim; do not continue mutating the world.
+
 Verification: read the current field after installation and again after
 removal. Open the install run later to check whether its callbacks logged a
 warning or error after `Run` returned. Turning Lab access off does not remove

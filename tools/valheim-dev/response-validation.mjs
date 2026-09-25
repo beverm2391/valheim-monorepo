@@ -138,7 +138,9 @@ export function validateOperationResponse(response, descriptor, record, input) {
   if (!CLEANUP_STATES.has(response.cleanup_state)) throw new Error("bridge cleanup_state is invalid");
   if (response.ok && ((bridgeAction === "run_once" && response.cleanup_state !== "not_applicable")
       || (bridgeAction === "install_change" && response.cleanup_state !== "active")
-      || (bridgeAction === "remove_change" && response.cleanup_state !== "cleaned"))) {
+      || (bridgeAction === "remove_change" && response.cleanup_state !== "cleaned")
+      || (bridgeAction === "reset_lab"
+        && response.cleanup_state !== "cleaned" && response.cleanup_state !== "not_applicable"))) {
     throw new Error("successful bridge cleanup_state does not match the action");
   }
   if (typeof response.previous_change_preserved !== "boolean") {
@@ -195,6 +197,10 @@ export function validateOperationResponse(response, descriptor, record, input) {
   }
   if (response.ok && bridgeAction === "remove_change" && currentChange !== null) {
     throw new Error("successful removal still reports the target as active");
+  }
+  if (response.ok && bridgeAction === "reset_lab"
+      && (response.restart_required || response.active_changes.length !== 0)) {
+    throw new Error("successful Lab reset did not clear managed state");
   }
   if (response.previous_change_preserved
       && (record.previous_active_change === null

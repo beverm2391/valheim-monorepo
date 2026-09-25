@@ -14,6 +14,7 @@
     <Compile Include="../../plugin/src/ValheimDevDiagnostics.cs" Link="ValheimDevDiagnostics.cs" />
     <Compile Include="../../plugin/src/ValheimDevConsole.cs" Link="ValheimDevConsole.cs" />
     <Compile Include="../../plugin/src/ValheimDevRuntime.cs" Link="ValheimDevRuntime.cs" />
+    <Compile Include="../../plugin/src/ValheimDevRuntime.Authorization.cs" Link="ValheimDevRuntime.Authorization.cs" />
     <Compile Include="../../plugin/src/ValheimDevRuntime.Operation.cs" Link="ValheimDevRuntime.Operation.cs" />
     <Compile Include="../../plugin/src/ValheimDevRuntime.ManagedChanges.cs" Link="ValheimDevRuntime.ManagedChanges.cs" />
     <Compile Include="../../plugin/src/ValheimDevRuntime.Transport.cs" Link="ValheimDevRuntime.Transport.cs" />

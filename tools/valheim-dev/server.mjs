@@ -81,6 +81,11 @@ const TOOL_DEFINITIONS = Object.freeze([
     inputSchema: z.strictObject({ label: runLabel, change_id: changeId }),
   },
   {
+    name: "reset_lab",
+    description: "Retry every managed Cleanup in reverse installation order, including after restart-required lockout, and clear the lockout only after every change is removed.",
+    inputSchema: z.strictObject({}),
+  },
+  {
     name: "run_recipes",
     description: "Run one or more disposable registry recipes in order. Each recipe may select a preset index or use ad hoc inputs; managed recipes replace the active change with the same recipe ID.",
     inputSchema: z.strictObject({
@@ -97,7 +102,7 @@ const TOOL_DEFINITIONS = Object.freeze([
   },
 ]);
 
-const OPERATION_TOOLS = new Set(["run_once", "install_change", "remove_change"]);
+const OPERATION_TOOLS = new Set(["run_once", "install_change", "remove_change", "reset_lab"]);
 
 export function operationSummary(record) {
   const summary = {
@@ -106,10 +111,14 @@ export function operationSummary(record) {
     result: record.result === null ? null : JSON.parse(record.result),
     error: record.error,
   };
-  if (record.action !== "run_once") {
+  if (record.action === "install_change" || record.action === "remove_change") {
     summary.change_id = record.change_id;
     summary.cleanup_state = record.cleanup_state;
     summary.previous_change_preserved = record.previous_change_preserved;
+    summary.restart_required = record.restart_required;
+    summary.active_changes = structuredChanges(record.active_changes);
+  } else if (record.action === "reset_lab") {
+    summary.cleanup_state = record.cleanup_state;
     summary.restart_required = record.restart_required;
     summary.active_changes = structuredChanges(record.active_changes);
   } else if (record.restart_required) {

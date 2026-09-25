@@ -304,6 +304,40 @@ test("runtime restoration and managed removal remain explicit ledger outcomes", 
   assert.equal(removed.compiler.outcome, "not_applicable");
 });
 
+test("Lab reset remains callable during restart-required lockout and records recovery", async (t) => {
+  const fixture = await temporaryRoot();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const uncertain = [managedChange("weather.preview", "working", { cleanup_state: "restart_required" })];
+  let descriptor;
+  let resetRequest;
+  const service = createService({
+    root: fixture.root,
+    bridgeRequest: async (_descriptor, request) => {
+      if (request.kind === "status") {
+        return bridgeIdentity(descriptor, {
+          active_changes: uncertain, restart_required: true,
+        });
+      }
+      resetRequest = request;
+      return operationResponse(descriptor, request, {
+        result: JSON.stringify({ attempted: 1, cleaned: ["weather.preview"], failed: [] }),
+        cleanup_state: "cleaned", restart_required: false, active_changes: [],
+      });
+    },
+  });
+  descriptor = await writeDescriptor(fixture.root, fixture.reference, 12345);
+
+  const reset = await service.call("reset_lab", {});
+  assert.equal(reset.state, "succeeded");
+  assert.equal(reset.action, "reset_lab");
+  assert.equal(reset.cleanup_state, "cleaned");
+  assert.equal(reset.restart_required, false);
+  assert.deepEqual(reset.active_changes, []);
+  assert.equal(resetRequest.kind, "reset_lab");
+  assert.equal(typeof resetRequest.operation_id, "string");
+  assert.equal(resetRequest.source, undefined);
+});
+
 test("two service instances refuse stale installs and removals without touching the newer version", async (t) => {
   const fixture = await temporaryRoot();
   t.after(() => rm(fixture.root, { recursive: true, force: true }));

@@ -171,7 +171,7 @@ internal sealed class ValheimDevResponse
 
 internal static class ValheimDevProtocol
 {
-    internal const int ProtocolVersion = 5;
+    internal const int ProtocolVersion = 6;
     internal const int MaximumSourceBytes = 256 * 1024;
     internal const int MaximumAssemblyBytes = 1024 * 1024;
     internal const int MaximumRequestBytes = 2 * 1024 * 1024;
@@ -204,7 +204,8 @@ internal static class ValheimDevProtocol
             error = "missing_request_envelope";
             return false;
         }
-        if (kind != "status" && kind != "run_once" && kind != "install_change" && kind != "remove_change")
+        if (kind != "status" && kind != "run_once" && kind != "install_change"
+            && kind != "remove_change" && kind != "reset_lab")
         {
             error = "unsupported_request_kind";
             return false;
@@ -241,7 +242,7 @@ internal static class ValheimDevProtocol
             }
             request.ExpectedOperationId = expectedOperationId;
         }
-        if (kind == "remove_change") return true;
+        if (kind == "remove_change" || kind == "reset_lab") return true;
 
         if (!TryString(values, "source", out string source)
             || !TryString(values, "source_sha256", out string sourceSha256)
@@ -308,7 +309,7 @@ internal static class ValheimDevProtocol
             if (key == "operation_id") continue;
             if ((kind == "install_change" || kind == "remove_change")
                 && (key == "change_id" || key == "expected_operation_id")) continue;
-            if (kind == "remove_change") return false;
+            if (kind == "remove_change" || kind == "reset_lab") return false;
             if (key == "source" || key == "source_sha256" || key == "assembly_sha256"
                 || key == "assembly" || key == "entry_type" || key == "evidence_events"
                 || key == "evidence_timeout_ms" || key == "input_json") continue;

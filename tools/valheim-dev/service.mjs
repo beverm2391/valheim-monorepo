@@ -340,6 +340,38 @@ export function createService({
     return record;
   }
 
+  async function resetLab(args) {
+    validateKeys(args, new Set());
+    let descriptor;
+    try { ({ descriptor } = await authorizedSession(root, bridgeRequest)); }
+    catch (error) { throw new Error(`reset_lab refused: ${error.message}`); }
+    const operationId = randomUUID();
+    const input = {
+      label: "Reset Lab changes", change_id: null,
+      evidence_events: [], evidence_timeout_ms: 0,
+    };
+    const operationLogPath = logPath ?? descriptor.log_path;
+    const ledgerRoot = join(root, "ledger");
+    const logCursor = await captureLogCursor(operationLogPath);
+    let record = baseRecord(descriptor, operationId, "reset_lab", input, null, logCursor);
+    await writeLedger(ledgerRoot, record);
+    try {
+      const response = await bridgeRequest(descriptor, {
+        kind: "reset_lab", operation_id: operationId,
+      }, 15_000);
+      validateOperationResponse(response, descriptor, record, input);
+      record = terminalRecord(record, response.ok === true ? "succeeded" : "runtime_failed", runtimeFields(response));
+    } catch (error) {
+      record = {
+        ...record, state: "runtime_unresolved", terminal: false,
+        error: `${error.message}; the reset outcome is unknown`, previous_change_preserved: null,
+        active_changes: null,
+      };
+    }
+    await writeLedger(ledgerRoot, record);
+    return record;
+  }
+
   const runRecipes = createRecipeRunner({
     recipesRoot: recipesRoot ?? join(root, "registry"),
     runCodeOperation: codeOperation,
@@ -352,6 +384,7 @@ export function createService({
       if (name === "run_once") return codeOperation(args, name);
       if (name === "install_change") return codeOperation(args, name);
       if (name === "remove_change") return removeChange(args);
+      if (name === "reset_lab") return resetLab(args);
       if (name === "run_recipes") return runRecipes(args);
       if (name === "read_ledger") {
         return readLedger(join(root, "ledger"), args, logPath);

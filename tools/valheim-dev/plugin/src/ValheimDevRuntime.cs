@@ -53,6 +53,7 @@ internal sealed class ValheimDevManagedChange
 {
     internal ValheimDevLoadedCode Code { get; set; } = null!;
     internal string InputJson { get; set; } = "{}";
+    internal long InstallSequence { get; set; }
     internal ValheimDevChangeSummary Summary { get; set; } = new ValheimDevChangeSummary();
 }
 
@@ -96,6 +97,7 @@ internal static partial class ValheimDevRuntime
     private static ValheimDevWorldCapture? trackedWorld;
     private static ValheimDevActiveOperation? activeOperation;
     private static volatile bool restartRequired;
+    private static long nextInstallSequence;
 #if VALHEIM_DEV_TESTS
     private static Func<ValheimDevWorldState>? snapshotOverride;
     private static Func<ValheimDevSessionIdentity>? sessionIdentityOverride;
@@ -138,6 +140,7 @@ internal static partial class ValheimDevRuntime
         mainThreadId = unityMainThreadId;
         initialized = true;
         restartRequired = false;
+        nextInstallSequence = 0;
         trackedWorld = null;
         activeOperation = null;
         lock (Gate)
@@ -182,7 +185,7 @@ internal static partial class ValheimDevRuntime
                     ? "Valheim Dev Lab access is off."
                     : $"Valheim Dev Lab access is off. {ManagedChangeCount()} installed change(s) remain active in this world.";
                 context.AddString(restartRequired
-                    ? RestartRequiredMessage(offMessage + " Cleanup is uncertain and a game restart is required.")
+                    ? RestartRequiredMessage(offMessage + " Cleanup is uncertain. Re-enable Lab in this world and call reset_lab; restart only if reset fails.")
                     : offMessage);
                 return true;
             case "status":
@@ -193,7 +196,7 @@ internal static partial class ValheimDevRuntime
                     if (reason == "eligible")
                     {
                         context.AddString(restartRequired
-                            ? RestartRequiredMessage($"Valheim Dev Lab is authorized for session {current.Identity.SessionId} with {ManagedChangeCount()} active managed change(s), but cleanup is uncertain and a game restart is required.")
+                            ? RestartRequiredMessage($"Valheim Dev Lab is authorized for session {current.Identity.SessionId} with {ManagedChangeCount()} active managed change(s), but cleanup is uncertain. Call reset_lab; restart only if reset fails.")
                             : $"Valheim Dev Lab is authorized for session {current.Identity.SessionId} with {ManagedChangeCount()} active managed change(s).");
                     }
                     else
@@ -206,8 +209,9 @@ internal static partial class ValheimDevRuntime
                 }
                 else
                 {
-                    if (trackedWorld != null
-                        && ValheimDevEligibility.CheckCapturedSession(trackedWorld, Snapshot()) != "eligible")
+                    bool sameTrackedWorld = trackedWorld != null
+                        && ValheimDevEligibility.CheckCapturedSession(trackedWorld, Snapshot()) == "eligible";
+                    if (trackedWorld != null && !sameTrackedWorld)
                     {
                         Revoke("status_world_changed");
                     }
@@ -215,7 +219,9 @@ internal static partial class ValheimDevRuntime
                         ? "Valheim Dev Lab is off."
                         : $"Valheim Dev Lab is off with {ManagedChangeCount()} installed change(s) still registered for this world.";
                     context.AddString(restartRequired
-                        ? RestartRequiredMessage(statusMessage + " Cleanup is uncertain and a game restart is required.")
+                        ? RestartRequiredMessage(statusMessage + (sameTrackedWorld
+                            ? " Cleanup is uncertain. Re-enable Lab in this world and call reset_lab; restart only if reset fails."
+                            : " Cleanup is uncertain and a game restart is required."))
                         : statusMessage);
                 }
                 return true;
@@ -340,96 +346,6 @@ internal static partial class ValheimDevRuntime
                 new KeyValuePair<string, string>("cleanup_state", cleanupState));
         }
         return cleanupState;
-    }
-
-    private static bool TryAuthorize(out string result)
-    {
-        if (!initialized)
-        {
-            result = "not_initialized";
-            return false;
-        }
-        if (Thread.CurrentThread.ManagedThreadId != mainThreadId)
-        {
-            result = "not_main_thread";
-            return false;
-        }
-
-        if (restartRequired)
-        {
-            result = ValheimDevCleanupState.RestartRequired;
-            return false;
-        }
-
-        if (session != null)
-        {
-            result = "already_authorized";
-            return true;
-        }
-
-        ValheimDevWorldState state = Snapshot();
-        string eligibility = ValheimDevEligibility.CheckAuthorization(state);
-        if (eligibility != "eligible")
-        {
-            result = eligibility;
-            return false;
-        }
-
-        ValheimDevWorldCapture? candidateCapture = trackedWorld;
-        if (candidateCapture != null
-            && ValheimDevEligibility.CheckCapturedSession(candidateCapture, state) != "eligible")
-        {
-            string cleanupState = Revoke("authorization_world_changed");
-            if (cleanupState == ValheimDevCleanupState.RestartRequired)
-            {
-                result = cleanupState;
-                return false;
-            }
-            candidateCapture = null;
-        }
-        bool reusesTrackedWorld = candidateCapture != null;
-
-        TcpListener candidate = new TcpListener(IPAddress.Loopback, 0);
-        try
-        {
-            candidate.Start(ValheimDevProtocol.MaximumQueueDepth);
-            ValheimDevSessionIdentity candidateIdentity = CreateSessionIdentity();
-            candidateIdentity.SessionId = Guid.NewGuid().ToString("N");
-            candidateIdentity.AuthorizedAt = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-            int port = ((IPEndPoint)candidate.LocalEndpoint).Port;
-            WriteDescriptor(candidateIdentity, port);
-
-            candidateCapture ??= new ValheimDevWorldCapture
-            {
-                Network = state.Network!, Scene = state.Scene!, WorldId = state.WorldId
-            };
-            ValheimDevSession candidateSession = new ValheimDevSession(
-                candidateIdentity,
-                candidateCapture,
-                candidate);
-            trackedWorld = candidateCapture;
-            session = candidateSession;
-            Thread acceptThread = new Thread(() => AcceptLoop(candidateSession))
-            {
-                IsBackground = true,
-                Name = "Valheim Dev listener"
-            };
-            acceptThread.Start();
-            ValheimDevDiagnostics.Emit(
-                "lab_authorized",
-                new KeyValuePair<string, string>("lab_session_id", candidateIdentity.SessionId));
-            result = "authorized";
-            return true;
-        }
-        catch (Exception exception)
-        {
-            session = null;
-            if (!reusesTrackedWorld) trackedWorld = null;
-            candidate.Stop();
-            DeleteDescriptor();
-            result = "session_start_failed:" + ValheimDevDiagnostics.Flatten(exception.Message);
-            return false;
-        }
     }
 
 }

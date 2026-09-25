@@ -6,6 +6,8 @@ public static class ValheimDevChange
 {
     private static readonly string Variant =
         Environment.GetEnvironmentVariable("VALHEIM_DEV_VARIANT") ?? "default";
+    private static readonly string CleanupLabel =
+        Environment.GetEnvironmentVariable("VALHEIM_DEV_CLEANUP_LABEL") ?? "cleaned";
     private static int runCount;
 
     public static string Run(string inputJson)
@@ -25,7 +27,7 @@ public static class ValheimDevChange
         ValheimDevTestSurface.Variant = "baseline";
         ValheimDevTestSurface.CleanupCount++;
         string? marker = Environment.GetEnvironmentVariable("VALHEIM_DEV_CLEANUP_MARKER");
-        if (!string.IsNullOrEmpty(marker)) File.AppendAllText(marker, "cleaned\n");
+        if (!string.IsNullOrEmpty(marker)) File.AppendAllText(marker, CleanupLabel + "\n");
     }
 }
 
