@@ -50,6 +50,15 @@ unless a deliberate product decision justifies a compatibility cost. Benheim
 is not trying to replace Valheim. It is a practical, evolving version of the
 game that is more fun for our group.
 
+## Building Direction
+
+Expand what players can build through simple, reusable pieces and better
+building mechanics. Triangular floors, roof shapes for angled layouts, repeated
+patterns, faster construction at scale, and easier terrain shaping are examples
+of this direction, not a settled piece list or workflow. Existing community
+mods are references for what works. Build a bespoke Benheim version that takes
+the useful ideas and fits them to our game.
+
 ## Combat Direction
 
 Benheim deepens skill-based combat, game depth, and variation by extending
