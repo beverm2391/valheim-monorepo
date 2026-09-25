@@ -213,6 +213,20 @@ namespace BenheimQoL.WispEcho
     }
 }
 
+namespace BenheimQoL.WeatherVisibility
+{
+    internal static class BlizzardVisibilityDiscovery
+    {
+        internal static int RunCount { get; private set; }
+
+        internal static void Run(string[] arguments, Action<string> output)
+        {
+            RunCount++;
+            output("blizzard snapshot ran");
+        }
+    }
+}
+
 namespace BenheimQoL.Spawning
 {
     using BenheimQoL.DeveloperDiagnostics;

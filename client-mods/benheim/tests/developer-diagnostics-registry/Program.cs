@@ -5,13 +5,14 @@ using BenheimQoL.EnemyTiers;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.Interaction;
 using BenheimQoL.Spawning;
+using BenheimQoL.WeatherVisibility;
 
 DeveloperDiagnosticsRuntime.InitializeConsole();
 DeveloperDiagnosticsRuntime.InitializeConsole();
 
 Expect(Terminal.Commands.Count == 3, "initialization registers each command once");
 ExpectOptions("bhcatalog", "effects", "text", "ui");
-ExpectOptions("bhrun", "comfort", "wispecho");
+ExpectOptions("bhrun", "blizzard", "comfort", "wispecho");
 ExpectOptions("bhwatch", "colliders", "spawns");
 
 Terminal catalogOutput = Run("bhcatalog", "effects", " bronze ");
@@ -28,6 +29,10 @@ ExpectLine(catalogOutput.Lines, "catalog:Effects");
 Terminal snapshotOutput = Run("bhrun", "comfort");
 Expect(ComfortDiagnosticCommand.RunCount == 1, "production snapshot registration runs once");
 ExpectLine(snapshotOutput.Lines, "comfort snapshot ran");
+
+Terminal blizzardOutput = Run("bhrun", "blizzard");
+Expect(BlizzardVisibilityDiscovery.RunCount == 1, "blizzard snapshot registration runs once");
+ExpectLine(blizzardOutput.Lines, "blizzard snapshot ran");
 
 Terminal initialStatus = Run("bhwatch");
 ExpectLine(

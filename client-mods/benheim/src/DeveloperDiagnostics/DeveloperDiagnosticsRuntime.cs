@@ -4,6 +4,7 @@ using BenheimQoL.EnemyTiers;
 using BenheimQoL.Infrastructure;
 using BenheimQoL.Interaction;
 using BenheimQoL.Spawning;
+using BenheimQoL.WeatherVisibility;
 using BenheimQoL.WispEcho;
 
 namespace BenheimQoL.DeveloperDiagnostics;
@@ -34,6 +35,7 @@ internal static partial class DeveloperDiagnosticsRuntime
     private static readonly Dictionary<string, Action<string[], Action<string>>> Snapshots =
         new(StringComparer.OrdinalIgnoreCase)
         {
+            ["blizzard"] = BlizzardVisibilityDiscovery.Run,
             ["comfort"] = ComfortDiagnosticCommand.Run,
             ["wispecho"] = WispEchoDiscovery.Run,
         };
