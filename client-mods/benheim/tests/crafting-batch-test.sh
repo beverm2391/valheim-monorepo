@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source_tree="$($root/scripts/ensure-valheim-source.sh)"
+native_inventory="$source_tree/InventoryGui.cs"
+rules="$root/src/Crafting/CraftingBatchRules.cs"
+feature="$root/src/Crafting/CraftingBatch.cs"
+patches="$root/src/Crafting/CraftingPatches.cs"
+overlay="$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
+
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$source_tree/Version.cs"
+grep -Fq 'public int m_multiCraftAmount = 5;' "$native_inventory"
+grep -Fq 'public float m_craftDuration = 2f;' "$native_inventory"
+grep -Fq 'public float m_multiCraftDuration = 6f;' "$native_inventory"
+grep -Fq 'm_multiCrafting = m_craftUpgradeItem == null && (ZInput.GetButton("AltPlace")' "$native_inventory"
+grep -Fq 'm_multiCrafting ? m_multiCraftDuration : m_craftDuration' "$native_inventory"
+grep -Fq 'player.ConsumeResources(m_craftRecipe.m_resources, num, -1, multiplier);' "$native_inventory"
+grep -Fq 'Player.m_localPlayer.RaiseSkill(m_craftRecipe.m_craftingStation.m_craftingSkill, (!m_multiCrafting) ? 1 : m_multiCraftAmount);' "$native_inventory"
+
+grep -Fq 'CraftingBatchRules.FindMaximumCrafts' "$feature"
+grep -Fq 'gui.m_multiCraftDuration = gui.m_craftDuration;' "$feature"
+grep -Fq 'return InputState.IsAltHeld();' "$feature"
+grep -Fq 'return nativeRequested || IsCraftMaxRequested();' "$feature"
+grep -Fq 'label.text = maximum > 0 ? $"Craft Max x {maximum}" : "Craft Max";' "$feature"
+grep -Fq 'inventory.CanAddItem(recipe.m_item.gameObject, outputAmount)' "$feature"
+grep -Fq 'player.HaveRequirements(' "$feature"
+grep -Fq 'recipe.GetAmount(' "$feature"
+grep -Fq 'CanSelectSingleIngredient(recipe, count)' "$feature"
+grep -Fq 'DiagnosticEvent.Create("Crafting", "craft_batch_started")' "$feature"
+grep -Fq 'DiagnosticEvent.Create("Crafting", "craft_batch_finished")' "$feature"
+grep -Fq '.Integer("requested_crafts", requestedCrafts)' "$feature"
+grep -Fq '.Integer("output_added", outputAdded)' "$feature"
+grep -Fq '.Integer("duration_ms", durationMs)' "$feature"
+grep -Fq '[HarmonyPatch(typeof(InventoryGui), "UpdateRecipe")]' "$patches"
+grep -Fq '[HarmonyPatch(typeof(InventoryGui), "OnCraftPressed")]' "$patches"
+grep -Fq '[HarmonyPatch(typeof(InventoryGui), "DoCrafting")]' "$patches"
+grep -Fq 'CraftingBatchModifierTranspiler.ExtendAltPlace(instructions)' "$patches"
+grep -Fq 'source[index - 1].operand, "AltPlace"' "$patches"
+grep -Fq 'Option / Alt + Craft' "$overlay"
+
+dotnet run --project "$root/tests/crafting-batch/CraftingBatchTests.csproj"
+
+printf 'crafting batch checks passed\n'
