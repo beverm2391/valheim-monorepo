@@ -78,7 +78,7 @@ process variables:
 | Create or destroy a Hetzner VM without `HCLOUD_CONTEXT` | `HETZNER_TOKEN` or `HCLOUD_TOKEN` |
 | Install the server or deploy server configuration | `VALHEIM_PASSWORD` |
 | Server install with R2 enabled | `VALHEIM_R2_ACCESS_KEY_ID` and `VALHEIM_R2_SECRET_ACCESS_KEY` |
-| Server install with diagnostics enabled | `BENHEIM_AXIOM_INGEST_TOKEN` |
+| Diagnostics deployment | `BENHEIM_AXIOM_INGEST_TOKEN` and `INFRA_AXIOM_INGEST_TOKEN` |
 
 ## Setup Steps
 
@@ -159,20 +159,25 @@ Verify the object exists in R2.
 
 ## Server Diagnostics
 
-If the operator wants dedicated-server failures in the managed Benheim Axiom
-dataset, set these non-secret routes in `server.env`:
+The diagnostics sidecar keeps game-specific failures in Benheim and sends
+systemd and backup failures to Infrastructure. Set these non-secret routes in
+`server.env`:
 
 ```text
 VALHEIM_DIAGNOSTICS_CONFIGURE=1
-BENHEIM_AXIOM_ENDPOINT=https://us-east-1.aws.edge.axiom.co
+VALHEIM_AXIOM_ENDPOINT=https://us-east-1.aws.edge.axiom.co
 BENHEIM_AXIOM_DATASET=
+INFRA_AXIOM_DATASET=
 VALHEIM_DIAGNOSTICS_SERVER_ID=
+VALHEIM_DIAGNOSTICS_ENVIRONMENT=production
 ```
 
-Inject the dataset-scoped `BENHEIM_AXIOM_INGEST_TOKEN` and rerun
-`scripts/install-server.sh`. Verify `valheim-diagnostics.service` is active.
-The forwarder is independent of `valheim.service`; a forwarding failure cannot
-restart or stop the game. The systemd journal remains the raw fallback.
+Inject the dataset-scoped `BENHEIM_AXIOM_INGEST_TOKEN` and
+`INFRA_AXIOM_INGEST_TOKEN`, then run
+`scripts/apply-diagnostics-config.sh`. This command only restarts the sidecar;
+it does not restart `valheim.service`. The forwarder is independent of the game
+service, so a forwarding failure cannot restart or stop the game. The systemd
+journal remains the raw fallback.
 
 Query the shared dataset through the existing developer command:
 
@@ -184,6 +189,8 @@ client-mods/benheim/scripts/query-events.py --remote \
 The `event` selector distinguishes `valheim-failure`, `bepinex-failure`, and
 `first-party-server-mod-failure`. Records include systemd invocation and Steam
 build identity, plus the exact component binary hash when one is available.
+Query the `valheim` service through the shared infrastructure surface for
+`host_failure` records from systemd and the backup unit.
 
 ## Safety Notes
 
