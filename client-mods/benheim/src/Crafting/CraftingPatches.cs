@@ -67,7 +67,7 @@ internal static class CraftingBatchPressedPatch
         Recipe? ___m_craftRecipe,
         ItemDrop.ItemData? ___m_craftUpgradeItem)
     {
-        CraftingBatch.ObserveCraftStarted(
+        CraftingBatchDiagnostics.ObserveStarted(
             __instance,
             __state,
             ___m_craftTimer,
@@ -122,7 +122,7 @@ internal static class CraftingBatchFinishedPatch
     [HarmonyPostfix]
     private static void Postfix(InventoryGui __instance, Recipe? ___m_craftRecipe)
     {
-        CraftingBatch.ObserveCraftFinished(__instance, ___m_craftRecipe);
+        CraftingBatchDiagnostics.ObserveFinished(__instance, ___m_craftRecipe);
     }
 
     [HarmonyFinalizer]
@@ -133,7 +133,10 @@ internal static class CraftingBatchFinishedPatch
     {
         if (__exception != null)
         {
-            CraftingBatch.ObserveCraftFailed(__instance, ___m_craftRecipe, __exception);
+            CraftingBatchDiagnostics.ObserveFailed(
+                __instance,
+                ___m_craftRecipe,
+                __exception);
         }
         return __exception;
     }
@@ -145,7 +148,7 @@ internal static class CraftingBatchCancelPatch
     [HarmonyPrefix]
     private static void Prefix(InventoryGui __instance)
     {
-        CraftingBatch.Cancel(__instance, "player_cancel");
+        CraftingBatchDiagnostics.Cancel(__instance, "player_cancel");
     }
 }
 
@@ -155,6 +158,6 @@ internal static class CraftingBatchHidePatch
     [HarmonyPrefix]
     private static void Prefix(InventoryGui __instance)
     {
-        CraftingBatch.Cancel(__instance, "inventory_hidden");
+        CraftingBatchDiagnostics.Cancel(__instance, "inventory_hidden");
     }
 }
