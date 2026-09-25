@@ -65,6 +65,12 @@ Third-party mod behavior remains owned by each upstream project; this document
 records only why the mod belongs in our stack and what compatibility promise it
 must preserve.
 
+## Building and Terrain
+
+We are building our own [Benheim Building](client-mods/benheim-building/PRODUCT.md)
+and [Benheim Terrain](client-mods/benheim-terrain/PRODUCT.md) mods. Their
+feature sets are still open.
+
 ## Product Candidates
 
 [Crow](tools/crow-lab/PRODUCT.md) is a private companion candidate for Ben,
