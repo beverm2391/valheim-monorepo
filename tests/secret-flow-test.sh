@@ -57,6 +57,7 @@ secret_keys=(
   TAILSCALE_AUTHKEY
   VALHEIM_PASSWORD
   BENHEIM_AXIOM_INGEST_TOKEN
+  INFRA_AXIOM_INGEST_TOKEN
   VALHEIM_R2_ACCESS_KEY_ID
   VALHEIM_R2_SECRET_ACCESS_KEY
 )
@@ -135,21 +136,28 @@ SSH_HOST=test-host
 SSH_USER=root
 VALHEIM_R2_CONFIGURE=0
 VALHEIM_DIAGNOSTICS_CONFIGURE=1
-BENHEIM_AXIOM_ENDPOINT=https://example.axiom.co
+VALHEIM_AXIOM_ENDPOINT=https://example.axiom.co
 BENHEIM_AXIOM_DATASET=benheim-test
+INFRA_AXIOM_DATASET=infra-test
 VALHEIM_DIAGNOSTICS_SERVER_ID=qa-server
+VALHEIM_DIAGNOSTICS_ENVIRONMENT=staging
 EOF
 
 VALHEIM_ENV_FILE="$test_root/diagnostics.env" \
 VALHEIM_PASSWORD=server-secret-sentinel \
 BENHEIM_AXIOM_INGEST_TOKEN=test-ingest-value \
+INFRA_AXIOM_INGEST_TOKEN=test-infra-ingest-value \
   bash -c 'source "$1"; load_config; render_diagnostics_env "$2"' _ "$lib" "$test_root/diagnostics.render" > "$test_root/diagnostics.render.out" 2>&1
 grep -Fq 'BENHEIM_AXIOM_INGEST_TOKEN=test-ingest-value' "$test_root/diagnostics.render" || fail "diagnostics artifact receives the process ingest token"
 grep -Fq 'BENHEIM_AXIOM_DATASET=benheim-test' "$test_root/diagnostics.render" || fail "diagnostics artifact targets the configured dataset"
+grep -Fq 'INFRA_AXIOM_INGEST_TOKEN=test-infra-ingest-value' "$test_root/diagnostics.render" || fail "diagnostics artifact receives the Infrastructure ingest token"
+grep -Fq 'INFRA_AXIOM_DATASET=infra-test' "$test_root/diagnostics.render" || fail "diagnostics artifact targets the Infrastructure dataset"
 grep -Fq 'VALHEIM_DIAGNOSTICS_SERVER_ID=qa-server' "$test_root/diagnostics.render" || fail "diagnostics artifact carries server identity"
+grep -Fq 'VALHEIM_DIAGNOSTICS_ENVIRONMENT=staging' "$test_root/diagnostics.render" || fail "diagnostics artifact carries environment identity"
 [[ $(stat -f '%Lp' "$test_root/diagnostics.render" 2>/dev/null || stat -c '%a' "$test_root/diagnostics.render") == 600 ]] || fail "diagnostics artifact is mode 0600"
 pass "diagnostics artifact receives only scoped routing and ingest values"
 assert_not_contains "diagnostics rendering does not print the ingest token" test-ingest-value "$test_root/diagnostics.render.out"
+assert_not_contains "diagnostics rendering does not print the Infrastructure token" test-infra-ingest-value "$test_root/diagnostics.render.out"
 
 : > "$test_root/remote.log"
 if env -u BENHEIM_AXIOM_INGEST_TOKEN \
@@ -162,6 +170,18 @@ if env -u BENHEIM_AXIOM_INGEST_TOKEN \
 fi
 [[ ! -s "$test_root/remote.log" ]] || fail "diagnostics preflight fails before remote calls"
 pass "diagnostics preflight fails before remote calls"
+
+: > "$test_root/remote.log"
+if env -u INFRA_AXIOM_INGEST_TOKEN \
+  REMOTE_LOG="$test_root/remote.log" \
+  PATH="$test_root/fake-bin:$PATH" \
+  VALHEIM_ENV_FILE="$test_root/diagnostics.env" \
+  BENHEIM_AXIOM_INGEST_TOKEN=test-ingest-value \
+  "$repo_root/scripts/apply-diagnostics-config.sh" > "$test_root/apply-missing-infra-diagnostics.out" 2>&1; then
+  fail "diagnostics deployment rejects a missing Infrastructure ingest token"
+fi
+[[ ! -s "$test_root/remote.log" ]] || fail "diagnostics deployment preflight fails before remote calls"
+pass "diagnostics deployment preflight fails before remote calls"
 
 mkdir -p "$test_root/fake-bin"
 cat > "$test_root/fake-bin/ssh" <<'EOF'
@@ -266,5 +286,11 @@ assert_contains "diagnostics runtime credentials are root-only" \
   'install -m 0600 -o root -g root "$work/diagnostics.env" /etc/valheim/diagnostics.env' "$repo_root/scripts/install-server.sh"
 assert_not_contains "ordinary installs preserve an existing diagnostics runtime file" \
   'rm -f /etc/valheim/diagnostics.env' "$repo_root/scripts/install-server.sh"
+assert_contains "diagnostics-only deployment keeps runtime credentials root-only" \
+  'install -m 0600 -o root -g root "$work/diagnostics.env" /etc/valheim/diagnostics.env' "$repo_root/scripts/apply-diagnostics-config.sh"
+assert_contains "diagnostics-only deployment installs the event module" \
+  'install -m 0644 "$work/valheim_failure_events.py" /usr/local/bin/valheim_failure_events.py' "$repo_root/scripts/apply-diagnostics-config.sh"
+assert_not_contains "diagnostics-only deployment does not restart the game" \
+  'systemctl restart valheim.service' "$repo_root/scripts/apply-diagnostics-config.sh"
 
 echo "1..$checks"
