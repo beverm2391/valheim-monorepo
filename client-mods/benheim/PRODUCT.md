@@ -165,6 +165,7 @@ technical cost.
 | [Affinities](src/Affinities/PRODUCT.md) | Specialize existing weapons with new combat actions and persistent tradeoffs. |
 | [Weapon Rhythm](src/WeaponRhythm/PRODUCT.md) | Reward weapon mastery through timing, charge, cadence, spacing, and existing animations. |
 | [Wisp Echo](src/WispEcho/PRODUCT.md) | Pulse nearby threats through Mistlands mist without revealing them through solid cover. |
+| [Blizzard Visibility](src/WeatherVisibility/PRODUCT.md) | Make Mountain snowstorms readable for cave scouting without changing weather gameplay. |
 | [Combat Feedback](src/CombatFeedback/PRODUCT.md) | Add local bow focus and restrained camera response to existing Benheim outcomes. |
 | [Shortcuts](src/Shortcuts/PRODUCT.md) | In-game discovery of controls and passive features. |
 | [Ship Sprint](src/ShipSprint/PRODUCT.md) | Boost native forward ship thrust while the controlling player holds Valheim's Run control. |
