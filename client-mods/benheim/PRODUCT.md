@@ -149,6 +149,7 @@ technical cost.
 | --- | --- |
 | [Inventory](src/Inventory/PRODUCT.md) | Split stacks, pocket items, Put Away, and hotbar loadout swap. |
 | [Production](src/Production/PRODUCT.md) | Fill stations without repetitive clicks and shorten Stone Oven baking. |
+| [Fire](src/Fire/PRODUCT.md) | Keep fueled fires burning when only their smoke outlet is blocked. |
 | [Native Build Pieces](src/BuildPieces/PRODUCT.md) | Make selected existing Valheim pieces easier to build with. |
 | [Crafting](src/Crafting/PRODUCT.md) | Craft the maximum affordable quantity with Shift and make batches take one craft's time. |
 | [Repair](src/Repair/PRODUCT.md) | Batch gear repair and nearby building repair. |
