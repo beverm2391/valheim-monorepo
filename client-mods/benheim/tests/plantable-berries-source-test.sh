@@ -7,10 +7,10 @@ registration="$root/src/Farming/PlantableBerries.cs"
 mass_planting="$root/src/Farming/MassPlanting.cs"
 behavior="$root/tests/plantable-berries/Program.cs"
 
-# UnityPy 1.25.3 resolves the installed Valheim 1.0.15
-# _CultivatorPieceTable.prefab in this pinned soft-reference bundle with
-# m_canRemovePieces=0. Pinning the bundle makes the behavioral fixture fail
-# closed when installed prefab data changes.
+# UnityPy 1.25.3 resolves the installed Valheim 1.0.16
+# _CultivatorPieceTable.prefab and verifies the native removal gate that the
+# behavioral fixture models. Inspect the serialized contract directly so an
+# unrelated bundle rebuild does not invalidate the test.
 # shellcheck source=../scripts/valheim-source-lib.sh
 source "$root/scripts/valheim-source-lib.sh"
 valheim_source_resolve_assembly
@@ -18,11 +18,36 @@ valheim_data="$(dirname "$(dirname "$VALHEIM_SOURCE_ASSEMBLY_PATH")")"
 softref_manifest="$valheim_data/StreamingAssets/SoftRef/manifest_extended"
 cultivator_bundle="$valheim_data/StreamingAssets/SoftRef/Bundles/c4210710"
 grep -Fq 'path in bundle: Assets/GameElements/Pieces/_CultivatorPieceTable.prefab' "$softref_manifest"
-test "$(valheim_source_sha256_file "$cultivator_bundle")" = 'b94bc360a0a534f8c21cdea609d3cea44e52033f246e0b001b1565a9a3220a1d'
+command -v uv >/dev/null || {
+  printf 'plantable berries: uv is required for installed Cultivator prefab inspection\n' >&2
+  exit 1
+}
+uv run --quiet --with 'UnityPy==1.25.3' python - "$cultivator_bundle" <<'PY'
+import sys
+
+import UnityPy
+
+environment = UnityPy.load(sys.argv[1])
+path = "Assets/GameElements/Pieces/_CultivatorPieceTable.prefab"
+root = environment.container[path]
+root_tree = root.read_typetree()
+piece_tables = []
+for component in root_tree["m_Component"]:
+    component_id = component["component"]["m_PathID"]
+    component_object = root.assetsfile.objects[component_id]
+    if component_object.type.name != "MonoBehaviour":
+        continue
+    component_tree = component_object.read_typetree()
+    if "m_canRemovePieces" in component_tree:
+        piece_tables.append(component_tree)
+
+assert len(piece_tables) == 1
+assert piece_tables[0]["m_canRemovePieces"] == 0
+PY
 grep -Fq 'var pieceTable = new PieceTable { m_canRemovePieces = false };' "$behavior"
 grep -Fq '!toolPieces.m_canRemovePieces' "$behavior"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$source_tree/Version.cs"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 16);' "$source_tree/Version.cs"
 
 # The feature modifies only the three native berry prefabs. It adds build
 # metadata to their existing network/pickable/destructible lifecycle.

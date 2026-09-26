@@ -25,7 +25,7 @@ stopped_output="$(
     "$root/scripts/check-valheim-stopped.sh"
 )"
 test "$stopped_output" = "Valheim is not running."
-expected_calls="$(printf '%s\n' '-x valheim' '-x valheim.x86_64')"
+expected_calls="$(printf '%s\n' '-x Valheim' '-x valheim' '-x valheim.x86_64')"
 test "$(cat "$calls")" = "$expected_calls"
 ! grep -Eq -- '(^| )-f( |$)' "$calls"
 
@@ -37,6 +37,17 @@ if PATH="$mock_bin:$PATH" MOCK_PGREP_CALLS="$calls" \
   exit 1
 fi
 grep -Fq 'Valheim is running (valheim:4242)' "$test_root/running.err"
+
+: > "$calls"
+if PATH="$mock_bin:$PATH" MOCK_PGREP_CALLS="$calls" \
+  MOCK_RUNNING_EXECUTABLE=Valheim \
+  "$root/scripts/check-valheim-stopped.sh" --quiet \
+  >"$test_root/mac.out" 2>"$test_root/mac.err"; then
+  echo "process check accepted the macOS Valheim executable" >&2
+  exit 1
+fi
+test ! -s "$test_root/mac.out"
+test ! -s "$test_root/mac.err"
 
 : > "$calls"
 if PATH="$mock_bin:$PATH" MOCK_PGREP_CALLS="$calls" \

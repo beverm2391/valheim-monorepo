@@ -14,7 +14,7 @@ fi
 # Match only executable identities. Command-line matching can match the
 # operator's own shell or safe wrapper when its arguments mention Valheim.
 running=()
-for executable in valheim valheim.x86_64; do
+for executable in Valheim valheim valheim.x86_64; do
   pids="$(pgrep -x "$executable" 2>/dev/null || true)"
   if [[ -n "$pids" ]]; then
     running+=("$executable:$pids")

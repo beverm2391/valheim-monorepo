@@ -9,5 +9,6 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="../../src/WeatherVisibility/BlizzardVisibilityCaptureLimits.cs" Link="BlizzardVisibilityCaptureLimits.cs" />
+    <Compile Include="../../src/WeatherVisibility/BlizzardVisibilityRules.cs" Link="BlizzardVisibilityRules.cs" />
   </ItemGroup>
 </Project>

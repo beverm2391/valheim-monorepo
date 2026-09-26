@@ -84,6 +84,8 @@ internal static partial class ShortcutOverlay
             "Cleave, mining AOE, and Perfect Impact. Danger Arrival FX covers its " +
             "banner, stinger, and brief edge vignette.";
 
+        BuildWeatherVisibilityConfig(parent, templates);
+
         AddSectionHeading(parent, "Diagnostics", ConfigAccent, templates.Text);
         TMP_Text diagnosticsExplanation = CreateText(
             "DiagnosticsExplanation",
@@ -207,5 +209,6 @@ internal static partial class ShortcutOverlay
         combatShakeToggle = null;
         dangerArrivalToggle = null;
         shareDiagnosticsToggle = null;
+        ResetWeatherVisibilityConfigState();
     }
 }

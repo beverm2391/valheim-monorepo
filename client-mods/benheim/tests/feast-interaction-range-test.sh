@@ -7,9 +7,9 @@ ranges="$root/src/Interaction/InteractionRanges.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native="$source_tree/Feast.cs"
 
-# Installed Valheim 1.0.15 uses the same private distance gate for hover text
+# Installed Valheim 1.0.16 uses the same private distance gate for hover text
 # and interaction, before it reaches native food eligibility and owner RPCs.
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$source_tree/Version.cs"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 16);' "$source_tree/Version.cs"
 grep -Fq 'public float m_useDistance = 2f;' "$native"
 grep -Fq 'private bool InUseDistance(Humanoid human)' "$native"
 grep -Fq 'return Vector3.Distance(human.transform.position, base.transform.position) < m_useDistance;' "$native"

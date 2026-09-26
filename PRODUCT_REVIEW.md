@@ -4,10 +4,15 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.104**.
+Installed on Ben's Mac: **0.1.106**.
 
 ## Next play session
 
+- **Blizzard Visibility:** During a native Mountain snowstorm, toggle Blizzard
+  Visibility in `Left Shift+B` > **Benheim Config**. On should keep the native
+  storm's snow, wind, audio, cold, and freezing while making distant terrain
+  and Frost Cave entrances readable; off should restore the vanilla whiteout.
+  Clear weather and other biomes should remain native.
 - **Workbench and Stonecutter Hammer work zone:** At each level-1 station,
   cross the native, extended, and out-of-range boundaries while placing,
   repairing, and dismantling station-required pieces. The actions, dashed

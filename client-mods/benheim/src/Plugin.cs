@@ -14,6 +14,7 @@ using BenheimQoL.KillAttribution;
 using BenheimQoL.ShipSprint;
 using BenheimQoL.WorldLabels;
 using BenheimQoL.Affinities;
+using BenheimQoL.WeatherVisibility;
 using UnityEngine;
 
 namespace BenheimQoL;
@@ -23,7 +24,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.105";
+    public const string PluginVersion = "0.1.106";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -45,6 +46,7 @@ public sealed class Plugin : BaseUnityPlugin
         BenheimTestCommandClient.InitializeConsole();
         DeveloperDiagnosticsRuntime.InitializeConsole();
         BenheimFxSettings.Initialize(Config);
+        BlizzardVisibilitySettings.Initialize(Config);
         HealthReporting.BeginSession();
         try
         {
@@ -135,6 +137,7 @@ public sealed class Plugin : BaseUnityPlugin
         CombatFeedbackController.Reset();
         TopLeftFeedbackHud.Destroy();
         WildernessDangerPresentation.Reset();
+        BlizzardVisibilityRuntime.Reset("plugin_teardown", restoreStormTargets: true);
         DeveloperDiagnosticsRuntime.Reset();
         BenheimTestCommandClient.Reset();
         ShortcutOverlay.Destroy();

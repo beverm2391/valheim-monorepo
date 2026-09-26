@@ -10,7 +10,7 @@ diagnostics="$root/src/Crafting/CraftingBatchDiagnostics.cs"
 patches="$root/src/Crafting/CraftingPatches.cs"
 overlay="$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 15);' "$source_tree/Version.cs"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 16);' "$source_tree/Version.cs"
 grep -Fq 'public int m_multiCraftAmount = 5;' "$native_inventory"
 grep -Fq 'public float m_craftDuration = 2f;' "$native_inventory"
 grep -Fq 'public float m_multiCraftDuration = 6f;' "$native_inventory"

@@ -7,6 +7,7 @@ using BenheimQoL.PlayerCombat;
 using BenheimQoL.Repair;
 using BenheimQoL.ShipSprint;
 using BenheimQoL.WeaponRhythm;
+using BenheimQoL.WeatherVisibility;
 using UnityEngine;
 
 namespace BenheimQoL.Shortcuts;
@@ -97,6 +98,16 @@ internal static partial class ShortcutOverlay
                 new Entry("Stone Oven", "Baking and done-to-burn timing are halved; fuel stays normal"),
             },
             "Faster baking preserves Valheim's normal fuel use."),
+        new(
+            "Weather",
+            TravelAccent,
+            new[]
+            {
+                new Entry(
+                    "Blizzard Visibility",
+                    $"Mountain snowstorms use {BlizzardVisibilityRules.TargetSnowRate:0} snow emission and at most {BlizzardVisibilityRules.TargetFogDensity:0.00} fog density while opaque storm mist is suppressed"),
+            },
+            "Turn it on or off in Benheim Config. Wind, weather timing, audio, cold, freezing, and clear-weather scenes stay native."),
         new(
             "Gathering & Skills",
             new Color(1f, 0.48f, 0.54f, 1f),
