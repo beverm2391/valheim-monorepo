@@ -21,8 +21,14 @@ grep -Fq 'Player.m_localPlayer.RaiseSkill(m_craftRecipe.m_craftingStation.m_craf
 
 grep -Fq 'CraftingBatchRules.FindMaximumCrafts' "$feature"
 grep -Fq 'gui.m_multiCraftDuration = gui.m_craftDuration;' "$feature"
-grep -Fq 'return InputState.IsAltHeld();' "$feature"
+grep -Fq 'return InputState.IsShiftHeld();' "$feature"
 grep -Fq 'return nativeRequested || IsCraftMaxRequested();' "$feature"
+grep -Fq 'nativeMultiCraftAmount = Math.Max(1, gui.m_multiCraftAmount);' "$feature"
+grep -Fq 'RestoreNativeAmount(gui);' "$feature"
+if grep -Fq 'InputState.IsAltHeld()' "$feature"; then
+  printf 'Craft Max must not retain the retired Option/Alt modifier\n' >&2
+  exit 1
+fi
 grep -Fq 'label.text = maximum > 0 ? $"Craft Max x {maximum}" : "Craft Max";' "$feature"
 grep -Fq 'inventory.CanAddItem(recipe.m_item.gameObject, outputAmount)' "$feature"
 grep -Fq 'player.HaveRequirements(' "$feature"
@@ -38,7 +44,7 @@ grep -Fq '[HarmonyPatch(typeof(InventoryGui), "OnCraftPressed")]' "$patches"
 grep -Fq '[HarmonyPatch(typeof(InventoryGui), "DoCrafting")]' "$patches"
 grep -Fq 'CraftingBatchModifierTranspiler.ExtendAltPlace(instructions)' "$patches"
 grep -Fq 'source[index - 1].operand, "AltPlace"' "$patches"
-grep -Fq 'Option / Alt + Craft' "$overlay"
+grep -Fq 'Shift + Craft' "$overlay"
 
 dotnet run --project "$root/tests/crafting-batch/CraftingBatchTests.csproj"
 

@@ -39,7 +39,7 @@ internal static partial class ShortcutOverlay
             new Color(1f, 0.58f, 0.36f, 1f),
             new[]
             {
-                new Entry("Option / Alt + Craft", "Craft the maximum affordable quantity in one craft's time"),
+                new Entry("Shift + Craft", "Craft the maximum affordable quantity in one craft's time"),
                 new Entry("Left Shift + station click", "Repair all eligible gear"),
                 new Entry("Left Shift + hammer repair", $"Repair eligible buildings and structures within {BuildingRepair.RepairRadius:0.#} m"),
                 new Entry("Left Shift + station input", "Fill its available input or fuel capacity"),

@@ -216,9 +216,9 @@ internal static class CraftingBatch
 
     internal static bool ResolveNativeBatchModifier(bool nativeRequested)
     {
-        // Preserve Valheim's existing Shift/gamepad/touch multicraft behavior.
-        // The transpiler feeds the native AltPlace (Left Shift) result through
-        // here so Option/Alt can join the same execution path.
+        // Preserve Valheim's rebindable AltPlace/gamepad/touch multicraft
+        // behavior. The transpiler feeds the native AltPlace result through
+        // here so either physical Shift key can request Craft Max.
         return nativeRequested || IsCraftMaxRequested();
     }
 
@@ -240,9 +240,7 @@ internal static class CraftingBatch
 
     private static bool IsCraftMaxRequested()
     {
-        // Alt is named Option on Mac. This is deliberately the physical Alt
-        // modifier: Valheim's logical AltPlace action defaults to Left Shift.
-        return InputState.IsAltHeld();
+        return InputState.IsShiftHeld();
     }
 
     private static bool TryGetSelectedCraft(InventoryGui gui, out Recipe recipe)
