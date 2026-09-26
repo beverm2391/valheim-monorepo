@@ -27,6 +27,8 @@ without requiring players to refill them. It runs only on the dedicated server.
 
 ## In Development
 
+- Native fire pieces keep burning when their smoke outlet is blocked, without
+  changing smoke, smoke damage, fuel use, or other burn conditions.
 - Confirm under normal burn conditions that every other supported piece refills
   before it visibly extinguishes during at least one refill cycle.
 - Confirm after a dedicated-server restart that at least one non-bathtub piece
