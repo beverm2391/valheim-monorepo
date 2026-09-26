@@ -70,6 +70,7 @@ internal static partial class ShortcutOverlay
                 new Entry(
                     "Station coverage",
                     "Workbench and Stonecutter Hammer work zones are 2× Valheim's native range (20 m to 40 m for level-1 stations)"),
+                new Entry("Crystal walls", "Stack crystal walls and place other pieces on top with native structural support feedback"),
             },
             "Placement, repair, dismantling, the dashed boundary, and Hammer station-range UI use the same zone. Crafting, station interaction, upgrade attachment, comfort, Workbench suppression, enemy spawning, wards, and all other station behavior stay native."),
         new(
@@ -96,6 +97,7 @@ internal static partial class ShortcutOverlay
             new[]
             {
                 new Entry("Stone Oven", "Baking and done-to-burn timing are halved; fuel stays normal"),
+                new Entry("Fires", "Fueled fires keep burning when only their smoke outlet is blocked; smoke and smoke damage remain native"),
             },
             "Faster baking preserves Valheim's normal fuel use."),
         new(

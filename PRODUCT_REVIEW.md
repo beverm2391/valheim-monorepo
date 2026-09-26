@@ -4,10 +4,20 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.106**.
+Installed on Ben's Mac: **0.1.107**.
 
 ## Next play session
 
+- **Crystal walls:** Stack two crystal walls, then place a floor or beam on top.
+  They should snap and remain supported where a normal wall would; an
+  unsupported extension should still show Valheim's native placement feedback.
+- **Smoke-blocked fires:** Block the smoke outlet above a fueled fire. It
+  should keep burning while smoke still appears and can hurt the player.
+- **Craft Max:** At a crafting station with materials for several copies,
+  hold Shift and use **Craft Max**. The displayed quantity should be the
+  maximum Valheim permits, consume the matching materials, grant that output,
+  and take one craft's time. Without Shift, the normal quantity control should
+  remain available.
 - **Blizzard Visibility:** During a native Mountain snowstorm, toggle Blizzard
   Visibility in `Left Shift+B` > **Benheim Config**. On should keep the native
   storm's snow, wind, audio, cold, and freezing while making distant terrain
