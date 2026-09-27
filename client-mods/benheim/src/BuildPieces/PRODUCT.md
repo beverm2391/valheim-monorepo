@@ -3,8 +3,12 @@
 Benheim makes selected existing Valheim pieces more useful while the separate
 Benheim Building mod takes shape.
 
-## In Development
+## Current Behavior
 
 - Crystal walls can be stacked and can carry other pieces placed on top of
-  them. Placement and structural stability should behave like a buildable
-  wall, with clear native feedback when a proposed structure lacks support.
+  them.
+
+## In Development
+
+- Pieces extending beyond structural support should still show Valheim's native
+  placement feedback. Stacked crystal walls should remain stable after a reload.
