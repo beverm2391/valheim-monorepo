@@ -32,6 +32,23 @@ behavior remain open. The discovery trigger and which players receive an unlock
 also remain open. [Benheim Terrain](../benheim-terrain/PRODUCT.md) owns the
 separate terrain-shaping direction.
 
+## Reusing Game Assets
+
+The useful distinction is whether an asset is already a build piece, merely a
+world prop, or only part of a generated scene. A registered prefab ID lets the
+game recognize an object again when a world loads or another player sees it;
+having that ID alone does not put the object in the Hammer menu.
+
+| Asset class | Examples | What a buildable version needs |
+| --- | --- | --- |
+| Registered build piece absent from the build menus | Turf roofs, some black marble tiles, Dvergr wood pieces | Expose its existing `Piece` in a build menu, then decide costs and discovery rules. |
+| Registered world prop without `Piece` | Plains stone pillar, individual Stonehenge rocks | Add build-piece settings and check existing behavior such as terrain changes. |
+| Scene-only geometry without a standalone registered prefab | Bog Witch hut, dungeon room structures | Make a persistent networked build prefab before it can be placed as an independent piece. |
+
+This is a path from easiest to hardest to *test*, not a promise that every
+prefab should ship. The first class can fill an experimental Hammer catalog;
+visual testing decides which pieces belong in the durable building mod.
+
 ## Community Source Pointers
 
 These are starting points for studying behavior and implementation. Check the
