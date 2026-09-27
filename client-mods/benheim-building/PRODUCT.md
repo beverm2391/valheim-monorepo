@@ -17,9 +17,15 @@ implementation plan.
 - A better viewpoint for tall and intricate work, potentially a flying build
   camera near a workbench. The method is open; easier building is the goal.
 - Clear previews and a way to recover from large accidental placements.
+- Reusable static props from Valheim's generated locations. Inspect candidates
+  by spawning them in a disposable test world, starting with the Bog Witch's
+  surrounding set dressing and the large plains pillars.
+- Let useful props become buildable as players discover them in the world,
+  preserving exploration as part of building progression.
 
 The exact piece set, controls, blueprint behavior, costs, and multiplayer
-behavior remain open. [Benheim Terrain](../benheim-terrain/PRODUCT.md) owns the
+behavior remain open. The discovery trigger and which players receive an unlock
+also remain open. [Benheim Terrain](../benheim-terrain/PRODUCT.md) owns the
 separate terrain-shaping direction.
 
 ## Community Source Pointers
