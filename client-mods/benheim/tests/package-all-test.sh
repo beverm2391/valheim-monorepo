@@ -39,7 +39,8 @@ if BENHEIM_AXIOM_DATASET=benheim-diagnostics \
   exit 1
 fi
 rm "$fixture/local-edit.txt"
-if BENHEIM_QOL_SOURCE_COMMIT="$commit" "$scripts/package-all.sh" >/dev/null 2>&1; then
+if env -u BENHEIM_AXIOM_INGEST_TOKEN BENHEIM_QOL_SOURCE_COMMIT="$commit" \
+  "$scripts/package-all.sh" >/dev/null 2>&1; then
   echo "group packaging accepted missing Axiom credentials" >&2
   exit 1
 fi
