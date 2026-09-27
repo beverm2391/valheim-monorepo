@@ -58,6 +58,7 @@ internal static partial class ShortcutOverlay
         }
 
         ResizeWindowIfNeeded();
+        RefreshDiagnosticsDeliveryStatus();
     }
 
     internal static void Destroy()
@@ -98,6 +99,7 @@ internal static partial class ShortcutOverlay
         {
             RefreshControlsWarnings(templates);
         }
+        RefreshDiagnosticsDeliveryStatus();
 
         previousCursorVisible = ZCursor.IsVisible;
         previousCursorLock = ZCursor.LockState;

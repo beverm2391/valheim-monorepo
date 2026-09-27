@@ -13,7 +13,7 @@ dll="${BENHEIM_QOL_DLL:-$script_dir/BenheimQoL.dll}"
 launcher_source="${BENHEIM_QOL_LAUNCHER_SOURCE:-$script_dir/macos-launcher.sh}"
 version_source="${BENHEIM_QOL_VERSION_FILE:-$script_dir/VERSION}"
 process_check="$script_dir/check-valheim-stopped.sh"
-private_diagnostics_source="${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE:-$script_dir/PRIVATE-TEST-DIAGNOSTICS.cfg}"
+private_diagnostics_source="${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE:-$script_dir/AXIOM-DIAGNOSTICS.cfg}"
 private_diagnostics="$game_dir/BepInEx/config/BenheimPrivateDiagnostics.cfg"
 bepinex_url="${BENHEIM_QOL_BEPINEX_URL:-https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip}"
 if [[ -n "${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE:-}" ]]; then
@@ -119,6 +119,18 @@ if [[ ! -f "$dll" ]]; then
   fail "The Benheim plugin file is missing beside the installer."
 fi
 
+if [[ ! -f "$private_diagnostics_source" ]] ||
+  [[ "$(wc -l < "$private_diagnostics_source" | tr -d ' ')" != "5" ]] ||
+  [[ "$(sed -n '1p' "$private_diagnostics_source")" != "BENHEIM_PRIVATE_DIAGNOSTICS_V1" ]] ||
+  ! grep -Eq '^endpoint=https://[^/?#]+$' "$private_diagnostics_source" ||
+  ! grep -Eq '^dataset=[A-Za-z0-9_.-]+$' "$private_diagnostics_source" ||
+  ! grep -Eq '^token=.+$' "$private_diagnostics_source"; then
+  fail "This installer lacks valid Axiom diagnostics configuration. Ask for a complete group package."
+fi
+expected_build_id="sha256:$(shasum -a 256 "$dll" | awk '{print $1}')"
+grep -Fxq "build_id=$expected_build_id" "$private_diagnostics_source" ||
+  fail "The diagnostics configuration does not match this Benheim DLL."
+
 if [[ ! -f "$launcher_source" ]]; then
   fail "Missing macos-launcher.sh beside the installer."
 fi
@@ -199,13 +211,9 @@ version_replaced=1
 
 install -d "$game_dir/BepInEx/config"
 private_diagnostics_touched=1
-if [[ -f "$private_diagnostics_source" ]]; then
-  diagnostics_tmp="$game_dir/BepInEx/config/.BenheimPrivateDiagnostics.cfg.$$"
-  install -m 0600 "$private_diagnostics_source" "$diagnostics_tmp"
-  mv -f "$diagnostics_tmp" "$private_diagnostics"
-else
-  rm -f "$private_diagnostics"
-fi
+diagnostics_tmp="$game_dir/BepInEx/config/.BenheimPrivateDiagnostics.cfg.$$"
+install -m 0600 "$private_diagnostics_source" "$diagnostics_tmp"
+mv -f "$diagnostics_tmp" "$private_diagnostics"
 
 # BenheimQoL owns farming now. Leaving the old plugin active would execute two
 # Shift-interact and planting handlers against the same player action.
@@ -307,12 +315,14 @@ if [[ -e "$legacy_app" ]]; then
   fi
 fi
 
+cmp -s "$dll" "$plugin" || fail "The installed Benheim DLL differs from the package."
+cmp -s "$private_diagnostics_source" "$private_diagnostics" ||
+  fail "The installed Axiom diagnostics configuration differs from the package."
 rm -rf "$backup_app" "$backup_updater_app"
 echo
 echo "Installed Benheim and:"
 echo "  $app"
 echo
 echo "Open Benheim to play. Rerun the installer to update Benheim."
-if [[ -f "$private_diagnostics_source" ]]; then
-  echo "This PRIVATE TEST install includes automatic typed diagnostic sharing."
-fi
+echo "Axiom diagnostics: configured and verified on disk for this DLL."
+echo "Axiom receipt: unverified until a fresh event from this build is received."

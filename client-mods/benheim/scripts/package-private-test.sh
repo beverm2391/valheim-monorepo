@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Produces deliberately secret-bearing private-test installers. The ordinary
-# package-all.sh path never reads these variables and never includes this file.
+# Produces deliberately credential-bearing group installers. No package without
+# configured diagnostics is distributable.
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 dll="$root/src/bin/Release/netstandard2.1/BenheimQoL.dll"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
@@ -11,34 +11,34 @@ dist="$root/dist"
 endpoint="${BENHEIM_AXIOM_ENDPOINT:-https://us-east-1.aws.edge.axiom.co}"
 dataset="${BENHEIM_AXIOM_DATASET:-}"
 token="${BENHEIM_AXIOM_INGEST_TOKEN:-}"
-mac_package="$dist/Benheim-PRIVATE-TEST-macOS-$version.zip"
-windows_package="$dist/Benheim-PRIVATE-TEST-Windows-$version.zip"
-temp_dir="$(mktemp -d)"
-config="$temp_dir/PRIVATE-TEST-DIAGNOSTICS.cfg"
+mac_package="$dist/Benheim-macOS-$version.zip"
+windows_package="$dist/Benheim-Windows-$version.zip"
 complete=0
 
 if repo_root="$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)"; then
-  if [[ -n "$(git -C "$repo_root" status --porcelain --untracked-files=normal)" ]]; then
-    echo "Private-test packages require a clean committed repository tree." >&2
+  if [[ -n "$(git -C "$repo_root" status --porcelain --untracked-files=normal -- client-mods/benheim)" ]]; then
+    echo "Group packages require committed Benheim source." >&2
     exit 1
   fi
   committed_head="$(git -C "$repo_root" rev-parse HEAD)"
   if [[ -n "$source_commit" && "$source_commit" != "$committed_head" ]]; then
-    echo "BENHEIM_QOL_SOURCE_COMMIT does not match the committed repository HEAD." >&2
+    echo "BENHEIM_QOL_SOURCE_COMMIT does not match the committed Benheim source HEAD." >&2
     exit 1
   fi
   source_commit="$committed_head"
 fi
 
 if [[ ! "$source_commit" =~ ^[0-9a-f]{40,64}$ ]]; then
-  echo "Private-test packages require an exact source commit." >&2
+  echo "Group packages require an exact source commit." >&2
   exit 1
 fi
 
+temp_dir="$(mktemp -d)"
+config="$temp_dir/AXIOM-DIAGNOSTICS.cfg"
 cleanup() {
   rm -rf "$temp_dir" \
-    "$dist/Benheim-PRIVATE-TEST-macOS-$version" \
-    "$dist/Benheim-PRIVATE-TEST-Windows-$version"
+    "$dist/Benheim-macOS-$version" \
+    "$dist/Benheim-Windows-$version"
   if [[ "$complete" != "1" ]]; then
     rm -f "$mac_package" "$windows_package"
   fi

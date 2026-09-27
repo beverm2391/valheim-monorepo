@@ -13,7 +13,7 @@ internal static partial class ShortcutOverlay
     private static Toggle? bowFocusToggle;
     private static Toggle? combatShakeToggle;
     private static Toggle? dangerArrivalToggle;
-    private static Toggle? shareDiagnosticsToggle;
+    private static TMP_Text? diagnosticsStatus;
 
     private static void BuildFxConfig(RectTransform parent, NativeTemplates templates)
     {
@@ -94,25 +94,17 @@ internal static partial class ShortcutOverlay
             layoutElement: true);
         diagnosticsExplanation.fontSize = 18f;
         diagnosticsExplanation.color = Color.white;
-        diagnosticsExplanation.text = RemoteDiagnostics.IsConfigured
-            ? "Share Diagnostics sends typed gameplay events, your character name, and a connection ID " +
-                "from this private test build. Sharing starts on. Turning it off preserves your choice. " +
-                "It never sends chat or full logs. Local diagnostics always stay on."
-            : "Remote diagnostics are not configured in this build. Local diagnostics always stay on.";
-
-        shareDiagnosticsToggle = AddConfigToggle(
+        diagnosticsExplanation.text =
+            "Group installs send typed gameplay events, your character name, and a connection ID to Axiom. " +
+            "No chat or full logs are sent. Local diagnostics stay available if delivery fails.";
+        diagnosticsStatus = CreateText(
+            "DiagnosticsDeliveryStatus",
             parent,
-            templates,
-            "Share Diagnostics",
-            DiagnosticsSharingSettings.ShareDiagnostics,
-            enabled =>
-            {
-                DiagnosticsSharingSettings.SetShareDiagnostics(enabled);
-                Diagnostics.Event(
-                    "Diagnostics",
-                    "sharing_setting_changed",
-                    $"enabled={Diagnostics.Bool(enabled)} configured={Diagnostics.Bool(RemoteDiagnostics.IsConfigured)}");
-            });
+            templates.Text,
+            layoutElement: true);
+        diagnosticsStatus.fontSize = 18f;
+        diagnosticsStatus.color = Color.white;
+        RefreshDiagnosticsDeliveryStatus();
 
         RefreshFxConfigInteractivity();
         Diagnostics.Event(
@@ -202,13 +194,21 @@ internal static partial class ShortcutOverlay
             $"master_enabled={Diagnostics.Bool(BenheimFxSettings.MasterEnabled)}");
     }
 
+    private static void RefreshDiagnosticsDeliveryStatus()
+    {
+        if (diagnosticsStatus != null && diagnosticsStatus.text != RemoteDiagnostics.DeliveryStatus)
+        {
+            diagnosticsStatus.text = RemoteDiagnostics.DeliveryStatus;
+        }
+    }
+
     private static void ResetFxConfigState()
     {
         fxMasterToggle = null;
         bowFocusToggle = null;
         combatShakeToggle = null;
         dangerArrivalToggle = null;
-        shareDiagnosticsToggle = null;
+        diagnosticsStatus = null;
         ResetWeatherVisibilityConfigState();
     }
 }

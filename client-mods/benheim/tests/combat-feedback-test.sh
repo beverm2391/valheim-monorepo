@@ -41,7 +41,7 @@ rg -Fq 'internal static bool DangerArrivalEnabled' "$settings"
 test "$(rg -c 'config.Bind\(' "$settings")" -eq 4
 rg -Fq 'Object.Instantiate(templates.Checkbox' "$config_ui"
 rg -Fq 'toggle.SetIsOnWithoutNotify(value)' "$config_ui"
-test "$(rg -c '= AddConfigToggle\(' "$config_ui")" -eq 5
+test "$(rg -c '= AddConfigToggle\(' "$config_ui")" -eq 4
 rg -Fq 'HorizontalLayoutGroup rowLayout' "$config_ui"
 rg -Fq 'TMP_Text toggleLabel = CreateText(' "$config_ui"
 rg -Fq '"FxToggleLabel"' "$config_ui"

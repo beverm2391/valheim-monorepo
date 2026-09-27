@@ -208,16 +208,29 @@ grep -Fq 'install -m 0755 "$launcher_source"' "$root/scripts/install-macos.comma
 
 # Both shareable packages must regenerate from the current managed launchers.
 printf 'test-dll\n' > "$test_root/BenheimQoL.dll"
+fixture_hash="$(shasum -a 256 "$test_root/BenheimQoL.dll" | awk '{print $1}')"
+fixture_config="$test_root/AXIOM-DIAGNOSTICS.cfg"
+printf '%s\n' \
+  'BENHEIM_PRIVATE_DIAGNOSTICS_V1' \
+  'endpoint=https://us-east-1.aws.edge.axiom.co' \
+  'dataset=benheim-diagnostics' \
+  'token=fixture' \
+  "build_id=sha256:$fixture_hash" > "$fixture_config"
+source_commit="$(git -C "$root" rev-parse HEAD)"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
 mac_dist="$test_root/mac-dist"
 windows_dist="$test_root/windows-dist"
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
 BENHEIM_QOL_DIST="$mac_dist" \
 BENHEIM_QOL_SKIP_BUILD=1 \
+BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$fixture_config" \
+BENHEIM_QOL_SOURCE_COMMIT="$source_commit" \
   "$root/scripts/package-macos.sh" >/dev/null
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
 BENHEIM_QOL_DIST="$windows_dist" \
 BENHEIM_QOL_SKIP_BUILD=1 \
+BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$fixture_config" \
+BENHEIM_QOL_SOURCE_COMMIT="$source_commit" \
   "$root/scripts/package-windows.sh" >/dev/null
 unzip -qq "$mac_dist/Benheim-macOS-$version.zip" -d "$test_root/mac-extracted"
 unzip -qq "$windows_dist/Benheim-Windows-$version.zip" -d "$test_root/windows-extracted"

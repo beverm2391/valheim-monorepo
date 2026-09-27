@@ -55,9 +55,8 @@ install_source_build() {
 install_package() {
   local package="$1"
   local entries duplicate_entries package_root roots expected_version
-  local private_package=0
   local entry payload packaged_version installer game_dir installed_dir
-  local packaged_sha installed_sha
+  local packaged_sha installed_sha packaged_config installed_config
 
   [[ -f "$package" ]] || fail "The selected macOS package was not found: $package"
   package="$(cd "$(dirname "$package")" && pwd)/$(basename "$package")"
@@ -73,11 +72,8 @@ install_package() {
 
   if [[ "$package_root" =~ ^Benheim-macOS-([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
     expected_version="${BASH_REMATCH[1]}"
-  elif [[ "$package_root" =~ ^Benheim-PRIVATE-TEST-macOS-([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-    expected_version="${BASH_REMATCH[1]}"
-    private_package=1
   else
-    fail "The selected ZIP does not contain a versioned Benheim macOS package."
+    fail "The selected ZIP is not a configured Benheim group package."
   fi
 
   for required in \
@@ -85,15 +81,13 @@ install_package() {
     "$package_root/BenheimQoL.dll" \
     "$package_root/Install Benheim.command" \
     "$package_root/VERSION" \
+    "$package_root/AXIOM-DIAGNOSTICS.cfg" \
+    "$package_root/SOURCE_COMMIT" \
     "$package_root/check-valheim-stopped.sh" \
     "$package_root/macos-launcher.sh"; do
     grep -Fxq "$required" <<<"$entries" \
       || fail "The selected macOS package is missing: $required"
   done
-  if [[ "$private_package" == "1" ]]; then
-    grep -Fxq "$package_root/PRIVATE-TEST-DIAGNOSTICS.cfg" <<<"$entries" \
-      || fail "The selected private-test package is missing its diagnostics configuration."
-  fi
 
   while IFS= read -r entry; do
     case "$entry" in
@@ -104,9 +98,7 @@ install_package() {
       "$package_root/check-valheim-stopped.sh"|\
       "$package_root/macos-launcher.sh"|\
       "$package_root/SOURCE_COMMIT") ;;
-      "$package_root/PRIVATE-TEST-DIAGNOSTICS.cfg")
-        [[ "$private_package" == "1" ]] \
-          || fail "A public Benheim package cannot contain private diagnostics configuration."
+      "$package_root/AXIOM-DIAGNOSTICS.cfg")
         ;;
       *) fail "The selected macOS package contains an unexpected path: $entry" ;;
     esac
@@ -126,11 +118,9 @@ install_package() {
     [[ -f "$payload/$required_file" && ! -L "$payload/$required_file" ]] \
       || fail "The selected macOS package contains an unsafe file: $required_file"
   done
-  for optional_file in "SOURCE_COMMIT" "PRIVATE-TEST-DIAGNOSTICS.cfg"; do
-    if [[ -e "$payload/$optional_file" ]]; then
-      [[ -f "$payload/$optional_file" && ! -L "$payload/$optional_file" ]] \
-        || fail "The selected macOS package contains an unsafe file: $optional_file"
-    fi
+  for required_file in "SOURCE_COMMIT" "AXIOM-DIAGNOSTICS.cfg"; do
+    [[ -f "$payload/$required_file" && ! -L "$payload/$required_file" ]] \
+      || fail "The selected macOS package contains an unsafe file: $required_file"
   done
   [[ -x "$payload/Install Benheim.command" ]] \
     || fail "The packaged Mac installer is not executable."
@@ -142,6 +132,12 @@ install_package() {
     || fail "The packaged VERSION is invalid."
   [[ "$packaged_version" == "$expected_version" ]] \
     || fail "The package directory and VERSION do not match."
+  packaged_sha="$(shasum -a 256 "$payload/BenheimQoL.dll" | awk '{print $1}')"
+  packaged_config="$payload/AXIOM-DIAGNOSTICS.cfg"
+  [[ "$(sed -n '1p' "$packaged_config")" == "BENHEIM_PRIVATE_DIAGNOSTICS_V1" ]] \
+    || fail "The package diagnostics configuration is invalid."
+  grep -Fxq "build_id=sha256:$packaged_sha" "$packaged_config" \
+    || fail "The package diagnostics configuration does not match its DLL."
 
   installer="$payload/Install Benheim.command"
   env \
@@ -161,13 +157,17 @@ install_package() {
   cmp -s "$payload/BenheimQoL.dll" "$installed_dir/BenheimQoL.dll" \
     || fail "The installed Benheim DLL does not match the selected package."
 
-  packaged_sha="$(shasum -a 256 "$payload/BenheimQoL.dll" | awk '{print $1}')"
   installed_sha="$(shasum -a 256 "$installed_dir/BenheimQoL.dll" | awk '{print $1}')"
   [[ "$packaged_sha" == "$installed_sha" ]]
+  installed_config="$game_dir/BepInEx/config/BenheimPrivateDiagnostics.cfg"
+  cmp -s "$packaged_config" "$installed_config" \
+    || fail "The installed Axiom diagnostics configuration does not match the package."
   printf 'install-local: source=package\n'
   printf 'install-local: version=%s\n' "$packaged_version"
   printf 'install-local: dll_sha256=%s\n' "$installed_sha"
-  printf 'install-local: result=verified\n'
+  printf 'install-local: diagnostics=configured-and-byte-verified\n'
+  printf 'install-local: axiom_receipt=unverified\n'
+  printf 'install-local: result=files-verified; live delivery requires a fresh received event\n'
 }
 
 case "${1:-}" in

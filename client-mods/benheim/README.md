@@ -1,9 +1,9 @@
 # Benheim
 
 Benheim is a curated Valheim gameplay mod for BepInEx. Its current features run
-on the player's computer. Put Away uses Valheim's native chest ownership flow,
-so the current release does not require a server plugin. Our regular group
-must install and run Benheim versions compatible with one another.
+on the player's computer. Our regular group must install and run compatible
+Benheim versions. Group packages include Axiom diagnostics configuration and
+are shared privately by the group operator; there is no public mod release.
 
 ## Install On A Mac
 
@@ -45,8 +45,10 @@ and run its installer again. The installer updates Benheim without removing
 saves, characters, settings, or pocketed item preferences.
 
 Press `Left Shift + B` in game to confirm the installed version and review the
-controls. The Valheim-styled Benheim menu uses Unity UI and Valheim's loaded UI
-templates.
+controls and diagnostics delivery status. An installer verifies the DLL and
+diagnostics configuration on disk. Installation is complete only after a fresh
+event from that build is received in Axiom; the installer cannot establish
+that receipt without running the game.
 
 ## Send A Diagnostic Log
 
@@ -99,38 +101,29 @@ client-mods/benheim/scripts/install-local.sh
 ```
 
 `install-local.sh` builds the DLL and invokes the same Mac installer shipped to
-players. To install one already-built macOS package and verify that its exact
-version and DLL bytes landed, run:
+players. Set `BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE` to a local Axiom
+configuration file whose build ID matches that DLL. To install one
+already-built group package and verify that its exact version, DLL bytes, and
+diagnostics configuration landed, run:
 
 ```bash
 client-mods/benheim/scripts/install-local.sh --package /path/to/Benheim-macOS-X.Y.Z.zip
 ```
 
 Both paths use `client-mods/benheim/scripts/check-valheim-stopped.sh` for the
-same exact-process safety gate. To create the shareable Mac and Windows
-packages, run:
+same exact-process safety gate. To create private Mac and Windows group
+packages, inject a dataset-scoped Axiom ingest token through the process
+environment and run:
 
 ```bash
 client-mods/benheim/scripts/package-all.sh
 ```
 
-`package-all.sh` runs `verify.sh` once, then creates the versioned Mac and
-Windows packages from the same verified Release DLL. It does not install files,
-create a release, or upload either package.
-
-Publish a tested release from a clean local `main` branch that exactly matches
-`origin/main`:
-
-```bash
-client-mods/benheim/scripts/release.sh
-```
-
-The release command:
-
-- runs `verify.sh`;
-- builds both packages from that verified Release DLL;
-- creates a versioned GitHub release; and
-- uploads both packages with stable asset names.
+`package-all.sh` runs `verify.sh` once, then creates both packages from the
+same verified Release DLL. The Benheim source must be committed, but unrelated
+work elsewhere in the shared branch does not block packaging. Packages stay
+local and must be shared only with the intended group. Rotate the ingest token
+if a package leaves that group.
 
 The packages are written under `client-mods/benheim/dist/`. The installer copies
 `BenheimQoL.dll` into:

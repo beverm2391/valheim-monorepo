@@ -33,9 +33,9 @@ grep -Fq 'Valheim started during setup' "$installer"
 grep -Fq 'Copy-Item -LiteralPath $pluginBackup -Destination $pluginPath -Force' "$installer"
 grep -Fq 'Copy-Item -LiteralPath $versionBackup -Destination $versionPath -Force' "$installer"
 grep -Fq "'config\\BenheimPrivateDiagnostics.cfg'" "$installer"
-grep -Fq 'PRIVATE-TEST-DIAGNOSTICS.cfg' "$installer"
+grep -Fq 'AXIOM-DIAGNOSTICS.cfg' "$installer"
 grep -Fq 'Copy-Item -LiteralPath $privateDiagnosticsBackup -Destination $privateDiagnosticsPath -Force' "$installer"
-grep -Fq 'Remove-Item -LiteralPath $privateDiagnosticsPath -Force -ErrorAction SilentlyContinue' "$installer"
+grep -Fq 'Axiom receipt: unverified' "$installer"
 grep -Fq 'Save-DoorstopConfig' "$installer"
 grep -Fq 'Restore-DoorstopConfig' "$installer"
 grep -Fq '. $DoorstopConfigHelpers' "$installer"
@@ -76,9 +76,23 @@ test ! -e "$root/scripts/update-windows.ps1"
 ! grep -Eq 'Update Benheim\.cmd|update-windows\.ps1' "$package_script"
 
 printf 'test-dll\n' > "$test_root/BenheimQoL.dll"
+dll_hash="$(shasum -a 256 "$test_root/BenheimQoL.dll" | awk '{print $1}')"
+config="$test_root/AXIOM-DIAGNOSTICS.cfg"
+printf '%s\n' 'BENHEIM_PRIVATE_DIAGNOSTICS_V1' \
+  'endpoint=https://us-east-1.aws.edge.axiom.co' \
+  'dataset=benheim-diagnostics' 'token=fixture-sentinel' \
+  "build_id=sha256:$dll_hash" > "$config"
+if BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+  BENHEIM_QOL_DIST="$test_root/dist" BENHEIM_QOL_SKIP_BUILD=1 \
+  "$package_script" >/dev/null 2>&1; then
+  echo "Windows packaging accepted missing diagnostics configuration" >&2
+  exit 1
+fi
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
 BENHEIM_QOL_DIST="$test_root/dist" \
 BENHEIM_QOL_SKIP_BUILD=1 \
+BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$config" \
+BENHEIM_QOL_SOURCE_COMMIT="0123456789abcdef0123456789abcdef01234567" \
   "$package_script" >/dev/null
 
 package="$test_root/dist/Benheim-Windows-$version.zip"
@@ -90,8 +104,10 @@ expected_entries="$(printf '%s\n' \
   "Benheim-Windows-$version/VERSION" \
   "Benheim-Windows-$version/install-windows.ps1" \
   "Benheim-Windows-$version/launch-windows.ps1" \
-  "Benheim-Windows-$version/windows-doorstop-config.ps1" | sort)"
+  "Benheim-Windows-$version/windows-doorstop-config.ps1" \
+  "Benheim-Windows-$version/AXIOM-DIAGNOSTICS.cfg" \
+  "Benheim-Windows-$version/SOURCE_COMMIT" | sort)"
 test "$package_entries" = "$expected_entries"
-! unzip -p "$package" | grep -Fq 'BENHEIM_PRIVATE_DIAGNOSTICS_V1'
+grep -Fxq "build_id=sha256:$dll_hash" <(unzip -p "$package" "Benheim-Windows-$version/AXIOM-DIAGNOSTICS.cfg")
 
-echo "Windows vanilla/modded launcher migration and package checks passed"
+echo "Windows vanilla/modded launcher and configured group package checks passed"

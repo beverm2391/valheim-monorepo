@@ -4,6 +4,7 @@ using System.IO;
 using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,12 +17,14 @@ internal static class RemoteDiagnostics
     internal const string PrivateConfigFileName = "BenheimPrivateDiagnostics.cfg";
     private const string ConfigMarker = "BENHEIM_PRIVATE_DIAGNOSTICS_V1";
     private const string Notice =
-        "Benheim is sharing typed gameplay diagnostics, your character name, and a connection ID " +
-        "for this private test. No chat or full logs are sent. Change Share Diagnostics in Left Shift+B.";
+        "Benheim sends typed gameplay diagnostics, your character name, and a connection ID " +
+        "to Axiom for our group. No chat or full logs are sent. Check delivery in Left Shift+B.";
 
     private static AxiomEventSink? sink;
 
     internal static bool IsConfigured => sink != null;
+    internal static string DeliveryStatus => sink?.Status ??
+        "Axiom is not configured. Events remain in local logs; reinstall the group package.";
 
     internal static void Begin(string configRootPath)
     {
@@ -29,44 +32,25 @@ internal static class RemoteDiagnostics
         string path = Path.Combine(configRootPath, PrivateConfigFileName);
         if (TryReadPrivateConfig(path, out AxiomIngestConfig? config) && config != null)
         {
-            sink = new AxiomEventSink(config, DiagnosticsSharingSettings.ClientId);
-            if (DiagnosticsSharingSettings.ShareDiagnostics && DiagnosticsSharingSettings.NoticeShown)
-            {
-                sink.Enable();
-            }
+            sink = new AxiomEventSink(config, DiagnosticsClientSettings.ClientId);
+            sink.Enable();
         }
     }
 
     internal static void Update()
     {
-        if (sink == null || !DiagnosticsSharingSettings.ShareDiagnostics || sink.Enabled)
+        if (sink == null || DiagnosticsClientSettings.NoticeShown)
         {
             return;
         }
 
-        if (!DiagnosticsSharingSettings.NoticeShown)
+        if (Player.m_localPlayer == null || MessageHud.instance == null)
         {
-            if (Player.m_localPlayer == null || MessageHud.instance == null)
-            {
-                return;
-            }
-
-            MessageHud.instance.ShowMessage(MessageHud.MessageType.TopLeft, Notice);
-            DiagnosticsSharingSettings.MarkNoticeShown();
-        }
-
-        sink.Enable();
-    }
-
-    internal static void SetSharingEnabled(bool enabled)
-    {
-        if (!enabled)
-        {
-            sink?.Disable();
             return;
         }
 
-        Update();
+        MessageHud.instance.ShowMessage(MessageHud.MessageType.TopLeft, Notice);
+        DiagnosticsClientSettings.MarkNoticeShown();
     }
 
     internal static void TryEnqueue(DiagnosticEvent diagnosticEvent)
@@ -93,14 +77,14 @@ internal static class RemoteDiagnostics
             FileInfo info = new FileInfo(path);
             if (info.Length <= 0 || info.Length > 4096)
             {
-                Plugin.Log.LogWarning("Benheim private diagnostics config has an invalid size; sharing is disabled.");
+                Plugin.Log.LogWarning("Benheim diagnostics config has an invalid size; Axiom delivery is unavailable.");
                 return false;
             }
 
             string[] lines = File.ReadAllLines(path);
             if (lines.Length != 5 || lines[0] != ConfigMarker)
             {
-                Plugin.Log.LogWarning("Benheim private diagnostics config has an invalid format; sharing is disabled.");
+                Plugin.Log.LogWarning("Benheim diagnostics config has an invalid format; Axiom delivery is unavailable.");
                 return false;
             }
 
@@ -115,10 +99,9 @@ internal static class RemoteDiagnostics
                 !ValidDataset(dataset) ||
                 string.IsNullOrWhiteSpace(token) ||
                 token.Length > 1024 ||
-                string.IsNullOrWhiteSpace(buildId) ||
-                buildId.Length > 128)
+                !BuildIdMatchesLoadedPlugin(buildId))
             {
-                Plugin.Log.LogWarning("Benheim private diagnostics config is invalid; sharing is disabled.");
+                Plugin.Log.LogWarning("Benheim diagnostics config is invalid; Axiom delivery is unavailable.");
                 return false;
             }
 
@@ -128,7 +111,7 @@ internal static class RemoteDiagnostics
         catch (Exception exception)
         {
             Plugin.Log.LogWarning(
-                $"Benheim private diagnostics config could not be read; sharing is disabled ({exception.GetType().Name}).");
+                $"Benheim diagnostics config could not be read; Axiom delivery is unavailable ({exception.GetType().Name}).");
             return false;
         }
     }
@@ -158,6 +141,22 @@ internal static class RemoteDiagnostics
             }
         }
         return true;
+    }
+
+    private static bool BuildIdMatchesLoadedPlugin(string buildId)
+    {
+        if (!buildId.StartsWith("sha256:", StringComparison.Ordinal) || buildId.Length != 71)
+        {
+            return false;
+        }
+
+        using SHA256 sha256 = SHA256.Create();
+        using FileStream plugin = File.OpenRead(typeof(Plugin).Assembly.Location);
+        byte[] hash = sha256.ComputeHash(plugin);
+        return string.Equals(
+            buildId,
+            "sha256:" + BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant(),
+            StringComparison.Ordinal);
     }
 
     private sealed class AxiomIngestConfig
@@ -191,6 +190,8 @@ internal static class RemoteDiagnostics
         private CancellationTokenSource? cancellation;
         private bool overflowLogged;
         private bool oversizeLogged;
+        private DateTime? lastAcceptedUtc;
+        private string? lastFailure;
 
         internal AxiomEventSink(AxiomIngestConfig config, string clientId)
         {
@@ -199,6 +200,31 @@ internal static class RemoteDiagnostics
         }
 
         internal bool Enabled { get; private set; }
+
+        internal string Status
+        {
+            get
+            {
+                lock (gate)
+                {
+                    if (!Enabled)
+                    {
+                        return "Axiom delivery stopped. Events remain in local logs.";
+                    }
+                    if (lastFailure != null)
+                    {
+                        return lastAcceptedUtc.HasValue
+                            ? $"Axiom accepted events at {lastAcceptedUtc.Value:HH:mm:ss} UTC, but some delivery failed ({lastFailure}). Check local logs."
+                            : $"Axiom delivery failed ({lastFailure}). Events remain in local logs.";
+                    }
+                    if (lastAcceptedUtc.HasValue)
+                    {
+                        return $"Axiom accepted events at {lastAcceptedUtc.Value:HH:mm:ss} UTC.";
+                    }
+                    return "Axiom configured; waiting for its first accepted event.";
+                }
+            }
+        }
 
         internal void Enable()
         {
@@ -258,8 +284,9 @@ internal static class RemoteDiagnostics
 
             if (overflow)
             {
+                RecordFailure("queue full");
                 Plugin.Log.LogWarning(
-                    "Benheim private diagnostics queue is full; remote copies are being dropped while local diagnostics continue.");
+                    "Benheim diagnostics queue is full; remote copies are being dropped while local diagnostics continue.");
             }
         }
 
@@ -286,13 +313,18 @@ internal static class RemoteDiagnostics
             }
             catch (OperationCanceledException)
             {
-                // Toggle-off and plugin teardown intentionally abandon queued
-                // remote copies without touching local diagnostics or shutdown.
+                // Plugin teardown abandons queued remote copies without
+                // touching local diagnostics or shutdown.
             }
             catch (Exception exception)
             {
+                RecordFailure(exception.GetType().Name);
+                lock (gate)
+                {
+                    Enabled = false;
+                }
                 Plugin.Log.LogWarning(
-                    $"Benheim private diagnostics stopped after {exception.GetType().Name}; local diagnostics continue.");
+                    $"Benheim Axiom delivery stopped after {exception.GetType().Name}; local diagnostics continue.");
             }
         }
 
@@ -334,8 +366,9 @@ internal static class RemoteDiagnostics
                     if (!oversizeLogged)
                     {
                         oversizeLogged = true;
+                        RecordFailure("oversized event");
                         Plugin.Log.LogWarning(
-                            "Benheim private diagnostics dropped an oversized remote event; local diagnostics continue.");
+                            "Benheim Axiom delivery dropped an oversized event; local diagnostics continue.");
                     }
                     continue;
                 }
@@ -364,11 +397,16 @@ internal static class RemoteDiagnostics
                     .ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
+                    lock (gate)
+                    {
+                        lastAcceptedUtc = DateTime.UtcNow;
+                    }
                     return true;
                 }
 
+                RecordFailure($"HTTP {(int)response.StatusCode}");
                 Plugin.Log.LogWarning(
-                    $"Benheim private diagnostics dropped {batch.Count} remote events after Axiom HTTP {(int)response.StatusCode}; local diagnostics continue.");
+                    $"Benheim Axiom delivery dropped {batch.Count} remote events after HTTP {(int)response.StatusCode}; local diagnostics continue.");
                 return false;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -377,9 +415,18 @@ internal static class RemoteDiagnostics
             }
             catch (Exception exception)
             {
+                RecordFailure(exception.GetType().Name);
                 Plugin.Log.LogWarning(
-                    $"Benheim private diagnostics dropped {batch.Count} remote events after {exception.GetType().Name}; local diagnostics continue.");
+                    $"Benheim Axiom delivery dropped {batch.Count} remote events after {exception.GetType().Name}; local diagnostics continue.");
                 return false;
+            }
+        }
+
+        private void RecordFailure(string reason)
+        {
+            lock (gate)
+            {
+                lastFailure = reason;
             }
         }
 

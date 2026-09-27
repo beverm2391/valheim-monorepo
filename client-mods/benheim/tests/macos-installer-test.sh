@@ -34,6 +34,12 @@ fixture_zip="$test_root/BepInExPack.zip"
 fixture_sha="$(shasum -a 256 "$fixture_zip" | awk '{print $1}')"
 printf 'test-dll\n' > "$test_root/BenheimQoL.dll"
 printf '0.1.34\n' > "$test_root/VERSION"
+private_config_source="$test_root/AXIOM-DIAGNOSTICS.cfg"
+plugin_hash="$(shasum -a 256 "$test_root/BenheimQoL.dll" | awk '{print $1}')"
+printf '%s\n' 'BENHEIM_PRIVATE_DIAGNOSTICS_V1' \
+  'endpoint=https://us-east-1.aws.edge.axiom.co' \
+  'dataset=benheim-diagnostics' 'token=fixture-sentinel' \
+  "build_id=sha256:$plugin_hash" > "$private_config_source"
 
 legacy_app="$app_dir/Benheim QoL.app"
 managed_updater="$app_dir/Update Benheim.app"
@@ -46,7 +52,7 @@ cat > "$managed_updater/Contents/Info.plist" <<'PLIST'
 PLIST
 
 run_installer() {
-  private_diagnostics="${3:-$test_root/no-private-diagnostics.cfg}"
+  private_diagnostics="${3:-$private_config_source}"
   PATH="$mock_bin:$PATH" \
   BENHEIM_QOL_GAME_DIR="$game_dir" \
   BENHEIM_QOL_APP_DIR="$1" \
@@ -79,27 +85,18 @@ grep -Fq 'processing complete' "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL"
 first_plugin_sha="$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 first_launcher_sha="$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
 
-private_config_source="$test_root/PRIVATE-TEST-DIAGNOSTICS.cfg"
 private_config_installed="$game_dir/BepInEx/config/BenheimPrivateDiagnostics.cfg"
-printf '%s\n' \
-  'BENHEIM_PRIVATE_DIAGNOSTICS_V1' \
-  'endpoint=https://us-east-1.aws.edge.axiom.co' \
-  'dataset=benheim-diagnostics' \
-  'token=first-private-sentinel' \
-  'build_id=sha256:first-build' > "$private_config_source"
-run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
 cmp -s "$private_config_source" "$private_config_installed"
 test "$(stat -f '%Lp' "$private_config_installed")" = 600
-
-# A normal public package intentionally removes private-test credentials.
-run_installer "$app_dir" >/dev/null
-test ! -e "$private_config_installed"
-
-# A failure after replacing a private config restores the prior credential file.
-run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
+if run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$test_root/missing.cfg" >/dev/null 2>&1; then
+  echo "installer accepted missing diagnostics configuration" >&2
+  exit 1
+fi
 private_config_previous_sha="$(shasum -a 256 "$private_config_installed" | awk '{print $1}')"
-replacement_private_config="$test_root/Replacement-PRIVATE-TEST-DIAGNOSTICS.cfg"
-sed 's/first-private-sentinel/replacement-private-sentinel/' \
+printf 'new-test-dll\n' > "$test_root/NewBenheimQoL.dll"
+new_hash="$(shasum -a 256 "$test_root/NewBenheimQoL.dll" | awk '{print $1}')"
+replacement_private_config="$test_root/replacement.cfg"
+sed "s/token=fixture-sentinel/token=replacement-sentinel/; s/build_id=sha256:$plugin_hash/build_id=sha256:$new_hash/" \
   "$private_config_source" > "$replacement_private_config"
 
 # A second install converges on the same active plugin and launcher.
@@ -108,7 +105,6 @@ test "$first_plugin_sha" = "$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQo
 test "$first_launcher_sha" = "$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
 
 # A failure after plugin replacement restores both the prior DLL and version.
-printf 'new-test-dll\n' > "$test_root/NewBenheimQoL.dll"
 blocked_app_parent="$test_root/not-a-directory"
 printf 'block launcher directory creation\n' > "$blocked_app_parent"
 if run_installer \
@@ -154,6 +150,8 @@ test ! -e "$root/tests/macos-updater-test.sh"
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
 BENHEIM_QOL_DIST="$test_root/dist" \
 BENHEIM_QOL_SKIP_BUILD=1 \
+BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$private_config_source" \
+BENHEIM_QOL_SOURCE_COMMIT="0123456789abcdef0123456789abcdef01234567" \
   "$root/scripts/package-macos.sh" >/dev/null
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
 package="$test_root/dist/Benheim-macOS-$version.zip"
@@ -164,7 +162,9 @@ expected_entries="$(printf '%s\n' \
   "Benheim-macOS-$version/Install Benheim.command" \
   "Benheim-macOS-$version/VERSION" \
   "Benheim-macOS-$version/check-valheim-stopped.sh" \
-  "Benheim-macOS-$version/macos-launcher.sh" | sort)"
+  "Benheim-macOS-$version/macos-launcher.sh" \
+  "Benheim-macOS-$version/AXIOM-DIAGNOSTICS.cfg" \
+  "Benheim-macOS-$version/SOURCE_COMMIT" | sort)"
 test "$package_entries" = "$expected_entries"
 
 # The local package workflow validates the archive, invokes its shipped
@@ -184,7 +184,7 @@ package_output="$(
 )"
 grep -Fq 'install-local: source=package' <<<"$package_output"
 grep -Fq "install-local: version=$version" <<<"$package_output"
-grep -Fq 'install-local: result=verified' <<<"$package_output"
+grep -Fq 'install-local: diagnostics=configured-and-byte-verified' <<<"$package_output"
 cmp -s \
   "$test_root/BenheimQoL.dll" \
   "$packaged_game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll"

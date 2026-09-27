@@ -6,7 +6,7 @@ $PluginDll = if ($env:BENHEIM_QOL_DLL) { $env:BENHEIM_QOL_DLL } else { Join-Path
 $LauncherSource = Join-Path $ScriptDir 'launch-windows.ps1'
 $DoorstopConfigHelpers = Join-Path $ScriptDir 'windows-doorstop-config.ps1'
 $VersionSource = Join-Path $ScriptDir 'VERSION'
-$PrivateDiagnosticsSource = Join-Path $ScriptDir 'PRIVATE-TEST-DIAGNOSTICS.cfg'
+$PrivateDiagnosticsSource = Join-Path $ScriptDir 'AXIOM-DIAGNOSTICS.cfg'
 $BepInExUrl = if ($env:BENHEIM_QOL_BEPINEX_URL) { $env:BENHEIM_QOL_BEPINEX_URL } else { 'https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip' }
 $BepInExSha256 = if ($env:BENHEIM_QOL_BEPINEX_SHA256) { $env:BENHEIM_QOL_BEPINEX_SHA256.ToLowerInvariant() } else { '5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716' }
 $ShortcutMarker = 'BenheimQoL launcher managed by the BenheimQoL installer'
@@ -131,6 +131,19 @@ function Install-BenheimQoL {
     }
     if (-not (Test-Path -LiteralPath $VersionSource -PathType Leaf)) {
         throw 'The Benheim VERSION file is missing beside the installer.'
+    }
+    if (-not (Test-Path -LiteralPath $PrivateDiagnosticsSource -PathType Leaf)) {
+        throw 'This installer lacks Axiom diagnostics configuration. Ask for a complete group package.'
+    }
+    $diagnosticsLines = @(Get-Content -LiteralPath $PrivateDiagnosticsSource)
+    $dllHash = (Get-FileHash -LiteralPath $PluginDll -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($diagnosticsLines.Count -ne 5 -or
+        $diagnosticsLines[0] -ne 'BENHEIM_PRIVATE_DIAGNOSTICS_V1' -or
+        $diagnosticsLines[1] -notmatch '^endpoint=https://[^/?#]+$' -or
+        $diagnosticsLines[2] -notmatch '^dataset=[A-Za-z0-9_.-]+$' -or
+        $diagnosticsLines[3] -notmatch '^token=.+$' -or
+        $diagnosticsLines[4] -ne "build_id=sha256:$dllHash") {
+        throw 'The Axiom diagnostics configuration is invalid or does not match this Benheim DLL.'
     }
     try {
         [void][version](Get-Content -LiteralPath $VersionSource -Raw).Trim()
@@ -276,16 +289,11 @@ function Install-BenheimQoL {
 
         $privateDiagnosticsTouched = $true
         New-Item -ItemType Directory -Path (Split-Path -Parent $privateDiagnosticsPath) -Force | Out-Null
-        if (Test-Path -LiteralPath $PrivateDiagnosticsSource -PathType Leaf) {
-            $privateDiagnosticsTemp = Join-Path `
-                (Split-Path -Parent $privateDiagnosticsPath) `
-                ('.BenheimPrivateDiagnostics.cfg.' + [guid]::NewGuid().ToString('N'))
-            Copy-Item -LiteralPath $PrivateDiagnosticsSource -Destination $privateDiagnosticsTemp
-            Move-Item -LiteralPath $privateDiagnosticsTemp -Destination $privateDiagnosticsPath -Force
-        }
-        else {
-            Remove-Item -LiteralPath $privateDiagnosticsPath -Force -ErrorAction SilentlyContinue
-        }
+        $privateDiagnosticsTemp = Join-Path `
+            (Split-Path -Parent $privateDiagnosticsPath) `
+            ('.BenheimPrivateDiagnostics.cfg.' + [guid]::NewGuid().ToString('N'))
+        Copy-Item -LiteralPath $PrivateDiagnosticsSource -Destination $privateDiagnosticsTemp
+        Move-Item -LiteralPath $privateDiagnosticsTemp -Destination $privateDiagnosticsPath -Force
 
         $disabledDir = Join-Path $bepInExDir 'disabled\MassFarming'
         Move-LegacyFile `
@@ -322,6 +330,12 @@ function Install-BenheimQoL {
         }
         if ($removeLegacyUpdaterRoot) {
             Move-Item -LiteralPath $legacyUpdaterRoot -Destination $legacyUpdaterRootBackup
+        }
+
+        if ((Get-FileHash -LiteralPath $pluginPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $dllHash -or
+            (Get-FileHash -LiteralPath $privateDiagnosticsPath -Algorithm SHA256).Hash -ne
+            (Get-FileHash -LiteralPath $PrivateDiagnosticsSource -Algorithm SHA256).Hash) {
+            throw 'The installed DLL or Axiom diagnostics configuration differs from the package.'
         }
 
     }
@@ -385,9 +399,8 @@ function Install-BenheimQoL {
     Write-Host 'Open Benheim from your Desktop to play with mods.'
     Write-Host 'Use Steam Play to launch vanilla Valheim.'
     Write-Host 'Rerun this installer to update Benheim.'
-    if (Test-Path -LiteralPath $PrivateDiagnosticsSource -PathType Leaf) {
-        Write-Host 'This PRIVATE TEST install includes automatic typed diagnostic sharing.'
-    }
+    Write-Host 'Axiom diagnostics: configured and verified on disk for this DLL.'
+    Write-Host 'Axiom receipt: unverified until a fresh event from this build is received.'
 }
 
 try {

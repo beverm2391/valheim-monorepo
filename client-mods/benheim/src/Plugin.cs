@@ -24,7 +24,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.107";
+    public const string PluginVersion = "0.1.108";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -38,10 +38,10 @@ public sealed class Plugin : BaseUnityPlugin
         HoeRadiusPreview.Reset();
         LungeRuntime.ResetSession();
         PlayerCombatRuntime.BeginSession();
-        DiagnosticsSharingSettings.Initialize(Config);
+        DiagnosticsClientSettings.Initialize(Config);
         RemoteDiagnostics.Begin(Paths.ConfigPath);
-        DiagnosticsSharingSettings.ApplyLegacyPrivateTestDefault(
-            RemoteDiagnostics.IsConfigured);
+        Diagnostics.Emit(DiagnosticEvent.Create("Diagnostics", "delivery_probe")
+            .String("configuration", RemoteDiagnostics.IsConfigured ? "configured" : "missing"));
         RuntimeFailureCapture.Begin(Paths.BepInExRootPath);
         BenheimTestCommandClient.InitializeConsole();
         DeveloperDiagnosticsRuntime.InitializeConsole();

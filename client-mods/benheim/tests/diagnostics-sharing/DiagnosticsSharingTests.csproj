@@ -12,6 +12,6 @@
       <HintPath>$(BepInExCoreDir)/BepInEx.dll</HintPath>
       <Private>true</Private>
     </Reference>
-    <Compile Include="../../src/Infrastructure/DiagnosticsSharingSettings.cs" Link="DiagnosticsSharingSettings.cs" />
+    <Compile Include="../../src/Infrastructure/DiagnosticsClientSettings.cs" Link="DiagnosticsClientSettings.cs" />
   </ItemGroup>
 </Project>

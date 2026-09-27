@@ -154,7 +154,7 @@ internal sealed class DiagnosticEvent
         return builder.ToString();
     }
 
-    // Private test builds forward the typed gameplay evidence that owns the
+    // Group builds forward the typed gameplay evidence that owns the
     // local line. Keep common selectors in a stable Axiom envelope and place
     // every producer-owned field in the configured map. This prevents new
     // gameplay attributes from expanding the dataset schema.
