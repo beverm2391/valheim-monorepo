@@ -17,12 +17,13 @@ implementation plan.
 - A better viewpoint for tall and intricate work, potentially a flying build
   camera near a workbench. The method is open; easier building is the goal.
 - Clear previews and a way to recover from large accidental placements.
-- Reusable static props and spawnable natural formations from generated
-  locations across every biome through Plains. Survey burial chambers, crypts,
-  frost caves, Hildir sites, the Bog Witch's surrounding set dressing,
-  Stonehenge, large plains pillars, and other useful location pieces. Test
-  whether candidates can persist as build pieces in a disposable world, then
-  inspect the promising ones visually.
+- Reusable static props and spawnable natural formations from across the game.
+  Search generated locations and other game assets for building possibilities
+  we have not thought to ask for. Burial chambers, crypts, frost caves, Hildir
+  sites, the Bog Witch's surrounding set dressing, Stonehenge, and large plains
+  pillars are starting examples, not the survey boundary. Test whether
+  candidates can persist as build pieces in a disposable world, then inspect
+  the promising ones visually.
 - Let useful props become buildable as players discover them in the world,
   preserving exploration as part of building progression.
 
