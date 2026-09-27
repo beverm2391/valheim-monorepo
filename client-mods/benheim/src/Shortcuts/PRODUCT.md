@@ -102,14 +102,8 @@ use it to find controls and passive features.
 - The headshot description must stay aligned with the Archery module's proven
   behavior and remain explicit about collision-time feedback and native
   WeakSpot handling.
-- Configured private-test builds show one notice before remote forwarding
-  starts. The Config tab shows a persistent **Share Diagnostics** toggle, and
-  sharing starts enabled. A one-time migration enables sharing for legacy
-  private-test configurations that still use the earlier disabled default.
-  After the migration, turning off **Share Diagnostics** persists the choice
-  and stops remote forwarding immediately. Public and unconfigured builds
-  receive no remote credentials. Local diagnostics, including
-  `BenheimEvents.ndjson`, remain enabled.
+- The Config tab shows group diagnostics delivery status and the first-run
+  notice described in the [Benheim product contract](../../PRODUCT.md).
 - Extended reach, Rockbreaker, and Cleave descriptions must match their current
   ranges, unlocks, and target behavior.
 

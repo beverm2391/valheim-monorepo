@@ -96,8 +96,8 @@ technical cost.
   The repo-owned developer query command streams these files and can find
   operations that started but did not reach a terminal event. Players do not
   need that command to play.
-- Private-test installers may send typed `DiagnosticEvent` records directly to
-  the configured diagnostics dataset. Each uploaded record identifies the
+- Benheim can send typed `DiagnosticEvent` records directly to the configured
+  diagnostics dataset. Each uploaded record identifies the
   current character name and connection-scoped peer. It also includes a random,
   persisted client ID, a session ID, the mod version, the exact DLL build, and
   the existing operation ID. The remote record keeps identity and common
@@ -110,16 +110,16 @@ technical cost.
   events that use the `fields` map into the same flat result shape.
 
   Benheim must not forward credentials, secrets, tokens, passwords, chat,
-  arbitrary files, or complete BepInEx or Unity logs. A managed private-test
+  arbitrary files, or complete BepInEx or Unity logs. A managed group
   client may convert an actionable BepInEx plugin-load or Unity failure into one
   bounded structured diagnostic record. It does not upload surrounding log
-  lines or replace the original local log. Local NDJSON continues whether
-  sharing succeeds, fails, or is disabled.
-- Private-test diagnostics use one dataset-scoped ingest-only credential for
-  Ben, Johnny, and Ozi. The credential is extractable from those installers.
-  Never publish a private-test installer. Rotate the credential if an installer
-  leaves that group or before any public release. Public packages must contain
-  no diagnostics credential or config.
+  lines or replace the original local log. Local NDJSON continues regardless
+  of remote delivery.
+- Benheim packages are for Ben, Johnny, and Ozi's group; there is no public mod
+  distribution. Group packages include a dataset-scoped ingest-only credential
+  so each managed client sends its structured diagnostics to Axiom. The
+  credential is extractable from the package. Rotate it if a package leaves
+  the group, and never commit it to the repository.
 - `F7` remains the manual way to export the active log for sharing.
 - Make each required client and server component explicit. Active players in
   our regular group must use mutually compatible Benheim versions.
@@ -191,11 +191,6 @@ durability. The review covered repeated use, both assignments of requester and
 current chest owner, simultaneous contention followed by reuse, and exact
 accepted/refunded settlement. The Inventory module owns the remaining
 presentation and performance gates.
-
-Private typed-event delivery works for Benaldson, JayTrain, and GlIzZy.
-Axiom queries can select their events by player, client, session, event, and
-Put Away operation. When remote sharing is unavailable or disabled, local
-readable logs and `BenheimEvents.ndjson` remain available for diagnostics.
 
 ## In Development
 
@@ -281,16 +276,14 @@ The [Developer Diagnostics module](src/DeveloperDiagnostics/PRODUCT.md) owns
 the remaining live tests for the new command families, the snapshots, and the
 watcher.
 
-Configured private-test builds start with sharing enabled, and the first run
-explains what the build shares. A live test still must prove that turning
-sharing off stops remote forwarding while local diagnostics continue. A
-one-time migration enables
-sharing for legacy private-test configurations that still use the earlier
-disabled default. After the migration, the `Share Diagnostics` toggle in
-`Left Shift + B` persists the player's choice and stops remote forwarding
-immediately when turned off. Public and unconfigured builds receive no remote
-credentials. Local diagnostics, including `BenheimEvents.ndjson`, remain
-enabled.
+Every group package must configure Axiom diagnostics, and each installed build
+must demonstrate a fresh received event before its installation is considered
+complete. Managed clients send typed events and bounded actionable failures
+while connected. The first run explains what is sent; the `Left Shift + B`
+menu shows whether Axiom delivery is configured and working. A local setting
+must not silently disable group diagnostics or display sharing as enabled when
+there is no destination. If delivery fails, make the failure visible and keep
+local readable logs and `BenheimEvents.ndjson` available.
 
 Remote schema 2 keeps identity and common selectors at the dataset root and
 duplicates the operation ID there as a root selector. It puts every

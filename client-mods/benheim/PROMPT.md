@@ -143,11 +143,8 @@ bounded startup proof. Quit it cleanly after validation. Do not enter a world. O
 clean startup is the normal gate. Launch again only when an active incident
 requires more evidence.
 
-`release.sh` publishes Benheim only from a clean local `main` that exactly
-matches `origin/main`. It runs `verify.sh`, packages both platforms from that
-build, creates the `benheim-v<version>` GitHub release, and uploads stable
-`Benheim-macOS.zip` and `Benheim-Windows.zip` assets. Release assets are
-distribution artifacts, not an update channel.
+Benheim has no public mod distribution. Do not publish group packages as
+GitHub release assets.
 
 ## Harmony patch groups
 
@@ -210,9 +207,12 @@ Use
 `client-mods/benheim/scripts/query-events.py --help` to stream current or
 archived events, filter fields, or find starts without a terminal event.
 
-Normal packages stay credential-free. Use scoped secrets with
-`client-mods/benheim/scripts/package-private-test.sh`. Rotate its token if an
-archive leaves Ben, Johnny, and Ozi or before public release.
+Every package shared with the group must include working Axiom diagnostics
+configuration. Use scoped secrets with
+`client-mods/benheim/scripts/package-private-test.sh`; never commit the ingest
+credential. Install the exact package while Valheim is closed, then require a
+fresh event from that build in Axiom before calling the installation verified.
+If a package leaves the group, rotate its credential.
 
 ## Client rules
 
