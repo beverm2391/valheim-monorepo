@@ -95,6 +95,7 @@ environment with your secret manager:
 | Create or delete a Hetzner VM without `HCLOUD_CONTEXT` | `HETZNER_TOKEN` or `HCLOUD_TOKEN` |
 | Install or apply server configuration | `VALHEIM_PASSWORD` |
 | Install with R2 enabled | `VALHEIM_R2_ACCESS_KEY_ID` and `VALHEIM_R2_SECRET_ACCESS_KEY` |
+| Apply diagnostics routing | `BENHEIM_AXIOM_INGEST_TOKEN` and `INFRA_AXIOM_INGEST_TOKEN` |
 
 Use your secret manager to inject only the variables required by each command.
 Do not export credentials into shell startup files or add them to `server.env`.

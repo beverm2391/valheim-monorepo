@@ -1,5 +1,5 @@
 [Unit]
-Description=Forward actionable Valheim failures to Axiom
+Description=Route actionable Valheim and host failures to Axiom
 Wants=network-online.target
 After=network-online.target
 Before=valheim.service
