@@ -90,6 +90,10 @@ the same durability contract and pass the stale-payload regression proof.
 
 ## In Development
 
+- A failure while scanning nearby containers after the lease is granted can
+  leave Put Away stuck as already in progress. Before any deposit begins, it
+  must stop visibly and release its lease; recovery after a deposit begins must
+  preserve exact item settlement.
 - Plain `R` swaps between the items in hotbar slots `1` and `2` equipped
   together and the item in slot `3` equipped alone.
 - Loadout swap uses Valheim's normal equip and unequip actions. It does nothing
