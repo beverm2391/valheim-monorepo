@@ -4,10 +4,14 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.107**.
+Installed on Ben's Mac: **0.1.109**.
 
 ## Next play session
 
+- **Put Away recovery:** After taking items from chests and placing a new chest,
+  use `Left Shift+P` with a chest placement preview active, then use it again.
+  Both attempts should finish without getting stuck on “already in progress.”
+  Log out, rejoin, and confirm Put Away still works.
 - **Blizzard Visibility:** During a native Mountain snowstorm, toggle Blizzard
   Visibility in `Left Shift+B` > **Benheim Config**. On should keep the native
   storm's snow, wind, audio, cold, and freezing while making distant terrain
