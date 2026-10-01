@@ -119,7 +119,7 @@ internal static partial class ShortcutOverlay
                 new Entry("Cleave", "After level 25, axe hits can add one half-damage hit to the same tree or log"),
                 new Entry(
                     "Finewood",
-                    "Native Birch, Oak, and Pine logs convert each final ordinary Wood drop to Finewood without changing each log's native item count or Valheim's spawn path"),
+                    "Native Birch and Oak logs convert each final ordinary Wood drop to Finewood; native Pine logs convert it to Core Wood. Each log keeps its native item count and Valheim's spawn path"),
             },
             "The compatible client that owns the log converts its drops, including when another compatible client attacks. Native Finewood, Core Wood, and other non-Wood drops, other logs, standing-tree drops, stumps, damage-type conversions, and unrelated destruction stay native."),
         new(
