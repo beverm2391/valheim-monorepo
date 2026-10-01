@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InventorySourceRoot Condition="'$(InventorySourceRoot)' == ''">../../src/Inventory</InventorySourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(InventorySourceRoot)/QuickStack.cs" Link="QuickStack.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackBatchPipeline.cs" Link="QuickStackBatchPipeline.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackBatchScheduler.cs" Link="QuickStackBatchScheduler.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackCompletion.cs" Link="QuickStackCompletion.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackLeaseValidation.cs" Link="QuickStackLeaseValidation.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackLocation.cs" Link="QuickStackLocation.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackMessages.cs" Link="QuickStackMessages.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackOperation.cs" Link="QuickStackOperation.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackSummary.cs" Link="QuickStackSummary.cs" />
+    <Compile Include="$(InventorySourceRoot)/QuickStackTransfer.cs" Link="QuickStackTransfer.cs" />
+    <Compile Include="$(InventorySourceRoot)/PutAwayLeaseClient.cs" Link="PutAwayLeaseClient.cs" />
+    <Compile Include="$(InventorySourceRoot)/PutAwayLeaseProtocol.cs" Link="PutAwayLeaseProtocol.cs" />
+    <Compile Include="$(InventorySourceRoot)/InventoryTransactionRuntime.cs" Link="InventoryTransactionRuntime.cs" />
+    <Compile Include="../../../../shared/benheim-inventory-protocol/InventoryTransactionDiagnostics.cs" Link="InventoryTransactionDiagnostics.cs" />
+    <Compile Include="../../../../shared/benheim-inventory-protocol/InventoryTransactionSettlement.cs" Link="InventoryTransactionSettlement.cs" />
+    <Compile Include="../../../../shared/benheim-inventory-protocol/PutAwayStageTiming.cs" Link="PutAwayStageTiming.cs" />
+  </ItemGroup>
+</Project>

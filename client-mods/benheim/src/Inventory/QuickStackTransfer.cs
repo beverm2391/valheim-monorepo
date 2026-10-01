@@ -3,8 +3,8 @@ using BenheimInventoryProtocol;
 
 namespace BenheimQoL.InventoryFeature;
 
-// Owns Put Away's item/chest selection and the accounting around Valheim's
-// native StackAll mutation. QuickStack remains the request/response lifecycle.
+// Selects candidates from local chest observations. Only the owner-authoritative
+// transaction protocol may reserve items or mutate a chest.
 internal static class QuickStackTransfer
 {
     internal static bool HasLaterCandidateDependency(
@@ -24,13 +24,14 @@ internal static class QuickStackTransfer
         for (int index = nextContainerIndex; index < containers.Count; index++)
         {
             Container container = containers[index];
-            if (!container)
+            Inventory? target = container ? container.GetInventory() : null;
+            if (target == null)
             {
                 continue;
             }
 
             HashSet<string> targetItemNames = new HashSet<string>();
-            foreach (ItemDrop.ItemData item in container.GetInventory().GetAllItems())
+            foreach (ItemDrop.ItemData item in target.GetAllItems())
             {
                 if (item != null && item.m_stack > 0)
                 {
@@ -70,8 +71,11 @@ internal static class QuickStackTransfer
             bool foundRoom = false;
             foreach (Container container in containers)
             {
-                Inventory target = container.GetInventory();
-                if (!target.ContainsItemByName(item.m_shared.m_name))
+                // Container.Awake can leave m_inventory null when its ZNetView
+                // has no ZDO, including an active chest placement preview. A
+                // live Unity component is not inventory readiness.
+                Inventory? target = container ? container.GetInventory() : null;
+                if (target == null || !target.ContainsItemByName(item.m_shared.m_name))
                 {
                     continue;
                 }
@@ -83,7 +87,7 @@ internal static class QuickStackTransfer
                 }
 
                 foundRoom = true;
-                seen.Add(container);
+                seen.Add(container!);
             }
 
             if (!foundMatch)
@@ -110,8 +114,13 @@ internal static class QuickStackTransfer
 
     internal static List<DepositCandidate> FindCandidates(Player player, Container container)
     {
-        Inventory target = container.GetInventory();
         List<DepositCandidate> candidates = new List<DepositCandidate>();
+        Inventory? target = container ? container.GetInventory() : null;
+        if (target == null)
+        {
+            return candidates;
+        }
+
         foreach (ItemDrop.ItemData item in player.GetInventory().GetAllItemsInGridOrder())
         {
             if (item != null

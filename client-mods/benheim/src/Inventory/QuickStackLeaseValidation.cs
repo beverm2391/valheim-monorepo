@@ -1,5 +1,6 @@
 using BenheimInventoryProtocol;
 using BenheimQoL.Infrastructure;
+using System;
 using System.Collections.Generic;
 
 namespace BenheimQoL.InventoryFeature;
@@ -44,10 +45,23 @@ internal static partial class QuickStack
             "Inventory",
             "quick_stack_request_container",
             $"container=\"{container.gameObject.name}\" items={candidates.Count}");
-        bool waitForSettlement = QuickStackTransfer.HasLaterCandidateDependency(
-            candidates,
-            operation.Containers,
-            operation.NextContainerIndex);
+        bool waitForSettlement;
+        try
+        {
+            waitForSettlement = QuickStackTransfer.HasLaterCandidateDependency(
+                candidates,
+                operation.Containers,
+                operation.NextContainerIndex);
+        }
+        catch (Exception exception)
+        {
+            // No reservation for this chest has begun. Earlier deposits may
+            // still be authoritative and must settle before releasing the lease.
+            CancelBeforeReservation(operation, "container_dependency_scan_failed", ScanFailedMessage);
+            ReportScanFailure(operation.OperationId, "container_dependency_scan_failed", exception,
+                operation.Pipeline.InFlightCount);
+            return;
+        }
         QuickStackDepositContinuation continuation = new QuickStackDepositContinuation(
             waitForSettlement,
             () => ContinueScheduling(operation));
@@ -84,7 +98,8 @@ internal static partial class QuickStack
 
     private static void CancelBeforeReservation(
         QuickStackOperation operation,
-        string reason)
+        string reason,
+        string message = "Put Away stopped — player compatibility changed")
     {
         if (activeOperation != operation)
         {
@@ -99,6 +114,6 @@ internal static partial class QuickStack
             "Inventory",
             "quick_stack_scheduling_stopped",
             $"reason={reason} in_flight={operation.Pipeline.InFlightCount}");
-        TopLeftFeedbackHud.ShowTransient("Put Away stopped — player compatibility changed");
+        TopLeftFeedbackHud.ShowTransient(message);
     }
 }

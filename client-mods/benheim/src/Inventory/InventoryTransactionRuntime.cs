@@ -28,10 +28,23 @@ internal static class InventoryTransactionRuntime
         InventoryTransactions.Update();
     }
 
+    [HarmonyPatch(typeof(ZNet), nameof(ZNet.Shutdown))]
+    [HarmonyPrefix]
+    private static void BeforeNetworkShutdown()
+    {
+        // Logout shuts networking down before Unity destroys ZNet. Drop safe
+        // predeposit state at that boundary, while the server RPC still exists.
+        QuickStack.ResetState();
+    }
+
     [HarmonyPatch(typeof(ZNet), "OnDestroy")]
     [HarmonyPrefix]
     private static void BeforeNetworkDestroy()
     {
+        // Cover direct destruction too, even if transaction initialization did
+        // not run. Check the unsettled-deposit guard BEFORE
+        // Shutdown clears protocol state; reconnect recovery is unsupported.
+        QuickStack.ResetState();
         if (!initialized)
         {
             return;

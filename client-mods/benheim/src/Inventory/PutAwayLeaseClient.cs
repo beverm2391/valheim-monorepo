@@ -278,12 +278,20 @@ internal static class PutAwayLeaseClient
             // Safe failure: the server retains the lease until peer disconnect.
         }
 
-        Diagnostics.Emit(
-            DiagnosticEvent.Create("Inventory", "quick_stack_lease_released")
-                .String("operation_id", operationId)
-                .String("operation_phase", "lease_release")
-                .String("reason", reason)
-                .Boolean("sent", sent));
+        try
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("Inventory", "quick_stack_lease_released")
+                    .String("operation_id", operationId)
+                    .String("operation_phase", "lease_release")
+                    .String("reason", reason)
+                    .Boolean("sent", sent));
+        }
+        catch
+        {
+            // Release already happened. A failing diagnostic sink must not
+            // prevent the batch terminal or the player's failure feedback.
+        }
     }
 
     private static void EmitResult(string operationId, string outcome, string reason)

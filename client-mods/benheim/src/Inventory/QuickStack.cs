@@ -9,6 +9,8 @@ namespace BenheimQoL.InventoryFeature;
 internal static partial class QuickStack
 {
     internal const float Radius = 30f;
+    private const string ScanFailedMessage =
+        "Put Away stopped — couldn't scan nearby containers. Try again.";
 
     private static QuickStackStartRequest? pendingStart;
     private static QuickStackOperation? activeOperation;
@@ -68,9 +70,34 @@ internal static partial class QuickStack
     {
         Player player = start.Player;
         long scanMatchStartedAt = PutAwayStageTiming.Start();
-        List<Container> containers = NearbyContainerIndex.FindAccessibleContainers(player, Radius, start.CurrentContainer);
+        List<Container> containers;
+        QuickStackEligibility eligibility;
+        try
+        {
+            Diagnostics.Emit(
+                DiagnosticEvent.Create("Inventory", "quick_stack_lease_entered")
+                    .String("operation_id", operationId)
+                    .String("operation_phase", "mutation_allowed"));
+            containers = NearbyContainerIndex.FindAccessibleContainers(player, Radius, start.CurrentContainer);
+            Diagnostics.Event("Inventory", "quick_stack_scan", $"containers={containers.Count}");
+            eligibility = containers.Count == 0
+                ? new QuickStackEligibility()
+                : QuickStackTransfer.FindEligibleContainers(player, containers);
+            Diagnostics.Event(
+                "Inventory",
+                "quick_stack_eligibility",
+                $"eligible_containers={eligibility.Containers.Count} pocketed={eligibility.SkippedPocketed} " +
+                $"no_match={eligibility.SkippedNoMatchingContainer} full={eligibility.SkippedFull}");
+        }
+        catch (Exception exception)
+        {
+            // This boundary is deliberately before operation creation and every
+            // reservation. Later failures must drain the pipeline, never reset it.
+            FinishScanFailure(operationId, batchStartedAt, scanMatchStartedAt, start, exception);
+            return;
+        }
+
         double scanMatchDurationMs = PutAwayStageTiming.ElapsedMilliseconds(scanMatchStartedAt);
-        Diagnostics.Event("Inventory", "quick_stack_scan", $"containers={containers.Count}");
         if (containers.Count == 0)
         {
             FinishWithNoContainers(
@@ -82,14 +109,6 @@ internal static partial class QuickStack
             return;
         }
 
-        scanMatchStartedAt = PutAwayStageTiming.Start();
-        QuickStackEligibility eligibility = QuickStackTransfer.FindEligibleContainers(player, containers);
-        scanMatchDurationMs += PutAwayStageTiming.ElapsedMilliseconds(scanMatchStartedAt);
-        Diagnostics.Event(
-            "Inventory",
-            "quick_stack_eligibility",
-            $"eligible_containers={eligibility.Containers.Count} pocketed={eligibility.SkippedPocketed} " +
-            $"no_match={eligibility.SkippedNoMatchingContainer} full={eligibility.SkippedFull}");
         if (eligibility.Containers.Count == 0)
         {
             FinishWithNoEligibleContainers(
@@ -222,11 +241,9 @@ internal static partial class QuickStack
             // Reservations already handed to the transaction protocol remain
             // authoritative. Stop issuing new work, then keep the lease until
             // every existing ticket settles.
-            operation.Pipeline.StopScheduling("cancelled", "container_scheduling_failed");
-            Diagnostics.Event(
-                "Inventory",
-                "quick_stack_scheduling_failed",
-                $"exception={exception.GetType().Name} in_flight={operation.Pipeline.InFlightCount}");
+            CancelBeforeReservation(operation, "container_scheduling_failed", ScanFailedMessage);
+            ReportScanFailure(operation.OperationId, "container_scheduling_failed", exception,
+                operation.Pipeline.InFlightCount);
         }
     }
 
@@ -342,10 +359,6 @@ internal static partial class QuickStack
             return;
         }
 
-        Diagnostics.Emit(
-            DiagnosticEvent.Create("Inventory", "quick_stack_lease_entered")
-                .String("operation_id", result.OperationId)
-                .String("operation_phase", "mutation_allowed"));
         long batchStartedAt = PutAwayStageTiming.Start();
         InventoryTransactions.BatchStarted(result.OperationId);
         BeginAfterLeaseGranted(result.OperationId, batchStartedAt, start);

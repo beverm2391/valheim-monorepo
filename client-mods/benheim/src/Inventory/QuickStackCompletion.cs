@@ -1,3 +1,4 @@
+using System;
 using BenheimInventoryProtocol;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
@@ -6,6 +7,52 @@ namespace BenheimQoL.InventoryFeature;
 
 internal static partial class QuickStack
 {
+    private static void FinishScanFailure(
+        string operationId,
+        long batchStartedAt,
+        long scanStartedAt,
+        QuickStackStartRequest start,
+        Exception exception)
+    {
+        // The initial scan has no operation and no reserved items. Complete its
+        // own lifecycle directly; ResetState cannot emit this batch's terminal.
+        PutAwayLeaseClient.Release("container_scan_failed");
+        InventoryTransactions.BatchFinished(
+            operationId,
+            "cancelled",
+            "container_scan_failed",
+            acceptedCount: 0,
+            PutAwayStageTiming.ElapsedMilliseconds(batchStartedAt),
+            PutAwayStageTiming.ElapsedMilliseconds(scanStartedAt));
+        try
+        {
+            QuickStackFeedback.ShowDetailedResult(start.Player, start.InventoryWasOpen, ScanFailedMessage);
+        }
+        finally
+        {
+            ReportScanFailure(operationId, "container_scan_failed", exception, inFlightCount: 0);
+        }
+    }
+
+    private static void ReportScanFailure(
+        string operationId,
+        string reason,
+        Exception exception,
+        int inFlightCount)
+    {
+        // Use the protocol's best-effort typed sink so evidence cannot block
+        // transaction settlement or retain the lease.
+        InventoryTransactions.Emit(
+            InventoryTransactionDiagnosticEvent.Create(
+                    "put_away_scan_failed", "requester", InventoryTransactionDiagnosticLevel.Warning)
+                .Code("operation_id", operationId)
+                .Code("operation_phase", "scan")
+                .Code("reason", reason)
+                .Code("exception_type", exception.GetType().Name)
+                .Integer("in_flight", inFlightCount));
+        Plugin.Log.LogError($"Put Away scan failed ({reason}): {exception}");
+    }
+
     private static void Finish(
         QuickStackOperation operation,
         QuickStackBatchTerminal terminal)
