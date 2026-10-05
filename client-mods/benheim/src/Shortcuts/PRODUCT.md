@@ -35,6 +35,10 @@ use it to find controls and passive features.
 
 ## In Development
 
+- The Controls tab lists `F8` for the [Spawn Protection
+  Overlay](../SpawnProtection/PRODUCT.md). Benheim Config contains its checkbox,
+  and native-binding warnings include its fixed shortcut. That module owns the
+  overlay's behavior and shared key/menu state.
 - The Affinities section explains eligible weapons, station requirements,
   resource costs, persistent item behavior, and each affinity's benefits and
   tradeoffs. It shows the exact controls and numerical effects defined by
@@ -106,8 +110,3 @@ use it to find controls and passive features.
   notice described in the [Benheim product contract](../../PRODUCT.md).
 - Extended reach, Rockbreaker, and Cleave descriptions must match their current
   ranges, unlocks, and target behavior.
-
-## Later
-
-- Let players configure Benheim shortcut keys. Do not add a general binding
-  framework until a feature needs it.

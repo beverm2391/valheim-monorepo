@@ -163,6 +163,7 @@ technical cost.
 | [Archery](src/Archery/PRODUCT.md) | Global arrow headshots and collision-time feedback. |
 | [Farming](src/Farming/PRODUCT.md) | Mass harvesting and Cultivator grid planting. |
 | [Spawning](src/Spawning/PRODUCT.md) | Adjust spawn opportunities for selected native creatures. |
+| [Spawn Protection Overlay](src/SpawnProtection/PRODUCT.md) | Show nearby base pieces' spawn-suppression coverage while building. |
 | [Enemy Tiers](src/EnemyTiers/PRODUCT.md) | Extend native stars and creature behavior with coherent mechanical and AI variation. |
 | [Affinities](src/Affinities/PRODUCT.md) | Specialize existing weapons with new combat actions and persistent tradeoffs. |
 | [Weapon Rhythm](src/WeaponRhythm/PRODUCT.md) | Reward weapon mastery through timing, charge, cadence, spacing, and existing animations. |
