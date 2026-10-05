@@ -18,6 +18,7 @@ internal static class SpawnProtectionOverlay
     private static readonly List<HorizontalCoverage.Circle> Circles = new();
     private static GameObject? root;
     private static GameObject? segmentPrefab;
+    private static Material? markerMaterial;
     private static int terrainMask;
     private static float refreshAt;
     private static float drawAt;
@@ -67,13 +68,22 @@ internal static class SpawnProtectionOverlay
         {
             // Loaded 1.0.16 inspection: piece_workbench/AreaMarker, mask 2048;
             // Circle_section has only Transform/MeshFilter/MeshRenderer and an
-            // Unlit/Color shared material. Retain its native material and scale.
+            // Unlit/Color material with _Color. Retain its shader and scale;
+            // recolor one owned material shared exclusively by our clones.
             GameObject workbench = ZNetScene.instance.GetPrefab("piece_workbench");
             CircleProjector? projector = workbench != null
                 ? workbench.GetComponentInChildren<CircleProjector>(includeInactive: true) : null;
             segmentPrefab = projector?.m_prefab;
             if (segmentPrefab == null || segmentPrefab.GetComponent<Renderer>() == null || projector!.m_mask.value == 0)
                 throw new InvalidOperationException("Native workbench range marker is unavailable.");
+            Material nativeMaterial = segmentPrefab.GetComponent<Renderer>().sharedMaterial;
+            if (nativeMaterial == null || !nativeMaterial.HasProperty("_Color"))
+                throw new InvalidOperationException("Native workbench marker color is unavailable.");
+            markerMaterial = new Material(nativeMaterial)
+            {
+                name = "BenheimSpawnProtectionGreen",
+                color = Color.green
+            };
             terrainMask = projector.m_mask.value;
             root = new GameObject("BenheimSpawnProtectionOverlay");
             Enabled = true;
@@ -93,6 +103,8 @@ internal static class SpawnProtectionOverlay
         // Hide synchronously before deferred Destroy; toggling again in this
         // frame cannot leave an old boundary visible.
         if (root != null) { root.SetActive(false); Object.Destroy(root); }
+        if (markerMaterial != null) Object.Destroy(markerMaterial);
+        markerMaterial = null;
         root = null;
         segmentPrefab = null;
         Rings.Clear();
@@ -140,7 +152,10 @@ internal static class SpawnProtectionOverlay
                 ring = new Ring(count, position.y);
                 Rings[id] = ring;
                 for (int i = 0; i < count; i++)
+                {
                     ring.Segments[i] = Object.Instantiate(segmentPrefab!, root!.transform);
+                    ring.Segments[i].GetComponent<Renderer>().sharedMaterial = markerMaterial;
+                }
             }
             ring.Height = position.y;
         }
@@ -192,7 +207,7 @@ internal static class SpawnProtectionOverlay
     {
         Diagnostics.Emit(DiagnosticEvent.Create("SpawnProtection", "overlay_state")
             .String("result", result).String("source", source).String("reason", reason)
-            .Boolean("enabled", Enabled).Integer("areas", Rings.Count));
+            .Boolean("enabled", Enabled).Integer("areas", Rings.Count).String("color", "bright_green"));
     }
 
     private sealed class Ring

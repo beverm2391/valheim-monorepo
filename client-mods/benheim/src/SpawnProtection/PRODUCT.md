@@ -4,6 +4,11 @@ Show nearby base pieces' spawn-suppression coverage so players can find gaps
 while building. Start with ESP's existing terrain-following rings and combined
 horizontal boundary; height-aware coverage can be refined later.
 
+## Current Behavior
+
+- Ben accepted the bright-green rings' appearance in the local Lab preview.
+  Installed-menu and physical-control acceptance remain open.
+
 ## In Development
 
 - `F8` shows or hides the overlay during gameplay. The **Spawn protection
@@ -15,6 +20,8 @@ horizontal boundary; height-aware coverage can be refined later.
   workbenches, fires, and other pieces that carry that effect. Terrain-following
   rings hide sections inside another area's horizontal circle, exposing the
   combined boundary.
+- Spawn-coverage rings are bright green so players can distinguish them from
+  Valheim's native workbench range markers.
 - This first version shows horizontal radius coverage. It does not promise an
   exact three-dimensional boundary on hills or around elevated pieces.
 - The overlay is a local visual aid. It changes no spawn rules, server behavior,
