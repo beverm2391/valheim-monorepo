@@ -4,10 +4,17 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.109**.
+Installed on Ben's Mac: **0.1.110**.
 
 ## Next play session
 
+- **Spawn protection view:** At a base, press `F8` and use **Spawn protection
+  overlay** in `Left Shift+B` > **Benheim Config**. Both should control the same
+  plain green rings and grey `[no_spawn]` indicator beneath minimap danger.
+  The view should start off in a fresh session. Walk across a protection
+  boundary: the indicator should appear inside and disappear outside. Check
+  that toggling the view off clears both visuals immediately and that enabling
+  it around a busy base keeps gameplay responsive.
 - **Put Away recovery:** After taking items from chests and placing a new chest,
   use `Left Shift+P` with a chest placement preview active, then use it again.
   Both attempts should finish without getting stuck on “already in progress.”
