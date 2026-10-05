@@ -49,7 +49,7 @@ internal static partial class ShortcutOverlay
             "Building",
             new Color(1f, 0.58f, 0.36f, 1f),
             new[] { new Entry("F8", "Show or hide the spawn protection overlay") },
-            "The same checkbox is in Benheim Config. The horizontal preview starts off each game session."),
+            "The same checkbox is in Benheim Config. Grey [no_spawn] beneath the minimap marks protection at your position while this view is on. The horizontal preview starts off each game session."),
         new(
             "Farming",
             FeaturesAccent,

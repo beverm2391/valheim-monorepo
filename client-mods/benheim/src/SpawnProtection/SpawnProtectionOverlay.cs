@@ -50,6 +50,7 @@ internal static class SpawnProtectionOverlay
             {
                 drawAt = Time.unscaledTime + 0.1f;
                 Draw();
+                SpawnProtectionMinimapIndicator.Update();
             }
         }
         catch (Exception exception) { Fail(exception, "update"); }
@@ -89,6 +90,7 @@ internal static class SpawnProtectionOverlay
             Enabled = true;
             Refresh(Player.m_localPlayer.transform.position);
             Draw();
+            SpawnProtectionMinimapIndicator.Update();
             refreshAt = Time.unscaledTime + 0.5f;
             drawAt = Time.unscaledTime + 0.1f;
             Emit("enabled", source, "horizontal_preview");
@@ -100,6 +102,7 @@ internal static class SpawnProtectionOverlay
     {
         bool wasEnabled = Enabled;
         Enabled = false;
+        SpawnProtectionMinimapIndicator.Reset();
         // Hide synchronously before deferred Destroy; toggling again in this
         // frame cannot leave an old boundary visible.
         if (root != null) { root.SetActive(false); Object.Destroy(root); }

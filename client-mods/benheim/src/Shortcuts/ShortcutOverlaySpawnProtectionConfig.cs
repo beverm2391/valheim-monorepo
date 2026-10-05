@@ -15,7 +15,7 @@ internal static partial class ShortcutOverlay
         TMP_Text explanation = CreateText("SpawnProtectionExplanation", parent, templates.Text, layoutElement: true);
         explanation.fontSize = 18f;
         explanation.color = Color.white;
-        explanation.text = "F8 shows nearby base pieces' combined spawn protection boundary. This is a horizontal preview, not exact coverage on hills or around elevated pieces. Starts off each game session.";
+        explanation.text = "F8 shows nearby base pieces' combined spawn protection boundary and grey [no_spawn] beneath the minimap when your position is protected. The rings are a horizontal preview, not exact coverage on hills or around elevated pieces. Starts off each game session.";
         spawnProtectionToggle = AddConfigToggle(parent, templates, "Spawn protection overlay", SpawnProtectionOverlay.Enabled,
             enabled =>
             {
