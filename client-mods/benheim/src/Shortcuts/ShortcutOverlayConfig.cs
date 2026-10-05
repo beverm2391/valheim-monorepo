@@ -85,6 +85,7 @@ internal static partial class ShortcutOverlay
             "banner, stinger, and brief edge vignette.";
 
         BuildWeatherVisibilityConfig(parent, templates);
+        BuildSpawnProtectionConfig(parent, templates);
 
         AddSectionHeading(parent, "Diagnostics", ConfigAccent, templates.Text);
         TMP_Text diagnosticsExplanation = CreateText(
@@ -210,5 +211,6 @@ internal static partial class ShortcutOverlay
         dangerArrivalToggle = null;
         diagnosticsStatus = null;
         ResetWeatherVisibilityConfigState();
+        spawnProtectionToggle = null;
     }
 }

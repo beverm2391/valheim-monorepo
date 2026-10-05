@@ -15,6 +15,7 @@ using BenheimQoL.ShipSprint;
 using BenheimQoL.WorldLabels;
 using BenheimQoL.Affinities;
 using BenheimQoL.WeatherVisibility;
+using BenheimQoL.SpawnProtection;
 using UnityEngine;
 
 namespace BenheimQoL;
@@ -36,6 +37,7 @@ public sealed class Plugin : BaseUnityPlugin
         Diagnostics.BeginSession(Paths.BepInExRootPath, PluginVersion);
         FarmingGridPicker.Reset();
         HoeRadiusPreview.Reset();
+        SpawnProtectionOverlay.Reset("session_start");
         LungeRuntime.ResetSession();
         PlayerCombatRuntime.BeginSession();
         DiagnosticsClientSettings.Initialize(Config);
@@ -99,6 +101,7 @@ public sealed class Plugin : BaseUnityPlugin
         RemoteDiagnostics.Update();
         RuntimeFailureCapture.Update();
         ShortcutOverlay.Update();
+        SpawnProtectionOverlay.Update();
         DiagnosticLogExporter.Update();
         DeveloperDiagnosticsRuntime.Update();
         if (IsPatchGroupAvailable(typeof(FarmingGridPicker)))
@@ -130,6 +133,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void OnDestroy()
     {
         WorldLabelRuntime.Reset();
+        SpawnProtectionOverlay.Reset("plugin_teardown");
         ShipSprintRuntime.Reset("plugin_teardown");
         PlantingPreview.DestroyGhosts();
         HoeRadiusPreview.Reset();

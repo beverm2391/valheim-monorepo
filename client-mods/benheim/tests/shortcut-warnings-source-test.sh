@@ -23,6 +23,7 @@ grep -Fq 'new("R", "Swap hotbar loadout", "<Keyboard>/r", ignoredNativeAction: "
 grep -Fq 'string.Equals(native.Key, binding.IgnoredNativeAction' "$warnings"
 grep -Fq 'new("Left Shift + B", "Open the Benheim menu", "<Keyboard>/b")' "$catalog"
 grep -Fq 'new("Left Shift + P", "Put matching items away", "<Keyboard>/p")' "$catalog"
+grep -Fq 'new("F8", "Show or hide the spawn protection overlay", "<Keyboard>/f8")' "$catalog"
 if rg -n 'new\("(P|Backspace|Delete|Enter)"' "$catalog"; then
   printf 'inventory-only shortcuts must not produce gameplay binding warnings\n' >&2
   exit 1

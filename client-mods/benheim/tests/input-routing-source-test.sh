@@ -16,7 +16,8 @@ expected_raw_input_files="$(printf '%s\n' \
   'src/Inventory/LoadoutSwap.cs' \
   'src/Inventory/SplitStackPatches.cs' \
   'src/Shortcuts/NativeConsoleShortcut.cs' \
-  'src/Shortcuts/ShortcutOverlay.cs')"
+  'src/Shortcuts/ShortcutOverlay.cs' \
+  'src/SpawnProtection/SpawnProtectionOverlay.cs')"
 
 if [[ "$actual_raw_input_files" != "$expected_raw_input_files" ]]; then
   printf 'raw input calls must use the listed action-routing owners\n' >&2
@@ -41,5 +42,7 @@ grep -Fq 'This owner needs the raw key-down only so it can record that exact' \
   "$root/src/Shortcuts/NativeConsoleShortcut.cs"
 grep -Fq 'InputState.IsTextEntryActive()' \
   "$root/src/Shortcuts/NativeConsoleShortcut.cs"
+grep -Fq 'InputState.IsTextEntryActive()' \
+  "$root/src/SpawnProtection/SpawnProtectionOverlay.cs"
 
 printf 'text-entry input routing checks passed\n'

@@ -46,6 +46,11 @@ internal static partial class ShortcutOverlay
             },
             "Stations, cauldrons, chests, and nearby objects have a longer interaction range."),
         new(
+            "Building",
+            new Color(1f, 0.58f, 0.36f, 1f),
+            new[] { new Entry("F8", "Show or hide the spawn protection overlay") },
+            "The same checkbox is in Benheim Config. The horizontal preview starts off each game session."),
+        new(
             "Farming",
             FeaturesAccent,
             new[]
@@ -71,6 +76,7 @@ internal static partial class ShortcutOverlay
                     "Station coverage",
                     "Workbench and Stonecutter Hammer work zones are 2× Valheim's native range (20 m to 40 m for level-1 stations)"),
                 new Entry("Crystal walls", "Stack crystal walls and place other pieces on top with native structural support feedback"),
+                new Entry("Spawn protection", "Workbenches, fires, and other nearby base pieces show terrain-following rings with covered arcs hidden. Horizontal radius preview; hills and elevated pieces do not show exact three-dimensional coverage"),
             },
             "Placement, repair, dismantling, the dashed boundary, and Hammer station-range UI use the same zone. Crafting, station interaction, upgrade attachment, comfort, Workbench suppression, enemy spawning, wards, and all other station behavior stay native."),
         new(
@@ -207,6 +213,7 @@ internal static partial class ShortcutOverlay
         new("R", "Swap hotbar loadout", "<Keyboard>/r", ignoredNativeAction: "Hide"),
         new("/", "Open Valheim's native console", "<Keyboard>/slash"),
         new("F7", "Save the active Benheim log to the Desktop", "<Keyboard>/f7"),
+        new("F8", "Show or hide the spawn protection overlay", "<Keyboard>/f8"),
     };
 
     private readonly struct Entry
