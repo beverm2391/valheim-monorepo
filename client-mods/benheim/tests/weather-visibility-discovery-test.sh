@@ -16,7 +16,7 @@ native_version="$source_tree/Version.cs"
 
 # Installed Valheim 1.0 owns weather through these runtime objects. The probe
 # must discover their loaded children instead of encoding an old mod's paths.
-grep -Fq 'public static GameVersion CurrentVersion { get; } = new GameVersion(1, 0, 16);' "$native_version"
+grep -Fq 'public static GameVersion CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$native_version"
 grep -Fq 'private void SetParticleArrayEnabled(GameObject[] psystems, bool enabled)' "$native_env"
 grep -Fq 'if (env.m_envObject != m_currentEnvObject)' "$native_env"
 grep -Fq 'RenderSettings.fogDensity += env.m_fogDensityDay * dayInt;' "$native_env"

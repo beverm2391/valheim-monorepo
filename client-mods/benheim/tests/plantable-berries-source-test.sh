@@ -7,7 +7,7 @@ registration="$root/src/Farming/PlantableBerries.cs"
 mass_planting="$root/src/Farming/MassPlanting.cs"
 behavior="$root/tests/plantable-berries/Program.cs"
 
-# UnityPy 1.25.3 resolves the installed Valheim 1.0.16
+# UnityPy 1.25.3 resolves the installed Valheim 1.0.17
 # _CultivatorPieceTable.prefab and verifies the native removal gate that the
 # behavioral fixture models. Inspect the serialized contract directly so an
 # unrelated bundle rebuild does not invalidate the test.
@@ -47,7 +47,7 @@ PY
 grep -Fq 'var pieceTable = new PieceTable { m_canRemovePieces = false };' "$behavior"
 grep -Fq '!toolPieces.m_canRemovePieces' "$behavior"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 16);' "$source_tree/Version.cs"
+grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$source_tree/Version.cs"
 
 # The feature modifies only the three native berry prefabs. It adds build
 # metadata to their existing network/pickable/destructible lifecycle.
