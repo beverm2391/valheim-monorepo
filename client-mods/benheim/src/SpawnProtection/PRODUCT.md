@@ -13,6 +13,9 @@ terrain-following rings and combined horizontal boundary for the first version.
 
 ## In Development
 
+- Ben's server-world test failed: the overlay was not visible and the game
+  nearly froze. Visibility and dense-base responsiveness require a fix and
+  proof before another gameplay acceptance pass. The cause is not established.
 - `F8` shows or hides both the rings and minimap indicator during gameplay. The
   **Spawn protection overlay** checkbox in Benheim Config controls that same
   state. The view starts off each game session.
