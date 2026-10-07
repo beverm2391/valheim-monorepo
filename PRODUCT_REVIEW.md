@@ -4,18 +4,16 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.110**.
-
-## Waiting for a fix
-
-- **Spawn protection view:** Ben reported missing visuals and near-freezing in
-  the server world. Keep the view off until the visibility and dense-base
-  performance fix is ready. The [owning product
-  contract](client-mods/benheim/src/SpawnProtection/PRODUCT.md) retains the
-  accepted appearance and remaining control checks.
+Installed on Ben's Mac: **0.1.111**.
 
 ## Next play session
 
+- **Spawn protection view:** At the real server base, enable `F8` and walk to
+  the outer coverage edge. Plain green rings should show the combined boundary;
+  grey `[no_spawn]` beneath minimap danger should appear inside coverage and
+  disappear outside. Gameplay should remain responsive. Use **Spawn protection
+  overlay** in `Left Shift+B` > **Benheim Config** and `F8` to confirm both
+  control the same view and that turning it off clears rings and label.
 - **Put Away recovery:** After taking items from chests and placing a new chest,
   use `Left Shift+P` with a chest placement preview active, then use it again.
   Both attempts should finish without getting stuck on “already in progress.”
