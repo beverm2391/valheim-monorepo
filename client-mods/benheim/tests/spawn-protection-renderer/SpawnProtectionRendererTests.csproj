@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/SpawnProtection/HorizontalCoverage.cs" Link="HorizontalCoverage.cs" />
+    <Compile Include="../../src/SpawnProtection/SpawnProtectionOverlay.cs" Link="SpawnProtectionOverlay.cs" />
+    <Compile Include="../../src/Shortcuts/ShortcutOverlaySpawnProtectionConfig.cs" Link="ShortcutOverlaySpawnProtectionConfig.cs" />
+  </ItemGroup>
+</Project>

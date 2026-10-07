@@ -45,43 +45,62 @@ internal static class HorizontalCoverage
         z = circle.Z + (float)Math.Cos(angle) * circle.Radius;
     }
 
-    internal static bool IsCovered(IReadOnlyList<Circle> circles, int owner, float x, float z)
+    // Mark angular intervals once per neighboring circle, then prefix-sum the
+    // sample mask. This computes the same clipped samples in O(areas + samples)
+    // per owner, rather than checking every area for every marker every frame.
+    // The caller reuses the scratch array; fully contained/coincident rings
+    // return immediately and never require a Unity object or terrain query.
+    internal static void BuildCoverage(IReadOnlyList<Circle> circles, int owner, int[] coverage)
     {
-        if (owner < 0 || owner >= circles.Count || !IsFinite(x) || !IsFinite(z))
-        {
-            throw new ArgumentOutOfRangeException(nameof(owner));
-        }
-
+        if (owner < 0 || owner >= circles.Count) throw new ArgumentOutOfRangeException(nameof(owner));
         Circle source = circles[owner];
+        int count = SegmentCount(source);
+        if (coverage.Length < count + 1) throw new ArgumentException("Coverage scratch buffer is too small.");
+        Array.Clear(coverage, 0, count + 1);
+        const double turn = Math.PI * 2d;
+        double step = turn / count;
         for (int i = 0; i < circles.Count; i++)
         {
-            if (i == owner)
-            {
-                continue;
-            }
-
+            if (i == owner) continue;
             Circle other = circles[i];
-            // ESP hides both boundaries when two circles are identical. Keep
-            // the first representative, including elevated pieces with the
-            // same horizontal footprint. Ordering must be stable per refresh.
-            if (source.X == other.X && source.Z == other.Z && source.Radius == other.Radius)
+            double dx = (double)other.X - source.X;
+            double dz = (double)other.Z - source.Z;
+            double distance = Math.Sqrt(dx * dx + dz * dz);
+            if (distance == 0d && source.Radius == other.Radius)
             {
-                if (i < owner)
-                {
-                    return true;
-                }
-                continue;
+                if (i > owner) continue; // Keep one stable representative.
+                CoverAll();
+                return;
             }
-
-            double dx = (double)x - other.X;
-            double dz = (double)z - other.Z;
-            if (dx * dx + dz * dz <= (double)other.Radius * other.Radius)
+            if (distance + source.Radius <= other.Radius)
             {
-                return true;
+                CoverAll();
+                return;
             }
+            if (distance > source.Radius + other.Radius || distance + other.Radius < source.Radius) continue;
+            double cosine = (distance * distance + (double)source.Radius * source.Radius - (double)other.Radius * other.Radius)
+                / (2d * distance * source.Radius);
+            double half = Math.Acos(Math.Max(-1d, Math.Min(1d, cosine)));
+            double center = Math.Atan2(dx, dz); // Sample uses (sin, cos).
+            if (center < 0d) center += turn;
+            double start = center - half;
+            double end = center + half;
+            if (start < 0d) { Mark(0d, end); Mark(start + turn, turn); }
+            else if (end >= turn) { Mark(start, turn); Mark(0d, end - turn); }
+            else Mark(start, end);
         }
+        int depth = 0;
+        for (int i = 0; i < count; i++) { depth += coverage[i]; coverage[i] = depth; }
 
-        return false;
+        void CoverAll() { for (int j = 0; j < count; j++) coverage[j] = 1; }
+        void Mark(double start, double end)
+        {
+            int first = Math.Max(0, (int)Math.Ceiling(start / step - 1e-10d));
+            int last = Math.Min(count - 1, (int)Math.Floor(end / step + 1e-10d));
+            if (first > last) return;
+            coverage[first]++;
+            coverage[last + 1]--;
+        }
     }
 
     private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using BenheimQoL.Infrastructure;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -12,21 +13,61 @@ namespace BenheimQoL.SpawnProtection;
 internal static class SpawnProtectionOverlay
 {
     internal const float ViewDistance = 80f;
-    private static readonly Dictionary<int, Ring> Rings = new();
-    private static readonly List<int> Removed = new();
-    private static readonly List<int> Selected = new();
+    // Only exposed samples have markers. Geometry is cached until the loaded
+    // footprints change; terrain is resampled periodically for terraforming.
+    // Work is spread over frames so turning this on cannot instantiate a dense
+    // base's entire collection of hidden circles on the gameplay thread.
+    private const int MaxOperationsPerFrame = 32;
+    private const double FrameBudgetMs = 2d;
+    private readonly struct Area
+    {
+        internal Area(int id, HorizontalCoverage.Circle circle, float height) { Id = id; Circle = circle; Height = height; }
+        internal int Id { get; }
+        internal HorizontalCoverage.Circle Circle { get; }
+        internal float Height { get; }
+        internal bool Same(Area other) => Id == other.Id && Height == other.Height
+            && Circle.X == other.Circle.X && Circle.Z == other.Circle.Z && Circle.Radius == other.Circle.Radius;
+    }
+    private readonly struct Sample
+    {
+        internal Sample(Vector3 position, Vector3 tangent) { Position = position; Tangent = tangent; }
+        internal Vector3 Position { get; }
+        internal Vector3 Tangent { get; }
+    }
+    private static readonly List<Area> Areas = new();
+    private static readonly List<Area> Candidate = new();
     private static readonly List<HorizontalCoverage.Circle> Circles = new();
+    private static readonly List<Sample> Samples = new();
+    private static readonly List<GameObject> Markers = new();
+    private static readonly Stopwatch WorkClock = new();
     private static GameObject? root;
     private static GameObject? segmentPrefab;
     private static Material? markerMaterial;
     private static int terrainMask;
+    private static int[] coverage = Array.Empty<int>();
     private static float refreshAt;
-    private static float drawAt;
+    private static float hudAt;
+    private static float terrainAt;
+    private static int owner;
+    private static int projected;
+    private static int trimmed;
+    private static int sampled;
+    private static int raycasts;
+    private static int workFrames;
+    private static float workStartedAt;
+    private static double maxFrameMs;
+    private static double maxUpdateMs;
+    private static double enableMs;
+    private static bool geometryChanged;
+    private static bool boundaryReady;
+    private static bool building;
+    private static bool projecting;
 
     internal static bool Enabled { get; private set; }
 
     internal static void Update()
     {
+        long frameStarted = Stopwatch.GetTimestamp();
         if (Input.GetKeyDown(KeyCode.F8) || ZInput.GetKeyDown(KeyCode.F8))
         {
             string? rejection = ShortcutRejection();
@@ -41,17 +82,23 @@ internal static class SpawnProtectionOverlay
         }
         try
         {
-            if (Time.unscaledTime >= refreshAt)
+            if (!building && !projecting && Time.unscaledTime >= refreshAt)
             {
                 refreshAt = Time.unscaledTime + 0.5f;
                 Refresh(Player.m_localPlayer.transform.position);
             }
-            if (Time.unscaledTime >= drawAt)
+            ProcessWork();
+            // HUD membership is independent of boundary construction progress.
+            if (Time.unscaledTime >= hudAt)
             {
-                drawAt = Time.unscaledTime + 0.1f;
-                Draw();
+                hudAt = Time.unscaledTime + 0.1f;
                 SpawnProtectionMinimapIndicator.Update();
             }
+            // Include the registry scan, sorting and native HUD query as well
+            // as scheduled work. The 2 ms target applies to construction, not
+            // a hard deadline for these native calls or an individual clone.
+            maxUpdateMs = Math.Max(maxUpdateMs, ElapsedMs(frameStarted));
+            if (boundaryReady) EmitBoundary();
         }
         catch (Exception exception) { Fail(exception, "update"); }
     }
@@ -67,6 +114,7 @@ internal static class SpawnProtectionOverlay
         }
         try
         {
+            long enableStarted = Stopwatch.GetTimestamp();
             // Loaded 1.0.16 inspection: piece_workbench/AreaMarker, mask 2048;
             // Circle_section has only Transform/MeshFilter/MeshRenderer and an
             // Unlit/Color material with _Color. Retain its shader and scale;
@@ -89,10 +137,10 @@ internal static class SpawnProtectionOverlay
             root = new GameObject("BenheimSpawnProtectionOverlay");
             Enabled = true;
             Refresh(Player.m_localPlayer.transform.position);
-            Draw();
             SpawnProtectionMinimapIndicator.Update();
             refreshAt = Time.unscaledTime + 0.5f;
-            drawAt = Time.unscaledTime + 0.1f;
+            hudAt = Time.unscaledTime + 0.1f;
+            enableMs = ElapsedMs(enableStarted);
             Emit("enabled", source, "horizontal_preview");
         }
         catch (Exception exception) { Fail(exception, source); }
@@ -110,11 +158,20 @@ internal static class SpawnProtectionOverlay
         markerMaterial = null;
         root = null;
         segmentPrefab = null;
-        Rings.Clear();
-        Selected.Clear();
+        Areas.Clear();
+        Candidate.Clear();
         Circles.Clear();
-        Removed.Clear();
-        refreshAt = drawAt = 0f;
+        Samples.Clear();
+        Markers.Clear();
+        coverage = Array.Empty<int>();
+        building = projecting = false;
+        owner = projected = trimmed = sampled = raycasts = 0;
+        workFrames = 0;
+        workStartedAt = 0f;
+        maxFrameMs = 0d;
+        maxUpdateMs = enableMs = 0d;
+        boundaryReady = false;
+        refreshAt = hudAt = terrainAt = 0f;
         if (wasEnabled) Emit("disabled", reason, "visuals_removed");
     }
 
@@ -131,8 +188,7 @@ internal static class SpawnProtectionOverlay
 
     private static void Refresh(Vector3 playerPosition)
     {
-        Selected.Clear();
-        Circles.Clear();
+        Candidate.Clear();
         foreach (EffectArea area in EffectArea.GetAllAreas())
         {
             if (area == null || !area.isActiveAndEnabled || (area.m_type & EffectArea.Type.PlayerBase) == 0) continue;
@@ -142,60 +198,128 @@ internal static class SpawnProtectionOverlay
             float dx = position.x - playerPosition.x;
             float dz = position.z - playerPosition.z;
             if (dx * dx + dz * dz > reach * reach) continue;
-            HorizontalCoverage.Circle circle = new(position.x, position.z, radius);
-            int id = area.GetInstanceID();
-            Selected.Add(id);
-            Circles.Add(circle);
-            int count = HorizontalCoverage.SegmentCount(circle);
-            if (!Rings.TryGetValue(id, out Ring? ring) || ring.Segments.Length != count)
-            {
-                ring?.Destroy();
-                // Track ownership before cloning. On allocation failure Reset
-                // can still destroy every object through the owned root.
-                ring = new Ring(count, position.y);
-                Rings[id] = ring;
-                for (int i = 0; i < count; i++)
-                {
-                    ring.Segments[i] = Object.Instantiate(segmentPrefab!, root!.transform);
-                    ring.Segments[i].GetComponent<Renderer>().sharedMaterial = markerMaterial;
-                }
-            }
-            ring.Height = position.y;
+            Candidate.Add(new Area(area.GetInstanceID(), new HorizontalCoverage.Circle(position.x, position.z, radius), position.y));
         }
-        Removed.Clear();
-        foreach (int id in Rings.Keys)
-            if (!Selected.Contains(id)) Removed.Add(id);
-        foreach (int id in Removed) { Rings[id].Destroy(); Rings.Remove(id); }
+        // EffectArea registration order can change as chunks load. Stable ids
+        // preserve coincident-circle ownership and avoid pointless rebuilds.
+        Candidate.Sort((a, b) => a.Id.CompareTo(b.Id));
+        bool same = Candidate.Count == Areas.Count;
+        for (int i = 0; same && i < Candidate.Count; i++) same = Candidate[i].Same(Areas[i]);
+        if (!same)
+        {
+            // Publish one complete footprint snapshot. Keeping old markers
+            // visible while reusing the pool would briefly show removed pieces
+            // or a mixture of old and new coverage during a scheduled rebuild.
+            root!.SetActive(false);
+            Areas.Clear();
+            Areas.AddRange(Candidate);
+            Circles.Clear();
+            foreach (Area area in Areas) Circles.Add(area.Circle);
+            Samples.Clear();
+            owner = sampled = 0;
+            building = true;
+            BeginWork(true);
+        }
+        else if (Time.unscaledTime >= terrainAt) { BeginWork(false); BeginProjection(); }
     }
 
-    private static void Draw()
+    private static void BeginWork(bool changed)
     {
-        float phase = Time.time * 0.1f;
-        for (int owner = 0; owner < Selected.Count; owner++)
+        geometryChanged = changed;
+        workFrames = 0;
+        workStartedAt = Time.unscaledTime;
+        maxFrameMs = 0d;
+    }
+
+    private static void BeginProjection()
+    {
+        projected = trimmed = raycasts = 0;
+        projecting = true;
+        terrainAt = Time.unscaledTime + 2f;
+    }
+
+    private static void ProcessWork()
+    {
+        if (!building && !projecting) return;
+        workFrames++;
+        WorkClock.Restart();
+        int operations = 0;
+        while (operations < MaxOperationsPerFrame && WorkClock.Elapsed.TotalMilliseconds < FrameBudgetMs)
         {
-            Ring ring = Rings[Selected[owner]];
-            GameObject[] segments = ring.Segments;
-            for (int i = 0; i < segments.Length; i++)
+            if (building)
             {
-                HorizontalCoverage.Sample(Circles[owner], i, segments.Length, phase, out float x, out float z);
-                Vector3 position = new(x, ring.Height, z);
+                if (owner == Circles.Count) { building = false; BeginProjection(); continue; }
+                HorizontalCoverage.Circle circle = Circles[owner];
+                int count = HorizontalCoverage.SegmentCount(circle);
+                if (coverage.Length < count + 1) coverage = new int[count + 1];
+                HorizontalCoverage.BuildCoverage(Circles, owner, coverage);
+                sampled += count;
+                for (int i = 0; i < count; i++)
+                {
+                    if (coverage[i] != 0) continue;
+                    HorizontalCoverage.Sample(circle, i, count, 0f, out float x, out float z);
+                    // Analytical tangent avoids snapping hidden neighbors just
+                    // to orient a visible marker. Project onto the terrain normal
+                    // below to retain the native slope-following appearance.
+                    Samples.Add(new Sample(new Vector3(x, Areas[owner].Height, z),
+                        new Vector3((z - circle.Z) / circle.Radius, 0f, -(x - circle.X) / circle.Radius)));
+                }
+                owner++;
+            }
+            else if (projected < Samples.Count)
+            {
+                Sample sample = Samples[projected];
+                Vector3 position = sample.Position;
+                Vector3 tangent = sample.Tangent;
+                raycasts++;
                 if (Physics.Raycast(position + Vector3.up * 500f, Vector3.down, out RaycastHit hit, 1000f, terrainMask))
                 {
                     position.y = hit.point.y;
-                    // ESP's offset prevents the Ashlands terrain from
-                    // swallowing its projected line segments.
                     if (Heightmap.FindBiome(position) == Heightmap.Biome.AshLands) position.y += 0.5f;
+                    tangent = Vector3.ProjectOnPlane(tangent, hit.normal);
                 }
-                segments[i].transform.position = position;
-                segments[i].SetActive(!HorizontalCoverage.IsCovered(Circles, owner, x, z));
+                if (projected == Markers.Count)
+                {
+                    GameObject marker = Object.Instantiate(segmentPrefab!, root!.transform);
+                    Markers.Add(marker); // Register ownership before configuring.
+                    marker.GetComponent<Renderer>().sharedMaterial = markerMaterial!;
+                }
+                GameObject segment = Markers[projected++];
+                segment.transform.position = position;
+                segment.transform.rotation = Quaternion.LookRotation(tangent.normalized, Vector3.up);
+                segment.SetActive(true);
             }
-            for (int i = 0; i < segments.Length; i++)
+            else
             {
-                Vector3 before = segments[(i + segments.Length - 1) % segments.Length].transform.position;
-                Vector3 after = segments[(i + 1) % segments.Length].transform.position;
-                segments[i].transform.rotation = Quaternion.LookRotation((after - before).normalized, Vector3.up);
+                if (trimmed < Samples.Count) trimmed = Samples.Count;
+                if (trimmed < Markers.Count) Markers[trimmed++].SetActive(false);
+                else
+                {
+                    if (geometryChanged) root!.SetActive(true);
+                    projecting = false;
+                    break;
+                }
             }
+            operations++;
         }
+        WorkClock.Stop();
+        maxFrameMs = Math.Max(maxFrameMs, WorkClock.Elapsed.TotalMilliseconds);
+        if (!building && !projecting) boundaryReady = true;
+    }
+
+    private static double ElapsedMs(long started) => (Stopwatch.GetTimestamp() - started) * 1000d / Stopwatch.Frequency;
+
+    private static void EmitBoundary()
+    {
+        boundaryReady = false;
+        Diagnostics.Emit(DiagnosticEvent.Create("SpawnProtection", "boundary_built")
+                .Integer("areas", Areas.Count).Integer("samples", sampled).Integer("visible_segments", Samples.Count)
+                .Integer("pooled_segments", Markers.Count).Integer("raycasts", raycasts)
+                .Number("max_work_frame_ms", maxFrameMs).Integer("frame_operation_limit", MaxOperationsPerFrame)
+                .Number("max_update_frame_ms", maxUpdateMs)
+                .Boolean("geometry_changed", geometryChanged).Integer("work_frames", workFrames)
+                .Number("elapsed_ms", (Time.unscaledTime - workStartedAt) * 1000d));
+        maxFrameMs = maxUpdateMs = 0d;
     }
 
     private static void Fail(Exception exception, string source)
@@ -210,18 +334,8 @@ internal static class SpawnProtectionOverlay
     {
         Diagnostics.Emit(DiagnosticEvent.Create("SpawnProtection", "overlay_state")
             .String("result", result).String("source", source).String("reason", reason)
-            .Boolean("enabled", Enabled).Integer("areas", Rings.Count).String("color", "bright_green"));
+            .Boolean("enabled", Enabled).Integer("areas", Areas.Count).String("color", "bright_green")
+            .Number("enable_ms", enableMs));
     }
 
-    private sealed class Ring
-    {
-        internal Ring(int count, float height) { Segments = new GameObject[count]; Height = height; }
-        internal GameObject[] Segments { get; }
-        internal float Height { get; set; }
-        internal void Destroy()
-        {
-            foreach (GameObject segment in Segments)
-                if (segment != null) { segment.SetActive(false); Object.Destroy(segment); }
-        }
-    }
 }
