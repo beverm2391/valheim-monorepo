@@ -147,6 +147,10 @@ dedicated-server behavior, or a major migration cannot be proved locally.
 Destroy that host when the bounded test ends; there is no standing cloud QA
 server.
 
+After the shared local sandbox testing session is finished, quit Valheim
+cleanly to release memory. Coordinate with other active test owners before
+closing it; do not end a session another agent is still using.
+
 ## Benheim client development
 
 `client-mods/benheim/PROMPT.md` owns Product Review, Benheim client development,
