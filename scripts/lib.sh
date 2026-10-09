@@ -11,6 +11,7 @@ secret_config_keys=(
   TAILSCALE_AUTHKEY
   VALHEIM_PASSWORD
   BENHEIM_AXIOM_INGEST_TOKEN
+  INFRA_AXIOM_INGEST_TOKEN
   VALHEIM_R2_ACCESS_KEY_ID
   VALHEIM_R2_SECRET_ACCESS_KEY
 )
@@ -109,9 +110,9 @@ diagnostics_config_requested() {
 }
 
 require_diagnostics_config() {
-  : "${BENHEIM_AXIOM_ENDPOINT:=https://us-east-1.aws.edge.axiom.co}"
-  if [[ ! "$BENHEIM_AXIOM_ENDPOINT" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]]; then
-    echo "BENHEIM_AXIOM_ENDPOINT must be an HTTPS origin when diagnostics are enabled." >&2
+  : "${VALHEIM_AXIOM_ENDPOINT:=https://us-east-1.aws.edge.axiom.co}"
+  if [[ ! "$VALHEIM_AXIOM_ENDPOINT" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]]; then
+    echo "VALHEIM_AXIOM_ENDPOINT must be an HTTPS origin when diagnostics are enabled." >&2
     return 1
   fi
   if [[ ! "${BENHEIM_AXIOM_DATASET:-}" =~ ^[A-Za-z0-9_.-]{1,200}$ ]]; then
@@ -122,9 +123,22 @@ require_diagnostics_config() {
     echo "Missing BENHEIM_AXIOM_INGEST_TOKEN in the process environment when diagnostics are enabled." >&2
     return 1
   fi
+  if [[ ! "${INFRA_AXIOM_DATASET:-}" =~ ^[A-Za-z0-9_.-]{1,200}$ ]]; then
+    echo "Missing or invalid INFRA_AXIOM_DATASET in server.env when diagnostics are enabled." >&2
+    return 1
+  fi
+  if [[ -z "${INFRA_AXIOM_INGEST_TOKEN:-}" ]]; then
+    echo "Missing INFRA_AXIOM_INGEST_TOKEN in the process environment when diagnostics are enabled." >&2
+    return 1
+  fi
   : "${VALHEIM_DIAGNOSTICS_SERVER_ID:=$HETZNER_SERVER_NAME}"
   if [[ ! "$VALHEIM_DIAGNOSTICS_SERVER_ID" =~ ^[A-Za-z0-9_.-]{1,128}$ ]]; then
     echo "VALHEIM_DIAGNOSTICS_SERVER_ID must contain only letters, numbers, dots, dashes, or underscores." >&2
+    return 1
+  fi
+  : "${VALHEIM_DIAGNOSTICS_ENVIRONMENT:=production}"
+  if [[ ! "$VALHEIM_DIAGNOSTICS_ENVIRONMENT" =~ ^[A-Za-z0-9_.-]{1,128}$ ]]; then
+    echo "VALHEIM_DIAGNOSTICS_ENVIRONMENT must contain only letters, numbers, dots, dashes, or underscores." >&2
     return 1
   fi
 }
@@ -186,10 +200,13 @@ render_diagnostics_env() {
   require_diagnostics_config
   : > "$destination"
   chmod 0600 "$destination"
-  printf 'BENHEIM_AXIOM_ENDPOINT=%q\n' "$BENHEIM_AXIOM_ENDPOINT" >> "$destination"
+  printf 'VALHEIM_AXIOM_ENDPOINT=%q\n' "$VALHEIM_AXIOM_ENDPOINT" >> "$destination"
   printf 'BENHEIM_AXIOM_DATASET=%q\n' "$BENHEIM_AXIOM_DATASET" >> "$destination"
   printf 'BENHEIM_AXIOM_INGEST_TOKEN=%q\n' "$BENHEIM_AXIOM_INGEST_TOKEN" >> "$destination"
+  printf 'INFRA_AXIOM_DATASET=%q\n' "$INFRA_AXIOM_DATASET" >> "$destination"
+  printf 'INFRA_AXIOM_INGEST_TOKEN=%q\n' "$INFRA_AXIOM_INGEST_TOKEN" >> "$destination"
   printf 'VALHEIM_DIAGNOSTICS_SERVER_ID=%q\n' "$VALHEIM_DIAGNOSTICS_SERVER_ID" >> "$destination"
+  printf 'VALHEIM_DIAGNOSTICS_ENVIRONMENT=%q\n' "$VALHEIM_DIAGNOSTICS_ENVIRONMENT" >> "$destination"
 }
 
 hcloud_cmd() {

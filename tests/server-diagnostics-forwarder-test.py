@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -11,6 +13,7 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "server"))
 SPEC = importlib.util.spec_from_file_location(
     "valheim_failure_forwarder", ROOT / "server" / "forward-valheim-failures.py"
 )
@@ -22,12 +25,20 @@ SPEC.loader.exec_module(FORWARDER)
 
 class ForwarderTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.config = FORWARDER.AxiomConfig(
-            "https://example.axiom.co", "benheim", "test-token", "qa"
+        self.benheim = FORWARDER.AxiomDestination(
+            "https://example.axiom.co", "benheim", "benheim-token"
+        )
+        self.infrastructure = FORWARDER.AxiomDestination(
+            "https://example.axiom.co", "infrastructure", "infra-token"
+        )
+        self.config = FORWARDER.ForwarderConfig(
+            "qa", "production", self.benheim, self.infrastructure
         )
         self.journal = {
             "MESSAGE": "ignored",
+            "_SYSTEMD_UNIT": "valheim.service",
             "_SYSTEMD_INVOCATION_ID": "invocation-a",
+            "_BOOT_ID": "boot-a",
             "__REALTIME_TIMESTAMP": "1788912000123456",
         }
 
@@ -37,7 +48,7 @@ class ForwarderTests(unittest.TestCase):
         self.assertIsNone(FORWARDER.classify_message("[Warning:Unity Log] saving world"))
         self.assertIsNone(FORWARDER.classify_message("[Info :Unity Log] player said error in chat"))
 
-    def test_valheim_exception_is_structured_and_bounded(self) -> None:
+    def test_game_exception_keeps_the_benheim_schema(self) -> None:
         failure = FORWARDER.classify_message(
             "NullReferenceException: object missing\n  at ZNet.Update()"
         )
@@ -48,7 +59,9 @@ class ForwarderTests(unittest.TestCase):
         self.assertEqual("NullReferenceException", failure.exception_type)
         self.assertNotIn("\n", failure.message)
 
-        record = FORWARDER.event_record(self.journal, failure, self.config, "12345")
+        record = FORWARDER.gameplay_event_record(
+            self.journal, failure, self.config, "12345"
+        )
         self.assertIsNotNone(record)
         assert record is not None
         self.assertEqual("invocation-a", record["session_id"])
@@ -57,6 +70,68 @@ class ForwarderTests(unittest.TestCase):
         self.assertEqual("valheim-failure", record["event"])
         self.assertEqual("NullReferenceException", record["fields"]["exception_type"])
 
+    def test_systemd_restart_routes_to_infrastructure(self) -> None:
+        journal = {
+            "MESSAGE": "valheim.service: Scheduled restart job, restart counter is at 4.",
+            "UNIT": "valheim.service",
+            "_COMM": "systemd",
+            "PRIORITY": "6",
+            "INVOCATION_ID": "manager-event-a",
+            "_BOOT_ID": "boot-a",
+            "MESSAGE_ID": "restart-message",
+            "N_RESTARTS": "4",
+            "__REALTIME_TIMESTAMP": "1788912000123456",
+        }
+        failure = FORWARDER.classify_operational_record(journal)
+        self.assertIsNotNone(failure)
+        assert failure is not None
+        self.assertEqual("restart_scheduled", failure.kind)
+        self.assertEqual("warning", failure.severity)
+
+        record = FORWARDER.operational_event_record(
+            journal, failure, self.config, "12345"
+        )
+        self.assertEqual("valheim", record["service"])
+        self.assertEqual("qa", record["host"])
+        self.assertEqual("production", record["environment"])
+        self.assertEqual("host_failure", record["event"])
+        self.assertEqual("valheim.service", record["fields"]["unit"])
+        self.assertEqual("4", record["fields"]["restart_count"])
+        self.assertEqual("12345", record["fields"]["game_build_id"])
+
+    def test_game_process_failures_are_not_misclassified_as_host_failures(self) -> None:
+        journal = dict(self.journal)
+        journal["MESSAGE"] = "NullReferenceException: object missing"
+        journal["_COMM"] = "valheim_server.x86_64"
+        self.assertIsNone(FORWARDER.classify_operational_record(journal))
+        self.assertIsNotNone(FORWARDER.classify_message(str(journal["MESSAGE"])))
+
+    def test_backup_failures_route_to_infrastructure(self) -> None:
+        journal = {
+            "MESSAGE": "rclone: Failed to copy backup: upstream unavailable",
+            "_SYSTEMD_UNIT": "valheim-backup.service",
+            "_SYSTEMD_INVOCATION_ID": "backup-a",
+            "PRIORITY": "3",
+        }
+        failure = FORWARDER.classify_operational_record(journal)
+        self.assertIsNotNone(failure)
+        assert failure is not None
+        self.assertEqual("backup_failure", failure.kind)
+        self.assertEqual("error", failure.severity)
+        self.assertIsNone(
+            FORWARDER.classify_operational_record(
+                {**journal, "MESSAGE": "/var/backups/valheim/worlds-ok.tar.gz"}
+            )
+        )
+
+    def test_normal_systemd_lifecycle_is_not_forwarded(self) -> None:
+        journal = {
+            "MESSAGE": "Started valheim.service - Valheim Dedicated Server.",
+            "UNIT": "valheim.service",
+            "_COMM": "systemd",
+        }
+        self.assertIsNone(FORWARDER.classify_operational_record(journal))
+
     def test_bepinex_and_first_party_sources_are_distinct(self) -> None:
         bepinex = FORWARDER.classify_message(
             "[Error : BepInEx] Error loading plugin dependency"
@@ -64,6 +139,7 @@ class ForwarderTests(unittest.TestCase):
         first_party = FORWARDER.classify_message(
             "[Error : Benheim Server Support] Harmony patch failed: InvalidOperationException"
         )
+        assert bepinex is not None and first_party is not None
         self.assertEqual("bepinex", bepinex.source)
         self.assertEqual("plugin_load", bepinex.kind)
         self.assertEqual("first-party-server-mod", first_party.source)
@@ -77,7 +153,9 @@ class ForwarderTests(unittest.TestCase):
         )
         self.assertIsNotNone(failure)
         assert failure is not None
-        record = FORWARDER.event_record(self.journal, failure, self.config, "12345")
+        record = FORWARDER.gameplay_event_record(
+            self.journal, failure, self.config, "12345"
+        )
         assert record is not None
         self.assertEqual("Inventory", record["fields"]["diagnostic_domain"])
         self.assertEqual("put_away_lease_result_delivery_failed", record["fields"]["diagnostic_event"])
@@ -98,10 +176,12 @@ class ForwarderTests(unittest.TestCase):
         assert failure is not None
         self.assertLessEqual(len(failure.message), FORWARDER.MAXIMUM_MESSAGE_CHARACTERS)
 
-    def test_missing_invocation_is_not_forwarded(self) -> None:
+    def test_missing_game_invocation_is_not_forwarded(self) -> None:
         failure = FORWARDER.classify_message("ERROR server failed")
         assert failure is not None
-        self.assertIsNone(FORWARDER.event_record({}, failure, self.config, "12345"))
+        self.assertIsNone(
+            FORWARDER.gameplay_event_record({}, failure, self.config, "12345")
+        )
 
     def test_build_identity_comes_from_steam_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -118,16 +198,93 @@ class ForwarderTests(unittest.TestCase):
                 FORWARDER.file_sha256(component),
             )
 
-    def test_ingest_uses_existing_axiom_dataset_endpoint(self) -> None:
+    def test_config_requires_both_dataset_scoped_destinations(self) -> None:
+        environment = {
+            "VALHEIM_AXIOM_ENDPOINT": "https://example.axiom.co",
+            "VALHEIM_DIAGNOSTICS_SERVER_ID": "qa",
+            "VALHEIM_DIAGNOSTICS_ENVIRONMENT": "staging",
+            "BENHEIM_AXIOM_DATASET": "benheim",
+            "BENHEIM_AXIOM_INGEST_TOKEN": "benheim-token",
+            "INFRA_AXIOM_DATASET": "infrastructure",
+            "INFRA_AXIOM_INGEST_TOKEN": "infra-token",
+        }
+        config = FORWARDER.load_config(environment)
+        self.assertEqual("benheim", config.benheim.dataset)
+        self.assertEqual("infrastructure", config.infrastructure.dataset)
+        self.assertEqual("staging", config.environment)
+        with self.assertRaisesRegex(ValueError, "INFRA_AXIOM_INGEST_TOKEN"):
+            FORWARDER.load_config({**environment, "INFRA_AXIOM_INGEST_TOKEN": ""})
+
+    def test_ingest_uses_selected_axiom_destination(self) -> None:
         response = mock.MagicMock()
         response.status = 200
         response.__enter__.return_value = response
         with mock.patch.object(FORWARDER.urllib.request, "urlopen", return_value=response) as open_url:
-            FORWARDER.send_record(self.config, {"event": "valheim-failure"})
+            FORWARDER.send_record(self.infrastructure, {"event": "host_failure"})
         request = open_url.call_args.args[0]
-        self.assertEqual("https://example.axiom.co/v1/ingest/benheim", request.full_url)
-        self.assertEqual("Bearer test-token", request.headers["Authorization"])
-        self.assertEqual([{"event": "valheim-failure"}], json.loads(request.data))
+        self.assertEqual("https://example.axiom.co/v1/ingest/infrastructure", request.full_url)
+        self.assertEqual("Bearer infra-token", request.headers["Authorization"])
+        self.assertEqual([{"event": "host_failure"}], json.loads(request.data))
+
+    def test_run_routes_each_domain_to_its_own_dataset(self) -> None:
+        journal_records = [
+            {
+                "MESSAGE": "valheim.service: Scheduled restart job, restart counter is at 1.",
+                "UNIT": "valheim.service",
+                "_COMM": "systemd",
+                "INVOCATION_ID": "manager-event-a",
+                "_BOOT_ID": "boot-a",
+            },
+            {
+                "MESSAGE": "[Error : BepInEx] Error loading plugin dependency",
+                "_SYSTEMD_UNIT": "valheim.service",
+                "_SYSTEMD_INVOCATION_ID": "game-a",
+            },
+        ]
+
+        class FakeJournal:
+            def __init__(self) -> None:
+                self.stdout = io.StringIO(
+                    "".join(json.dumps(record) + "\n" for record in journal_records)
+                )
+
+            def __enter__(self) -> FakeJournal:
+                return self
+
+            def __exit__(self, *args: object) -> None:
+                return None
+
+            def wait(self) -> int:
+                return 0
+
+        environment = {
+            "VALHEIM_DIAGNOSTICS_SERVER_ID": "qa",
+            "BENHEIM_AXIOM_DATASET": "benheim",
+            "BENHEIM_AXIOM_INGEST_TOKEN": "benheim-token",
+            "INFRA_AXIOM_DATASET": "infrastructure",
+            "INFRA_AXIOM_INGEST_TOKEN": "infra-token",
+        }
+        sent: list[tuple[str, str]] = []
+
+        def capture(destination: object, record: dict[str, object]) -> None:
+            sent.append((destination.dataset, str(record["event"])))
+
+        with (
+            mock.patch.dict(os.environ, environment, clear=True),
+            mock.patch.object(FORWARDER.subprocess, "Popen", return_value=FakeJournal()) as popen,
+            mock.patch.object(FORWARDER, "read_build_id", return_value="12345"),
+            mock.patch.object(FORWARDER, "read_component_build_id", return_value="component-hash"),
+            mock.patch.object(FORWARDER, "send_record", side_effect=capture),
+        ):
+            self.assertEqual(0, FORWARDER.run())
+
+        self.assertEqual(
+            [("infrastructure", "host_failure"), ("benheim", "bepinex-failure")],
+            sent,
+        )
+        command = popen.call_args.args[0]
+        self.assertIn("valheim.service", command)
+        self.assertIn("valheim-backup.service", command)
 
     def test_rate_limiter_suppresses_bursts_and_short_duplicates(self) -> None:
         limiter = FORWARDER.EventLimiter()
@@ -138,9 +295,10 @@ class ForwarderTests(unittest.TestCase):
             self.assertTrue(limiter.allows(f"unique-{index}", 62.0))
         self.assertFalse(limiter.allows("overflow", 62.0))
 
-    def test_systemd_sidecar_cannot_control_the_game_service(self) -> None:
+    def test_sidecar_cannot_control_the_game_service(self) -> None:
         unit = (ROOT / "systemd" / "valheim-diagnostics.service").read_text(encoding="utf-8")
         game_unit = (ROOT / "systemd" / "valheim.service").read_text(encoding="utf-8")
+        apply_script = (ROOT / "scripts" / "apply-diagnostics-config.sh").read_text(encoding="utf-8")
         self.assertIn("ConditionPathExists=/etc/valheim/diagnostics.env", unit)
         self.assertIn("DynamicUser=true", unit)
         self.assertIn("SupplementaryGroups=systemd-journal", unit)
@@ -150,6 +308,8 @@ class ForwarderTests(unittest.TestCase):
         self.assertNotIn("Requires=valheim.service", unit)
         self.assertNotIn("PartOf=valheim.service", unit)
         self.assertNotIn("valheim-diagnostics", game_unit)
+        self.assertNotIn("restart valheim.service", apply_script)
+        self.assertNotIn("stop valheim.service", apply_script)
 
 
 if __name__ == "__main__":

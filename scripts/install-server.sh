@@ -45,6 +45,7 @@ remote_scp "$root/systemd/valheim.service" "/tmp/valheim-server/valheim.service"
 remote_scp "$root/systemd/valheim-diagnostics.service" "/tmp/valheim-server/valheim-diagnostics.service"
 remote_scp "$root/server/valheim-start" "/tmp/valheim-server/valheim-start"
 remote_scp "$root/server/forward-valheim-failures.py" "/tmp/valheim-server/forward-valheim-failures.py"
+remote_scp "$root/server/valheim_failure_events.py" "/tmp/valheim-server/valheim_failure_events.py"
 remote_scp "$root/server/wait-for-valheim" "/tmp/valheim-server/wait-for-valheim"
 remote_scp "$tmp_env" "/tmp/valheim-server/server.env"
 if (( r2_configured == 1 )); then
@@ -95,6 +96,7 @@ install -m 0644 "$work/valheim.service" /etc/systemd/system/valheim.service
 install -m 0644 "$work/valheim-diagnostics.service" /etc/systemd/system/valheim-diagnostics.service
 install -m 0755 "$work/valheim-start" /usr/local/bin/valheim-start
 install -m 0755 "$work/forward-valheim-failures.py" /usr/local/bin/valheim-forward-failures
+install -m 0644 "$work/valheim_failure_events.py" /usr/local/bin/valheim_failure_events.py
 install -m 0755 "$work/wait-for-valheim" /usr/local/bin/valheim-wait-ready
 
 cat > /usr/local/bin/valheim-update <<'EOF'
