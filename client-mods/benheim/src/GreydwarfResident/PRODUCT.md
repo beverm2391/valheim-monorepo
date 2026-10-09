@@ -38,13 +38,18 @@ How players place or invite the resident, persistence, and multiplayer behavior
 remain open for the shipped feature. The Lab prototype does not establish
 those behaviors.
 
+Optional OpenRouter reactions are now a sandbox experiment following the
+trigger-and-speech proof; reuse of the Crow runner is not assumed. Use the
+immediate event, character context, and useful queried game state such as
+weather to explore occasional speech or silence that makes the resident feel
+more alive. Ben has authorized trying ideas freely in the disposable sandbox.
+Keep successful experiments recoverable in committed source and promote
+accepted behavior into the normal mod incrementally.
+
 ## Later
 
-Optional LLM reactions follow the trigger-and-speech proof. OpenRouter is the
-intended provider; reuse of the Crow runner is not assumed. The first LLM
-slice uses the immediate event and general character context to choose speech
-or silence. Player identity, seeded personal lore, recent conversation, and
-learned memories are deferred.
+Seeded personal lore, recent conversation, and learned memories remain later
+possibilities rather than prerequisites for the first LLM reactions.
 
 Drowsiness, especially at night, and activities outside the tub remain ideas
 for later behavior.
