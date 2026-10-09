@@ -1,0 +1,155 @@
+[
+  {
+    "emote": "wave",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "sit",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "challenge",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "cheer",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "nonono",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "thumbsup",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "point",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "blowkiss",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "bow",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "cower",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "cry",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "despair",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "flex",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "comehere",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "headbang",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "kneel",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "laugh",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "roar",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "shrug",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "dance",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "relax",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "toast",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "rest",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "vibe",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "loveyou",
+    "mode": "upper",
+    "seconds": 6,
+    "speed": 1
+  },
+  {
+    "emote": "stop"
+  }
+]
