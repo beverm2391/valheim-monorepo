@@ -16,6 +16,7 @@ using BenheimQoL.WorldLabels;
 using BenheimQoL.Affinities;
 using BenheimQoL.WeatherVisibility;
 using BenheimQoL.SpawnProtection;
+using BenheimQoL.GreydwarfResident;
 using UnityEngine;
 
 namespace BenheimQoL;
@@ -68,6 +69,8 @@ public sealed class Plugin : BaseUnityPlugin
             patchGroups?.UnpatchAll();
             HealthReporting.DisableCore(ex);
         }
+
+        GreydwarfResidentRuntime.Initialize(IsPatchGroupAvailable(typeof(GreydwarfResidentRuntime)));
 
         if (HealthReporting.GameplayActionsEnabled)
         {
@@ -132,6 +135,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void OnDestroy()
     {
+        GreydwarfResidentRuntime.Reset();
         WorldLabelRuntime.Reset();
         SpawnProtectionOverlay.Reset("plugin_teardown");
         ShipSprintRuntime.Reset("plugin_teardown");
