@@ -9,8 +9,8 @@ system or a worker.
 
 ## Current Behavior
 
-Ben has accepted the resident's hot-tub seating, natural idle variation, and
-look reaction in the disposable Lab prototype. The resident uses the seated
+Ben has accepted the resident's hot-tub seating, natural idle variation, look
+reaction, and overhead message presentation in the disposable Lab prototype. The resident uses the seated
 greydwarf from the Bog Witch's hut. These are Lab acceptance judgments, not
 proof of an installed or persistent mod feature.
 
@@ -26,7 +26,8 @@ The resident reserves his occupied tub seat without offering a sit prompt;
 the other seats remain usable. Approach with a clear sightline can trigger
 brief native overhead speech. Prove the trigger and display with a fixed line
 before connecting an LLM. Seat reservation, prompt suppression, and speech
-have developer Lab proof and still need Ben's acceptance.
+have developer Lab proof. The speech presentation is accepted; trigger cadence,
+seat reservation, and prompt suppression still need Ben's acceptance.
 
 Make the native player emotes available as reusable animation ingredients on
 the resident, then compose behavior and custom movement from those ingredients.
