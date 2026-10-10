@@ -4,10 +4,16 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.111**.
+Installed on Ben's Mac: **0.1.113**.
 
 ## Next play session
 
+- **George placement:** Hold Shift over a hot-tub seat and Use **Invite George**.
+  Expect one lounging George, no Sit prompt on his reserved seat, and usable
+  neighboring seats. Dismiss him, then invite him to another tub; the first
+  should stay empty. Rejoin and check that the invited tub remembers him. When
+  removing an invited tub, George should disappear; a rebuilt tub starts empty.
+  Check the invitation again after the next coordinated server restart.
 - **Spawn protection view:** At the real server base, enable `F8` and walk to
   the outer coverage edge. Plain green rings should show the combined boundary;
   grey `[no_spawn]` beneath minimap danger should appear inside coverage and
@@ -69,6 +75,11 @@ Installed on Ben's Mac: **0.1.111**.
 
 ## When a compatible peer is available
 
+- **George shared speech:** With both players updated, approach him with a
+  clear sightline. An occasional short remark should be the same for both
+  players, with George looking toward its visitor before relaxing again.
+  Lingering should not produce repeated greetings. Leaving or dismissing him
+  while a reply is pending should not produce a late remark.
 - Confirm that earned-state audio is audible nearby but not at long distance.
 - Confirm that berry placement, harvesting, removal authority, and regrowth
   remain shared and correct after reconnecting.
