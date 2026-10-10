@@ -27,10 +27,11 @@ accepted appearance, seating, idle variation, and restrained awareness: notice a
 player, acknowledge someone sitting beside him, then settle back into relaxing
 without repeatedly greeting a lingering visitor.
 
-A player joining an already-invited tub must see its resident without needing
-a dismiss/reinvite. Ben reported that Johnny could not see the resident at the
-same tub until they repeated the invitation; this join behavior remains
-unresolved.
+A player joining or returning after death must see an already-invited tub's
+resident without needing a dismiss/reinvite. Ben reported that Johnny could
+not see the resident until they repeated the invitation, and that George
+disappeared from Ben's view around respawn. Recovery after joining and respawn
+remains unresolved in live play.
 
 The resident reserves his occupied tub seat without offering a sit prompt;
 the other seats remain usable. Approach with a clear sightline can trigger
