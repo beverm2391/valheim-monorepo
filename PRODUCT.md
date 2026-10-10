@@ -45,6 +45,7 @@ recovery, not as a multiplayer compatibility promise.
 | Benheim Eternal Fire | Automatically refuels supported native fires and lights; normal Valheim burn conditions still apply. | Server | No |
 | Benheim Test Commands | Runs a fixed native-admin command allowlist for selected Benheim gameplay experiments. | Client command and server component | Only the requesting native admin needs the matching client command. The server component is required. Every peer that can own the spawned test creature still needs compatible Benheim gameplay behavior. |
 | Benheim Server Support | Coordinates Put Away and keeps each player's confirmed-kill chain on the server. | Server | Required for Put Away and BERSERKER/SLAUGHTERHOUSE. Current clients use Put Away lease generation `v2`, transaction generation `v4`, and Kill Attribution V3. |
+| Greydwarf Resident (in development) | A shared hot-tub resident with contextual speech. | Client and Server Support | Compatible Benheim clients and updated Server Support; [resident contract](client-mods/benheim/src/GreydwarfResident/PRODUCT.md) owns the shared behavior and proof gates. |
 | Metal portals | Native world rule allowing normally restricted items through portals. | Server | No |
 | Skill progression | Optional settings increase skill gain and reduce skill loss on death for every player. | Server | No |
 

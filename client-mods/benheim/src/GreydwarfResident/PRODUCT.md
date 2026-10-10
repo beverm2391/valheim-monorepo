@@ -29,19 +29,26 @@ before connecting an LLM. Seat reservation, prompt suppression, and speech
 have developer Lab proof. The speech presentation is accepted; trigger cadence,
 seat reservation, and prompt suppression still need Ben's acceptance.
 
-The first placement flow targets an existing tub and offers Invite George and
-a matching dismiss action. George may appear directly; a fog/spawn effect is
-not required. Use the simplest suitable player control. Establish shared
-resident, seating, speech, and placement-lifecycle behavior before calling the
-server version ready. The Lab prototype does not prove multiplayer or saved
-placement. Keep recovery and removal safe for the native tub and world.
+Alt + Use on an existing native tub interaction or seat invites George or
+dismisses him, with hover/menu discovery. He appears directly; a fog/spawn
+effect is not required. An invited tub has one resident. Its native saved
+state remembers the invitation across rejoin/restart; dismiss clears it, and
+destroying the tub removes the resident. Removing Benheim leaves an ordinary
+native tub, with no custom missing-prefab object.
 
-Choose the simplest client/server split that delivers a consistent shared
-resident and speech experience without duplicate residents or model chatter.
-Players should not manage a separate sandbox bridge. Ben permits an API key
-in the private client setup, as with Axiom; key placement is not a reason to
-add unnecessary infrastructure. Credentials remain excluded from public
-source and debug traces.
+The shared feature requires compatible Benheim clients and updated Benheim
+Server Support. Server Support coordinates placement through the tub's native
+owner and grants one client a speech encounter. That client calls OpenRouter;
+the server validates and shares one result, and clients render the resident
+and speech. Players do not manage a separate speech bridge. Missing or
+incompatible support must be visible rather than producing inconsistent local
+residents. These shared, persistence, and removal behaviors still require
+end-to-end proof.
+
+Use a dedicated Benheim OpenRouter key for release. Ben permits the key in
+the private client setup, as with Axiom. Credentials remain excluded from
+public source and debug traces. Model failures leave the resident usable
+and produce silence.
 
 Optional OpenRouter reactions are part of the first release, using the newest
 Gemini Flash Lite model verified on OpenRouter (currently Gemini 3.5 Flash Lite).

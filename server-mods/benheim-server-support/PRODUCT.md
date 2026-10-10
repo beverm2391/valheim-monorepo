@@ -38,6 +38,12 @@ warning presentation remains under review.
 
 ## In Development
 
+Server Support will also coordinate shared Greydwarf Resident placement and
+speech. The [resident product](../../client-mods/benheim/src/GreydwarfResident/PRODUCT.md)
+owns its controls, native-tub lifecycle, client/server split, and acceptance
+boundary. This feature requires compatible clients and updated Server Support;
+it must preserve the existing Put Away and kill-attribution behavior.
+
 Version `0.1.6` keeps the accepted Put Away protocol, lease generation `v2`,
 transaction generation `v4`, and Kill Attribution V3 behavior from `0.1.4`.
 It includes the server-side part of the bounded Put Away timing telemetry and
