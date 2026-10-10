@@ -10,8 +10,9 @@ system or a worker.
 ## Current Behavior
 
 Ben reports that George works in live Benheim multiplayer after a clean
-corrected Windows installation. This confirms basic installed operation;
-shared speech, invitation lifecycle, and persistence remain unproven.
+corrected Windows installation. When Johnny invites George with both players
+present, both can see him. Shared speech, the full invitation lifecycle, and
+persistence remain unproven.
 
 Ben has accepted the resident's hot-tub seating, natural idle variation, look
 reaction, and overhead message presentation in the disposable Lab prototype.
@@ -25,6 +26,11 @@ Complete the remaining player checks on Ben's shared server. Preserve the
 accepted appearance, seating, idle variation, and restrained awareness: notice an approaching
 player, acknowledge someone sitting beside him, then settle back into relaxing
 without repeatedly greeting a lingering visitor.
+
+A player joining an already-invited tub must see its resident without needing
+a dismiss/reinvite. Ben reported that Johnny could not see the resident at the
+same tub until they repeated the invitation; this join behavior remains
+unresolved.
 
 The resident reserves his occupied tub seat without offering a sit prompt;
 the other seats remain usable. Approach with a clear sightline can trigger
