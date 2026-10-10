@@ -154,6 +154,16 @@ fi
 
 cd "$game_dir"
 
+# A Lab launch can wait for Steam long enough for Ben to start another session.
+# Use the existing exact-process guard at the final launch boundary. The MCP
+# invokes this repository launcher; normal installed Benheim launches do not
+# carry this Lab-only ownership token.
+if [ -n "${VALHEIM_DEV_LAUNCH_ID:-}" ]; then
+  launcher_dir="$(CDPATH= cd "$(dirname "$0")" && pwd)"
+  "$launcher_dir/check-valheim-stopped.sh" --quiet || \
+    fail "Valheim started while Lab was preparing. Coordinate that session before opening Lab."
+fi
+
 # Archive only after Steam is ready, at the last safe point before BepInEx can
 # overwrite LogOutput.log. A failed Steam preflight therefore does not create a
 # duplicate archive on the next attempt.

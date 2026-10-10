@@ -232,7 +232,7 @@ internal static partial class ValheimDevRuntime
         }
     }
 
-    private static ValheimDevSessionIdentity CreateSessionIdentity()
+    private static ValheimDevSessionIdentity CreateSessionIdentity(bool includeCompilerReferences = true)
     {
 #if VALHEIM_DEV_TESTS
         if (sessionIdentityOverride != null) return sessionIdentityOverride();
@@ -248,6 +248,9 @@ internal static partial class ValheimDevRuntime
             ValheimDevVersion = pluginVersion,
             ValheimDevSha256 = Sha256(File.ReadAllBytes(valheimDevPath))
         };
+        // Menu/save control needs exact builds but has no compilation step.
+        // Its independent bridge must not depend on compiler-reference discovery.
+        if (!includeCompilerReferences) return value;
         string coreLibraryPath = Path.GetFullPath(typeof(object).Assembly.Location);
         string frameworkDirectory = Path.GetDirectoryName(coreLibraryPath)!;
         AddReference(value, coreLibraryPath);

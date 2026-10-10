@@ -31,6 +31,34 @@ ID when source, compiler output, runtime detail, or later warnings and errors
 matter. Log entries are associated by time; they do not prove that the run
 caused a message.
 
+## Manage A Disposable Lab
+
+Start with `session_status({})`. It is a read-only process/menu/world check
+and works without an in-world Lab connection. Coordinate an occupied session
+with its owner before lifecycle actions.
+
+When stopped, `open_lab({})` launches the existing managed profile and confirms
+the menu. Use its returned `app_id` for subsequent mutations. At that menu:
+
+1. `list_saves({})` lists native worlds/characters and their save sources.
+2. Create a new pair with
+   `create_lab_world({app_id, name: "Lab-Test", seed: "test"})` and
+   `create_lab_character({app_id, name: "Lab-Tester"})`, or choose existing
+   disposable local `Lab-` saves. Creation never overwrites existing names.
+3. `open_lab({app_id, world: "Lab-Test", character: "Lab-Tester"})` selects the
+   pair through the native menu and waits for the matching local world and Lab.
+4. Verify the visible game with Computer Use before the experiment. General
+   code tools keep their normal world-session authorization.
+5. `close_lab({app_id})` saves and quits only that owned Lab, then confirms exit.
+
+Local single-player Lab access defaults on. `bh lab off` stays off until
+explicit `bh lab on` in that world; a new world has a new session identity.
+App/menu tools do not reopen in-world code access.
+
+If a transition is `outcome_unconfirmed`, inspect `session_status` and the
+operation ledger before retrying. A native popup or failed load can require a
+visual check. Do not repeat a launch or quit to replace missing evidence.
+
 ## Inspect The Player
 
 ```csharp

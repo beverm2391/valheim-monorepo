@@ -73,6 +73,8 @@ internal static partial class Program
         ResetRuntime();
         Require(!File.Exists(ValheimDevRuntime.DescriptorPath), "startup removes stale descriptor");
 
+        AutomaticLocalAccess(fixtures[0]);
+        ResetRuntime();
         Authorize();
         string firstSessionId = sessionId;
         JsonElement outdatedProtocol = Parse(Pump(SendAsync(JsonSerializer.Serialize(

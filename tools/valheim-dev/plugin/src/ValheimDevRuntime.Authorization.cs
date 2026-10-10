@@ -9,7 +9,7 @@ namespace ValheimDev;
 
 internal static partial class ValheimDevRuntime
 {
-    private static bool TryAuthorize(out string result)
+    private static bool TryAuthorize(out string result, bool explicitlyRequested = false)
     {
         if (!initialized)
         {
@@ -22,19 +22,27 @@ internal static partial class ValheimDevRuntime
             return false;
         }
 
+        ValheimDevWorldState state = Snapshot();
+        ObserveAccessWorld(state);
+        if (explicitlyRequested) automaticAuthorizationPending = true;
+
         if (session != null)
         {
+            automaticAuthorizationPending = false;
             result = "already_authorized";
             return true;
         }
 
-        ValheimDevWorldState state = Snapshot();
         string eligibility = ValheimDevEligibility.CheckAuthorization(state);
         if (eligibility != "eligible")
         {
             result = eligibility;
             return false;
         }
+        // Attempt automatic startup once per world. A broken descriptor path
+        // or compiler reference must not allocate a listener and log an error
+        // every frame. Explicit bh lab on can retry without leaving the world.
+        automaticAuthorizationPending = false;
 
         ValheimDevWorldCapture? candidateCapture = trackedWorld;
         if (restartRequired
@@ -98,5 +106,24 @@ internal static partial class ValheimDevRuntime
             result = "session_start_failed:" + ValheimDevDiagnostics.Flatten(exception.Message);
             return false;
         }
+    }
+
+    private static void ObserveAccessWorld(ValheimDevWorldState state)
+    {
+        if (accessPreferenceWorld != null
+            && ReferenceEquals(accessPreferenceWorld.Network, state.Network)
+            && ReferenceEquals(accessPreferenceWorld.Scene, state.Scene)
+            && accessPreferenceWorld.WorldId == state.WorldId)
+        {
+            return;
+        }
+
+        accessPreferenceWorld = state.Network != null && state.Scene != null
+            ? new ValheimDevWorldCapture
+            {
+                Network = state.Network, Scene = state.Scene, WorldId = state.WorldId
+            }
+            : null;
+        automaticAuthorizationPending = true;
     }
 }

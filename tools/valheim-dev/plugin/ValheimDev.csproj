@@ -31,6 +31,22 @@
       <HintPath>$(ValheimManagedDir)/UnityEngine.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(ValheimManagedDir)/UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(ValheimManagedDir)/Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="gui_framework">
+      <HintPath>$(ValheimManagedDir)/gui_framework.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="assembly_utils">
+      <HintPath>$(ValheimManagedDir)/assembly_utils.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <Target Name="RequireValheimGameDir" BeforeTargets="PrepareForBuild">

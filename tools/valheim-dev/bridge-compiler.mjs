@@ -115,6 +115,14 @@ export function validateBridgeIdentity(response, descriptor) {
 }
 
 export function requestBridge(descriptor, request, timeoutMs) {
+  return requestJson(descriptor, {
+    ...request, protocol: BRIDGE_PROTOCOL, session_id: descriptor.session_id,
+  }, timeoutMs);
+}
+
+// The app bridge has a process lifetime; the code bridge has a world lifetime.
+// Share bounded socket framing without conflating their authorization envelopes.
+export function requestJson(descriptor, request, timeoutMs) {
   return new Promise((resolveRequest, rejectRequest) => {
     let settled = false;
     let response = "";
@@ -133,11 +141,7 @@ export function requestBridge(descriptor, request, timeoutMs) {
       finish(error);
     });
     socket.on("connect", () => {
-      socket.write(`${JSON.stringify({
-        ...request,
-        protocol: BRIDGE_PROTOCOL,
-        session_id: descriptor.session_id,
-      })}\n`);
+      socket.write(`${JSON.stringify(request)}\n`);
     });
     socket.on("data", (chunk) => {
       response += chunk;

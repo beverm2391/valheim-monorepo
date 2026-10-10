@@ -15,6 +15,7 @@ import {
 import { captureLogCursor, optionalArtifactHash, readLedger, writeLedger } from "./ledger.mjs";
 import { createRecipeRunner } from "./recipes.mjs";
 import { validateOperationResponse, validateStatusResponse } from "./response-validation.mjs";
+import { APP_TOOLS, createAppManagement } from "./app-management.mjs";
 
 function validateIdentifier(value, name) {
   if (typeof value !== "string" || !IDENTIFIER_PATTERN.test(value)) {
@@ -178,9 +179,11 @@ export function createService({
   logPath,
   bridgeRequest = requestBridge,
   compilerRunner = runCompiler,
+  appManagement,
 } = {}) {
   if (!root) throw new Error("VALHEIM_DEV_ROOT is required");
   if (!isAbsolute(root)) throw new Error("VALHEIM_DEV_ROOT must be absolute");
+  const app = appManagement ?? createAppManagement({ root });
 
   async function labStatus() {
     try {
@@ -380,6 +383,7 @@ export function createService({
 
   return {
     async call(name, args = {}) {
+      if (APP_TOOLS.has(name)) return app.call(name, args);
       if (name === "lab_status") { validateKeys(args, new Set()); return labStatus(); }
       if (name === "run_once") return codeOperation(args, name);
       if (name === "install_change") return codeOperation(args, name);

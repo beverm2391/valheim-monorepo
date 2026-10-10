@@ -95,6 +95,11 @@ internal static partial class ValheimDevRuntime
     private static int activeConnections;
     private static volatile ValheimDevSession? session;
     private static ValheimDevWorldCapture? trackedWorld;
+    // Access preference follows the world identity even when eligibility changes
+    // or access is closed. It is separate from installed-code tracking: bh lab
+    // off must remain off through respawn or temporary eligibility changes.
+    private static ValheimDevWorldCapture? accessPreferenceWorld;
+    private static bool automaticAuthorizationPending;
     private static ValheimDevActiveOperation? activeOperation;
     private static volatile bool restartRequired;
     private static long nextInstallSequence;
@@ -104,7 +109,11 @@ internal static partial class ValheimDevRuntime
 #endif
 
     internal static bool IsCancellationRequested => trackedWorld == null;
+    internal static bool HasAccess => session != null;
+    internal static string? LabSessionId => session?.Identity.SessionId;
+    internal static ValheimDevWorldState AppWorldState => Snapshot();
     internal static string DataRoot => dataRoot;
+    internal static ValheimDevSessionIdentity AppBuildIdentity => CreateSessionIdentity(includeCompilerReferences: false);
     internal static string DescriptorPath => Path.Combine(dataRoot, "session.json");
 
 #if VALHEIM_DEV_TESTS
@@ -142,6 +151,8 @@ internal static partial class ValheimDevRuntime
         restartRequired = false;
         nextInstallSequence = 0;
         trackedWorld = null;
+        accessPreferenceWorld = null;
+        automaticAuthorizationPending = true;
         activeOperation = null;
         lock (Gate)
         {
@@ -170,7 +181,7 @@ internal static partial class ValheimDevRuntime
         switch (arguments[2].ToLowerInvariant())
         {
             case "on":
-                if (TryAuthorize(out string authorizationResult))
+                if (TryAuthorize(out string authorizationResult, explicitlyRequested: true))
                 {
                     context.AddString($"Valheim Dev Lab authorized for this local world session on 127.0.0.1:{((IPEndPoint)session!.Listener.LocalEndpoint).Port}.");
                 }
@@ -180,6 +191,8 @@ internal static partial class ValheimDevRuntime
                 }
                 return true;
             case "off":
+                ObserveAccessWorld(Snapshot());
+                automaticAuthorizationPending = false;
                 CloseAccess("console_off");
                 string offMessage = ManagedChangeCount() == 0
                     ? "Valheim Dev Lab access is off."
@@ -249,6 +262,21 @@ internal static partial class ValheimDevRuntime
             return;
         }
 
+        ValheimDevWorldState state = Snapshot();
+        ObserveAccessWorld(state);
+        // Closing control access does not end installed-code ownership. Detect
+        // world exit while Lab is off too, including if the teardown patch is
+        // unavailable, before any new world's automatic authorization.
+        if (trackedWorld != null)
+        {
+            string drift = ValheimDevEligibility.CheckCapturedSession(trackedWorld, state);
+            if (drift != "eligible")
+            {
+                Revoke("session_drift:" + drift);
+                return;
+            }
+        }
+
         ValheimDevSession? current = session;
         if (current != null && current.ListenerFailed)
         {
@@ -256,13 +284,13 @@ internal static partial class ValheimDevRuntime
             return;
         }
 
-        if (current != null)
+        if (current == null && automaticAuthorizationPending)
         {
-            string drift = ValheimDevEligibility.CheckCapturedSession(current.Capture, Snapshot());
-            if (drift != "eligible")
+            if (!TryAuthorize(out string authorizationResult)
+                && authorizationResult.StartsWith("session_start_failed:", StringComparison.Ordinal))
             {
-                Revoke("session_drift:" + drift);
-                return;
+                Plugin.Log.LogWarning("Valheim Dev Lab automatic access failed: "
+                    + authorizationResult + ". Use bh lab on to retry.");
             }
         }
 

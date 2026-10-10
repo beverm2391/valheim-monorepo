@@ -9,14 +9,14 @@ import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { createService, operationSummary, runCompiler } from "./server.mjs";
 import { SOURCE, bridgeIdentity, managedChange, temporaryRoot, writeDescriptor } from "./test-helpers.mjs";
 
-const SERVER_PATH = resolve(import.meta.dirname, "server.mjs");
+const SERVER_PATH = resolve(import.meta.dirname, "launch.sh");
 
 async function connectClient(root) {
   const env = Object.fromEntries(Object.entries(process.env).filter((entry) => typeof entry[1] === "string"));
   env.VALHEIM_DEV_ROOT = root;
   const transport = new StdioClientTransport({
-    command: process.execPath,
-    args: [SERVER_PATH],
+    command: SERVER_PATH,
+    args: [],
     cwd: import.meta.dirname,
     env,
     stderr: "pipe",
@@ -26,16 +26,17 @@ async function connectClient(root) {
   return { client, transport };
 }
 
-test("official MCP client crosses spawned stdio boundary and exposes the seven workbench tools", async (t) => {
+test("official MCP client crosses spawned stdio boundary and exposes workbench and lifecycle tools", async (t) => {
   const { root } = await temporaryRoot();
   t.after(() => rm(root, { recursive: true, force: true }));
   const { client } = await connectClient(root);
   t.after(() => client.close());
 
-  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.4.0" });
+  assert.deepEqual(client.getServerVersion(), { name: "valheim-dev", version: "0.5.0" });
   const listed = await client.listTools();
   assert.deepEqual(listed.tools.map((tool) => tool.name), [
     "lab_status", "run_once", "install_change", "remove_change", "reset_lab", "run_recipes", "read_ledger",
+    "session_status", "list_saves", "create_lab_world", "create_lab_character", "open_lab", "close_lab",
   ]);
   assert.deepEqual(listed.tools[1].inputSchema.required, ["label", "source"]);
   assert.deepEqual(listed.tools[2].inputSchema.required, ["label", "change_id", "source"]);

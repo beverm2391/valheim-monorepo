@@ -14,8 +14,8 @@ resolved path in the error. Valheim Dev adds no broader path-discovery system.
 
 ## One World Owns Installed Code
 
-Ben enables Lab after entering a local single-player world. The bridge captures
-the network object, scene object, and world ID. It creates a fresh session ID
+Lab defaults on after entering an eligible local single-player world. The bridge
+captures the network object, scene object, and world ID. It creates a fresh session ID
 and loopback listener. It then writes a session descriptor with the exact
 Valheim and Valheim Dev bridge build identities.
 
@@ -30,8 +30,9 @@ loads or runs code. Player respawn can replace the local `Player` object without
 changing the captured world.
 
 `bh lab off` closes access. It stops the listener, deletes the descriptor, and
-cancels queued work. It does not run installed cleanup functions. Re-enabling
-Lab in the same world creates a new session and exposes the same installed-code
+cancels queued work. Automatic access stays disabled for that world's lifetime,
+even if player eligibility temporarily changes. It does not run installed cleanup
+functions. Re-enabling Lab in the same world creates a new session and exposes the same installed-code
 registry. If that registry is locked by `restart_required`, same-world
 reauthorization exposes status and `reset_lab`; every other mutation remains
 blocked. A different world cannot receive that recovery authorization.
@@ -52,10 +53,10 @@ conditions apply:
 
 Benheim presence, absence, and gameplay health are not authorization inputs.
 
-## Seven General Tools
+## General Code Tools
 
 The official TypeScript MCP SDK owns stdio framing, initialization, discovery,
-input validation, and result envelopes. Valheim Dev exposes seven tools:
+input validation, and result envelopes. Valheim Dev retains seven code tools:
 
 1. `lab_status({})`
    - Reports connection and authorization state, exact build identity,
@@ -119,6 +120,56 @@ byte truncation. Feature-specific evidence is an optional integration with the
 mod that owns those events. If its provider is absent or unhealthy, the
 operation continues and reports `evidence_available: false` with an explicit
 reason.
+
+## App And Menu Tools
+
+A separate fixed-action bridge lives for the plugin's process lifetime, including
+the main menu and periods when in-world Lab access is off. It exposes no code
+execution. Its loopback descriptor is `app.json`, protocol 1, with a fresh
+`app_id`, PID, process start time, exact loaded build identity, and optional
+managed launch ID. Requests and responses bind to that app ID and a request UUID.
+Native save and selection calls run on Unity's main thread.
+
+Six MCP tools complement the seven code tools:
+
+- `session_status({})` checks exact Valheim executable processes and the app
+  handshake. Reports stopped, unavailable, menu, loading, local world,
+  multiplayer, dedicated, or closing state; world/character and Lab access
+  are reported when the app bridge is usable. This never launches the game.
+- `list_saves({})` enumerates native world and character names and save sources,
+  without reading their raw contents into the MCP response. Requires a running
+  app bridge, but no in-world Lab authorization.
+- `create_lab_world({app_id, name, seed?})` and
+  `create_lab_character({app_id, name})` create native local saves at the menu.
+  Names must match `Lab-[A-Za-z0-9_-]{1,44}`. Existing names are rejected.
+  Native persisted enumeration, rather than a void creation callback, proves
+  creation. No tool overwrites or deletes a save.
+- `open_lab({app_id?, world?, character?})` uses the existing macOS managed
+  Benheim launcher when no Valheim process exists. With no save pair, it confirms
+  the main menu. A running process requires its observed app ID. Both supplied
+  names select native local disposable saves from the menu, then wait for the
+  actual matching world, character, ownership, and Lab authorization.
+- `close_lab({app_id})` requests native save/logout/quit for an owned Lab and
+  confirms process exit. Native prompts may delay or cancel closing. It cannot
+  quit an ordinary world or multiplayer session. A tools-launched main menu
+  also belongs to that managed launch.
+
+App identity is separate from world authorization. Possession of an app ID
+never authorizes general code in a menu or multiplayer game. Runtime ownership
+uses native persisted world/character identities, not names alone, and is
+discarded when that session ends. A launch ID proves only the managed menu,
+not ownership of whichever world a human subsequently enters.
+
+Lifecycle mutations are serialized across MCP processes by an owner-PID lock
+in the data root. A crash leaves an explicit abandoned lock; inspect current
+session state before removing it. Every mutation has an operation UUID and
+persistent pending/terminal ledger record. A request followed by timeout is
+`outcome_unconfirmed`, not proof of failure or completion. Inspect
+`session_status` before retrying.
+
+The app bridge and automatic access still require an authorized installed-build
+native runtime check. Offline protocol proofs cannot establish native menu
+readiness, popup behavior, save persistence, or a clean quit.
 
 ## Compilation Matches The Running Process
 

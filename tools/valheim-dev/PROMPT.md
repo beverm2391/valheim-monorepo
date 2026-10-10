@@ -72,7 +72,12 @@ The focused suites must prove:
 - installed-change replacement and removal;
 - cleanup uncertainty;
 - concise MCP responses with complete ledger records;
-- the Zod tool schemas and the official client-to-server transport.
+- the Zod tool schemas and the official client-to-server transport;
+- app bridge availability at the menu without world authorization;
+- exact process/app binding and refusal of stale or occupied lifecycle requests;
+- native persisted save identity, creation collision refusal, and owned
+  save/logout/quit transitions;
+- default local access with session-scoped explicit opt-out.
 
 When Valheim is not running, use an equivalent runtime test as a stand-in for
 changes that a player would normally see. Behavior that depends on the live

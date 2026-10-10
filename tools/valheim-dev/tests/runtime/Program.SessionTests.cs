@@ -22,6 +22,12 @@ internal static partial class Program
         ValheimDevRuntime.SetTestHooks(() => state, TestIdentity);
         ValheimDevRuntime.Initialize(root, Path.Combine(root, "LogOutput.log"), "test-valheim-dev", Thread.CurrentThread.ManagedThreadId);
 
+        int previousWarnings = Plugin.Log.Warnings.Count;
+        ValheimDevRuntime.Update();
+        ValheimDevRuntime.Update();
+        Require(!ValheimDevRuntime.IsAuthorizedForTests
+            && Plugin.Log.Warnings.Count == previousWarnings + 1,
+            "failed automatic startup remains unauthorized and reports failure once per world");
         Terminal terminal = new Terminal();
         Require(ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "on" }, terminal),
             "failed Lab startup command is routed");
@@ -95,11 +101,119 @@ internal static partial class Program
             "world transition proof installs code in the first world");
         ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, new Terminal());
         Require(ValheimDevTestSurface.Visible, "turning access off leaves first-world code installed");
+        state = new ValheimDevWorldState();
+        ValheimDevRuntime.Update();
+        Require(!ValheimDevRuntime.IsAuthorizedForTests
+            && ValheimDevRuntime.IsCancellationRequested
+            && !ValheimDevTestSurface.Visible,
+            "world exit ends tracking and cleans installed code even while Lab access is off");
+        state = EligibleState();
+        ValheimDevRuntime.Update();
+        ReadAuthorizedSession();
+        Require(Status().GetProperty("active_changes").GetArrayLength() == 0,
+            "the next world automatically opens with no installed code from the departed world");
+
+        Require(Install("next-world-change", "affinity.weapon-icon", changeAssembly)
+                .GetProperty("ok").GetBoolean(),
+            "world replacement proof installs code in the next world");
+        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, new Terminal());
         state.Scene = new object();
-        Authorize();
+        ValheimDevRuntime.Update();
+        Require(!ValheimDevRuntime.IsAuthorizedForTests
+            && !ValheimDevTestSurface.Visible,
+            "direct world replacement cleans old installed code before opening another session");
+        ValheimDevRuntime.Update();
+        ReadAuthorizedSession();
         Require(Status().GetProperty("active_changes").GetArrayLength() == 0
             && !ValheimDevTestSurface.Visible,
-            "authorizing another world cleans and forgets code tracked for the first world");
+            "direct world replacement restores automatic access with an empty registry");
+    }
+
+    private static void AutomaticLocalAccess(string changeAssembly)
+    {
+        var restrictedStates = new (string Name, Action<ValheimDevWorldState> Restrict)[]
+        {
+            ("no network", value => value.Network = null),
+            ("no scene", value => value.Scene = null),
+            ("remote client", value => value.IsServer = false),
+            ("open server", value => value.IsOpenServer = true),
+            ("dedicated server", value => value.IsDedicated = true),
+            ("connected peer", value => value.PeerCount = 1),
+            ("server RPC", value => value.HasServerRpc = true),
+            ("missing player", value => value.LocalPlayer = null),
+            ("destroyed player", value => value.LocalPlayerIsAlive = false),
+            ("unowned player", value => value.LocalPlayerIsOwner = false)
+        };
+        foreach (var restricted in restrictedStates)
+        {
+            ResetRuntime();
+            ValheimDevWorldState eligible = Clone(state);
+            restricted.Restrict(state);
+            ValheimDevRuntime.Update();
+            Require(!ValheimDevRuntime.IsAuthorizedForTests
+                && !File.Exists(ValheimDevRuntime.DescriptorPath),
+                "automatic access rejects " + restricted.Name);
+            state = eligible;
+            ValheimDevRuntime.Update();
+            ReadAuthorizedSession();
+            Require(Status().GetProperty("authorized").GetBoolean(),
+                "automatic access starts after " + restricted.Name + " becomes eligible");
+        }
+
+        string automaticSessionId = sessionId;
+        state.LocalPlayer = null;
+        ValheimDevRuntime.Update();
+        state.LocalPlayer = new object();
+        ValheimDevRuntime.Update();
+        ReadAuthorizedSession();
+        Require(sessionId == automaticSessionId,
+            "automatic access retains the world session through player respawn");
+        Require(Install("automatic-world-change", "affinity.weapon-icon", changeAssembly)
+                .GetProperty("ok").GetBoolean(),
+            "automatic authorization supports installed-code execution");
+        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, new Terminal());
+        ValheimDevRuntime.Update();
+        state.LocalPlayer = null;
+        ValheimDevRuntime.Update();
+        state.LocalPlayer = new object();
+        ValheimDevRuntime.Update();
+        Require(!ValheimDevRuntime.IsAuthorizedForTests
+            && !File.Exists(ValheimDevRuntime.DescriptorPath)
+            && !ValheimDevRuntime.IsCancellationRequested
+            && ValheimDevTestSurface.Visible,
+            "explicit off stays off through respawn and keeps installed code in the same world");
+        Authorize();
+        Require(sessionId != automaticSessionId
+            && Status().GetProperty("active_changes").GetArrayLength() == 1,
+            "explicit on reopens an automatically authorized world with a fresh session and its installed code");
+        JsonElement staleSession = Parse(Pump(SendAsync(JsonSerializer.Serialize(
+            new Dictionary<string, object?>
+            {
+                ["kind"] = "status", ["protocol"] = ValheimDevProtocol.ProtocolVersion,
+                ["session_id"] = automaticSessionId
+            }))));
+        Require(staleSession.GetProperty("error").GetString() == "authorization_mismatch",
+            "reopening default access rejects requests prepared for its earlier session");
+
+        ResetRuntime();
+        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "off" }, new Terminal());
+        ValheimDevRuntime.Update();
+        state.PeerCount = 1;
+        ValheimDevRuntime.Update();
+        state.PeerCount = 0;
+        ValheimDevRuntime.Update();
+        Require(!ValheimDevRuntime.IsAuthorizedForTests,
+            "off before the first automatic attempt survives eligibility changes in that world");
+        state.LocalPlayer = null;
+        ValheimDevRuntime.TryHandleConsole(new[] { "bh", "lab", "on" }, new Terminal());
+        ValheimDevRuntime.Update();
+        Require(!ValheimDevRuntime.IsAuthorizedForTests,
+            "explicit on still waits for an eligible player");
+        state.LocalPlayer = new object();
+        ValheimDevRuntime.Update();
+        ReadAuthorizedSession();
+        Require(ValheimDevRuntime.HasAccess && ValheimDevRuntime.LabSessionId == sessionId,
+            "explicit on restores automatic access once the same world becomes eligible");
     }
 
     private static void RequireLabDiagnostics(params string[] expectedNames)
@@ -125,6 +239,13 @@ internal static partial class Program
         Require(
             ValheimDevRuntime.IsAuthorizedForTests && File.Exists(ValheimDevRuntime.DescriptorPath),
             "eligible console command publishes a usable Lab session: " + string.Join(" | ", terminal.Lines));
+        ReadAuthorizedSession();
+    }
+
+    private static void ReadAuthorizedSession()
+    {
+        Require(ValheimDevRuntime.IsAuthorizedForTests && File.Exists(ValheimDevRuntime.DescriptorPath),
+            "an eligible world publishes a usable Lab session");
         using JsonDocument descriptor = JsonDocument.Parse(File.ReadAllText(ValheimDevRuntime.DescriptorPath));
         JsonElement value = descriptor.RootElement;
         Require(value.GetProperty("protocol").GetInt32() == ValheimDevProtocol.ProtocolVersion

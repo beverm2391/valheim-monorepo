@@ -45,6 +45,8 @@ const recipeRequest = z.strictObject({
 }).refine((value) => value.preset_index === undefined || value.inputs === undefined, {
   message: "choose preset_index or inputs, not both",
 });
+const appId = z.string().regex(/^[a-f0-9]{32}$/).describe("Current app_id returned by session_status; binds this action to the observed game process.");
+const labName = z.string().regex(/^Lab-[A-Za-z0-9_-]{1,44}$/).describe("Disposable native local save name beginning Lab-.");
 
 const TOOL_DEFINITIONS = Object.freeze([
   {
@@ -99,6 +101,37 @@ const TOOL_DEFINITIONS = Object.freeze([
       operation_id: z.string().regex(/^[a-f0-9-]{36}$/).optional(),
       limit: z.int().min(1).max(MAX_LEDGER_LIST).default(20),
     }),
+  },
+  {
+    name: "session_status",
+    description: "Inspect actual local Valheim processes, menu/world/character, exact loaded build and Lab access without launching or changing the game.",
+    inputSchema: z.strictObject({}),
+  },
+  {
+    name: "list_saves",
+    description: "List native worlds and characters through the app bridge, including before in-world Lab access. Does not launch Valheim.",
+    inputSchema: z.strictObject({}),
+  },
+  {
+    name: "create_lab_world",
+    description: "Create a disposable native local Lab- world at the main menu. Refuses existing names and never overwrites saves.",
+    inputSchema: z.strictObject({ app_id: appId, name: labName, seed: z.string().max(10).regex(/^[A-Za-z0-9]*$/).optional() }),
+  },
+  {
+    name: "create_lab_character",
+    description: "Create a disposable native local Lab- character at the main menu. Refuses existing names and never overwrites saves.",
+    inputSchema: z.strictObject({ app_id: appId, name: labName }),
+  },
+  {
+    name: "open_lab",
+    description: "Launch the existing managed profile if stopped, or select a disposable local world and character at its menu. Omitting both save names opens only the menu. An existing process requires its current app_id. Waits for the actual transition.",
+    inputSchema: z.strictObject({ app_id: appId.optional(), world: labName.optional(), character: labName.optional() })
+      .refine((value) => (value.world === undefined) === (value.character === undefined), { message: "choose both world and character" }),
+  },
+  {
+    name: "close_lab",
+    description: "Request native clean quit only for the tools' owned Lab session and confirm the process exits. Refuses occupied normal or multiplayer sessions.",
+    inputSchema: z.strictObject({ app_id: appId }),
   },
 ]);
 
@@ -192,7 +225,8 @@ async function callTool(service, name, args) {
     const isError = OPERATION_TOOLS.has(name)
       ? result.state !== "succeeded"
       : name === "run_recipes"
-        && result.recipes.some((outcome) => outcome.record?.state !== "succeeded");
+        && result.recipes.some((outcome) => outcome.record?.state !== "succeeded")
+        || ["open_lab", "close_lab", "create_lab_world", "create_lab_character"].includes(name) && result.state !== "succeeded";
     return toolResult(output, isError);
   } catch (error) {
     return toolResult({ error: error instanceof Error ? error.message : String(error) }, true);
