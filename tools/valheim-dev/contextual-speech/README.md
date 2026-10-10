@@ -26,7 +26,8 @@ safe b secrets run --project PROJECT --config CONFIG --secret OPENROUTER_API_KEY
 
 The process listens only on `127.0.0.1:18741`. `GEORGE_SPEECH_PORT` overrides
 the port; pass the same `port` to the recipe. No key enters the recipe, game,
-registry, or ledger. `/health` reports model, readiness and call count.
+registry, or ledger. `/health` reports model, readiness, call count and the
+current bridge trace file.
 Stop the bridge with Ctrl-C when the experiment ends. It is not a background
 service and does not start with the game.
 
@@ -56,7 +57,49 @@ most 140 characters and remains visible for ten seconds.
 Midday or weather overrides in other recipes affect what this recipe queries.
 This recipe does not change them. Silence and occasional repeated phrasing are
 model choices; local validation does not establish dialogue quality. There is
-no persistence, multiplayer protocol, conversation memory, or emote coupling.
+no persistent conversation memory, multiplayer protocol, or emote coupling.
+
+## Debug a remark
+
+Each approach receives a UUID shared by the game and bridge. Both append local
+JSONL records immediately, so they remain readable while the secret wrapper
+buffers stdout. Routine console logs contain IDs, outcomes and counters;
+dialogue lives in the local trace files.
+
+The bridge writes to the ignored [traces directory](traces/.gitignore), or
+`GEORGE_TRACE_DIR` when set. `/health` gives its exact file and `traceError`.
+The game writes below the active profile's
+`BepInEx/ValheimDev/contextual-speech-traces`; the receiver's `traceFile` field
+gives its exact path. Each process/receiver gets a new file. Traces remain
+until the operator removes them; they are local debugging data, not repo
+artifacts to publish.
+
+Read both files, optionally filtering one approach ID:
+
+```sh
+safe node tools/valheim-dev/contextual-speech/trace.mjs \
+  --request-id UUID /absolute/path/to/bridge.jsonl /absolute/path/to/game.jsonl
+```
+
+The bridge records the exact prompt and approved context sent to OpenRouter,
+bounded model content, parsed reply, actual model, token usage, cost when
+reported, and elapsed time. Provider HTTP errors retain only the status;
+authorization headers, API keys and raw provider error bodies never enter
+the trace. Unknown request fields are rejected before persistence. Game
+`contextJson` and `replyJson` hold the snapshot and validated response.
+
+`provider_completed` means a provider response arrived. `bridge_response`
+means the bridge submitted a loopback response. Game `reply_received` means
+the receiver accepted it; `display_submitted` means native `SetNpcText`
+returned successfully. Only a live visual check establishes that the player
+saw the text. Suppression, silence and discards carry separate reasons,
+including cooldown, missing context, sightline timeout, visitor departure,
+provider timeout, invalid output and receiver removal. Cancellation is
+recorded immediately; a late provider completion remains linked to the same
+ID and cannot become delivered speech. Trace write failures are surfaced once
+in routine logs and remain queryable through `/health` or `traceFailures`.
+
+## Offline proof
 
 Run the bridge proof with:
 
@@ -64,7 +107,15 @@ Run the bridge proof with:
 safe node --test tools/valheim-dev/contextual-speech/bridge.test.mjs
 ```
 
-Compile the recipe against the current Lab descriptor and check its live
-result through Computer Use before treating a new variant as player-visible
-proof. The generic [Valheim Dev verification](../PROMPT.md) owns bridge/plugin
+Compile the recipe without launching or installing anything:
+
+```sh
+safe VALHEIM_GAME_DIR=/absolute/path/to/Valheim \
+  node tools/valheim-dev/contextual-speech/compile-recipe.mjs
+```
+
+The controlled transport proof uses no paid calls. Compilation checks the
+installed game APIs; the next authorized live session must check matching
+game/bridge IDs, native submission and cancellation through Computer Use.
+The generic [Valheim Dev verification](../PROMPT.md) owns bridge/plugin
 changes; this experiment does not alter that runtime.
