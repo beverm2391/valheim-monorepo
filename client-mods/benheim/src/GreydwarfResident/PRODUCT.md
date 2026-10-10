@@ -46,6 +46,12 @@ more alive. Ben has authorized trying ideas freely in the disposable sandbox.
 Keep successful experiments recoverable in committed source and promote
 accepted behavior into the normal mod incrementally.
 
+LLM playtests need a local debug trace that explains what George was told,
+what the model returned, and whether the game displayed it or stayed silent.
+Correlate the trigger, prompt/context, response, timing, and final outcome;
+make failures and discarded replies distinguishable. Trace content remains
+local and excludes credentials.
+
 ## Later
 
 Seeded personal lore, recent conversation, and learned memories remain later
