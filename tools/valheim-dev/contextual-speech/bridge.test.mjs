@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { createBridge, generate, parseRemark } from './bridge.mjs';
 import { createTrace, readTrace } from './trace.mjs';
 
-const context = { event: 'approach', dayPart: 'day', weather: 'Clear', biome: 'Meadows',
+const context = { event: 'approach', visitorName: 'Lab visitor', dayPart: 'day', weather: 'Clear', biome: 'Meadows',
   wet: false, cold: false, tubBurning: true, playerSeated: false, recentRemarks: [] };
 const silent = { speak: false, text: '' };
 const provider = content => ({ ok: true, json: async () => ({ model: 'google/test-model',
@@ -174,4 +174,21 @@ test('query joins game and bridge timestamps and ignores an unfinished live appe
     assert.deepEqual(readTrace([bridge, game], id).map(e => e.phase), ['trigger', 'provider_request']);
     assert.deepEqual(readTrace([bridge, game], randomUUID()), []);
   } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+
+test('next preview reads the edited prompt and keeps one snapshot for provider and trace', async () => {
+  let prompt = 'First user-authored prompt', sent;
+  await withBridge({ promptLoader: () => prompt, generateImpl: (value, options) => generate(value, { ...options,
+    fetchImpl: async (url, request) => { sent = JSON.parse(request.body); return provider('{"speak":false,"text":""}'); } }) },
+    async ({ post, events }) => {
+      const first = randomUUID(); await post(context, first);
+      assert.equal(sent.messages[0].content, prompt);
+      assert.deepEqual(events(first).find(e => e.phase === 'provider_request').request, sent);
+      prompt = 'Second user-authored prompt';
+      const second = randomUUID(); await post({ ...context, event: 'talk', visitorName: 'Ben' }, second);
+      assert.equal(sent.messages[0].content, prompt);
+      assert.equal(JSON.parse(sent.messages[1].content).visitorName, 'Ben');
+      assert.deepEqual(events(second).find(e => e.phase === 'provider_request').request, sent);
+    });
 });

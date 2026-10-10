@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createTrace } from './trace.mjs';
 
-const prompt = readFileSync(new URL('./george.txt', import.meta.url), 'utf8');
+const loadPrompt = () => readFileSync(new URL('./george.txt', import.meta.url), 'utf8');
 export const MODEL = 'google/gemini-3.5-flash-lite';
 const silence = { speak: false, text: '' };
 const schema = {
@@ -26,13 +26,13 @@ export function parseRemark(value) {
 }
 
 export function parseContext(value) {
-  const fields = ['event', 'dayPart', 'weather', 'biome', 'wet', 'cold',
+  const fields = ['event', 'visitorName', 'dayPart', 'weather', 'biome', 'wet', 'cold',
     'tubBurning', 'playerSeated', 'recentRemarks'];
   if (!value || Object.keys(value).sort().join(',') !== fields.sort().join(','))
     throw new Error('invalid_context');
-  if (value.event !== 'approach' || !['morning', 'day', 'evening', 'night'].includes(value.dayPart))
+  if (!['approach', 'talk'].includes(value.event) || !['morning', 'day', 'evening', 'night'].includes(value.dayPart))
     throw new Error('invalid_context');
-  for (const key of ['weather', 'biome'])
+  for (const key of ['visitorName', 'weather', 'biome'])
     if (typeof value[key] !== 'string' || value[key].length > 64 || /[<>\x00-\x1f]/u.test(value[key]))
       throw new Error('invalid_context');
   for (const key of ['wet', 'cold', 'tubBurning', 'playerSeated'])
@@ -43,7 +43,7 @@ export function parseContext(value) {
   return value;
 }
 
-export function modelRequest(context, model) {
+export function modelRequest(context, model, prompt = loadPrompt()) {
   return { model, max_tokens: 120, temperature: .8,
     response_format: { type: 'json_schema', json_schema: {
       name: 'resident_remark', strict: true, schema } },
@@ -52,12 +52,12 @@ export function modelRequest(context, model) {
 }
 
 export async function generate(context, { key, model = MODEL, signal, fetchImpl = fetch,
-  onProviderReply = () => {} }) {
+  onProviderReply = () => {}, requestBody = modelRequest(context, model) }) {
   const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST', signal,
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json',
       'X-OpenRouter-Title': 'Valheim George Sandbox' },
-    body: JSON.stringify(modelRequest(context, model))
+    body: JSON.stringify(requestBody)
   });
   // Never log provider bodies: error responses can echo request headers/data.
   if (!response.ok) throw new Error(`provider_http_${response.status}`);
@@ -83,7 +83,7 @@ export async function generate(context, { key, model = MODEL, signal, fetchImpl 
 }
 
 export function createBridge({ key, model = MODEL, timeoutMs = 8000,
-  requestLimit = 100, generateImpl = generate, log = console.log, traceFile } = {}) {
+  requestLimit = 100, generateImpl = generate, log = console.log, traceFile, promptLoader = loadPrompt } = {}) {
   let busy = false, calls = 0;
   const emit = data => log(JSON.stringify({ component: 'george-speech', ...data }));
   const sessionId = randomUUID();
@@ -144,8 +144,11 @@ export function createBridge({ key, model = MODEL, timeoutMs = 8000,
       if (controller.signal.aborted) throw new Error(abortReason);
       busy = ownsCall = true;
       calls++;
-      record({ phase: 'provider_request', call: calls, request: modelRequest(context, model) });
-      const result = await generateImpl(context, { key, model, signal: controller.signal,
+      // One prompt snapshot owns both the trace and provider request. Editing the
+      // file affects the next preview without restarting the bridge.
+      const requestBody = modelRequest(context, model, promptLoader());
+      record({ phase: 'provider_request', call: calls, request: requestBody });
+      const result = await generateImpl(context, { key, model, signal: controller.signal, requestBody,
         onProviderReply: evidence => { completed = evidence;
           record({ phase: 'provider_completed', durationMs: duration(), ...evidence }); } });
       if (!completed) record({ phase: 'provider_completed', durationMs: duration(),

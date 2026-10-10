@@ -33,7 +33,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
 {
     [Serializable] public sealed class Context
     {
-        public string @event = "approach", dayPart, weather, biome;
+        public string @event = "approach", visitorName, dayPart, weather, biome;
         public bool wet, cold, tubBurning, playerSeated;
         public string[] recentRemarks;
     }
@@ -64,6 +64,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
     float expires, nextCheck, nextAllowed;
     string sessionId, currentRequestId;
     float triggerStarted, requestStarted;
+    bool preview;
     readonly Queue<string> recent = new Queue<string>();
     public int approachCount, requestCount, speechCount, discardedCount, silenceCount;
     public string state = "idle", lastText = "", lastContextJson = "";
@@ -94,19 +95,33 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
 
     public void OnResidentApproach(Player player)
     {
+        Begin(player, false);
+    }
+
+    // Lab previews exercise the same snapshot, transport and native display.
+    // They skip encounter cadence/range only, so prompt iteration needs no
+    // artificial walk-away loop. Death, teleport, expiry and teardown still cancel.
+    public void OnLabDialogueTest(Player player)
+    {
+        Begin(player, true);
+    }
+
+    void Begin(Player player, bool isPreview)
+    {
         string id = Guid.NewGuid().ToString();
-        Record(id, "trigger", "approach");
+        Record(id, "trigger", isPreview ? "lab_dialogue_test" : "approach");
         string suppressed = !player ? "player_missing" : player != Player.m_localPlayer ? "nonlocal_player" :
-            currentRequestId != null ? "encounter_pending" : Time.unscaledTime < nextAllowed ? "speech_cooldown" : null;
+            currentRequestId != null ? "encounter_pending" : !isPreview && Time.unscaledTime < nextAllowed ? "speech_cooldown" : null;
         if (suppressed != null) { Record(id, "suppressed", suppressed); return; }
         currentRequestId = id;
         triggerStarted = Time.unscaledTime;
         pending = player;
+        preview = isPreview;
         expires = Time.unscaledTime + 12f;
         nextCheck = 0f;
         approachCount++;
-        state = "waiting for sightline";
-        Record(id, "waiting_for_sightline", "approach_accepted");
+        state = isPreview ? "preview ready" : "waiting for sightline";
+        Record(id, "accepted", isPreview ? "lab_dialogue_test" : "approach_accepted");
     }
 
     string IrrelevantReason()
@@ -117,6 +132,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         if (pending.IsTeleporting()) return "player_teleporting";
         if (!Chat.instance) return "chat_unavailable";
         if (Time.unscaledTime >= expires) return state == "requesting" ? "encounter_expired" : "sightline_timeout";
+        if (preview) return null;
         var delta = pending.transform.position - transform.position;
         return new Vector2(delta.x, delta.z).magnitude > 6f || Mathf.Abs(delta.y) > 3f ? "visitor_left" : null;
     }
@@ -133,6 +149,8 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         var effects = player.GetSEMan();
         float dayFraction = EnvMan.instance.GetDayFraction();
         return new Context {
+            @event = preview ? "talk" : "approach",
+            visitorName = SafeVisitorName(player.GetHoverName()),
             // Native night bounds are .25/.75. Split daylight coarsely so the
             // prompt sees useful periods without claiming an exact clock time.
             dayPart = EnvMan.IsNight() ? "night" : dayFraction < .4f ? "morning" :
@@ -153,17 +171,17 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         // Invalidate promptly even during HTTP: leaving and returning cannot revive
         // an old remark. Movement, animation and look components never wait on this.
         string reason = IrrelevantReason();
-        if (reason == null && request != null && !Visible()) reason = "sightline_lost";
+        if (reason == null && !preview && request != null && !Visible()) reason = "sightline_lost";
         if (reason != null)
         {
             discardedCount++; Cancel(reason); return;
         }
-        if (request == null && Visible()) StartCoroutine(FetchRemark());
+        if (request == null && (preview || Visible())) StartCoroutine(FetchRemark());
     }
 
     IEnumerator FetchRemark()
     {
-        nextAllowed = Time.unscaledTime + 45f;
+        if (!preview) nextAllowed = Time.unscaledTime + 45f;
         state = "requesting";
         requestCount++;
         UnityWebRequestAsyncOperation operation = null;
@@ -217,7 +235,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         if (failure == null) Record(currentRequestId, "reply_received", reply.reason,
             replyJson: JsonUtility.ToJson(reply), httpStatus: httpStatus);
         string irrelevant = IrrelevantReason();
-        if (irrelevant == null && !Visible()) irrelevant = "sightline_lost";
+        if (irrelevant == null && !preview && !Visible()) irrelevant = "sightline_lost";
         if (irrelevant != null) { discardedCount++; Record(currentRequestId, "discarded", irrelevant); }
         else if (failure != null) { silenceCount++; Record(currentRequestId, "silence", failure, httpStatus: httpStatus); }
         else if (reply.speak)
@@ -247,6 +265,11 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         Finish();
     }
 
+    static string SafeVisitorName(string name)
+    {
+        var filtered = new string((name ?? "").Where(c => c != '<' && c != '>' && !char.IsControl(c)).Take(64).ToArray()).Trim();
+        return filtered.Length == 0 ? "visitor" : filtered;
+    }
     static bool ValidText(string text) => !string.IsNullOrWhiteSpace(text) && text.Length <= 140 &&
         !text.Any(c => c == '<' || c == '>' || char.IsControl(c));
     static bool SafeReason(string reason) => reason != null && (new[] { "model_speech", "model_silence",
@@ -276,7 +299,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         }
         catch { TraceFailed(); }
     }
-    void Finish() { pending = null; currentRequestId = null; state = "idle"; }
+    void Finish() { pending = null; currentRequestId = null; preview = false; state = "idle"; }
     void Cancel(string reason)
     {
         if (currentRequestId != null) Record(currentRequestId, "discarded", reason);

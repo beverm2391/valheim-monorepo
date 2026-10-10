@@ -40,11 +40,21 @@ Walk beyond the awareness radius for eight seconds, then approach with a clear
 sightline. Standing nearby does not generate a stream of requests. Speech has
 a separate 45-second cooldown, including silent or failed calls.
 
+For paired dialogue iteration, send `OnLabDialogueTest` to the resident with
+`Player.m_localPlayer` through a one-time Lab command. This uses the same
+context, provider request, and native display, bypassing approach cooldown,
+range, and sightline. Death, teleport, expiry, and receiver removal still
+cancel the reply. The bridge reads [george.txt](george.txt) once per request,
+so an edited prompt reaches the next preview without restarting the bridge;
+that same snapshot is saved in the trace.
+
 ## Context and limits
 
 The recipe queries day period, native weather name, biome, player Wet/Cold
 status effects, whether the tub's native fuel-only Smelter is active, and whether the
-player is sitting. It sends no identity, coordinates, inventory, chat, or
+player is sitting, plus the visitor's current character name and whether the
+event was an approach or explicit dialogue preview. It sends no account IDs,
+coordinates, inventory, chat, or
 private lore. Up to three displayed remarks stay in memory to discourage
 repetition. [george.txt](george.txt) owns the experimental character voice.
 
