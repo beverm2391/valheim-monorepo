@@ -43,6 +43,10 @@ with `0.1.104`.
 
 ## In Development
 
+Extend native wooden-bench targeting and use to the existing 8-meter
+interaction range. Sitting, seat occupancy, and other native bench behavior
+remain unchanged.
+
 Benheim doubles Valheim's native automatic pickup radius for ordinary dropped
 items, including items floating in water or tar. This applies only when the
 player has auto-pickup enabled. Manual pickup range stays native, as do item
