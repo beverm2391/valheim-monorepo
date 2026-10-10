@@ -14,6 +14,8 @@ corrected Windows installation. When Johnny invites George with both players
 present, both can see him. Shared speech, the full invitation lifecycle, and
 persistence remain unproven.
 
+Ben confirms that live George remarks use his current character's name.
+
 Ben has accepted the resident's hot-tub seating, natural idle variation, look
 reaction, and overhead message presentation in the disposable Lab prototype.
 The resident uses the seated greydwarf from the Bog Witch's hut. Detailed
@@ -84,10 +86,13 @@ Correlate the trigger, prompt/context, response, timing, and final outcome;
 make failures and discarded replies distinguishable. Trace content remains
 local and excludes credentials.
 
-Next, give approach messages the approaching player's current in-game
-character name. George can address that visitor naturally without repeating
-their name in every remark. This is the first step toward character-aware
-messages; authored relationships remain later choices.
+George can address a visitor naturally without repeating their name in every
+remark. Authored relationships remain later choices.
+
+Add a native interact prompt on George to request more talking. Improve
+dialogue quality and the feeling of responsiveness, including useful loading
+feedback. Explore preparing messages ahead of interaction in the local
+sandbox; that is an option to compare, not a chosen architecture.
 
 Improve George's awareness of what is happening in game and give him more
 activities and states. Nighttime drowsiness, sitting in a throne, and walking
