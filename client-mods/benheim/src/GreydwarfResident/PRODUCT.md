@@ -48,8 +48,9 @@ incompatible support must be visible rather than producing inconsistent local
 residents. These shared, persistence, and removal behaviors still require
 end-to-end proof.
 
-Use a dedicated Benheim OpenRouter key for release. Ben permits the key in
-the private client setup, as with Axiom. Credentials remain excluded from
+Prefer a dedicated Benheim OpenRouter key; Ben authorizes the existing key
+for the first private test build, so creating a separate key is not a blocker.
+Ben permits the key in the private client setup, as with Axiom. Credentials remain excluded from
 public source and debug traces. Model failures leave the resident usable
 and produce silence.
 
