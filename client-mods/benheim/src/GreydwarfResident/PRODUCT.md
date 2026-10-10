@@ -87,8 +87,13 @@ local and excludes credentials.
 Next, give approach messages the approaching player's current in-game
 character name. George can address that visitor naturally without repeating
 their name in every remark. This is the first step toward character-aware
-messages; authored relationships and additional world reactions remain later
-choices.
+messages; authored relationships remain later choices.
+
+Improve George's awareness of what is happening in game and give him more
+activities and states. Nighttime drowsiness, sitting in a throne, and walking
+between the throne and tub are wanted directions for the next improvement
+pass. Explore these in the disposable sandbox; they have no player acceptance
+yet.
 
 ## Later
 
@@ -99,6 +104,3 @@ gestures and full-body poses require visual acceptance.
 George's personality/backstory and knowledge of Ben, Johnny, and Ozi are wanted,
 but additional character work is deferred to ship the current behavior first.
 Recent conversation and learned memories remain later possibilities.
-
-Drowsiness, especially at night, and activities outside the tub remain ideas
-for later behavior.
