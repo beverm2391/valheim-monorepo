@@ -138,6 +138,31 @@ Report completed server-mod gates to the Project Lead only after every named
 condition passes. Ben or the Project Lead records the accepted result in
 `PRODUCT.md`.
 
+For a release that requires both a new Benheim client and server component,
+pass the client packaged-startup gate in `client-mods/benheim/PROMPT.md` before
+changing the production server. A successful server build cannot establish
+that the paired client loads.
+
+## Native game integration
+
+Before writing or changing a native-game patch, reflection call, or lifecycle
+hook, inspect the owning method and relevant callers in decompiled source from
+the exact target game assembly. The Benheim client workflow owns the source
+inspection commands. Public-mod examples show useful patterns; they do not
+establish the installed game's contract.
+
+Check the target overload, parameter names and types, return type, and relevant
+ownership or lifecycle behavior before implementing the integration. For
+Harmony, check how each patch argument binds to the native method, including
+special injected arguments. A compiling patch can still fail to attach.
+When client and server assemblies differ, inspect the affected contract in
+each target rather than assuming the local client proves the server binding.
+
+Review changed integrations against that source before reporting them ready.
+Use the smallest focused check in the owning verification gate to catch a
+binding mismatch; isolated feature tests do not prove that runtime hooks load.
+Keep runtime startup and gameplay proof as separate gates.
+
 ## Test environments
 
 Use an isolated local single-player world for ordinary Benheim gameplay

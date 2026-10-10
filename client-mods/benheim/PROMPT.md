@@ -53,6 +53,8 @@ checks separately.
 A `System.Net.Http` version conflict warning from Valheim assembly references
 is acceptable if the build exits successfully.
 
+Before implementing a native integration, follow the root
+[native game integration rules](../../PROMPT.md#native-game-integration).
 Inspect installed Valheim source with:
 
 ```bash
@@ -142,6 +144,13 @@ markers. A task may quit only the Valheim process that it launched for this
 bounded startup proof. Quit it cleanly after validation. Do not enter a world. One
 clean startup is the normal gate. Launch again only when an active incident
 requires more evidence.
+
+Pass this packaged-startup gate before calling a client release ready,
+distributing it, or deploying a server component that requires it. Passing
+`verify.sh` produces a candidate awaiting startup proof. If Valheim is already
+running, report that remaining gate and wait for a test window. Successful
+main-menu startup proves loading; it does not establish gameplay acceptance
+or Windows runtime behavior.
 
 Benheim has no public mod distribution. Do not publish group packages as
 GitHub release assets.
