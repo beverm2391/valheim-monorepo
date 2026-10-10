@@ -37,9 +37,9 @@ internal static class ResidentSeatHoverPatch
 [HarmonyPatch(typeof(Chair), nameof(Chair.Interact))]
 internal static class ResidentSeatInteractPatch
 {
-    private static bool Prefix(Chair __instance, Humanoid user, bool hold, ref bool __result)
+    private static bool Prefix(Chair __instance, Humanoid human, bool hold, ref bool __result)
     {
-        if (hold || user != Player.m_localPlayer || !InputState.IsShiftHeld() ||
+        if (hold || human != Player.m_localPlayer || !InputState.IsShiftHeld() ||
             !ResidentTub.TryGet(__instance.gameObject, out ZNetView view)) return true;
         ResidentClient.Place(view);
         __result = true;
