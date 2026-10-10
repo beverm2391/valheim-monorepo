@@ -48,6 +48,11 @@ incompatible support must be visible rather than producing inconsistent local
 residents. These shared, persistence, and removal behaviors still require
 end-to-end proof.
 
+Local single-player worlds also support the resident with Benheim installed,
+without a separately deployed server or speech bridge. Use local authority
+for the same placement, lifecycle, and optional speech behavior. Single-player
+support must not bypass coordination requirements for actual multiplayer.
+
 Prefer a dedicated Benheim OpenRouter key; Ben authorizes the existing key
 for the first private test build, so creating a separate key is not a blocker.
 Ben permits the key in the private client setup, as with Axiom. Credentials remain excluded from
