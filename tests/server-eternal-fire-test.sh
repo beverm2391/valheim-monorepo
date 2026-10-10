@@ -58,7 +58,7 @@ test_commands_checksum=5c444b66e071adcfec368fd018d87b9431219dd25e70cfa7a1ca829d5
 actual_test_commands_checksum="$(shasum -a 256 "$test_commands_plugin" | awk '{print $1}')"
 [[ "$actual_test_commands_checksum" == "$test_commands_checksum" ]] || fail "test-command plugin checksum changed"
 assert_contains "installer pins the test-command plugin checksum" "$test_commands_checksum" "$installer"
-server_support_checksum=00b64b4b17426b25ca23f4216f53dfad544e763c345abc17aaf32e9ab7746e5e
+server_support_checksum=d7b2e2aef940391573c0bf888aa4de247054039b635e3922f1e3f123afaf3342
 actual_server_support_checksum="$(shasum -a 256 "$server_support_plugin" | awk '{print $1}')"
 [[ "$actual_server_support_checksum" == "$server_support_checksum" ]] || fail "server-support plugin checksum changed"
 assert_contains "installer pins the server-support plugin checksum" "$server_support_checksum" "$installer"
@@ -88,7 +88,7 @@ if strings "$plugin" | grep -Fiq "Jotunn"; then
 fi
 assert_contains "plugin source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$plugin_source"
 assert_contains "test-command source pins version 0.1.4" 'PluginVersion = "0.1.4"' "$test_commands_source"
-assert_contains "server-support source pins version 0.1.7" 'PluginVersion = "0.1.7"' "$server_support_source"
+assert_contains "server-support source pins version 0.1.8" 'PluginVersion = "0.1.8"' "$server_support_source"
 assert_contains \
   "plugin logs the exact post-PatchAll message" \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
@@ -181,7 +181,7 @@ printf '%s\n' \
   'Game server connected' \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
   'Benheim Test Commands 0.1.4 loaded with direct peer RPC authorization.' \
-  'Benheim Server Support 0.1.7 loaded with Put Away, confirmed-kill, and George resident coordination.' \
+  'Benheim Server Support 0.1.8 loaded with Put Away, confirmed-kill, and George resident coordination.' \
   > "$tmp_dir/journal.log"
 printf '%s\n' 0 > "$tmp_dir/journal.count"
 MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
@@ -216,7 +216,7 @@ assert_contains \
   "$verifier"
 assert_contains \
   "verifier requires Server Support's exact load message" \
-  'Benheim Server Support 0.1.7 loaded with Put Away, confirmed-kill, and George resident coordination.' \
+  'Benheim Server Support 0.1.8 loaded with Put Away, confirmed-kill, and George resident coordination.' \
   "$verifier"
 assert_contains "verifier requires the configured world" 'ZNet.LoadWorld: $world ($world)' "$verifier"
 assert_contains "verifier requires normal readiness" 'Game server connected' "$verifier"
