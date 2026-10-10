@@ -14,6 +14,7 @@ namespace BenheimQoL.GreydwarfResident;
 internal sealed class ResidentSpeechContext
 {
     internal string Event { get; set; } = "approach";
+    internal string VisitorName { get; set; } = string.Empty;
     internal string DayPart { get; set; } = string.Empty;
     internal string Weather { get; set; } = string.Empty;
     internal string Biome { get; set; } = string.Empty;
@@ -55,7 +56,7 @@ internal static class ResidentSpeechContract
 
     private static readonly string[] ContextFields =
     {
-        "event", "dayPart", "weather", "biome", "wet", "cold",
+        "event", "visitorName", "dayPart", "weather", "biome", "wet", "cold",
         "tubBurning", "playerSeated", "recentRemarks"
     };
 
@@ -65,6 +66,7 @@ internal static class ResidentSpeechContract
     };
 
     internal static ResidentSpeechContext CreateContext(
+        string visitorName,
         string dayPart,
         string weather,
         string biome,
@@ -77,6 +79,7 @@ internal static class ResidentSpeechContract
         var context = new ResidentSpeechContext
         {
             Event = "approach",
+            VisitorName = visitorName,
             DayPart = dayPart,
             Weather = weather,
             Biome = biome,
@@ -96,6 +99,7 @@ internal static class ResidentSpeechContract
         return new JObject
         {
             ["event"] = context.Event,
+            ["visitorName"] = context.VisitorName,
             ["dayPart"] = context.DayPart,
             ["weather"] = context.Weather,
             ["biome"] = context.Biome,
@@ -114,6 +118,7 @@ internal static class ResidentSpeechContract
             throw new ResidentSpeechContractException("invalid_context");
 
         if (!TryString(value["event"], out string eventName) || eventName != "approach" ||
+            !TryString(value["visitorName"], out string visitorName) || !ValidContextString(visitorName, 64) ||
             !TryString(value["dayPart"], out string dayPart) ||
             !new[] { "morning", "day", "evening", "night" }.Contains(dayPart, StringComparer.Ordinal) ||
             !TryString(value["weather"], out string weather) || !ValidContextString(weather, 64) ||
@@ -135,6 +140,7 @@ internal static class ResidentSpeechContract
         return new ResidentSpeechContext
         {
             Event = eventName,
+            VisitorName = visitorName,
             DayPart = dayPart,
             Weather = weather,
             Biome = biome,
@@ -271,6 +277,7 @@ internal static class ResidentSpeechContract
     private static void ValidateContext(ResidentSpeechContext context)
     {
         if (context is null || context.Event != "approach" ||
+            !ValidContextString(context.VisitorName, 64) ||
             !new[] { "morning", "day", "evening", "night" }.Contains(context.DayPart, StringComparer.Ordinal) ||
             !ValidContextString(context.Weather, 64) || !ValidContextString(context.Biome, 64) ||
             context.RecentRemarks is null || context.RecentRemarks.Length > 3 ||

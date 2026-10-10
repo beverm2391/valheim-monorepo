@@ -393,7 +393,9 @@ internal static class ResidentSpeech
             ? recentRemarks.ToArray()
             : recentRemarks.Skip(recentRemarks.Length - 3).ToArray();
 
-        return ResidentSpeechContract.CreateContext(dayPart, weather, biome,
+        // Use the current addressee's displayed character name, preserving
+        // Valheim's name filtering before George can repeat it in shared speech.
+        return ResidentSpeechContract.CreateContext(visitor.GetHoverName(), dayPart, weather, biome,
             effects.HaveStatusEffect(SEMan.s_statusEffectWet),
             effects.HaveStatusEffect(SEMan.s_statusEffectCold),
             tub.IsActive(), visitor.IsSitting(), recent);

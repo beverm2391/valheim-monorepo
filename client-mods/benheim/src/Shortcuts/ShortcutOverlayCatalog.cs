@@ -78,7 +78,7 @@ internal static partial class ShortcutOverlay
                     "Workbench and Stonecutter Hammer work zones are 2× Valheim's native range (20 m to 40 m for level-1 stations)"),
                 new Entry("Crystal walls", "Stack crystal walls and place other pieces on top with native structural support feedback"),
                 new Entry("Spawn protection", "Workbenches, fires, and other nearby base pieces show terrain-following rings with covered arcs hidden. Horizontal radius preview; hills and elevated pieces do not show exact three-dimensional coverage"),
-                new Entry("George", "A cozy greydwarf occupies one hot tub seat. Other seats remain usable; occasional shared remarks react to nearby visitors. Requires compatible Benheim players and Server Support"),
+                new Entry("George", "A cozy greydwarf occupies one hot tub seat. Other seats remain usable; occasional shared remarks can address approaching characters by name. Requires compatible Benheim players and Server Support"),
             },
             "Placement, repair, dismantling, the dashed boundary, and Hammer station-range UI use the same zone. Crafting, station interaction, upgrade attachment, comfort, Workbench suppression, enemy spawning, wards, and all other station behavior stay native."),
         new(
