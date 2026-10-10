@@ -84,6 +84,12 @@ Correlate the trigger, prompt/context, response, timing, and final outcome;
 make failures and discarded replies distinguishable. Trace content remains
 local and excludes credentials.
 
+Next, give approach messages the approaching player's current in-game
+character name. George can address that visitor naturally without repeating
+their name in every remark. This is the first step toward character-aware
+messages; authored relationships and additional world reactions remain later
+choices.
+
 ## Later
 
 Further emote work is parked for the first release. Preserve the reusable
