@@ -9,16 +9,20 @@ system or a worker.
 
 ## Current Behavior
 
+Ben reports that George works in live Benheim multiplayer after a clean
+corrected Windows installation. This confirms basic installed operation;
+shared speech, invitation lifecycle, and persistence remain unproven.
+
 Ben has accepted the resident's hot-tub seating, natural idle variation, look
-reaction, and overhead message presentation in the disposable Lab prototype. The resident uses the seated
-greydwarf from the Bog Witch's hut. These are Lab acceptance judgments, not
-proof of an installed or persistent mod feature.
+reaction, and overhead message presentation in the disposable Lab prototype.
+The resident uses the seated greydwarf from the Bog Witch's hut. Detailed
+acceptance of these behaviors comes from the Lab; the live report does not
+establish all of them in multiplayer.
 
 ## In Development
 
-Ship the resolved resident behavior through an end-to-end installed-client
-check and a bounded test on Ben's shared server. Preserve the accepted appearance,
-seating, idle variation, and restrained awareness: notice an approaching
+Complete the remaining player checks on Ben's shared server. Preserve the
+accepted appearance, seating, idle variation, and restrained awareness: notice an approaching
 player, acknowledge someone sitting beside him, then settle back into relaxing
 without repeatedly greeting a lingering visitor.
 
