@@ -17,8 +17,9 @@ internal static class RemoteDiagnostics
     internal const string PrivateConfigFileName = "BenheimPrivateDiagnostics.cfg";
     private const string ConfigMarker = "BENHEIM_PRIVATE_DIAGNOSTICS_V1";
     private const string Notice =
-        "Benheim sends typed gameplay diagnostics, your character name, and a connection ID " +
-        "to Axiom for our group. No chat or full logs are sent. Check delivery in Left Shift+B.";
+        "Benheim sends typed gameplay diagnostics, your character name and connection ID, and " +
+        "online players' native platform account IDs with their current character names to Axiom " +
+        "for our group. No chat or full logs are sent. Check delivery in Left Shift+B.";
 
     private static AxiomEventSink? sink;
 
