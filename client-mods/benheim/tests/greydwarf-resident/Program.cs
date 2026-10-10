@@ -44,8 +44,9 @@ Expect(ResidentVisit.IsOutside(6.01f, 0), "horizontal wider boundary");
 Expect(ResidentVisit.IsOutside(0, -3.01f), "vertical distance uses absolute value");
 
 ClientLifecycleTests.Run();
+DrowsinessTests.Run();
 
-Console.WriteLine("Greydwarf resident visit cadence and seating acknowledgement checks passed");
+Console.WriteLine("Greydwarf resident visit, drowsiness, and lifecycle checks passed");
 
 static void Observe(ResidentVisit visit, float time, float distance, bool seated,
     ResidentReaction expected, string scenario, bool seed = false, bool canNotice = true, float vertical = 0)

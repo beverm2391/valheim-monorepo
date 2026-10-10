@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/GreydwarfResident/ResidentVisit.cs" Link="ResidentVisit.cs" />
+    <Compile Include="../../src/GreydwarfResident/ResidentDrowsiness.cs" Link="ResidentDrowsiness.cs" />
     <Compile Include="../../src/GreydwarfResident/ResidentTubClient.cs" Link="ResidentTubClient.cs" />
   </ItemGroup>
 </Project>

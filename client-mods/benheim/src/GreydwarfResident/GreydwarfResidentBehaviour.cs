@@ -21,6 +21,7 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
     private bool held;
     private bool configured;
     private readonly ResidentVisit visit = new();
+    private readonly ResidentDrowsiness drowsiness = new();
     private Quaternion baseHead, appliedHead;
     private bool headOffsetApplied, returningToNeutral;
     private float nextPace, paceTarget = .78f, pace = 1f, paceVelocity;
@@ -69,6 +70,7 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
     private void BeginLounge()
     {
         nextPace = Time.time + UnityEngine.Random.Range(6f, 10f);
+        drowsiness.Reset(Time.time);
         state = "idle";
         ChooseLook();
         ObservePlayer(seed: true);
@@ -89,7 +91,7 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
         Vector3 delta = player.transform.position - transform.position;
         ResidentReaction reaction = visit.Observe(Time.time,
             new Vector2(delta.x, delta.z).magnitude, delta.y, SittingBeside(player),
-            seed, Time.time >= nextNotice && state == "idle");
+            seed, Time.time >= nextNotice && (state == "idle" || state == "drowsy"));
         if (reaction != ResidentReaction.None) React(player, reaction);
     }
 
@@ -103,6 +105,7 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
 
     private void React(Player player, ResidentReaction reaction)
     {
+        Wake(reaction == ResidentReaction.Acknowledge ? "seated_visitor" : "approaching_visitor");
         // Snapshot once: brief awareness, not continuous tracking.
         Vector3 delta = player.GetHeadPoint() - head.position;
         Vector3 flat = Vector3.ProjectOnPlane(delta, transform.up);
@@ -165,10 +168,6 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
             paceTarget = UnityEngine.Random.Range(.65f, 1.05f);
             nextPace = Time.time + UnityEngine.Random.Range(6f, 12f);
         }
-        pace = Mathf.SmoothDamp(pace, paceTarget, ref paceVelocity, 2f);
-        for (int n = 0; n < animators.Length; n++)
-            if (animators[n]) animators[n].speed = originalSpeeds[n] * pace;
-
         if ((state == "notice" || state == "acknowledge") && Time.time - reactionStarted >= 2.6f)
         {
             BeginLook(Vector2.zero, 1.6f);
@@ -189,6 +188,37 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
         if (speechLookUntil == 0f) look = Vector2.Lerp(lookFrom, lookTarget, t * t * (3f - 2f * t));
         UpdateSpeech();
         UpdateSpeechLook();
+        UpdateDrowsiness();
+        pace = Mathf.SmoothDamp(pace, Mathf.Lerp(paceTarget, .48f, drowsiness.Weight), ref paceVelocity, 2f);
+        for (int n = 0; n < animators.Length; n++)
+            if (animators[n]) animators[n].speed = originalSpeeds[n] * pace;
+    }
+
+    private void Wake(string reason)
+    {
+        if (drowsiness.Wake(Time.time))
+            ResidentDiagnostics.Emit("drowsiness_finished", reason, gameObject.GetInstanceID());
+    }
+
+    private void UpdateDrowsiness()
+    {
+        // Use the loaded world's native night boundary rather than wall-clock
+        // time or darkness from a storm. Speech and reactions retain priority.
+        bool night = EnvMan.instance && EnvMan.IsNight();
+        if (!drowsiness.Update(Time.time, Time.deltaTime, night, state == "idle" || state == "drowsy")) return;
+        if (drowsiness.IsDrowsy)
+        {
+            state = "drowsy";
+            BeginLook(Vector2.zero, 3f);
+            ResidentDiagnostics.Emit("drowsiness_started", "native_night", gameObject.GetInstanceID());
+        }
+        else
+        {
+            state = "idle";
+            BeginLook(Vector2.zero, 2f);
+            nextLook = Time.time + 4f;
+            ResidentDiagnostics.Emit("drowsiness_finished", "daytime", gameObject.GetInstanceID());
+        }
     }
 
     private void UpdateSpeech()
@@ -231,6 +261,8 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
 
     internal void ShowSpeech(Player player, string text)
     {
+        // A remote player's shared remark must wake this client's George too.
+        Wake("shared_speech");
         Chat.instance.SetNpcText(gameObject, head.position - transform.position + Vector3.up * .35f,
             20f, 10f, "George", text, false);
         speechPlayer = player;
@@ -276,8 +308,9 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
         // one small nod and eases back to the accepted seated pose.
         float nod = state == "acknowledge" ? 6f * Mathf.Sin(Mathf.PI *
             Mathf.Clamp01((Time.time - reactionStarted - .9f) / 1f)) : 0f;
+        float droop = drowsiness.Weight * (14f + 2f * Mathf.Sin(Time.time * .6f));
         head.rotation = Quaternion.AngleAxis(look.x, transform.up) *
-            Quaternion.AngleAxis(look.y + nod, transform.right) * head.rotation;
+            Quaternion.AngleAxis(look.y + nod + droop, transform.right) * head.rotation;
         appliedHead = head.localRotation;
         headOffsetApplied = true;
     }
