@@ -89,10 +89,17 @@ local and excludes credentials.
 George can address a visitor naturally without repeating their name in every
 remark. Authored relationships remain later choices.
 
+A private preferred-name map uses stable player account identity so George
+can recognize the same person across character changes. Unmapped players use
+their current character name. Start with Ben's mapping; other players can be
+added when their identities and preferred names are known.
+
 Add a native interact prompt on George to request more talking. Improve
 dialogue quality and the feeling of responsiveness, including useful loading
 feedback. Explore preparing messages ahead of interaction in the local
 sandbox; that is an option to compare, not a chosen architecture.
+Pair with Ben on what better dialogue means before choosing its voice or
+content.
 
 Improve George's awareness of what is happening in game and give him more
 activities and states. Nighttime drowsiness, sitting in a throne, and walking
