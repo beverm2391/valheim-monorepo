@@ -32,6 +32,17 @@ Expect(sentContext["visitorName"]!.Value<string>() == "Astrid" &&
     ResidentSpeechContract.ParseContext(sentContext).VisitorName == "Astrid", "approaching character name reaches provider context");
 Expect(ResidentSpeechContract.ParseContext(sentContext).TubBurning, "native tub activation maps to tubBurning");
 
+ResidentSpeechContext talk = ResidentSpeechContract.CreateContext("Astrid", "evening", "Rain", "Meadows",
+    true, false, true, false, Array.Empty<string>(), "talk");
+JObject talkRequest = ResidentSpeechContract.BuildRequest(talk, prompt);
+JObject talkContext = JObject.Parse(talkRequest["messages"]![1]!["content"]!.Value<string>()!);
+Expect(ResidentSpeechContract.ParseContext(talkContext).Event == "talk", "deliberate Talk reaches provider context");
+Expect(talkRequest["messages"]![0]!["content"]!.Value<string>() == prompt, "Talk retains the same voice prompt");
+talkContext["event"] = "unknown";
+ExpectThrows(() => ResidentSpeechContract.ParseContext(talkContext), "invalid_context", "unknown trigger rejected");
+talk.Event = "unknown";
+ExpectThrows(() => ResidentSpeechContract.BuildRequest(talk, prompt), "invalid_context", "unknown trigger cannot reach provider");
+
 ResidentSpeechProviderResponse valid = ParseResponse("{\"speak\":true,\"text\":\"  Warm water suits you.  \"}");
 Expect(valid.FailureReason is null && valid.Remark?.Speak == true, "valid speech parsed");
 Expect(valid.Remark!.Text == "Warm water suits you.", "spoken line is trimmed");

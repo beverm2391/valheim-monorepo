@@ -44,11 +44,13 @@ internal static partial class ResidentServer
         ZPackage package,
         out string operationId,
         out ZDOID tubId,
-        out int generation)
+        out int generation,
+        out ResidentEncounterTrigger trigger)
     {
         operationId = string.Empty;
         tubId = ZDOID.None;
         generation = -1;
+        trigger = default;
         try
         {
             if (package.Size() > MaximumRpcPackageBytes)
@@ -59,8 +61,10 @@ internal static partial class ResidentServer
             operationId = package.ReadString();
             tubId = package.ReadZDOID();
             generation = package.ReadInt();
+            int triggerValue = package.ReadInt();
             return IsOperationId(operationId) && !tubId.IsNone() &&
-                generation >= 0 && package.GetPos() == package.Size();
+                generation >= 0 && ResidentProtocol.TryParseEncounterTrigger(triggerValue, out trigger) &&
+                package.GetPos() == package.Size();
         }
         catch
         {

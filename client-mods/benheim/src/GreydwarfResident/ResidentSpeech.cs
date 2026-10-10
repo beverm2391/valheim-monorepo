@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using BepInEx;
+using Benheim.Resident;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -13,7 +14,7 @@ using UnityEngine.Networking;
 namespace BenheimQoL.GreydwarfResident;
 
 /// <summary>
-/// Makes one direct OpenRouter request for an already-approved approach.
+/// Makes one direct OpenRouter request for an already-approved encounter.
 /// The coroutine keeps Unity state access and the completion callback on the
 /// main thread; callers own encounter relevance and cancel this operation when
 /// their encounter ends.
@@ -31,12 +32,13 @@ internal static class ResidentSpeech
         Player visitor,
         Smelter tub,
         string[] recentRemarks,
+        ResidentEncounterTrigger trigger,
         Func<bool> stillRelevant,
         Action<bool, string, string> completed)
     {
         if (completed is null) throw new ArgumentNullException(nameof(completed));
         var operation = new RequestOperation(runner, requestId, visitor, tub,
-            recentRemarks, stillRelevant, completed);
+            recentRemarks, trigger, stillRelevant, completed);
         operation.Start();
         return operation;
     }
@@ -48,6 +50,7 @@ internal static class ResidentSpeech
         private readonly Player visitor;
         private readonly Smelter tub;
         private readonly string[] recentRemarks;
+        private readonly ResidentEncounterTrigger trigger;
         private readonly Func<bool> stillRelevant;
         private readonly Action<bool, string, string> completed;
         private readonly Stopwatch triggerTimer = Stopwatch.StartNew();
@@ -63,6 +66,7 @@ internal static class ResidentSpeech
             Player visitor,
             Smelter tub,
             string[] recentRemarks,
+            ResidentEncounterTrigger trigger,
             Func<bool> stillRelevant,
             Action<bool, string, string> completed)
         {
@@ -73,13 +77,14 @@ internal static class ResidentSpeech
             this.visitor = visitor;
             this.tub = tub;
             this.recentRemarks = recentRemarks ?? Array.Empty<string>();
+            this.trigger = trigger;
             this.stillRelevant = stillRelevant;
             this.completed = completed;
         }
 
         internal void Start()
         {
-            ResidentSpeechTrace.Record(requestId, "trigger", new { trigger = "approach" });
+            ResidentSpeechTrace.Record(requestId, "trigger", new { trigger = EventName(trigger) });
             if (!runner)
             {
                 FinishSilently("runner_unavailable");
@@ -123,7 +128,7 @@ internal static class ResidentSpeech
             string body;
             try
             {
-                context = CaptureContext(visitor, tub, recentRemarks);
+                context = CaptureContext(visitor, tub, recentRemarks, trigger);
                 prompt = LoadPrompt();
                 body = ResidentSpeechContract.BuildRequest(context, prompt).ToString(Formatting.None);
             }
@@ -376,7 +381,15 @@ internal static class ResidentSpeech
         }
     }
 
-    private static ResidentSpeechContext CaptureContext(Player visitor, Smelter tub, string[] recentRemarks)
+    private static string EventName(ResidentEncounterTrigger trigger) => trigger switch
+    {
+        ResidentEncounterTrigger.Approach => "approach",
+        ResidentEncounterTrigger.Talk => "talk",
+        _ => throw new ResidentSpeechContractException("invalid_context")
+    };
+
+    private static ResidentSpeechContext CaptureContext(Player visitor, Smelter tub, string[] recentRemarks,
+        ResidentEncounterTrigger trigger)
     {
         if (!visitor) throw new ResidentSpeechContractException("visitor_unavailable");
         if (!tub) throw new ResidentSpeechContractException("tub_unavailable");
@@ -398,7 +411,7 @@ internal static class ResidentSpeech
         return ResidentSpeechContract.CreateContext(visitor.GetHoverName(), dayPart, weather, biome,
             effects.HaveStatusEffect(SEMan.s_statusEffectWet),
             effects.HaveStatusEffect(SEMan.s_statusEffectCold),
-            tub.IsActive(), visitor.IsSitting(), recent);
+            tub.IsActive(), visitor.IsSitting(), recent, EventName(trigger));
     }
 
     private static string LoadPrompt()

@@ -40,6 +40,8 @@ public static class GreydwarfResidentRuntime
         if (!seat || !seat.isActiveAndEnabled || !seat.m_attachPoint || !tub ||
             Utils.GetPrefabName(tub.gameObject) != "piece_bathtub")
             return Reject("native_tub_seat_required");
+        ResidentTubClient? tubClient = tub.GetComponent<ResidentTubClient>();
+        if (!tubClient) return Reject("shared_tub_client_missing");
         // Match native occupancy without invoking our reservation postfix:
         // the saved invitation reserves this seat before the visual exists.
         if (Player.GetClosestPlayer(seat.m_attachPoint.position, .05f) != null) return Reject("seat_in_use");
@@ -83,7 +85,7 @@ public static class GreydwarfResidentRuntime
             // component's OnDestroy even if validation fails. OnEnable is inert
             // until configured; the lease survives deferred rollback destruction.
             clone.SetActive(true);
-            behaviour.Configure(seat, tub.transform);
+            behaviour.Configure(seat, tub.transform, tubClient);
             residents[seat] = behaviour;
             ResidentDiagnostics.Emit("created", "native_george", clone.GetInstanceID());
             return clone;

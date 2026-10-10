@@ -11,7 +11,7 @@ internal static partial class ResidentServer
     private static void OnEncounterRequest(ZNetPeer peer, ZRpc rpc, ZPackage package)
     {
         if (!TryReadEncounterRequest(package, out string operationId, out ZDOID tubId,
-                out int generation))
+                out int generation, out ResidentEncounterTrigger trigger))
         {
             RejectEncounter(peer, "invalid", ZDOID.None, 0, "invalid_payload");
             Emit("speech_request_rejected", "invalid", ZDOID.None, "invalid_payload", "encounter");
@@ -63,18 +63,36 @@ internal static partial class ResidentServer
         }
 
         double now = ZNet.instance!.GetTimeSeconds();
-        if (PendingEncounters.TryGetValue(tubId, out PendingEncounter? existing) &&
-            now < existing.ExpiresAt)
+        PendingEncounters.TryGetValue(tubId, out PendingEncounter? existing);
+        EncounterCadences.TryGetValue(tubId, out ResidentEncounterCadence? cadence);
+        cadence ??= new ResidentEncounterCadence();
+        ResidentEncounterAdmission admission = cadence.Evaluate(
+            trigger,
+            now,
+            existing?.ExpiresAt);
+
+        if (existing != null && now >= existing.ExpiresAt)
+        {
+            // Requests arrive on the same server thread as Update, but the
+            // exact timeout edge can occur between its scans. Finish that
+            // request before reusing the one active slot for this tub.
+            CompleteEncounter(existing, false, string.Empty, "server_timeout");
+            existing = null;
+        }
+
+        if (admission == ResidentEncounterAdmission.EncounterInProgress)
         {
             RejectEncounter(peer, operationId, tubId, currentGeneration, "encounter_in_progress");
             Emit("speech_request_rejected", operationId, tubId, "encounter_in_progress", "encounter");
             return;
         }
 
-        if (EncounterCooldowns.TryGetValue(tubId, out double cooldownUntil) && now < cooldownUntil)
+        if (admission != ResidentEncounterAdmission.Granted)
         {
             RejectEncounter(peer, operationId, tubId, currentGeneration, "resident_cooldown");
-            Emit("speech_request_rejected", operationId, tubId, "resident_cooldown", "encounter");
+            Emit("speech_request_rejected", operationId, tubId,
+                admission == ResidentEncounterAdmission.InvalidTrigger ? "invalid_trigger" : "resident_cooldown",
+                "encounter");
             return;
         }
 
@@ -87,9 +105,13 @@ internal static partial class ResidentServer
             character.m_uid,
             PeerCohort.Revision,
             now + PendingTimeoutSeconds);
-        PendingEncounters[tubId] = pending;
-        EncounterCooldowns[tubId] = now + EncounterCooldownSeconds;
-        Emit("speech_request_granted", operationId, tubId, "approach", "encounter");
+        PendingEncounters.Add(tubId, pending);
+        if (!EncounterCadences.ContainsKey(tubId))
+        {
+            EncounterCadences.Add(tubId, cadence);
+        }
+        cadence.RecordGrant(trigger, now);
+        Emit("speech_request_granted", operationId, tubId, TriggerName(trigger), "encounter");
         SendEncounterGrant(peer, operationId, tubId, generation, character.m_uid, true, "granted");
     }
 
@@ -190,16 +212,31 @@ internal static partial class ResidentServer
         }
     }
 
-    private static void RemoveExpiredCooldowns(double now)
+    private static void RemoveExpiredEncounterCadences(double now)
     {
-        foreach (ZDOID tub in EncounterCooldowns
-                     .Where(pair => now >= pair.Value)
+        foreach (ZDOID tub in EncounterCadences
+                     .Where(pair => !PendingEncounters.ContainsKey(pair.Key) && pair.Value.IsExpired(now))
                      .Select(pair => pair.Key)
                      .ToArray())
         {
-            EncounterCooldowns.Remove(tub);
+            EncounterCadences.Remove(tub);
         }
     }
+
+    private static void ResetEncounterCadence(ZDOID tub)
+    {
+        if (EncounterCadences.TryGetValue(tub, out ResidentEncounterCadence? cadence))
+        {
+            cadence.Reset();
+        }
+    }
+
+    private static string TriggerName(ResidentEncounterTrigger trigger) => trigger switch
+    {
+        ResidentEncounterTrigger.Approach => "approach",
+        ResidentEncounterTrigger.Talk => "talk",
+        _ => "unknown"
+    };
 
     private static void CompleteEncounter(PendingEncounter pending, bool speak, string text, string reason)
     {

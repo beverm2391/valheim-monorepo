@@ -38,7 +38,7 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
 
     internal Chair Seat => seat;
 
-    internal void Configure(Chair occupiedSeat, Transform nativeTub)
+    internal void Configure(Chair occupiedSeat, Transform nativeTub, ResidentTubClient tubClient)
     {
         seat = occupiedSeat;
         tub = nativeTub;
@@ -50,6 +50,7 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
         // Native AI view-blocking layers exclude characters and triggers.
         viewMask = LayerMask.GetMask("Default", "static_solid", "Default_small",
             "piece", "terrain", "vehicle", "viewblock");
+        ResidentInteraction.Attach(head, tubClient, this);
         configured = true;
         BeginLounge();
     }
@@ -124,6 +125,16 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
             sightlineBlocked = false;
             ResidentDiagnostics.Emit("speech_pending", "approach", gameObject.GetInstanceID());
         }
+    }
+
+    internal void AcknowledgeTalk(Player player)
+    {
+        if (!CanSpeakTo(player) || player != Player.m_localPlayer) return;
+        // If the approach watcher had been waiting for its own clear-sightline
+        // request, manual dialogue supersedes it. The granted talk encounter
+        // must never be followed by a second ambient request to the same visitor.
+        if (pendingSpeech is not null) FinishSpeech("manual_talk_granted");
+        React(player, ResidentReaction.Acknowledge);
     }
 
     private void ChooseLook()
@@ -253,7 +264,10 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
 
     internal bool CanSpeakTo(Player player)
     {
-        if (!configured || !head || !player || player.IsDead() || player.IsTeleporting()) return false;
+        // A deactivated Unity object remains truthy until deferred destruction.
+        // It must stop admitting replies as soon as its visible lifetime ends.
+        if (!isActiveAndEnabled || !configured || !head || !player ||
+            !player.isActiveAndEnabled || player.IsDead() || player.IsTeleporting()) return false;
         Vector3 delta = player.transform.position - transform.position;
         return !ResidentVisit.IsOutside(new Vector2(delta.x, delta.z).magnitude, delta.y) &&
             !Physics.Linecast(player.GetHeadPoint(), head.position, viewMask, QueryTriggerInteraction.Ignore);

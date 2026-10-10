@@ -74,11 +74,12 @@ internal static class ResidentSpeechContract
         bool cold,
         bool tubBurning,
         bool playerSeated,
-        string[]? recentRemarks)
+        string[]? recentRemarks,
+        string eventName = "approach")
     {
         var context = new ResidentSpeechContext
         {
-            Event = "approach",
+            Event = eventName,
             VisitorName = visitorName,
             DayPart = dayPart,
             Weather = weather,
@@ -117,7 +118,7 @@ internal static class ResidentSpeechContract
             ContextFields.Any(field => value.Property(field, StringComparison.Ordinal) is null))
             throw new ResidentSpeechContractException("invalid_context");
 
-        if (!TryString(value["event"], out string eventName) || eventName != "approach" ||
+        if (!TryString(value["event"], out string eventName) || !ValidEvent(eventName) ||
             !TryString(value["visitorName"], out string visitorName) || !ValidContextString(visitorName, 64) ||
             !TryString(value["dayPart"], out string dayPart) ||
             !new[] { "morning", "day", "evening", "night" }.Contains(dayPart, StringComparer.Ordinal) ||
@@ -276,7 +277,7 @@ internal static class ResidentSpeechContract
 
     private static void ValidateContext(ResidentSpeechContext context)
     {
-        if (context is null || context.Event != "approach" ||
+        if (context is null || !ValidEvent(context.Event) ||
             !ValidContextString(context.VisitorName, 64) ||
             !new[] { "morning", "day", "evening", "night" }.Contains(context.DayPart, StringComparer.Ordinal) ||
             !ValidContextString(context.Weather, 64) || !ValidContextString(context.Biome, 64) ||
@@ -284,6 +285,8 @@ internal static class ResidentSpeechContract
             context.RecentRemarks.Any(text => !ValidContextString(text, MaxRemarkCharacters)))
             throw new ResidentSpeechContractException("invalid_context");
     }
+
+    private static bool ValidEvent(string value) => value is "approach" or "talk";
 
     private static bool ValidContextString(string value, int maximum) =>
         value is not null && value.Length <= maximum && !HasMarkupOrControl(value);
