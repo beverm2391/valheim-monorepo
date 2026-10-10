@@ -96,7 +96,8 @@ internal static partial class ShortcutOverlay
         diagnosticsExplanation.fontSize = 18f;
         diagnosticsExplanation.color = Color.white;
         diagnosticsExplanation.text =
-            "Group installs send typed gameplay events, your character name, and a connection ID to Axiom. " +
+            "Group diagnostics send online players' native platform account IDs and current character names, " +
+            "plus your character name and connection ID, to Axiom. " +
             "No chat or full logs are sent. Local diagnostics stay available if delivery fails.";
         diagnosticsStatus = CreateText(
             "DiagnosticsDeliveryStatus",
