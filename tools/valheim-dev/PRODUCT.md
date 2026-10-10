@@ -93,12 +93,24 @@ optional evidence reports itself as unavailable rather than disabling the run.
 A log entry after a run does not prove that the run caused it. Logs prove only
 the observations they contain. Ben judges visible behavior.
 
-## Ben Controls The Lab
+## Open And Close The Lab
 
-Ben creates and selects the disposable local character and world. He runs
-`bh lab on` after entering the world. That enables repeated Codex operations
-without separate approval for each command. Running `bh lab off`, leaving the
-world, or quitting Valheim ends access to that Lab session.
+Codex can inspect the local app session, list worlds and characters, create or
+select a disposable Lab world and character, launch the managed profile, and
+close its owned Lab session. Status reports the actual process, menu or world,
+character, Lab access, and exact mod build when available. A launch or quit
+request alone does not establish that the transition completed.
+
+Use the game's native save and selection behavior and the existing managed
+launcher. The tools should remove routine menu work without replacing visual
+checks through Computer Use. Coordinate an occupied game session with its
+owner before changing worlds or closing it.
+
+Lab access defaults on after entering a local single-player world. Ben can
+still run `bh lab on` or `bh lab off`. Turning it off keeps access closed for
+that world session until explicitly re-enabled. Leaving the world or quitting
+Valheim ends access to that Lab session. Automatic local access does not
+authorize a multiplayer or dedicated-server session.
 
 Valheim Dev trusts Ben's local machine. It does not authenticate one local
 process against another. A request prepared for an earlier Lab session cannot
@@ -106,12 +118,15 @@ run in the current Lab session.
 
 Valheim Dev connects only to the enabled local single-player Lab. It does not
 connect to the shared production world, an ordinary Benheim session, or a
-dedicated server. It cannot enable Lab, manage saves, launch, quit, or restart
-Valheim.
+dedicated server. App and save management must remain usable before the
+in-world Lab bridge is connected.
 
 Runtime code must return control to the game loop. Valheim Dev cannot preempt
 code that hangs Unity's main thread or guarantee that arbitrary effects can be
 undone. Ben decides whether to restart the game or reset his disposable saves.
+
+The lifecycle tools and automatic local access are in development and have
+not yet been verified in the game.
 
 Experiment behavior enters normal Benheim source only when Ben explicitly
 instructs a dev lead to implement it. That implementation uses the normal
