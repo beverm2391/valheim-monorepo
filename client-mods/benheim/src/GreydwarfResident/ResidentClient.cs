@@ -250,42 +250,6 @@ internal static class ResidentClient
     }
 }
 
-// Native destruction and sector unload own this component's lifetime. Rebuilds
-// receive a fresh ZDO identity; no instance-ID cache can inherit an invitation.
-internal sealed class ResidentTubClient : MonoBehaviour
-{
-    internal Smelter Station = null!;
-    internal ZNetView View = null!;
-    internal GreydwarfResidentBehaviour? Resident;
-    internal readonly List<string> RecentRemarks = new();
-    internal string LastSpeech = string.Empty;
-    private float nextScan;
-    private int generation = -1;
-    private bool creationFailed;
-    internal void Configure(Smelter station, ZNetView view)
-    { Station = station; View = view; ResidentClient.Register(this); }
-    private void Update()
-    {
-        if (Time.time < nextScan) return;
-        nextScan = Time.time + .2f;
-        if (!View || !View.IsValid()) { Remove(); return; }
-        ZDO zdo = View.GetZDO();
-        int current = ResidentTub.Generation(zdo);
-        if (generation != current) { Remove(); generation = current; creationFailed = false; RecentRemarks.Clear(); }
-        if (!ResidentClient.Available || !ResidentTub.IsInvited(zdo)) { Remove(); return; }
-        if (!Resident && !creationFailed)
-        {
-            Chair? seat = ResidentTub.FindSeat(gameObject);
-            if (!seat) { creationFailed = true; ResidentDiagnostics.Emit("create_rejected", "native_seat_missing"); return; }
-            if (Player.GetClosestPlayer(seat.m_attachPoint.position, .05f) != null) return;
-            try { Resident = GreydwarfResidentRuntime.CreateAtSeat(seat).GetComponent<GreydwarfResidentBehaviour>(); }
-            catch { creationFailed = true; }
-        }
-    }
-    private void Remove() { if (Resident) GreydwarfResidentRuntime.Remove(Resident.gameObject); Resident = null; }
-    private void OnDestroy() { ResidentClient.Unregister(this); Remove(); }
-}
-
 [HarmonyPatch(typeof(Smelter), "Awake")]
 internal static class ResidentTubAwakePatch
 {

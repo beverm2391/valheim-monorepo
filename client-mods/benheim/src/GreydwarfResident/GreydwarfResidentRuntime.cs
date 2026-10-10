@@ -18,6 +18,9 @@ public static class GreydwarfResidentRuntime
     private static readonly Dictionary<Chair, GreydwarfResidentBehaviour> residents = new();
     private static bool patchesAvailable;
 
+    internal static bool IsWorldReady => Player.m_localPlayer && ZoneSystem.instance &&
+        ZNetScene.instance && ZNet.instance;
+
     internal static bool IsEnabled => patchesAvailable && HealthReporting.GameplayActionsEnabled;
 
     internal static void Initialize(bool available)
@@ -30,7 +33,7 @@ public static class GreydwarfResidentRuntime
     {
         ResidentDiagnostics.Emit("create_attempt", "explicit_seat");
         if (!IsEnabled) return Reject("feature_unavailable");
-        if (!Player.m_localPlayer || !ZoneSystem.instance || !ZNetScene.instance || !ZNet.instance)
+        if (!IsWorldReady)
             return Reject("world_not_ready");
         if (!ResidentClient.Available) return Reject("compatible_peers_required");
         Piece? tub = seat ? seat.GetComponentInParent<Piece>() : null;
