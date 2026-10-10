@@ -10,13 +10,14 @@ source_commit="${BENHEIM_QOL_SOURCE_COMMIT:-}"
 dist="$root/dist"
 endpoint="${BENHEIM_AXIOM_ENDPOINT:-https://us-east-1.aws.edge.axiom.co}"
 dataset="${BENHEIM_AXIOM_DATASET:-}"
+speech_api_key="${OPENROUTER_API_KEY:-}"
 token="${BENHEIM_AXIOM_INGEST_TOKEN:-}"
 mac_package="$dist/Benheim-macOS-$version.zip"
 windows_package="$dist/Benheim-Windows-$version.zip"
 complete=0
 
 if repo_root="$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)"; then
-  if [[ -n "$(git -C "$repo_root" status --porcelain --untracked-files=normal -- client-mods/benheim)" ]]; then
+  if [[ -n "$(git -C "$repo_root" status --porcelain --untracked-files=normal -- client-mods/benheim shared/benheim-inventory-protocol shared/benheim-resident-protocol tools/valheim-dev/contextual-speech/george.txt)" ]]; then
     echo "Group packages require committed Benheim source." >&2
     exit 1
   fi
@@ -35,6 +36,7 @@ fi
 
 temp_dir="$(mktemp -d)"
 config="$temp_dir/AXIOM-DIAGNOSTICS.cfg"
+speech_config="$temp_dir/GEORGE-SPEECH.cfg"
 cleanup() {
   rm -rf "$temp_dir" \
     "$dist/Benheim-macOS-$version" \
@@ -51,6 +53,10 @@ if [[ -z "$dataset" || ! "$dataset" =~ ^[A-Za-z0-9_.-]{1,200}$ ]]; then
 fi
 if [[ -z "$token" || ${#token} -gt 1024 || "$token" == *$'\n'* || "$token" == *$'\r'* ]]; then
   echo "Set BENHEIM_AXIOM_INGEST_TOKEN to the dataset-scoped ingest-only token." >&2
+  exit 1
+fi
+if [[ -z "$speech_api_key" || ${#speech_api_key} -gt 1024 || "$speech_api_key" == *[[:space:]]* ]]; then
+  echo "Set OPENROUTER_API_KEY to the private-test resident speech credential." >&2
   exit 1
 fi
 if [[ ! "$endpoint" =~ ^https://[^/?#]+$ ]]; then
@@ -73,17 +79,22 @@ printf '%s\n' \
   "dataset=$dataset" \
   "token=$token" \
   "build_id=$build_id" > "$config"
+printf '%s\n' \
+  'BENHEIM_PRIVATE_SPEECH_V1' \
+  "api_key=$speech_api_key" > "$speech_config"
 
 BENHEIM_QOL_DLL="$dll" \
 BENHEIM_QOL_DIST="$dist" \
 BENHEIM_QOL_SKIP_BUILD=1 \
 BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$config" \
+BENHEIM_QOL_PRIVATE_SPEECH_CONFIG="$speech_config" \
 BENHEIM_QOL_SOURCE_COMMIT="$source_commit" \
   "$root/scripts/package-macos.sh"
 BENHEIM_QOL_DLL="$dll" \
 BENHEIM_QOL_DIST="$dist" \
 BENHEIM_QOL_SKIP_BUILD=1 \
 BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$config" \
+BENHEIM_QOL_PRIVATE_SPEECH_CONFIG="$speech_config" \
 BENHEIM_QOL_SOURCE_COMMIT="$source_commit" \
   "$root/scripts/package-windows.sh"
 

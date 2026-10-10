@@ -57,6 +57,7 @@ install_package() {
   local entries duplicate_entries package_root roots expected_version
   local entry payload packaged_version installer game_dir installed_dir
   local packaged_sha installed_sha packaged_config installed_config
+  local speech_config installed_speech_config speech_config_present
 
   [[ -f "$package" ]] || fail "The selected macOS package was not found: $package"
   package="$(cd "$(dirname "$package")" && pwd)/$(basename "$package")"
@@ -88,6 +89,11 @@ install_package() {
     grep -Fxq "$required" <<<"$entries" \
       || fail "The selected macOS package is missing: $required"
   done
+  speech_config="$package_root/GEORGE-SPEECH.cfg"
+  speech_config_present=0
+  if grep -Fxq "$speech_config" <<<"$entries"; then
+    speech_config_present=1
+  fi
 
   while IFS= read -r entry; do
     case "$entry" in
@@ -99,6 +105,8 @@ install_package() {
       "$package_root/macos-launcher.sh"|\
       "$package_root/SOURCE_COMMIT") ;;
       "$package_root/AXIOM-DIAGNOSTICS.cfg")
+        ;;
+      "$package_root/GEORGE-SPEECH.cfg")
         ;;
       *) fail "The selected macOS package contains an unexpected path: $entry" ;;
     esac
@@ -122,6 +130,10 @@ install_package() {
     [[ -f "$payload/$required_file" && ! -L "$payload/$required_file" ]] \
       || fail "The selected macOS package contains an unsafe file: $required_file"
   done
+  if [[ "$speech_config_present" == "1" ]] &&
+    [[ ! -f "$payload/GEORGE-SPEECH.cfg" || -L "$payload/GEORGE-SPEECH.cfg" ]]; then
+    fail "The selected macOS package contains an unsafe file: GEORGE-SPEECH.cfg"
+  fi
   [[ -x "$payload/Install Benheim.command" ]] \
     || fail "The packaged Mac installer is not executable."
   [[ -x "$payload/check-valheim-stopped.sh" ]] \
@@ -138,6 +150,19 @@ install_package() {
     || fail "The package diagnostics configuration is invalid."
   grep -Fxq "build_id=sha256:$packaged_sha" "$packaged_config" \
     || fail "The package diagnostics configuration does not match its DLL."
+  if [[ "$speech_config_present" == "1" ]]; then
+    local packaged_speech_config="$payload/GEORGE-SPEECH.cfg"
+    [[ "$(wc -c < "$packaged_speech_config" | tr -d ' ')" -le 4096 ]] \
+      || fail "The package resident speech configuration has an invalid size."
+    [[ "$(wc -l < "$packaged_speech_config" | tr -d ' ')" == "2" ]] \
+      || fail "The package resident speech configuration is invalid."
+    [[ "$(sed -n '1p' "$packaged_speech_config")" == "BENHEIM_PRIVATE_SPEECH_V1" ]] \
+      || fail "The package resident speech configuration is invalid."
+    grep -Eq '^api_key=[^[:space:]]+$' "$packaged_speech_config" \
+      || fail "The package resident speech configuration is invalid."
+    awk 'length($0) > 1032 { exit 1 }' "$packaged_speech_config" \
+      || fail "The package resident speech configuration is invalid."
+  fi
 
   installer="$payload/Install Benheim.command"
   env \
@@ -162,6 +187,17 @@ install_package() {
   installed_config="$game_dir/BepInEx/config/BenheimPrivateDiagnostics.cfg"
   cmp -s "$packaged_config" "$installed_config" \
     || fail "The installed Axiom diagnostics configuration does not match the package."
+  installed_speech_config="$game_dir/BepInEx/config/GEORGE-SPEECH.cfg"
+  if [[ "$speech_config_present" == "1" ]]; then
+    cmp -s "$payload/GEORGE-SPEECH.cfg" "$installed_speech_config" \
+      || fail "The installed resident speech configuration does not match the package."
+    printf 'install-local: speech=configured-and-byte-verified\n'
+  elif [[ -f "$installed_speech_config" ]] &&
+    [[ "$(sed -n '1p' "$installed_speech_config")" == "BENHEIM_PRIVATE_SPEECH_V1" ]]; then
+    fail "The previous package-managed resident speech configuration was not removed."
+  else
+    printf 'install-local: speech=not-packaged\n'
+  fi
   printf 'install-local: source=package\n'
   printf 'install-local: version=%s\n' "$packaged_version"
   printf 'install-local: dll_sha256=%s\n' "$installed_sha"

@@ -32,6 +32,8 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
     private float speechExpires, nextSpeechCheck;
     private bool sightlineBlocked;
     private int viewMask;
+    private Player? speechPlayer;
+    private float speechLookUntil;
 
     internal Chair Seat => seat;
 
@@ -147,7 +149,7 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
     private void Update()
     {
         if (!configured) return;
-        if (!GreydwarfResidentRuntime.IsEnabled || !ZNet.IsSinglePlayer || !seat || !tub || !head)
+        if (!GreydwarfResidentRuntime.IsEnabled || !ResidentClient.Available || !seat || !tub || !head)
         {
             GreydwarfResidentRuntime.Remove(gameObject);
             return;
@@ -182,8 +184,11 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
         }
         else if (state == "idle" && Time.time >= nextLook) ChooseLook();
         float t = Mathf.Clamp01((Time.time - lookStarted) / lookDuration);
-        look = Vector2.Lerp(lookFrom, lookTarget, t * t * (3f - 2f * t));
+        // Speech owns the same bone while a visible remark follows its
+        // addressee. Do not reset its tracking interpolation to an idle target.
+        if (speechLookUntil == 0f) look = Vector2.Lerp(lookFrom, lookTarget, t * t * (3f - 2f * t));
         UpdateSpeech();
+        UpdateSpeechLook();
     }
 
     private void UpdateSpeech()
@@ -211,10 +216,49 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
             sightlineBlocked = true;
             return;
         }
-        // Native dialogue follows the resident, expires, and respects HUD visibility.
+        ResidentTubClient client = tub.GetComponent<ResidentTubClient>();
+        if (client) ResidentClient.Approach(client, this, pendingSpeech);
+        FinishSpeech("encounter_requested");
+    }
+
+    internal bool CanSpeakTo(Player player)
+    {
+        if (!configured || !head || !player || player.IsDead() || player.IsTeleporting()) return false;
+        Vector3 delta = player.transform.position - transform.position;
+        return !ResidentVisit.IsOutside(new Vector2(delta.x, delta.z).magnitude, delta.y) &&
+            !Physics.Linecast(player.GetHeadPoint(), head.position, viewMask, QueryTriggerInteraction.Ignore);
+    }
+
+    internal void ShowSpeech(Player player, string text)
+    {
         Chat.instance.SetNpcText(gameObject, head.position - transform.position + Vector3.up * .35f,
-            20f, 10f, "George", "The water's warm. Come sit.", false);
-        FinishSpeech("displayed_fixed_line");
+            20f, 10f, "George", text, false);
+        speechPlayer = player;
+        speechLookUntil = Time.time + 11f;
+        state = "speaking";
+        ResidentDiagnostics.Emit("speech_look_started", "shared_addressee", gameObject.GetInstanceID());
+    }
+
+    private void UpdateSpeechLook()
+    {
+        // Unity's destroyed-object equality must still enter cleanup. A null
+        // reference alone does not mean a previously active look has ended.
+        if (speechLookUntil == 0f) return;
+        if (!speechPlayer || Time.time >= speechLookUntil || !CanSpeakTo(speechPlayer) ||
+            !Chat.instance || !Chat.instance.IsDialogVisible(gameObject))
+        {
+            speechPlayer = null;
+            speechLookUntil = 0f;
+            BeginLook(Vector2.zero, 1.6f);
+            state = "settling";
+            ResidentDiagnostics.Emit("speech_look_finished", "dialog_or_visitor_ended", gameObject.GetInstanceID());
+            return;
+        }
+        Vector3 delta = speechPlayer.GetHeadPoint() - head.position;
+        Vector3 flat = Vector3.ProjectOnPlane(delta, transform.up);
+        Vector2 target = new(Mathf.Clamp(Vector3.SignedAngle(transform.forward, flat, transform.up), -55f, 55f),
+            Mathf.Clamp(-Mathf.Atan2(delta.y, flat.magnitude) * Mathf.Rad2Deg, -10f, 10f));
+        look = Vector2.Lerp(look, target, Mathf.Clamp01(Time.deltaTime * 3f));
     }
 
     private void FinishSpeech(string reason)
@@ -244,6 +288,8 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
         for (int n = 0; n < animators.Length; n++)
             if (animators[n]) animators[n].speed = originalSpeeds[n];
         if (pendingSpeech is not null) FinishSpeech("resident_disabled");
+        speechPlayer = null;
+        speechLookUntil = 0f;
         if (Chat.instance) Chat.instance.ClearNpcText(gameObject);
         if (configured)
             ResidentDiagnostics.Emit("seat_released", "resident_disabled", gameObject.GetInstanceID());

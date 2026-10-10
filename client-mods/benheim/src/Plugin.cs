@@ -26,7 +26,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.benheim.qol";
     public const string PluginName = "Benheim";
-    public const string PluginVersion = "0.1.111";
+    public const string PluginVersion = "0.1.112";
 
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -94,6 +94,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private void Update()
     {
+        if (IsPatchGroupAvailable(typeof(GreydwarfResidentRuntime))) ResidentClient.Update();
         patchGroups?.RetryFailedCleanup();
 
         HealthReporting.UpdateCriticalMessage();
@@ -136,6 +137,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void OnDestroy()
     {
         GreydwarfResidentRuntime.Reset();
+        ResidentClient.Reset();
         WorldLabelRuntime.Reset();
         SpawnProtectionOverlay.Reset("plugin_teardown");
         ShipSprintRuntime.Reset("plugin_teardown");

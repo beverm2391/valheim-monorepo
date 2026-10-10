@@ -6,9 +6,9 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>BenheimServerSupport</AssemblyName>
     <RootNamespace>BenheimServerSupport</RootNamespace>
-    <Version>0.1.6</Version>
-    <AssemblyVersion>0.1.6.0</AssemblyVersion>
-    <FileVersion>0.1.6.0</FileVersion>
+    <Version>0.1.7</Version>
+    <AssemblyVersion>0.1.7.0</AssemblyVersion>
+    <FileVersion>0.1.7.0</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
@@ -27,6 +27,7 @@
     <Compile Include="../../../client-mods/benheim/src/KillAttribution/KillAttributionProtocol.cs" Link="KillAttribution/KillAttributionProtocol.cs" />
     <Compile Include="../../../client-mods/benheim/src/KillAttribution/LethalHitObservation.cs" Link="KillAttribution/LethalHitObservation.cs" />
     <Compile Include="../../../shared/benheim-inventory-protocol/*.cs" Link="InventoryProtocol/%(Filename)%(Extension)" />
+    <Compile Include="../../../shared/benheim-resident-protocol/*.cs" Link="ResidentProtocol/%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

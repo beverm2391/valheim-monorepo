@@ -13,6 +13,8 @@
 
   <ItemGroup>
     <Compile Include="../../../shared/benheim-inventory-protocol/*.cs" Link="InventoryProtocol/%(Filename)%(Extension)" />
+    <Compile Include="../../../shared/benheim-resident-protocol/*.cs" Link="ResidentProtocol/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../../tools/valheim-dev/contextual-speech/george.txt" LogicalName="BenheimQoL.GreydwarfResident.george.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,6 +40,14 @@
     </Reference>
     <Reference Include="SoftReferenceableAssets">
       <HintPath>$(ValheimManagedDir)/SoftReferenceableAssets.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(ValheimManagedDir)/Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>$(ValheimManagedDir)/UnityEngine.UnityWebRequestModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="gui_framework">

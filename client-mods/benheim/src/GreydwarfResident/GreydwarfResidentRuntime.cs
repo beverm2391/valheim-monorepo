@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BenheimQoL.Infrastructure;
+using Benheim.Resident;
 using SoftReferenceableAssets;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -9,10 +10,8 @@ using Object = UnityEngine.Object;
 namespace BenheimQoL.GreydwarfResident;
 
 /// <summary>
-/// Explicit development entrypoint for the resolved resident slice. The caller
-/// supplies an existing native tub seat; this creates only the decorative
-/// resident. It does not place/fuel a tub, register a prefab, write a ZDO, or
-/// choose how players will invite/place residents. Those decisions remain open.
+/// Creates the accepted decorative donor at a native seat. Shared placement
+/// and persistence belong to the tub's native ZDO and Server Support protocol.
 /// </summary>
 public static class GreydwarfResidentRuntime
 {
@@ -33,14 +32,14 @@ public static class GreydwarfResidentRuntime
         if (!IsEnabled) return Reject("feature_unavailable");
         if (!Player.m_localPlayer || !ZoneSystem.instance || !ZNetScene.instance || !ZNet.instance)
             return Reject("world_not_ready");
-        // Local visual state cannot reserve a chair for another peer. Do not
-        // silently turn the prototype into a multiplayer feature.
-        if (!ZNet.IsSinglePlayer) return Reject("multiplayer_not_designed");
+        if (!ResidentClient.Available) return Reject("compatible_peers_required");
         Piece? tub = seat ? seat.GetComponentInParent<Piece>() : null;
         if (!seat || !seat.isActiveAndEnabled || !seat.m_attachPoint || !tub ||
             Utils.GetPrefabName(tub.gameObject) != "piece_bathtub")
             return Reject("native_tub_seat_required");
-        if (IsReserved(seat) || seat.IsInUse()) return Reject("seat_in_use");
+        // Match native occupancy without invoking our reservation postfix:
+        // the saved invitation reserves this seat before the visual exists.
+        if (Player.GetClosestPlayer(seat.m_attachPoint.position, .05f) != null) return Reject("seat_in_use");
         // A disabled resident still owns its asset lease and seat association.
         if (residents.TryGetValue(seat, out GreydwarfResidentBehaviour? existing) && existing)
             return Reject("resident_already_assigned");
@@ -114,8 +113,9 @@ public static class GreydwarfResidentRuntime
 
     internal static bool IsReserved(Chair seat)
     {
-        return IsEnabled && ZNet.IsSinglePlayer && residents.TryGetValue(seat, out var resident)
-            && resident && resident.isActiveAndEnabled;
+        return IsEnabled && ResidentClient.Available && seat &&
+            ResidentTub.TryGet(seat.gameObject, out ZNetView view) &&
+            ResidentTub.IsInvited(view.GetZDO()) && ResidentTub.FindSeat(view.gameObject) == seat;
     }
 
     internal static void Forget(Chair seat, GreydwarfResidentBehaviour resident)

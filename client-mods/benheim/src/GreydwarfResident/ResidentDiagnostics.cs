@@ -9,4 +9,11 @@ internal static class ResidentDiagnostics
         Diagnostics.Emit(DiagnosticEvent.Create("GreydwarfResident", name)
             .String("reason", reason).Integer("resident_instance", resident));
     }
+
+    internal static void Operation(string name, string reason, string operationId, ZDOID tub, int generation)
+    {
+        Diagnostics.Emit(DiagnosticEvent.Create("GreydwarfResident", name)
+            .String("reason", reason).String("operation_id", operationId)
+            .String("tub_zdoid", tub.ToString()).Integer("generation", generation));
+    }
 }

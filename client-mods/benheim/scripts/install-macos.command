@@ -15,6 +15,13 @@ version_source="${BENHEIM_QOL_VERSION_FILE:-$script_dir/VERSION}"
 process_check="$script_dir/check-valheim-stopped.sh"
 private_diagnostics_source="${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE:-$script_dir/AXIOM-DIAGNOSTICS.cfg}"
 private_diagnostics="$game_dir/BepInEx/config/BenheimPrivateDiagnostics.cfg"
+private_speech_source="$script_dir/GEORGE-SPEECH.cfg"
+private_speech_override_set=0
+if [[ ${BENHEIM_QOL_PRIVATE_SPEECH_FILE+x} == "x" ]]; then
+  private_speech_source="$BENHEIM_QOL_PRIVATE_SPEECH_FILE"
+  private_speech_override_set=1
+fi
+private_speech="$game_dir/BepInEx/config/GEORGE-SPEECH.cfg"
 bepinex_url="${BENHEIM_QOL_BEPINEX_URL:-https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip}"
 if [[ -n "${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE:-}" ]]; then
   private_diagnostics_source="$BENHEIM_QOL_PRIVATE_DIAGNOSTICS_FILE"
@@ -36,6 +43,10 @@ version_had_previous=0
 private_diagnostics_backup="$tmp_dir/BenheimPrivateDiagnostics.previous.cfg"
 private_diagnostics_touched=0
 private_diagnostics_had_previous=0
+private_speech_backup="$tmp_dir/GEORGE-SPEECH.previous.cfg"
+private_speech_touched=0
+private_speech_had_previous=0
+speech_tmp=""
 
 cleanup() {
   status=$?
@@ -74,10 +85,20 @@ cleanup() {
         rm -f "$private_diagnostics"
       fi
     fi
+    if [[ "$private_speech_touched" == "1" ]]; then
+      if [[ "$private_speech_had_previous" == "1" ]]; then
+        install -m 0600 "$private_speech_backup" "$private_speech"
+      else
+        rm -f "$private_speech"
+      fi
+    fi
   fi
 
   if [[ -n "$staged_app" ]]; then
     rm -rf "$staged_app"
+  fi
+  if [[ -n "$speech_tmp" ]]; then
+    rm -f "$speech_tmp"
   fi
   rm -rf "$tmp_dir"
 
@@ -131,6 +152,20 @@ expected_build_id="sha256:$(shasum -a 256 "$dll" | awk '{print $1}')"
 grep -Fxq "build_id=$expected_build_id" "$private_diagnostics_source" ||
   fail "The diagnostics configuration does not match this Benheim DLL."
 
+private_speech_supplied=0
+if [[ -f "$private_speech_source" ]]; then
+  private_speech_supplied=1
+  if [[ "$(wc -c < "$private_speech_source" | tr -d ' ')" -gt 4096 ]] ||
+    [[ "$(wc -l < "$private_speech_source" | tr -d ' ')" != "2" ]] ||
+    [[ "$(sed -n '1p' "$private_speech_source")" != "BENHEIM_PRIVATE_SPEECH_V1" ]] ||
+    ! grep -Eq '^api_key=[^[:space:]]+$' "$private_speech_source" ||
+    ! awk 'length($0) > 1032 { exit 1 }' "$private_speech_source"; then
+    fail "The private resident speech configuration is invalid."
+  fi
+elif [[ -e "$private_speech_source" || "$private_speech_override_set" == "1" ]]; then
+  fail "The private resident speech configuration is missing."
+fi
+
 if [[ ! -f "$launcher_source" ]]; then
   fail "Missing macos-launcher.sh beside the installer."
 fi
@@ -141,6 +176,11 @@ fi
 
 if [[ -e "$plugin_dir" && ! -d "$plugin_dir" ]]; then
   fail "Expected a plugin directory but found another kind of file at: $plugin_dir"
+fi
+
+if [[ "$private_speech_supplied" == "1" && -e "$private_speech" &&
+  "$(sed -n '1p' "$private_speech")" != "BENHEIM_PRIVATE_SPEECH_V1" ]]; then
+  fail "Refusing to replace an unrecognized resident speech configuration."
 fi
 
 if [[ -e "$app" ]]; then
@@ -200,6 +240,10 @@ if [[ -f "$private_diagnostics" ]]; then
   cp "$private_diagnostics" "$private_diagnostics_backup"
   private_diagnostics_had_previous=1
 fi
+if [[ -f "$private_speech" ]]; then
+  cp "$private_speech" "$private_speech_backup"
+  private_speech_had_previous=1
+fi
 plugin_tmp="$plugin_dir/.BenheimQoL.dll.$$"
 install -m 0644 "$dll" "$plugin_tmp"
 mv -f "$plugin_tmp" "$plugin"
@@ -214,6 +258,19 @@ private_diagnostics_touched=1
 diagnostics_tmp="$game_dir/BepInEx/config/.BenheimPrivateDiagnostics.cfg.$$"
 install -m 0600 "$private_diagnostics_source" "$diagnostics_tmp"
 mv -f "$diagnostics_tmp" "$private_diagnostics"
+
+if [[ "$private_speech_supplied" == "1" ]]; then
+  private_speech_touched=1
+  speech_tmp="$game_dir/BepInEx/config/.GEORGE-SPEECH.cfg.$$"
+  install -m 0600 "$private_speech_source" "$speech_tmp"
+  mv -f "$speech_tmp" "$private_speech"
+elif [[ "$private_speech_had_previous" == "1" &&
+  "$(sed -n '1p' "$private_speech")" == "BENHEIM_PRIVATE_SPEECH_V1" ]]; then
+  # A package without the private credential removes a prior package-managed
+  # key. Unrecognized local files at this path are left alone.
+  private_speech_touched=1
+  rm -f "$private_speech"
+fi
 
 # BenheimQoL owns farming now. Leaving the old plugin active would execute two
 # Shift-interact and planting handlers against the same player action.
@@ -318,6 +375,13 @@ fi
 cmp -s "$dll" "$plugin" || fail "The installed Benheim DLL differs from the package."
 cmp -s "$private_diagnostics_source" "$private_diagnostics" ||
   fail "The installed Axiom diagnostics configuration differs from the package."
+if [[ "$private_speech_supplied" == "1" ]]; then
+  cmp -s "$private_speech_source" "$private_speech" ||
+    fail "The installed resident speech configuration differs from the package."
+elif [[ "$private_speech_had_previous" == "1" &&
+  "$(sed -n '1p' "$private_speech" 2>/dev/null || true)" == "BENHEIM_PRIVATE_SPEECH_V1" ]]; then
+  fail "The previous package-managed resident speech configuration was not removed."
+fi
 rm -rf "$backup_app" "$backup_updater_app"
 echo
 echo "Installed Benheim and:"

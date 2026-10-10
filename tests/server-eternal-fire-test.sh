@@ -88,7 +88,7 @@ if strings "$plugin" | grep -Fiq "Jotunn"; then
 fi
 assert_contains "plugin source pins version 0.1.1" 'PluginVersion = "0.1.1"' "$plugin_source"
 assert_contains "test-command source pins version 0.1.4" 'PluginVersion = "0.1.4"' "$test_commands_source"
-assert_contains "server-support source pins version 0.1.6" 'PluginVersion = "0.1.6"' "$server_support_source"
+assert_contains "server-support source pins version 0.1.7" 'PluginVersion = "0.1.7"' "$server_support_source"
 assert_contains \
   "plugin logs the exact post-PatchAll message" \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
@@ -181,7 +181,7 @@ printf '%s\n' \
   'Game server connected' \
   'Benheim Eternal Fire 0.1.1 loaded after PatchAll.' \
   'Benheim Test Commands 0.1.4 loaded with direct peer RPC authorization.' \
-  'Benheim Server Support 0.1.6 loaded with Put Away and confirmed-kill coordination.' \
+  'Benheim Server Support 0.1.7 loaded with Put Away, confirmed-kill, and George resident coordination.' \
   > "$tmp_dir/journal.log"
 printf '%s\n' 0 > "$tmp_dir/journal.count"
 MOCK_JOURNAL_ARGS="$tmp_dir/journal.args" \
@@ -216,7 +216,7 @@ assert_contains \
   "$verifier"
 assert_contains \
   "verifier requires Server Support's exact load message" \
-  'Benheim Server Support 0.1.6 loaded with Put Away and confirmed-kill coordination.' \
+  'Benheim Server Support 0.1.7 loaded with Put Away, confirmed-kill, and George resident coordination.' \
   "$verifier"
 assert_contains "verifier requires the configured world" 'ZNet.LoadWorld: $world ($world)' "$verifier"
 assert_contains "verifier requires normal readiness" 'Game server connected' "$verifier"

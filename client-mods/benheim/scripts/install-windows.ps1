@@ -5,8 +5,10 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PluginDll = if ($env:BENHEIM_QOL_DLL) { $env:BENHEIM_QOL_DLL } else { Join-Path $ScriptDir 'BenheimQoL.dll' }
 $LauncherSource = Join-Path $ScriptDir 'launch-windows.ps1'
 $DoorstopConfigHelpers = Join-Path $ScriptDir 'windows-doorstop-config.ps1'
+$ResidentSpeechHelpers = Join-Path $ScriptDir 'windows-resident-speech.ps1'
 $VersionSource = Join-Path $ScriptDir 'VERSION'
 $PrivateDiagnosticsSource = Join-Path $ScriptDir 'AXIOM-DIAGNOSTICS.cfg'
+$PrivateSpeechSource = Join-Path $ScriptDir 'GEORGE-SPEECH.cfg'
 $BepInExUrl = if ($env:BENHEIM_QOL_BEPINEX_URL) { $env:BENHEIM_QOL_BEPINEX_URL } else { 'https://gcdn.thunderstore.io/live/repository/packages/denikson-BepInExPack_Valheim-5.4.2333.zip' }
 $BepInExSha256 = if ($env:BENHEIM_QOL_BEPINEX_SHA256) { $env:BENHEIM_QOL_BEPINEX_SHA256.ToLowerInvariant() } else { '5dd24ccbcaa9260f714b200f23c4c15547e2aa5f06906cafcc0dee56db1bf716' }
 $ShortcutMarker = 'BenheimQoL launcher managed by the BenheimQoL installer'
@@ -19,6 +21,11 @@ if (-not (Test-Path -LiteralPath $DoorstopConfigHelpers -PathType Leaf)) {
     throw 'The Benheim Doorstop configuration helper is missing beside the installer.'
 }
 . $DoorstopConfigHelpers
+
+if (-not (Test-Path -LiteralPath $ResidentSpeechHelpers -PathType Leaf)) {
+    throw 'The Benheim resident speech helper is missing beside the installer.'
+}
+. $ResidentSpeechHelpers
 
 function Get-SteamRoots {
     $roots = New-Object System.Collections.Generic.List[string]
@@ -145,6 +152,7 @@ function Install-BenheimQoL {
         $diagnosticsLines[4] -ne "build_id=sha256:$dllHash") {
         throw 'The Axiom diagnostics configuration is invalid or does not match this Benheim DLL.'
     }
+    $privateSpeechSupplied = Test-ResidentSpeechSource -Source $PrivateSpeechSource
     try {
         [void][version](Get-Content -LiteralPath $VersionSource -Raw).Trim()
     }
@@ -233,9 +241,11 @@ function Install-BenheimQoL {
     $pluginPath = Join-Path $pluginDir 'BenheimQoL.dll'
     $versionPath = Join-Path $pluginDir 'VERSION'
     $privateDiagnosticsPath = Join-Path $bepInExDir 'config\BenheimPrivateDiagnostics.cfg'
+    $privateSpeechPath = Join-Path $bepInExDir 'config\GEORGE-SPEECH.cfg'
     $pluginBackup = Join-Path $TempDir 'BenheimQoL.previous.dll'
     $versionBackup = Join-Path $TempDir 'VERSION.previous'
     $privateDiagnosticsBackup = Join-Path $TempDir 'BenheimPrivateDiagnostics.previous.cfg'
+    $privateSpeechBackup = Join-Path $TempDir 'GEORGE-SPEECH.previous.cfg'
     $shortcutBackup = Join-Path $TempDir 'Benheim.previous.lnk'
     $launcherBackup = Join-Path $TempDir 'launcher.previous'
     $legacyShortcutBackup = Join-Path $TempDir 'Benheim QoL.previous.lnk'
@@ -247,6 +257,11 @@ function Install-BenheimQoL {
     $pluginHadPrevious = Test-Path -LiteralPath $pluginPath -PathType Leaf
     $versionHadPrevious = Test-Path -LiteralPath $versionPath -PathType Leaf
     $privateDiagnosticsHadPrevious = Test-Path -LiteralPath $privateDiagnosticsPath -PathType Leaf
+    $privateSpeechState = New-ResidentSpeechInstallState `
+        -Source $PrivateSpeechSource `
+        -Destination $privateSpeechPath `
+        -Backup $privateSpeechBackup `
+        -Supplied $privateSpeechSupplied
     $shortcutHadPrevious = Test-Path -LiteralPath $shortcutPath -PathType Leaf
     $launcherHadPrevious = Test-Path -LiteralPath $launcherRoot
     $doorstopConfigHadPrevious = Save-DoorstopConfig `
@@ -263,6 +278,7 @@ function Install-BenheimQoL {
     if ($privateDiagnosticsHadPrevious) {
         Copy-Item -LiteralPath $privateDiagnosticsPath -Destination $privateDiagnosticsBackup
     }
+    Backup-ResidentSpeechConfig -State $privateSpeechState
     if ($shortcutHadPrevious) { Copy-Item -LiteralPath $shortcutPath -Destination $shortcutBackup }
 
     $stagedLauncherRoot = Join-Path $TempDir 'launcher'
@@ -294,6 +310,8 @@ function Install-BenheimQoL {
             ('.BenheimPrivateDiagnostics.cfg.' + [guid]::NewGuid().ToString('N'))
         Copy-Item -LiteralPath $PrivateDiagnosticsSource -Destination $privateDiagnosticsTemp
         Move-Item -LiteralPath $privateDiagnosticsTemp -Destination $privateDiagnosticsPath -Force
+
+        Install-ResidentSpeechConfig -State $privateSpeechState
 
         $disabledDir = Join-Path $bepInExDir 'disabled\MassFarming'
         Move-LegacyFile `
@@ -337,6 +355,7 @@ function Install-BenheimQoL {
             (Get-FileHash -LiteralPath $PrivateDiagnosticsSource -Algorithm SHA256).Hash) {
             throw 'The installed DLL or Axiom diagnostics configuration differs from the package.'
         }
+        Confirm-ResidentSpeechInstall -State $privateSpeechState
 
     }
     catch {
@@ -370,6 +389,7 @@ function Install-BenheimQoL {
                 Remove-Item -LiteralPath $privateDiagnosticsPath -Force -ErrorAction SilentlyContinue
             }
         }
+        Restore-ResidentSpeechConfig -State $privateSpeechState
         if ($shortcutHadPrevious) {
             Copy-Item -LiteralPath $shortcutBackup -Destination $shortcutPath -Force
         }
@@ -392,6 +412,9 @@ function Install-BenheimQoL {
             Move-Item -LiteralPath $legacyUpdaterRootBackup -Destination $legacyUpdaterRoot
         }
         throw
+    }
+    finally {
+        Clear-ResidentSpeechTemp -State $privateSpeechState
     }
 
     Write-Host ''

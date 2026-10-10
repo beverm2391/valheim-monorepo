@@ -40,6 +40,9 @@ printf '%s\n' 'BENHEIM_PRIVATE_DIAGNOSTICS_V1' \
   'endpoint=https://us-east-1.aws.edge.axiom.co' \
   'dataset=benheim-diagnostics' 'token=fixture-sentinel' \
   "build_id=sha256:$plugin_hash" > "$private_config_source"
+private_speech_source="$test_root/GEORGE-SPEECH.cfg"
+printf '%s\n' 'BENHEIM_PRIVATE_SPEECH_V1' \
+  'api_key=fixture-speech-key' > "$private_speech_source"
 
 legacy_app="$app_dir/Benheim QoL.app"
 managed_updater="$app_dir/Update Benheim.app"
@@ -66,7 +69,14 @@ run_installer() {
     "$root/scripts/install-macos.command"
 }
 
-run_installer "$app_dir" >/dev/null
+run_installer_without_speech() {
+  (
+    unset BENHEIM_QOL_PRIVATE_SPEECH_FILE
+    run_installer "$@"
+  )
+}
+
+BENHEIM_QOL_PRIVATE_SPEECH_FILE="$private_speech_source" run_installer "$app_dir" >/dev/null
 
 test -x "$game_dir/start_game_bepinex.sh"
 grep -Fqx 'test-dll' "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll"
@@ -92,6 +102,21 @@ if run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$test_root/missing.cfg"
   echo "installer accepted missing diagnostics configuration" >&2
   exit 1
 fi
+private_speech_installed="$game_dir/BepInEx/config/GEORGE-SPEECH.cfg"
+cmp -s "$private_speech_source" "$private_speech_installed"
+test "$(stat -f '%Lp' "$private_speech_installed")" = 600
+if BENHEIM_QOL_PRIVATE_SPEECH_FILE="$test_root/missing-speech.cfg" \
+  run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null 2>&1; then
+  echo "installer accepted a missing explicitly supplied speech configuration" >&2
+  exit 1
+fi
+invalid_speech_source="$test_root/invalid-GEORGE-SPEECH.cfg"
+printf '%s\n' 'BENHEIM_PRIVATE_SPEECH_V1' 'api_key=contains whitespace' > "$invalid_speech_source"
+if BENHEIM_QOL_PRIVATE_SPEECH_FILE="$invalid_speech_source" \
+  run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null 2>&1; then
+  echo "installer accepted a malformed speech configuration" >&2
+  exit 1
+fi
 private_config_previous_sha="$(shasum -a 256 "$private_config_installed" | awk '{print $1}')"
 printf 'new-test-dll\n' > "$test_root/NewBenheimQoL.dll"
 new_hash="$(shasum -a 256 "$test_root/NewBenheimQoL.dll" | awk '{print $1}')"
@@ -100,14 +125,24 @@ sed "s/token=fixture-sentinel/token=replacement-sentinel/; s/build_id=sha256:$pl
   "$private_config_source" > "$replacement_private_config"
 
 # A second install converges on the same active plugin and launcher.
-run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
+BENHEIM_QOL_PRIVATE_SPEECH_FILE="$private_speech_source" \
+  run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
 test "$first_plugin_sha" = "$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll" | awk '{print $1}')"
 test "$first_launcher_sha" = "$(shasum -a 256 "$app_dir/Benheim.app/Contents/MacOS/BenheimQoL" | awk '{print $1}')"
+
+# A package without the private credential removes the previous managed key.
+run_installer_without_speech "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
+test ! -e "$private_speech_installed"
+BENHEIM_QOL_PRIVATE_SPEECH_FILE="$private_speech_source" \
+  run_installer "$app_dir" "$test_root/BenheimQoL.dll" "$private_config_source" >/dev/null
+replacement_speech_config="$test_root/replacement-GEORGE-SPEECH.cfg"
+printf '%s\n' 'BENHEIM_PRIVATE_SPEECH_V1' \
+  'api_key=fixture-replacement-speech-key' > "$replacement_speech_config"
 
 # A failure after plugin replacement restores both the prior DLL and version.
 blocked_app_parent="$test_root/not-a-directory"
 printf 'block launcher directory creation\n' > "$blocked_app_parent"
-if run_installer \
+if BENHEIM_QOL_PRIVATE_SPEECH_FILE="$replacement_speech_config" run_installer \
   "$blocked_app_parent" \
   "$test_root/NewBenheimQoL.dll" \
   "$replacement_private_config" >/dev/null 2>&1; then
@@ -118,6 +153,8 @@ test "$first_plugin_sha" = "$(shasum -a 256 "$game_dir/BepInEx/plugins/BenheimQo
 grep -Fqx '0.1.34' "$game_dir/BepInEx/plugins/BenheimQoL/VERSION"
 test "$private_config_previous_sha" = \
   "$(shasum -a 256 "$private_config_installed" | awk '{print $1}')"
+
+cmp -s "$private_speech_source" "$private_speech_installed"
 
 # Never overwrite an unrelated app that uses the launcher target name.
 foreign_app_dir="$test_root/Foreign Applications"
@@ -189,6 +226,32 @@ cmp -s \
   "$test_root/BenheimQoL.dll" \
   "$packaged_game_dir/BepInEx/plugins/BenheimQoL/BenheimQoL.dll"
 grep -Fqx "$version" "$packaged_game_dir/BepInEx/plugins/BenheimQoL/VERSION"
+
+# The private package workflow also validates and installs its optional speech
+# credential byte-for-byte.
+private_package_dist="$test_root/private-dist"
+BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+BENHEIM_QOL_DIST="$private_package_dist" \
+BENHEIM_QOL_SKIP_BUILD=1 \
+BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$private_config_source" \
+BENHEIM_QOL_PRIVATE_SPEECH_CONFIG="$private_speech_source" \
+BENHEIM_QOL_SOURCE_COMMIT="0123456789abcdef0123456789abcdef01234567" \
+  "$root/scripts/package-macos.sh" >/dev/null
+private_package="$private_package_dist/Benheim-macOS-$version.zip"
+private_game_dir="$test_root/Private Package Valheim"
+private_app_dir="$test_root/Private Package Applications"
+mkdir -p "$private_game_dir/valheim.app/Contents/Resources"
+touch "$private_game_dir/valheim.app/Contents/Resources/PlayerIcon.icns"
+private_package_output="$(
+  PATH="$mock_bin:$PATH" \
+  BENHEIM_QOL_GAME_DIR="$private_game_dir" \
+  BENHEIM_QOL_APP_DIR="$private_app_dir" \
+  BENHEIM_QOL_BEPINEX_URL="file://$fixture_zip" \
+  BENHEIM_QOL_BEPINEX_SHA256="$fixture_sha" \
+    "$root/scripts/install-local.sh" --package "$private_package"
+)"
+grep -Fq 'install-local: speech=configured-and-byte-verified' <<<"$private_package_output"
+cmp -s "$private_speech_source" "$private_game_dir/BepInEx/config/GEORGE-SPEECH.cfg"
 
 # A directory/version mismatch fails before the shipped installer can mutate
 # the selected game directory.

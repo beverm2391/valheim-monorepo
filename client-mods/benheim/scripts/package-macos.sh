@@ -6,6 +6,7 @@ version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs"
 dll="${BENHEIM_QOL_DLL:-$root/src/bin/Release/netstandard2.1/BenheimQoL.dll}"
 dist="${BENHEIM_QOL_DIST:-$root/dist}"
 private_diagnostics_config="${BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG:-}"
+private_speech_config="${BENHEIM_QOL_PRIVATE_SPEECH_CONFIG:-}"
 source_commit="${BENHEIM_QOL_SOURCE_COMMIT:-}"
 package_name="Benheim-macOS-$version"
 if [[ -z "$private_diagnostics_config" || ! -f "$private_diagnostics_config" ]]; then
@@ -41,6 +42,17 @@ if [[ "$(wc -l < "$private_diagnostics_config" | tr -d ' ')" != "5" ]] ||
   echo "The Axiom diagnostics config is invalid or does not match the package DLL." >&2
   exit 1
 fi
+if [[ -n "$private_speech_config" ]]; then
+  if [[ ! -f "$private_speech_config" ]] ||
+    [[ "$(wc -c < "$private_speech_config" | tr -d ' ')" -gt 4096 ]] ||
+    [[ "$(wc -l < "$private_speech_config" | tr -d ' ')" != "2" ]] ||
+    [[ "$(sed -n '1p' "$private_speech_config")" != "BENHEIM_PRIVATE_SPEECH_V1" ]] ||
+    ! grep -Eq '^api_key=[^[:space:]]+$' "$private_speech_config" ||
+    ! awk 'length($0) > 1032 { exit 1 }' "$private_speech_config"; then
+    echo "The private resident speech config is invalid." >&2
+    exit 1
+  fi
+fi
 rm -rf "$stage" "$dist/$package_name.zip"
 install -d "$stage"
 install -m 0755 "$root/scripts/install-macos.command" "$stage/Install Benheim.command"
@@ -49,6 +61,9 @@ install -m 0755 "$root/scripts/macos-launcher.sh" "$stage/macos-launcher.sh"
 install -m 0644 "$dll" "$stage/BenheimQoL.dll"
 printf '%s\n' "$version" > "$stage/VERSION"
 install -m 0600 "$private_diagnostics_config" "$stage/AXIOM-DIAGNOSTICS.cfg"
+if [[ -n "$private_speech_config" ]]; then
+  install -m 0600 "$private_speech_config" "$stage/GEORGE-SPEECH.cfg"
+fi
 printf '%s\n' "$source_commit" > "$stage/SOURCE_COMMIT"
 
 (

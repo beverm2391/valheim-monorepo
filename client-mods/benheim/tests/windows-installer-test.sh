@@ -6,6 +6,7 @@ installer="$root/scripts/install-windows.ps1"
 wrapper="$root/scripts/Install Benheim.cmd"
 launcher="$root/scripts/launch-windows.ps1"
 doorstop_helpers="$root/scripts/windows-doorstop-config.ps1"
+speech_helpers="$root/scripts/windows-resident-speech.ps1"
 package_script="$root/scripts/package-windows.sh"
 rollback_test="$root/tests/windows-doorstop-rollback-test.ps1"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
@@ -35,6 +36,21 @@ grep -Fq 'Copy-Item -LiteralPath $versionBackup -Destination $versionPath -Force
 grep -Fq "'config\\BenheimPrivateDiagnostics.cfg'" "$installer"
 grep -Fq 'AXIOM-DIAGNOSTICS.cfg' "$installer"
 grep -Fq 'Copy-Item -LiteralPath $privateDiagnosticsBackup -Destination $privateDiagnosticsPath -Force' "$installer"
+grep -Fq "Join-Path \$ScriptDir 'windows-resident-speech.ps1'" "$installer"
+grep -Fq '. $ResidentSpeechHelpers' "$installer"
+grep -Fq 'New-ResidentSpeechInstallState' "$installer"
+grep -Fq 'Install-ResidentSpeechConfig -State $privateSpeechState' "$installer"
+grep -Fq 'Confirm-ResidentSpeechInstall -State $privateSpeechState' "$installer"
+grep -Fq 'Restore-ResidentSpeechConfig -State $privateSpeechState' "$installer"
+grep -Fq 'Test-ResidentSpeechSource -Source $PrivateSpeechSource' "$installer"
+grep -Fq 'GEORGE-SPEECH.cfg' "$installer" "$speech_helpers"
+grep -Fq 'BENHEIM_PRIVATE_SPEECH_V1' "$speech_helpers"
+grep -Fq 'api_key=' "$speech_helpers"
+grep -Fq -- "-cnotmatch '^api_key=\\S+\$'" "$speech_helpers"
+grep -Fq 'Copy-Item -LiteralPath $State.Source -Destination $State.TempPath' "$speech_helpers"
+grep -Fq 'Remove-Item -LiteralPath $State.Destination -Force' "$speech_helpers"
+grep -Fq 'Copy-Item -LiteralPath $State.Backup -Destination $State.Destination -Force' "$speech_helpers"
+grep -Fq 'Clear-ResidentSpeechTemp -State $privateSpeechState' "$installer"
 grep -Fq 'Axiom receipt: unverified' "$installer"
 grep -Fq 'Save-DoorstopConfig' "$installer"
 grep -Fq 'Restore-DoorstopConfig' "$installer"
@@ -82,16 +98,33 @@ printf '%s\n' 'BENHEIM_PRIVATE_DIAGNOSTICS_V1' \
   'endpoint=https://us-east-1.aws.edge.axiom.co' \
   'dataset=benheim-diagnostics' 'token=fixture-sentinel' \
   "build_id=sha256:$dll_hash" > "$config"
+speech_config="$test_root/GEORGE-SPEECH.cfg"
+printf '%s\n' 'BENHEIM_PRIVATE_SPEECH_V1' \
+  'api_key=fixture-speech-key' > "$speech_config"
+invalid_speech_config="$test_root/invalid-GEORGE-SPEECH.cfg"
+printf '%s\n' 'BENHEIM_PRIVATE_SPEECH_V1' \
+  'api_key=contains whitespace' > "$invalid_speech_config"
 if BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
   BENHEIM_QOL_DIST="$test_root/dist" BENHEIM_QOL_SKIP_BUILD=1 \
   "$package_script" >/dev/null 2>&1; then
   echo "Windows packaging accepted missing diagnostics configuration" >&2
   exit 1
 fi
+if BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+  BENHEIM_QOL_DIST="$test_root/invalid-speech-dist" \
+  BENHEIM_QOL_SKIP_BUILD=1 \
+  BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$config" \
+  BENHEIM_QOL_PRIVATE_SPEECH_CONFIG="$invalid_speech_config" \
+  BENHEIM_QOL_SOURCE_COMMIT="0123456789abcdef0123456789abcdef01234567" \
+  "$package_script" >/dev/null 2>&1; then
+  echo "Windows packaging accepted a malformed speech configuration" >&2
+  exit 1
+fi
 BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
 BENHEIM_QOL_DIST="$test_root/dist" \
 BENHEIM_QOL_SKIP_BUILD=1 \
 BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$config" \
+BENHEIM_QOL_PRIVATE_SPEECH_CONFIG="$speech_config" \
 BENHEIM_QOL_SOURCE_COMMIT="0123456789abcdef0123456789abcdef01234567" \
   "$package_script" >/dev/null
 
@@ -105,9 +138,23 @@ expected_entries="$(printf '%s\n' \
   "Benheim-Windows-$version/install-windows.ps1" \
   "Benheim-Windows-$version/launch-windows.ps1" \
   "Benheim-Windows-$version/windows-doorstop-config.ps1" \
+  "Benheim-Windows-$version/windows-resident-speech.ps1" \
   "Benheim-Windows-$version/AXIOM-DIAGNOSTICS.cfg" \
+  "Benheim-Windows-$version/GEORGE-SPEECH.cfg" \
   "Benheim-Windows-$version/SOURCE_COMMIT" | sort)"
 test "$package_entries" = "$expected_entries"
 grep -Fxq "build_id=sha256:$dll_hash" <(unzip -p "$package" "Benheim-Windows-$version/AXIOM-DIAGNOSTICS.cfg")
+cmp -s "$speech_config" <(unzip -p "$package" "Benheim-Windows-$version/GEORGE-SPEECH.cfg")
+cmp -s "$speech_helpers" <(unzip -p "$package" "Benheim-Windows-$version/windows-resident-speech.ps1")
+
+# A package without an explicitly supplied speech config omits the credential.
+BENHEIM_QOL_DLL="$test_root/BenheimQoL.dll" \
+BENHEIM_QOL_DIST="$test_root/no-speech-dist" \
+BENHEIM_QOL_SKIP_BUILD=1 \
+BENHEIM_QOL_PRIVATE_DIAGNOSTICS_CONFIG="$config" \
+BENHEIM_QOL_SOURCE_COMMIT="0123456789abcdef0123456789abcdef01234567" \
+  "$package_script" >/dev/null
+no_speech_package="$test_root/no-speech-dist/Benheim-Windows-$version.zip"
+! unzip -Z1 "$no_speech_package" | grep -Fq 'GEORGE-SPEECH.cfg'
 
 echo "Windows vanilla/modded launcher and configured group package checks passed"
