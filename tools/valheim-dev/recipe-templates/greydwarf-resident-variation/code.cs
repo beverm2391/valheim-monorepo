@@ -11,8 +11,9 @@ public static class ValheimDevChange
         var resident = GameObject.Find("Lab_GreydwarfResident");
         if (!resident) throw new Exception("Spawn the greydwarf resident first.");
         behaviour = resident.AddComponent<GreydwarfLoungeVariation>();
-        behaviour.Configure();
-        return "{\"nativeLoop\":\"George Vibing\",\"awareness\":true,\"placementChanged\":false}";
+        try { behaviour.Configure(); }
+        catch { Cleanup(); throw; }
+        return "{\"nativeLoop\":\"George Vibing\",\"awareness\":true,\"nightDrowsiness\":true,\"placementChanged\":false}";
     }
     public static void Cleanup()
     {
@@ -49,7 +50,10 @@ public class GreydwarfLoungeVariation : MonoBehaviour
     // components. A visitor is remembered until they leave the wider radius for
     // eight seconds; crossing the near boundary or sitting repeatedly cannot spam.
     public string state = "idle", lastReaction = "none";
-    public int noticeCount, acknowledgementCount;
+    public int noticeCount, acknowledgementCount, drowseCount, wakeCount;
+    public bool night;
+    public float drowsiness, drowsePitch;
+    float awakeUntil;
     public Vector3 reactionTarget;
     // Public observations let the Lab inspect real updates without per-frame logs.
     public int paceChanges, lookChanges, frames;
@@ -60,12 +64,13 @@ public class GreydwarfLoungeVariation : MonoBehaviour
         animators = GetComponentsInChildren<Animator>(true)
             .Where(a => a.runtimeAnimatorController).ToArray();
         if (animators.Length == 0) throw new Exception("Resident Animator missing.");
-        head = GetComponentsInChildren<Transform>(true).First(t => t.name == "head");
         originalSpeeds = animators.Select(a => a.speed).ToArray();
+        head = GetComponentsInChildren<Transform>(true).First(t => t.name == "head");
         originalPosition = transform.localPosition;
         originalRotation = transform.localRotation;
         nextPace = Time.time + UnityEngine.Random.Range(6f, 10f);
         ChooseLook();
+        awakeUntil = Time.time + 6f;
         ObservePlayers(true);
     }
 
@@ -109,7 +114,7 @@ public class GreydwarfLoungeVariation : MonoBehaviour
             if (distance <= 4.5f && !presence.visiting)
             {
                 presence.visiting = true;
-                if (!seed && Time.time >= nextNotice && state == "idle")
+                if (!seed && Time.time >= nextNotice && (state == "idle" || state == "drowsy"))
                     eventPriority = 1;
             }
             if (seated && !presence.seated && !presence.acknowledged)
@@ -143,6 +148,10 @@ public class GreydwarfLoungeVariation : MonoBehaviour
 
     void React(Player player, bool seated)
     {
+        // A real visitor edge wakes him; lingering nearby does not keep resetting
+        // the quiet interval or generate repeated greetings.
+        if (state == "drowsy") wakeCount++;
+        awakeUntil = Time.time + 20f;
         // Snapshot the visitor once. This is a brief acknowledgement, not tracking.
         reactionTarget = player.GetHeadPoint();
         var delta = reactionTarget - head.position;
@@ -205,7 +214,26 @@ public class GreydwarfLoungeVariation : MonoBehaviour
             nextPace = Time.time + UnityEngine.Random.Range(6f, 12f);
             paceChanges++;
         }
-        pace = Mathf.SmoothDamp(pace, paceTarget, ref paceVelocity, 2f);
+        // EnvMan owns day/night. No private clock or animation trigger is invented.
+        // Blend the same native loop and head contribution instead of changing
+        // his accepted placement or stacking another pose writer.
+        night = EnvMan.instance && EnvMan.IsNight();
+        if (state == "drowsy" && !night)
+        {
+            state = "idle";
+            BeginLook(Vector2.zero, 2f);
+            nextLook = Time.time + 4f;
+        }
+        else if (state == "idle" && night && Time.time >= awakeUntil)
+        {
+            state = "drowsy";
+            drowseCount++;
+            BeginLook(Vector2.zero, 3f);
+        }
+        drowsiness = Mathf.MoveTowards(drowsiness, state == "drowsy" ? 1f : 0f,
+            Time.deltaTime * (state == "drowsy" ? .25f : 1f));
+        pace = Mathf.SmoothDamp(pace, Mathf.Lerp(paceTarget, .48f, drowsiness),
+            ref paceVelocity, 2f);
         for (int n = 0; n < animators.Length; n++)
             if (animators[n]) animators[n].speed = originalSpeeds[n] * pace;
         if ((state == "notice" || state == "acknowledge") &&
@@ -234,8 +262,11 @@ public class GreydwarfLoungeVariation : MonoBehaviour
         // One small nod while acknowledging a seat, eased back to the same pose.
         float nod = state == "acknowledge" ? 6f * Mathf.Sin(Mathf.PI *
             Mathf.Clamp01((Time.time - reactionStarted - .9f) / 1f)) : 0f;
+        // A restrained forward droop with slow breathing movement reads as drowsy.
+        // Positive pitch rotates forward downward around the upright right axis.
+        drowsePitch = drowsiness * (14f + 2f * Mathf.Sin(Time.time * .6f));
         head.rotation = Quaternion.AngleAxis(look.x, transform.up) *
-            Quaternion.AngleAxis(look.y + nod, transform.right) * head.rotation;
+            Quaternion.AngleAxis(look.y + nod + drowsePitch, transform.right) * head.rotation;
         appliedHead = head.localRotation;
         headOffsetApplied = true;
         frames++;
