@@ -36,6 +36,13 @@ resident, seating, speech, and placement-lifecycle behavior before calling the
 server version ready. The Lab prototype does not prove multiplayer or saved
 placement. Keep recovery and removal safe for the native tub and world.
 
+Choose the simplest client/server split that delivers a consistent shared
+resident and speech experience without duplicate residents or model chatter.
+Players should not manage a separate sandbox bridge. Ben permits an API key
+in the private client setup, as with Axiom; key placement is not a reason to
+add unnecessary infrastructure. Credentials remain excluded from public
+source and debug traces.
+
 Optional OpenRouter reactions are part of the first release, using the newest
 Gemini Flash Lite model verified on OpenRouter (currently Gemini 3.5 Flash Lite).
 Reuse of the Crow runner is not assumed. Use the
