@@ -96,6 +96,12 @@ test('rejected context and malformed envelopes correlate without persisting unkn
       const malformed = await fetch(url, { method: 'POST', headers: { 'X-George-Request-Id': malformedId },
         body: 'private invalid JSON' }).then(r => r.json());
       assert.equal(malformed.requestId, malformedId); assert.equal(malformed.reason, 'request_json');
+      // Live Unity serialization once omitted nested context while retaining
+      // the valid UUID. Keep this separate from an actual ID mismatch.
+      const missingContext = await fetch(url, { method: 'POST', headers: { 'X-George-Request-Id': id },
+        body: JSON.stringify({ requestId: id }) }).then(r => r.json());
+      assert.equal(missingContext.requestId, id);
+      assert.equal(missingContext.reason, 'invalid_request_envelope');
       assert.equal(calls, 0);
       assert.equal((await post()).reason, 'provider_network_failure'); assert.equal(calls, 1);
       assert.ok(!readFileSync(traceFile, 'utf8').includes('private'));

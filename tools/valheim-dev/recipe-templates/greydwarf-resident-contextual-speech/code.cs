@@ -37,7 +37,6 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         public bool wet, cold, tubBurning, playerSeated;
         public string[] recentRemarks;
     }
-    [Serializable] public sealed class Request { public string requestId; public Context context; }
     [Serializable] public sealed class Reply
     {
         public string requestId, reason, model, text;
@@ -176,8 +175,10 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
             Record(currentRequestId, "context", "snapshot", lastContextJson);
             setupPhase = "request_setup_failed";
             request = new UnityWebRequest(endpoint, "POST");
-            request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(new Request {
-                requestId = currentRequestId, context = context })));
+            // JsonUtility omits nested custom context in this hot-loaded recipe.
+            // The UUID is generated here; the context is already serialized JSON.
+            string envelope = "{\"requestId\":\"" + currentRequestId + "\",\"context\":" + lastContextJson + "}";
+            request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(envelope));
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
             request.SetRequestHeader("X-George-Request-Id", currentRequestId);
@@ -250,7 +251,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         !text.Any(c => c == '<' || c == '>' || char.IsControl(c));
     static bool SafeReason(string reason) => reason != null && (new[] { "model_speech", "model_silence",
         "bridge_busy", "call_limit", "provider_timeout", "client_disconnected", "invalid_context",
-        "invalid_remark", "invalid_request_id", "request_json", "request_too_large", "provider_response_json",
+        "invalid_remark", "invalid_request_id", "invalid_request_envelope", "request_json", "request_too_large", "provider_response_json",
         "model_content_missing", "model_reply_json", "provider_network_failure" }.Contains(reason) ||
         reason.StartsWith("provider_http_") && reason.Length == 17 && reason.Substring(14).All(char.IsDigit));
     void TraceFailed()

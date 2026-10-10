@@ -132,8 +132,9 @@ export function createBridge({ key, model = MODEL, timeoutMs = 8000,
       }
       let input;
       try { input = JSON.parse(raw); } catch { throw new Error('request_json'); }
-      if (!input || Object.keys(input).sort().join(',') !== 'context,requestId' ||
-          !validId(input.requestId) || headerId && input.requestId !== headerId)
+      if (!input || Object.keys(input).sort().join(',') !== 'context,requestId')
+        throw new Error('invalid_request_envelope');
+      if (!validId(input.requestId) || headerId && input.requestId !== headerId)
         throw new Error('invalid_request_id');
       requestId = input.requestId;
       const context = parseContext(input.context);
@@ -154,7 +155,7 @@ export function createBridge({ key, model = MODEL, timeoutMs = 8000,
         model: result.model ?? model, tokens: result.tokens ?? -1 });
     } catch (error) {
       const reason = controller.signal.aborted ? abortReason :
-        /^(invalid_context|invalid_remark|invalid_request_id|request_json|request_too_large|provider_response_json|model_content_missing|model_reply_json|provider_http_\d+)$/.test(error.message)
+        /^(invalid_context|invalid_remark|invalid_request_id|invalid_request_envelope|request_json|request_too_large|provider_response_json|model_content_missing|model_reply_json|provider_http_\d+)$/.test(error.message)
           ? error.message : 'provider_network_failure';
       record({ phase: 'request_failed', reason, durationMs: duration() });
       respond(silence, reason);
