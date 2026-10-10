@@ -19,10 +19,20 @@ retrigger the greeting.
 For the throne and walking previews, remove variation and emotes first, then
 run `greydwarf-resident-throne` followed by `greydwarf-resident-walk`.
 The throne recipe previews native furniture placement with configurable
-`prefab`, `height`, `inward`, and `distance`. Walking starts on open ground
+`prefab`, `height`, `inward`, and `distance`. Walking starts at a staging point
 in front of the tub and follows a complete native navigation path to the
-throne approach, blending George's native idle and walk clips. It does not
-animate seat entry/exit or provide collision physics or shared movement.
+throne approach, blending George's native idle and walk clips. The follower
+retains raw NavMesh corner heights and uses the snapped start/end points;
+`route`, `requestedStart`, `requestedEnd`, and the endpoint snap/height errors
+expose the latest attempt's path selection for the next raised-floor check.
+A path whose endpoints snap more than 1.5m away or .3m vertically is rejected.
+At the retry deadline, a full route on a mismatched surface reports
+`path_surface_mismatch`; an unavailable route reports `path_unavailable` with
+an empty `route`. `navigationLayers` reports the native
+collider-source mask used to build navigation. This height correction is a
+source candidate awaiting visual proof. The preview does not animate seat
+entry/exit or provide collision physics or shared movement. Floors, obstacles,
+and George's foot/root alignment still need a live check before promotion.
 Remove walking before the throne recipe to restore the throne pose, then
 remove the throne recipe to restore the tub placement.
 

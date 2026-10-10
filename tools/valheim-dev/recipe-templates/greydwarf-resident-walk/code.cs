@@ -47,6 +47,10 @@ public class GeorgeWalkPreview : MonoBehaviour
     int corner;
     public string state = "path_pending";
     public int attempts, corners, frames;
+    public int navigationLayers;
+    public Vector3[] route = Array.Empty<Vector3>();
+    public Vector3 requestedStart, requestedEnd;
+    public float startSnapError, endSnapError, startHeightError, endHeightError;
     public float distanceWalked, remaining;
     public string[] clips;
 
@@ -64,12 +68,13 @@ public class GeorgeWalkPreview : MonoBehaviour
         savedRotation = transform.localRotation;
         captured = true;
         var throne = GameObject.Find("Lab_GeorgeThrone").transform;
-        // Seat entry/exit is outside this proof. Both ends are open ground in
-        // front of native furniture; the route itself must come from navigation.
+        // Seat entry/exit is outside this proof. Furniture supplies staging
+        // points at its own elevation; GetPath snaps them to a walkable surface.
+        // A terrain-only ray would instead select the ground under a built floor.
         from = transform.parent.position + transform.parent.forward * 3f;
         to = throne.position + throne.forward * 2.2f;
-        from.y = ZoneSystem.instance.GetGroundHeight(from);
-        to.y = ZoneSystem.instance.GetGroundHeight(to);
+        requestedStart = from;
+        requestedEnd = to;
         transform.position = from;
         deadline = Time.time + 20f;
         var animator = animators.Single(a => a.isHuman);
@@ -105,36 +110,67 @@ public class GeorgeWalkPreview : MonoBehaviour
 
     void Update()
     {
-        if (!captured || !ZoneSystem.instance || !Pathfinding.instance) return;
+        if (!captured || !Pathfinding.instance) return;
         frames++;
         if (state == "path_pending" && Time.time >= nextPath)
         {
             nextPath = Time.time + .5f;
             attempts++;
+            // Evidence belongs to this attempt. A later unavailable path must
+            // not retain a rejected route from an earlier NavMesh build.
+            route = Array.Empty<Vector3>();
+            corners = 0;
+            startSnapError = endSnapError = startHeightError = endHeightError = 0f;
+            navigationLayers = Pathfinding.instance.m_layers.value;
+            // Native CleanPath inserts averaged-height steering hints. George
+            // has no Character/Rigidbody to resolve those against ground contacts,
+            // so this placement preview follows unmodified NavMesh corners.
             if (Pathfinding.instance.GetPath(from, to, path,
-                Pathfinding.AgentType.HumanoidNoSwim, true) && path.Count > 0)
+                Pathfinding.AgentType.HumanoidNoSwim, requireFullPath: true, cleanup: false) && path.Count > 0)
             {
+                route = path.ToArray();
                 corners = path.Count;
-                corner = 0;
-                SetState("walking");
+                startSnapError = Vector3.Distance(from, path[0]);
+                endSnapError = Vector3.Distance(to, path[path.Count - 1]);
+                startHeightError = Mathf.Abs(from.y - path[0].y);
+                endHeightError = Mathf.Abs(to.y - path[path.Count - 1].y);
+                // Native extended sampling can fall back as far as 12m. A full
+                // route on a lower floor must not masquerade as this furniture's
+                // route. Limit this preview to the native initial 1.5m search
+                // radius and HumanoidNoSwim's .3m climb height. These offsets are
+                // exposed so the live floor/pivot check can explain a rejection.
+                if (startSnapError <= 1.5f && endSnapError <= 1.5f &&
+                    startHeightError <= .3f && endHeightError <= .3f)
+                {
+                    transform.position = path[0];
+                    to = path[path.Count - 1];
+                    corner = 1;
+                    SetState(corner < path.Count ? "walking" : "arrived");
+                }
+                else if (Time.time >= deadline) SetState("path_surface_mismatch");
             }
             else if (Time.time >= deadline) SetState("path_unavailable");
         }
         if (state == "walking")
         {
             Vector3 target = path[corner];
-            target.y = ZoneSystem.instance.GetGroundHeight(target);
             Vector3 delta = target - transform.position;
-            delta.y = 0;
+            // Height counts for arrival too; being directly below a raised
+            // waypoint must not consume it. Rotation stays upright while moving
+            // along the complete 3D segment. This is not collision locomotion.
             if (delta.magnitude <= .15f)
             {
+                distanceWalked += delta.magnitude;
+                transform.position = target;
                 corner++;
                 if (corner >= path.Count) SetState("arrived");
             }
             else
             {
-                transform.rotation = Quaternion.RotateTowards(transform.rotation,
-                    Quaternion.LookRotation(delta), 180f * Time.deltaTime);
+                Vector3 facing = Vector3.ProjectOnPlane(delta, Vector3.up);
+                if (facing.sqrMagnitude > .0001f)
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation,
+                        Quaternion.LookRotation(facing), 180f * Time.deltaTime);
                 Vector3 position = Vector3.MoveTowards(transform.position, target,
                     1.2f * Time.deltaTime);
                 distanceWalked += Vector3.Distance(transform.position, position);
