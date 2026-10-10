@@ -29,8 +29,11 @@ before connecting an LLM. Seat reservation, prompt suppression, and speech
 have developer Lab proof. The speech presentation is accepted; trigger cadence,
 seat reservation, and prompt suppression still need Ben's acceptance.
 
-Alt + Use on an existing native tub interaction or seat invites George or
-dismisses him, with hover/menu discovery. He appears directly; a fog/spawn
+Holding Shift on an existing native tub interaction or seat changes its hover
+action to Invite George or Dismiss George; Use performs the shown action.
+Follow Benheim's existing Shift interaction convention, with menu discovery.
+Ordinary interaction remains native, except the resident's reserved seat has
+no Sit prompt. He appears directly; a fog/spawn
 effect is not required. An invited tub has one resident. Its native saved
 state remembers the invitation across rejoin/restart; dismiss clears it, and
 destroying the tub removes the resident. Removing Benheim leaves an ordinary
