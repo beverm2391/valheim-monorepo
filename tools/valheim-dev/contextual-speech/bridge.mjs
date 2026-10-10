@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { createTrace } from './trace.mjs';
 
 const prompt = readFileSync(new URL('./george.txt', import.meta.url), 'utf8');
-export const MODEL = 'google/gemini-2.5-flash-lite';
+export const MODEL = 'google/gemini-3.5-flash-lite';
 const silence = { speak: false, text: '' };
 const schema = {
   type: 'object', additionalProperties: false, required: ['speak', 'text'],

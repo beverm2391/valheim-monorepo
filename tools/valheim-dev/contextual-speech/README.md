@@ -6,6 +6,9 @@ waits for a clear sightline, snapshots immediate game context, and sends it to
 this loopback bridge. The bridge calls OpenRouter and returns one brief remark
 or silence. Native `Chat.SetNpcText` displays the remark over George.
 Animation and look reactions run independently of the request.
+After native display succeeds, the optional `OnResidentSpeechShown(Player)`
+callback gives the awareness receiver its addressee. Callback failure is
+recorded separately and cannot turn displayed speech into silence.
 
 This is a disposable Lab experiment, not an installed Benheim feature.
 [Recipe dependencies](../recipe-templates/README.md) own resident setup.
@@ -45,8 +48,9 @@ player is sitting. It sends no identity, coordinates, inventory, chat, or
 private lore. Up to three displayed remarks stay in memory to discourage
 repetition. [george.txt](george.txt) owns the experimental character voice.
 
-The model is `google/gemini-2.5-flash-lite`, selected for short interactive
-remarks. The bridge permits one call at a time, no queued calls or retries,
+The [bridge's `MODEL` constant](bridge.mjs) selects the Gemini Flash Lite model
+for short interactive remarks. The bridge permits one call at a time, no queued
+calls or retries,
 an eight-second provider deadline and at most 100 calls per process.
 The game has a nine-second network timeout and a twelve-second approach expiry.
 Leaving range, losing sight, dying, teleporting, or removing the recipe cancels

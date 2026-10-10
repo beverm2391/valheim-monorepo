@@ -221,6 +221,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         else if (failure != null) { silenceCount++; Record(currentRequestId, "silence", failure, httpStatus: httpStatus); }
         else if (reply.speak)
         {
+            bool submitted = false;
             try
             {
                 lastText = reply.text.Trim();
@@ -229,8 +230,17 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
                 recent.Enqueue(lastText);
                 while (recent.Count > 3) recent.Dequeue();
                 speechCount++; Record(currentRequestId, "display_submitted", "native_chat_submitted");
+                submitted = true;
             }
             catch { silenceCount++; Record(currentRequestId, "silence", "display_failed"); }
+            // Optional awareness owns the addressee only after native display.
+            // An observer failure cannot turn successful speech into silence.
+            if (submitted)
+            {
+                try { gameObject.SendMessage("OnResidentSpeechShown", pending,
+                    SendMessageOptions.DontRequireReceiver); }
+                catch { Record(currentRequestId, "observer_failed", "speech_look_callback_failed"); }
+            }
         }
         else { silenceCount++; Record(currentRequestId, "silence", reply.reason); }
         Finish();
@@ -260,7 +270,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
             File.AppendAllText(traceFile, JsonUtility.ToJson(new LocalTrace {
                 utc = DateTime.UtcNow.ToString("O"), sessionId = sessionId, requestId = id,
                 phase = phase, reason = reason, contextJson = contextJson, replyJson = replyJson,
-                httpStatus = httpStatus, elapsedMs = id == currentRequestId ?
+                httpStatus = httpStatus, elapsedMs = id != null && id == currentRequestId ?
                     (Time.unscaledTime - triggerStarted) * 1000f : 0f }) + "\n");
         }
         catch { TraceFailed(); }
