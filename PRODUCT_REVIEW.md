@@ -4,7 +4,7 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.113**.
+Installed on Ben's Mac: **0.1.115**.
 
 ## Next play session
 
@@ -75,9 +75,15 @@ Installed on Ben's Mac: **0.1.113**.
 
 ## When a compatible peer is available
 
+- **George recovery:** With George already invited, have an updated player
+  join later. Both players should see him without dismissing or reinviting.
+  After a player dies and respawns, George should return to that player's view
+  when they return to the tub.
 - **George shared speech:** With both players updated, approach him with a
   clear sightline. An occasional short remark should be the same for both
   players, with George looking toward its visitor before relaxing again.
+  He can naturally use the approaching character's current in-game name;
+  swapping visitors should not make him address the previous character.
   Lingering should not produce repeated greetings. Leaving or dismissing him
   while a reply is pending should not produce a late remark.
 - Confirm that earned-state audio is audible nearby but not at long distance.
