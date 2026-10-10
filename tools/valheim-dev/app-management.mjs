@@ -173,18 +173,37 @@ export function createAppManagement({
         if ((await processes()).length) throw new Error("Valheim became occupied before launch");
         await launch({ gameDir, root, launchId });
         const deadline = Date.now() + timeoutMs;
+        let launchedAppId;
         do {
           observed = await status();
-          if (observed.connected) break;
+          if (observed.connected) {
+            if (observed.launch_id !== launchId || (launchedAppId && observed.app_id !== launchedAppId)) {
+              const error = new Error("managed launch identity changed during startup; inspect session_status before retrying");
+              error.code = "APP_OUTCOME_UNCONFIRMED";
+              throw error;
+            }
+            launchedAppId = observed.app_id;
+            // The plugin publishes its bridge during the splash/loading scene.
+            // A handshake proves identity, not that native menu actions are ready.
+            if (observed.state === "menu") break;
+          }
           await pause(500);
         } while (Date.now() < deadline);
-        if (!observed.connected || observed.launch_id !== launchId) {
-          const error = new Error("managed launch not confirmed; inspect session_status before retrying");
+        if (!observed.connected || observed.state !== "menu") {
+          const error = new Error(`managed menu not confirmed before timeout (last state: ${observed.state}); inspect session_status before retrying`);
           error.code = "APP_OUTCOME_UNCONFIRMED";
           throw error;
         }
-        ({ app, observed } = await current(observed.app_id));
-        if (app.launch_id !== launchId) throw new Error("managed launch identity changed before selection");
+        try {
+          ({ app, observed } = await current(observed.app_id));
+          if (app.launch_id !== launchId || observed.state !== "menu")
+            throw new Error("managed menu identity or state changed before selection");
+        } catch (error) {
+          // Launch already happened. Losing the final handshake or menu state
+          // cannot establish that it failed or authorize another launch.
+          error.code = "APP_OUTCOME_UNCONFIRMED";
+          throw error;
+        }
       } else {
         ({ app, observed } = await current(args.app_id));
       }

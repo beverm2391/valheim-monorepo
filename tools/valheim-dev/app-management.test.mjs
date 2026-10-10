@@ -18,6 +18,8 @@ async function fixture(t, options = {}) {
     valheim_dev_version: "0.5.0", valheim_dev_sha256: "c".repeat(64),
   };
   const bridge = await startBridge(async (request) => {
+    if (request.action === "status" && status.launch_id && options.startupStates?.length)
+      status.state = options.startupStates.shift();
     let result = { ...status }, error = null;
     if (request.action === "open_lab") {
       Object.assign(status, { state: "local_world", world: request.world, character: request.character,
@@ -85,6 +87,62 @@ test("stopped launch uses owned managed launch token and only confirms the menu"
   assert.equal(result.result.state, "menu");
   assert.equal(f.launches(), 1);
   assert.equal(f.requests.some((r) => r.action === "open_lab"), false);
+});
+
+test("managed launch waits through connected splash/loading before confirming the menu", async (t) => {
+  const f = await fixture(t, { startupStates: ["loading", "loading", "menu"], timeoutMs: 1000 });
+  f.setPids([]);
+  const result = await f.service.call("open_lab");
+  assert.equal(result.state, "succeeded");
+  assert.equal(result.result.state, "menu");
+  assert.equal(f.launches(), 1);
+  assert.equal(f.requests.filter((r) => r.action === "status").length >= 3, true);
+  assert.equal(f.requests.every((r) => r.action === "status"), true);
+});
+
+test("managed launch stuck in connected loading remains unconfirmed without another launch", async (t) => {
+  const f = await fixture(t, { startupStates: ["loading"], timeoutMs: 15 });
+  f.setPids([]);
+  const result = await f.service.call("open_lab", { world: "Lab-Test", character: "Lab-Tester" });
+  assert.equal(result.state, "outcome_unconfirmed");
+  assert.match(result.error, /managed menu not confirmed.*loading/);
+  assert.equal(f.launches(), 1);
+  assert.equal(f.requests.every((r) => r.action === "status"), true);
+});
+
+test("startup identity changes and lost final menu validation leave launch unconfirmed", async (t) => {
+  for (const scenario of ["replacement", "disconnected", "occupied"]) {
+    await t.test(scenario, async (t) => {
+      const f = await fixture(t);
+      let running = false, polls = 0, launches = 0;
+      const actions = [];
+      const service = createAppManagement({
+        root: f.root, processes: async () => running ? [1234] : [], timeoutMs: 1000, pause: async () => {},
+        launch: async ({ launchId }) => {
+          launches++; running = true;
+          f.app.launch_id = launchId; f.status.launch_id = launchId;
+          await writeFile(join(f.root, "app.json"), JSON.stringify(f.app));
+        },
+        transport: async (app, request) => {
+          actions.push(request.action);
+          polls++;
+          if (scenario === "disconnected" && polls === 2) throw new Error("connection lost");
+          const state = scenario === "replacement" && polls === 1 ? "loading"
+            : scenario === "occupied" && polls === 2 ? "local_world" : "menu";
+          if (scenario === "replacement" && polls === 1)
+            await writeFile(join(f.root, "app.json"), JSON.stringify({ ...f.app, app_id: "f".repeat(32) }));
+          return { protocol: 1, app_id: app.app_id, request_id: request.request_id,
+            ok: true, result: { ...f.status, state } };
+        },
+      });
+      const result = await service.call("open_lab", { world: "Lab-Test", character: "Lab-Tester" });
+      assert.equal(result.state, "outcome_unconfirmed");
+      assert.equal(launches, 1);
+      assert.deepEqual(actions, ["status", "status"]);
+      const ledger = await readLedger(join(f.root, "ledger"), { operation_id: result.operation_id });
+      assert.equal(ledger.run.outcome, "outcome_unconfirmed");
+    });
+  }
 });
 
 test("occupied unavailable game and stale process requests never launch or mutate", async (t) => {
