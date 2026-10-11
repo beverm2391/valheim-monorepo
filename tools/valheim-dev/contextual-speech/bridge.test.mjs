@@ -51,7 +51,8 @@ test('live file recovers exact prompt, context, parsed reply, timing and usage b
       assert.deepEqual(trace.map(e => e.phase), ['request_received', 'provider_request', 'provider_completed', 'bridge_response']);
       assert.deepEqual(trace[0].context, context);
       assert.deepEqual(trace[1].request, sent);
-      assert.equal(sent.messages[0].content, readFileSync(new URL('./george.txt', import.meta.url), 'utf8'));
+      assert.equal(sent.messages[0].content,
+        `${readFileSync(new URL('./george.txt', import.meta.url), 'utf8').trimEnd()}\nAt most ${MAX_REMARK_LENGTH} characters.`);
       assert.deepEqual(JSON.parse(sent.messages[1].content), context);
       assert.equal(sent.response_format.json_schema.strict, true);
       assert.deepEqual(trace[2].parsedReply, { speak: true, text: reply.text });
@@ -183,11 +184,11 @@ test('next preview reads the edited prompt and keeps one snapshot for provider a
     fetchImpl: async (url, request) => { sent = JSON.parse(request.body); return provider('{"speak":false,"text":""}'); } }) },
     async ({ post, events }) => {
       const first = randomUUID(); await post(context, first);
-      assert.equal(sent.messages[0].content, prompt);
+      assert.equal(sent.messages[0].content, `${prompt}\nAt most ${MAX_REMARK_LENGTH} characters.`);
       assert.deepEqual(events(first).find(e => e.phase === 'provider_request').request, sent);
       prompt = 'Second user-authored prompt';
       const second = randomUUID(); await post({ ...context, event: 'talk', visitorName: 'Ben' }, second);
-      assert.equal(sent.messages[0].content, prompt);
+      assert.equal(sent.messages[0].content, `${prompt}\nAt most ${MAX_REMARK_LENGTH} characters.`);
       assert.equal(JSON.parse(sent.messages[1].content).visitorName, 'Ben');
       assert.deepEqual(events(second).find(e => e.phase === 'provider_request').request, sent);
     });

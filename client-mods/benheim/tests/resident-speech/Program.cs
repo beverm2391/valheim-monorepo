@@ -7,7 +7,10 @@ using Newtonsoft.Json.Linq;
 ResidentSpeechContext context = ResidentSpeechContract.CreateContext(
     "Astrid", "evening", "Rain", "Meadows", wet: true, cold: false,
     tubBurning: true, playerSeated: false, new[] { "The coals are kind." });
-const string prompt = "George prompt bytes, including its final newline.\n";
+const string seed = "George character seed.\n";
+string prompt = ResidentSpeechContract.BuildPrompt(seed);
+Expect(prompt == "George character seed.\nAt most 140 characters.",
+    "native mod composes the shared character seed with its unchanged 140-character cap");
 JObject request = ResidentSpeechContract.BuildRequest(context, prompt);
 
 Expect(request["model"]!.Value<string>() == "google/gemini-3.5-flash-lite", "fixed model");

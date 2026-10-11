@@ -48,7 +48,7 @@ export function modelRequest(context, model, prompt = loadPrompt()) {
   return { model, max_tokens: 240, temperature: .8,
     response_format: { type: 'json_schema', json_schema: {
       name: 'resident_remark', strict: true, schema } },
-    messages: [{ role: 'system', content: prompt },
+    messages: [{ role: 'system', content: `${prompt.trimEnd()}\nAt most ${MAX_REMARK_LENGTH} characters.` },
       { role: 'user', content: JSON.stringify(context) }] };
 }
 
