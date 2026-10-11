@@ -4,10 +4,14 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.115**.
+Installed on Ben's Mac: **0.1.117**.
 
 ## Next play session
 
+- **George personality:** Approach George with a clear sightline and judge his
+  new blunt, profane sauna character. Remarks still have the existing
+  140-character ceiling. Check whether his improvised voice fits the character
+  we agreed on.
 - **George placement:** Hold Shift over a hot-tub seat and Use **Invite George**.
   Expect one lounging George, no Sit prompt on his reserved seat, and usable
   neighboring seats. Dismiss him, then invite him to another tub; the first
