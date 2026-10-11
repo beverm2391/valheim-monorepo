@@ -4,14 +4,17 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.117**.
+Installed on Ben's Mac: **0.1.118**.
 
 ## Next play session
 
-- **George personality:** Approach George with a clear sightline and judge his
-  new blunt, profane sauna character. Remarks still have the existing
-  140-character ceiling. Check whether his improvised voice fits the character
-  we agreed on.
+- **George Talk and personality:** Aim at George's head and press Use (E).
+  Expect Talk hover, Thinking while a reply is pending, then a short native
+  remark or a notice if George has nothing to add. Judge his blunt, profane sauna character; replies retain the
+  140-character ceiling. Shared-server Talk still needs this play check.
+  Joining a real server session also lets us verify automatic account and
+  current-character capture in private diagnostics; actual identity receipt
+  remains unproven.
 - **George placement:** Hold Shift over a hot-tub seat and Use **Invite George**.
   Expect one lounging George, no Sit prompt on his reserved seat, and usable
   neighboring seats. Dismiss him, then invite him to another tub; the first
@@ -83,8 +86,9 @@ Installed on Ben's Mac: **0.1.117**.
   join later. Both players should see him without dismissing or reinviting.
   After a player dies and respawns, George should return to that player's view
   when they return to the tub.
-- **George shared speech:** With both players updated, approach him with a
-  clear sightline. An occasional short remark should be the same for both
+- **George shared speech:** With both players updated to the paired Talk
+  release, press E on George's head or approach with a clear sightline.
+  The resulting short remark should be the same for both
   players, with George looking toward its visitor before relaxing again.
   He can naturally use the approaching character's current in-game name;
   swapping visitors should not make him address the previous character.
