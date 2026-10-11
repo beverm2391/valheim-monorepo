@@ -15,6 +15,8 @@ present, both can see him. Shared speech, the full invitation lifecycle, and
 persistence remain unproven.
 
 Ben confirms that live George remarks use his current character's name.
+Ben reports that Talk worked in the Lab and wants it shipped. This accepts
+the Lab interaction; shared-server Talk remains unproven.
 
 Ben has accepted the resident's hot-tub seating, natural idle variation, look
 reaction, and overhead message presentation in the disposable Lab prototype.
@@ -98,10 +100,10 @@ diagnostics. Account IDs remain excluded from public source and provider
 context.
 
 George offers a native Use prompt to Talk, with Thinking feedback while a
-reply is pending. The Lab hover and native interaction have developer proof;
-a physical Use-key press through to the displayed reply remains unconfirmed.
-Ship the agreed personality and account/current-character logging while
-retaining the existing 140-character reply limit. Let the model vary reply
+reply is pending. Ship Talk with the agreed personality and
+account/current-character logging, including the compatible server update
+needed for the shared interaction. Keep other unstable or untested experiments
+out of this release. Retain the existing 140-character reply limit. Let the model vary reply
 length naturally within that limit. Longer replies up to 400 characters,
 with enough display time to read them, remain a Lab experiment rather than
 part of this release. Explore preparing messages ahead of interaction in the
