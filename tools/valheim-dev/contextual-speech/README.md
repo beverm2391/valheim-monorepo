@@ -40,7 +40,15 @@ Walk beyond the awareness radius for eight seconds, then approach with a clear
 sightline. Standing nearby does not generate a stream of requests. Speech has
 a separate 45-second cooldown, including silent or failed calls.
 
-For paired dialogue iteration, send `OnLabDialogueTest` to the resident with
+Aim at George's head for native **[E] Talk**. While a request is pending the
+hover says **Thinking…**. Talk uses the same sightline/range/cancellation path
+as approach speech with its own two-second cooldown. It does not queue calls,
+and holding Use cannot create more requests. The target follows the animated
+head and has no physical collision; removal cleans it up with the receiver.
+Its native interaction is adapted from the mod's
+[ResidentInteraction](../../../client-mods/benheim/src/GreydwarfResident/ResidentInteraction.cs).
+
+For a tool-driven dialogue preview, send `OnLabDialogueTest` to the resident with
 `Player.m_localPlayer` through a one-time Lab command. This uses the same
 context, provider request, and native display, bypassing approach cooldown,
 range, and sightline. Death, teleport, expiry, and receiver removal still
@@ -53,7 +61,7 @@ that same snapshot is saved in the trace.
 The recipe queries day period, native weather name, biome, player Wet/Cold
 status effects, whether the tub's native fuel-only Smelter is active, and whether the
 player is sitting, plus the visitor's current character name and whether the
-event was an approach or explicit dialogue preview. It sends no account IDs,
+event was an approach, native Talk, or explicit dialogue preview. It sends no account IDs,
 coordinates, inventory, chat, or
 private lore. Up to three displayed remarks stay in memory to discourage
 repetition. [george.txt](george.txt) owns the experimental character voice.
@@ -66,7 +74,8 @@ The game has a nine-second network timeout and a twelve-second approach expiry.
 Leaving range, losing sight, dying, teleporting, or removing the recipe cancels
 the pending reply. Provider errors and invalid or oversized output become
 silence. TMP tags and control characters are rejected. A returned line is at
-most 140 characters and remains visible for ten seconds.
+most 400 characters and remains visible for ten to twenty-six seconds based
+on its length.
 
 Midday or weather overrides in other recipes affect what this recipe queries.
 This recipe does not change them. Silence and occasional repeated phrasing are

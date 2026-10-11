@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createBridge, generate, parseRemark } from './bridge.mjs';
+import { createBridge, generate, parseRemark, MAX_REMARK_LENGTH } from './bridge.mjs';
 import { createTrace, readTrace } from './trace.mjs';
 
 const context = { event: 'approach', visitorName: 'Lab visitor', dayPart: 'day', weather: 'Clear', biome: 'Meadows',
@@ -81,7 +81,7 @@ test('silence, invalid model output and provider failures retain distinct safe c
       assert.equal(events(id).at(-1).reason, reason);
       assert.ok(!JSON.stringify([...events(id), ...records]).includes('private'));
     });
-  for (const remark of [{ speak: false, text: 'Hello' }, { speak: true, text: 'x'.repeat(141) },
+  for (const remark of [{ speak: false, text: 'Hello' }, { speak: true, text: 'x'.repeat(MAX_REMARK_LENGTH + 1) },
     { speak: true, text: '' }]) assert.throws(() => parseRemark(remark));
 });
 
@@ -190,5 +190,19 @@ test('next preview reads the edited prompt and keeps one snapshot for provider a
       assert.equal(sent.messages[0].content, prompt);
       assert.equal(JSON.parse(sent.messages[1].content).visitorName, 'Ben');
       assert.deepEqual(events(second).find(e => e.phase === 'provider_request').request, sent);
+    });
+});
+
+test('long remarks survive provider, transport, traces and the next talk context', async () => {
+  const text = 'x'.repeat(MAX_REMARK_LENGTH);
+  await withBridge({ generateImpl: (value, options) => generate(value, { ...options,
+    fetchImpl: async () => provider(JSON.stringify({ speak: true, text })) }) },
+    async ({ post, events }) => {
+      const id = randomUUID(), reply = await post({ ...context, event: 'talk' }, id);
+      assert.equal(reply.reason, 'model_speech');
+      assert.equal(reply.text, text);
+      assert.equal(events(id).at(-1).text, text);
+      assert.equal((await post({ ...context, event: 'talk', recentRemarks: [reply.text] })).text, text);
+      assert.equal((await post({ ...context, recentRemarks: [text + 'x'] })).reason, 'invalid_context');
     });
 });

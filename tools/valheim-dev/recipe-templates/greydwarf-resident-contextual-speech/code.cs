@@ -20,7 +20,7 @@ public static class ValheimDevChange
         behaviour = resident.AddComponent<GeorgeContextualSpeech>();
         try { behaviour.Configure(input.port); }
         catch { Cleanup(); throw; }
-        return "{\"trigger\":\"existing approach with sightline\",\"display\":\"native NPC dialogue\",\"contextual\":true}";
+        return "{\"trigger\":\"approach with sightline or native E Talk\",\"display\":\"native NPC dialogue\",\"contextual\":true}";
     }
     public static void Cleanup()
     {
@@ -57,14 +57,16 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         public long httpStatus;
     }
     Transform head;
+    GameObject talkTarget;
     Player pending;
     UnityWebRequest request;
     string endpoint;
     int viewMask;
-    float expires, nextCheck, nextAllowed;
+    float expires, nextCheck, nextAllowed, nextTalkAllowed;
     string sessionId, currentRequestId;
     float triggerStarted, requestStarted;
-    bool preview;
+    bool preview, talk;
+    public bool IsBusy => currentRequestId != null;
     readonly Queue<string> recent = new Queue<string>();
     public int approachCount, requestCount, speechCount, discardedCount, silenceCount;
     public string state = "idle", lastText = "", lastContextJson = "";
@@ -88,9 +90,26 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
             head = GetComponentsInChildren<Transform>(true).First(t => t.name == "head");
             viewMask = LayerMask.GetMask("Default", "static_solid", "Default_small",
                 "piece", "terrain", "vehicle", "viewblock");
+            AttachTalkTarget();
         }
         catch { Record(null, "session_failed", "receiver_setup_failed"); throw; }
         Record(null, "session_started", "receiver_attached");
+    }
+
+    void AttachTalkTarget()
+    {
+        // Reuse the durable ResidentInteraction's native head-following trigger.
+        // The imported head's scale must not change the target's world radius.
+        int layer = LayerMask.NameToLayer("character");
+        if (layer < 0) throw new Exception("Native character layer is unavailable.");
+        talkTarget = new GameObject("Lab_GeorgeTalkTarget") { layer = layer };
+        talkTarget.transform.SetParent(transform, false);
+        var collider = talkTarget.AddComponent<SphereCollider>();
+        collider.isTrigger = true;
+        collider.radius = .22f;
+        talkTarget.AddComponent<GeorgeTalkInteraction>().Configure(this, head);
+        Record(null, Physics.queriesHitTriggers ? "interaction_available" : "interaction_unavailable",
+            Physics.queriesHitTriggers ? "native_hover_attached" : "trigger_queries_disabled");
     }
 
     public void OnResidentApproach(Player player)
@@ -106,22 +125,37 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         Begin(player, true);
     }
 
-    void Begin(Player player, bool isPreview)
+    public bool Talk(Player player) => Begin(player, false, true);
+
+    bool Begin(Player player, bool isPreview, bool isTalk = false)
     {
         string id = Guid.NewGuid().ToString();
-        Record(id, "trigger", isPreview ? "lab_dialogue_test" : "approach");
+        string trigger = isPreview ? "lab_dialogue_test" : isTalk ? "talk" : "approach";
+        Record(id, "trigger", trigger);
         string suppressed = !player ? "player_missing" : player != Player.m_localPlayer ? "nonlocal_player" :
-            currentRequestId != null ? "encounter_pending" : !isPreview && Time.unscaledTime < nextAllowed ? "speech_cooldown" : null;
-        if (suppressed != null) { Record(id, "suppressed", suppressed); return; }
+            currentRequestId != null ? "encounter_pending" :
+            !isPreview && Time.unscaledTime < (isTalk ? nextTalkAllowed : nextAllowed) ? "speech_cooldown" : null;
+        if (suppressed == null && isTalk)
+        {
+            var delta = player.transform.position - transform.position;
+            if (new Vector2(delta.x, delta.z).magnitude > 6f || Mathf.Abs(delta.y) > 3f)
+                suppressed = "visitor_left";
+            else if (Physics.Linecast(player.GetHeadPoint(), head.position, viewMask, QueryTriggerInteraction.Ignore))
+                suppressed = "sightline_lost";
+        }
+        if (suppressed != null) { Record(id, "suppressed", suppressed); return false; }
         currentRequestId = id;
         triggerStarted = Time.unscaledTime;
         pending = player;
         preview = isPreview;
+        talk = isTalk;
         expires = Time.unscaledTime + 12f;
         nextCheck = 0f;
         approachCount++;
         state = isPreview ? "preview ready" : "waiting for sightline";
-        Record(id, "accepted", isPreview ? "lab_dialogue_test" : "approach_accepted");
+        Record(id, "accepted", trigger);
+        if (isTalk) nextTalkAllowed = Time.unscaledTime + 2f;
+        return true;
     }
 
     string IrrelevantReason()
@@ -149,7 +183,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         var effects = player.GetSEMan();
         float dayFraction = EnvMan.instance.GetDayFraction();
         return new Context {
-            @event = preview ? "talk" : "approach",
+            @event = preview || talk ? "talk" : "approach",
             visitorName = SafeVisitorName(player.GetHoverName()),
             // Native night bounds are .25/.75. Split daylight coarsely so the
             // prompt sees useful periods without claiming an exact clock time.
@@ -181,7 +215,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
 
     IEnumerator FetchRemark()
     {
-        if (!preview) nextAllowed = Time.unscaledTime + 45f;
+        if (!preview && !talk) nextAllowed = Time.unscaledTime + 45f;
         state = "requesting";
         requestCount++;
         UnityWebRequestAsyncOperation operation = null;
@@ -245,7 +279,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
             {
                 lastText = reply.text.Trim();
                 Chat.instance.SetNpcText(gameObject, head.position - transform.position +
-                    Vector3.up * .35f, 20f, 10f, "George", lastText, false);
+                    Vector3.up * .35f, 20f, Mathf.Clamp(6f + lastText.Length / 20f, 10f, 26f), "George", lastText, false);
                 recent.Enqueue(lastText);
                 while (recent.Count > 3) recent.Dequeue();
                 speechCount++; Record(currentRequestId, "display_submitted", "native_chat_submitted");
@@ -270,7 +304,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         var filtered = new string((name ?? "").Where(c => c != '<' && c != '>' && !char.IsControl(c)).Take(64).ToArray()).Trim();
         return filtered.Length == 0 ? "visitor" : filtered;
     }
-    static bool ValidText(string text) => !string.IsNullOrWhiteSpace(text) && text.Length <= 140 &&
+    static bool ValidText(string text) => !string.IsNullOrWhiteSpace(text) && text.Length <= 400 &&
         !text.Any(c => c == '<' || c == '>' || char.IsControl(c));
     static bool SafeReason(string reason) => reason != null && (new[] { "model_speech", "model_silence",
         "bridge_busy", "call_limit", "provider_timeout", "client_disconnected", "invalid_context",
@@ -299,7 +333,7 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
         }
         catch { TraceFailed(); }
     }
-    void Finish() { pending = null; currentRequestId = null; preview = false; state = "idle"; }
+    void Finish() { pending = null; currentRequestId = null; preview = false; talk = false; state = "idle"; }
     void Cancel(string reason)
     {
         if (currentRequestId != null) Record(currentRequestId, "discarded", reason);
@@ -311,6 +345,52 @@ public sealed class GeorgeContextualSpeech : MonoBehaviour
     {
         Cancel("receiver_disabled");
         Record(null, "session_ended", "receiver_disabled");
+        if (talkTarget) UnityEngine.Object.DestroyImmediate(talkTarget);
+        talkTarget = null;
         if (Chat.instance) Chat.instance.ClearNpcText(gameObject);
     }
+}
+
+public sealed class GeorgeTalkInteraction : MonoBehaviour, Hoverable, Interactable
+{
+    GeorgeContextualSpeech speech;
+    Transform head;
+
+    public void Configure(GeorgeContextualSpeech receiver, Transform nativeHead)
+    {
+        speech = receiver;
+        head = nativeHead;
+        FollowHead();
+    }
+
+    void LateUpdate() { if (speech && head) FollowHead(); }
+
+    void FollowHead()
+    {
+        transform.position = head.position;
+        transform.rotation = Quaternion.identity;
+        var scale = speech.transform.lossyScale;
+        if (Mathf.Abs(scale.x) < .0001f || Mathf.Abs(scale.y) < .0001f || Mathf.Abs(scale.z) < .0001f) return;
+        transform.localScale = new Vector3(1f / Mathf.Abs(scale.x), 1f / Mathf.Abs(scale.y), 1f / Mathf.Abs(scale.z));
+    }
+
+    public string GetHoverName() => "George";
+    public float GetHoverOffset() => .25f;
+    public string GetHoverText()
+    {
+        if (!speech || !speech.isActiveAndEnabled) return "";
+        if (speech.IsBusy) return "George\nThinking…";
+        const string prompt = "[<color=yellow><b>$KEY_Use</b></color>] Talk";
+        return "George\n" + (Localization.instance != null ? Localization.instance.Localize(prompt) : "[Use] Talk");
+    }
+
+    public bool Interact(Humanoid user, bool hold, bool alt)
+    {
+        // Native held-Use callbacks and repeated presses cannot queue requests.
+        var player = user as Player;
+        return !hold && speech && speech.isActiveAndEnabled && player &&
+            player == Player.m_localPlayer && speech.Talk(player);
+    }
+
+    public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
 }

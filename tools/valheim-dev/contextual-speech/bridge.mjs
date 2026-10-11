@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { createTrace } from './trace.mjs';
 
 const loadPrompt = () => readFileSync(new URL('./george.txt', import.meta.url), 'utf8');
+export const MAX_REMARK_LENGTH = 400;
 export const MODEL = 'google/gemini-3.5-flash-lite';
 const silence = { speak: false, text: '' };
 const schema = {
@@ -20,7 +21,7 @@ export function parseRemark(value) {
   const text = value.text.trim();
   // Native TMP interprets tags. Keep the model's output plain bounded speech.
   if ((!value.speak && value.text !== '') || (value.speak && !text) ||
-      text.length > 140 || /[<>\x00-\x1f\x7f]/u.test(text))
+      text.length > MAX_REMARK_LENGTH || /[<>\x00-\x1f\x7f]/u.test(text))
     throw new Error('invalid_remark');
   return { speak: value.speak, text };
 }
@@ -38,13 +39,13 @@ export function parseContext(value) {
   for (const key of ['wet', 'cold', 'tubBurning', 'playerSeated'])
     if (typeof value[key] !== 'boolean') throw new Error('invalid_context');
   if (!Array.isArray(value.recentRemarks) || value.recentRemarks.length > 3 ||
-      value.recentRemarks.some(t => typeof t !== 'string' || t.length > 140 || /[<>\x00-\x1f]/u.test(t)))
+      value.recentRemarks.some(t => typeof t !== 'string' || t.length > MAX_REMARK_LENGTH || /[<>\x00-\x1f]/u.test(t)))
     throw new Error('invalid_context');
   return value;
 }
 
 export function modelRequest(context, model, prompt = loadPrompt()) {
-  return { model, max_tokens: 120, temperature: .8,
+  return { model, max_tokens: 240, temperature: .8,
     response_format: { type: 'json_schema', json_schema: {
       name: 'resident_remark', strict: true, schema } },
     messages: [{ role: 'system', content: prompt },
