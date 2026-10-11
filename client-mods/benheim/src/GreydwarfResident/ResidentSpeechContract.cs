@@ -152,6 +152,10 @@ internal static class ResidentSpeechContract
         };
     }
 
+    // The character seed is shared with Lab; each runtime owns its output cap.
+    internal static string BuildPrompt(string seed)
+        => seed.TrimEnd() + $"\nAt most {MaxRemarkCharacters} characters.";
+
     internal static JObject BuildRequest(ResidentSpeechContext context, string prompt)
     {
         if (prompt is null) throw new ArgumentNullException(nameof(prompt));

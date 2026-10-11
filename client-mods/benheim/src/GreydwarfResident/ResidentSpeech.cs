@@ -406,6 +406,6 @@ internal static class ResidentSpeech
         using Stream? stream = typeof(ResidentSpeech).Assembly.GetManifestResourceStream(PromptResourceName);
         if (stream is null) throw new FileNotFoundException("Embedded George prompt was not found.");
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        return reader.ReadToEnd();
+        return ResidentSpeechContract.BuildPrompt(reader.ReadToEnd());
     }
 }
