@@ -67,7 +67,7 @@ internal static partial class ResidentServer
             if (!desired)
             {
                 CancelEncounter(tubId, "resident_dismissed");
-                EncounterCooldowns.Remove(tubId);
+                ResetEncounterCadence(tubId);
             }
             return;
         }
@@ -210,7 +210,7 @@ internal static partial class ResidentServer
                 if (!pending.Desired)
                 {
                     CancelEncounter(pending.Tub, "resident_dismissed");
-                    EncounterCooldowns.Remove(pending.Tub);
+                    ResetEncounterCadence(pending.Tub);
                 }
                 Emit("placement_late_confirmed", pending.OperationId, pending.Tub,
                     pending.Desired ? "invited" : "dismissed", "placement");
@@ -258,7 +258,7 @@ internal static partial class ResidentServer
         if (success && !pending.Desired)
         {
             CancelEncounter(pending.Tub, "resident_dismissed");
-            EncounterCooldowns.Remove(pending.Tub);
+            ResetEncounterCadence(pending.Tub);
         }
 
         Emit(success ? "placement_applied" : "placement_rejected",

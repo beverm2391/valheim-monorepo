@@ -20,7 +20,6 @@ namespace BenheimServerSupport;
 internal static partial class ResidentServer
 {
     private const double PendingTimeoutSeconds = 12d;
-    private const double EncounterCooldownSeconds = 45d;
     private const float InteractionRange = 6f;
     private const int MaximumSpeechLength = 140;
     private const int MaximumReasonLength = 64;
@@ -31,7 +30,7 @@ internal static partial class ResidentServer
     private static readonly HashSet<ZNetPeer> RegisteredPeerHandlers = new();
     private static readonly Dictionary<ZDOID, PendingPlacement> PendingPlacements = new();
     private static readonly Dictionary<ZDOID, PendingEncounter> PendingEncounters = new();
-    private static readonly Dictionary<ZDOID, double> EncounterCooldowns = new();
+    private static readonly Dictionary<ZDOID, ResidentEncounterCadence> EncounterCadences = new();
     private static ZRoutedRpc? registeredRoutedRpc;
     private static long publishedCohortRevision = -1L;
     private static bool? publishedReadiness;
@@ -70,7 +69,7 @@ internal static partial class ResidentServer
         double now = ZNet.instance!.GetTimeSeconds();
         ProcessPlacements(now);
         ExpireEncounters(now);
-        RemoveExpiredCooldowns(now);
+        RemoveExpiredEncounterCadences(now);
         PublishReadinessIfChanged();
     }
 
@@ -100,7 +99,7 @@ internal static partial class ResidentServer
         RegisteredPeerHandlers.Clear();
         PendingPlacements.Clear();
         PendingEncounters.Clear();
-        EncounterCooldowns.Clear();
+        EncounterCadences.Clear();
         registeredRoutedRpc = null;
         publishedCohortRevision = -1L;
         publishedReadiness = null;

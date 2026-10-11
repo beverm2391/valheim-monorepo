@@ -128,16 +128,54 @@ internal static class ResidentClient
     }
 
     internal static void Approach(ResidentTubClient tub, GreydwarfResidentBehaviour resident, Player player)
+        => RequestEncounter(tub, resident, player, ResidentEncounterTrigger.Approach);
+
+    internal static bool IsSpeechPending(ResidentTubClient tub) => encounters.Values.Any(e => e.Tub == tub);
+
+    internal static bool Talk(ResidentTubClient tub, GreydwarfResidentBehaviour resident, Player player)
+        => RequestEncounter(tub, resident, player, ResidentEncounterTrigger.Talk);
+
+    private static bool RequestEncounter(ResidentTubClient tub, GreydwarfResidentBehaviour resident, Player player,
+        ResidentEncounterTrigger trigger)
     {
-        if (!Available || !tub.View || !tub.View.IsValid() || encounters.Values.Any(e => e.Tub == tub)) return;
+        bool manual = trigger == ResidentEncounterTrigger.Talk;
+        if (!GreydwarfResidentRuntime.IsEnabled)
+        {
+            if (manual) Message("George can't talk right now.");
+            ResidentDiagnostics.Emit("encounter_rejected", "runtime_unavailable");
+            return false;
+        }
+        if (!Available)
+        {
+            if (manual) Message("George needs matching Benheim clients and Server Support.");
+            ResidentDiagnostics.Emit("encounter_rejected", "support_unavailable");
+            return false;
+        }
+        if (!tub || !tub.isActiveAndEnabled || !tub.View || !tub.View.IsValid() || !resident ||
+            !player || player != Player.m_localPlayer || !resident.CanSpeakTo(player))
+        {
+            if (manual) Message("George can't talk right now. Move closer with a clear view.");
+            ResidentDiagnostics.Emit("encounter_rejected", "request_unavailable");
+            return false;
+        }
+        if (IsSpeechPending(tub))
+        {
+            if (manual) Message("George is still thinking. Give him a moment.");
+            ResidentDiagnostics.Emit("encounter_rejected", "encounter_in_progress");
+            return false;
+        }
         ZDO zdo = tub.View.GetZDO();
         string id = Guid.NewGuid().ToString("N");
-        PendingEncounter pending = new(tub, resident, player, ResidentTub.Generation(zdo), Time.realtimeSinceStartup + 12f);
+        PendingEncounter pending = new(tub, resident, player, ResidentTub.Generation(zdo),
+            Time.realtimeSinceStartup + 12f, trigger);
         encounters[id] = pending;
-        ResidentDiagnostics.Operation("encounter_requested", "approach", id, zdo.m_uid, pending.Generation);
-        ResidentSpeechTrace.Record(id, "approach", new { generation = pending.Generation });
+        string eventName = manual ? "talk" : "approach";
+        ResidentDiagnostics.Operation("encounter_requested", eventName, id, zdo.m_uid, pending.Generation);
+        ResidentSpeechTrace.Record(id, eventName, new { generation = pending.Generation });
         ZPackage request = new(); request.Write(id); request.Write(zdo.m_uid); request.Write(pending.Generation);
+        request.Write((int)trigger);
         connection!.Invoke(ResidentProtocol.EncounterRequestRpc, request);
+        return true;
     }
 
     private static void OnGrant(ZRpc rpc, ZPackage package)
@@ -152,6 +190,9 @@ internal static class ResidentClient
                 pending.Generation != generation || pending.Player.GetZDOID() != visitor)
             { Cancel(id, accepted ? "stale_grant" : reason); return; }
             if (pending.Request != null) return;
+            // Acknowledge only a granted manual request. This uses the resident's
+            // existing head writer and never starts another ambient encounter.
+            if (pending.Trigger == ResidentEncounterTrigger.Talk) pending.Resident.AcknowledgeTalk(pending.Player);
             Begin(id, pending);
         }
         catch { ResidentDiagnostics.Emit("speech_rejected", "malformed_grant"); }
@@ -160,7 +201,7 @@ internal static class ResidentClient
     private static void Begin(string id, PendingEncounter pending)
     {
         pending.Request = ResidentSpeech.Begin(pending.Resident, id, pending.Player, pending.Tub.Station,
-            pending.Tub.RecentRemarks.ToArray(), () => encounters.ContainsKey(id) && Relevant(pending),
+            pending.Tub.RecentRemarks.ToArray(), pending.Trigger, () => encounters.ContainsKey(id) && Relevant(pending),
             (speak, text, reason) => Complete(id, pending, speak, text, reason));
     }
 
@@ -188,6 +229,8 @@ internal static class ResidentClient
             if (cancelledEncounters.ContainsKey(id))
             { ResidentSpeechTrace.Record(id, "discarded", new { reason = "encounter_cancelled" }); return; }
             Display(id, tub, generation, visitor, speak, text, reason);
+            if (!speak && encounters.TryGetValue(id, out var pending) && pending.Trigger == ResidentEncounterTrigger.Talk)
+                Message(reason == "model_silence" ? "George has nothing to add right now." : "George couldn't find his words. Try again in a moment.");
             encounters.Remove(id);
         }
         catch { ResidentDiagnostics.Emit("speech_rejected", "malformed_result"); }
@@ -195,7 +238,7 @@ internal static class ResidentClient
 
     private static void Display(string id, ZDOID tubId, int generation, ZDOID visitorId, bool speak, string text, string reason)
     {
-        if (!tubs.TryGetValue(tubId, out var tub) || !tub || !tub.View.IsValid() ||
+        if (!tubs.TryGetValue(tubId, out var tub) || !tub || !tub.isActiveAndEnabled || !tub.View || !tub.View.IsValid() ||
             ResidentTub.Generation(tub.View.GetZDO()) != generation || !ResidentTub.IsInvited(tub.View.GetZDO()) || !tub.Resident)
         { ResidentSpeechTrace.Record(id, "discarded", new { reason = "tub_or_generation_changed" }); return; }
         GameObject visitorObject = ZNetScene.instance ? ZNetScene.instance.FindInstance(visitorId) : null!;
@@ -212,7 +255,7 @@ internal static class ResidentClient
         ResidentDiagnostics.Operation("speech_displayed", "shared_result", id, tubId, generation);
     }
 
-    private static bool Relevant(PendingEncounter pending) => Available && pending.Tub && pending.Tub.View &&
+    private static bool Relevant(PendingEncounter pending) => Available && pending.Tub && pending.Tub.isActiveAndEnabled && pending.Tub.View &&
         pending.Tub.View.IsValid() && pending.Resident && pending.Player && pending.Player == Player.m_localPlayer &&
         ResidentTub.IsInvited(pending.Tub.View.GetZDO()) && ResidentTub.Generation(pending.Tub.View.GetZDO()) == pending.Generation &&
         pending.Resident.CanSpeakTo(pending.Player);
@@ -224,6 +267,14 @@ internal static class ResidentClient
         cancelledEncounters[id] = Time.realtimeSinceStartup + 30f;
         ResidentSpeechTrace.Record(id, "discarded", new { reason });
         ResidentDiagnostics.Emit("speech_discarded", reason);
+        if (pending.Trigger == ResidentEncounterTrigger.Talk && reason != "connection_reset" && reason != "tub_unloaded")
+            Message(reason switch
+            {
+                "encounter_in_progress" => "George is still thinking. Give him a moment.",
+                "resident_cooldown" => "Give George a moment before asking again.",
+                "peer_protocol_unavailable" or "peer_support_missing" => "George needs matching Benheim clients and Server Support.",
+                _ => "George can't talk right now. Try again in a moment."
+            });
     }
 
     private static bool Current(ZRpc rpc) => ReferenceEquals(rpc, connection) && ReferenceEquals(rpc, ZNet.instance?.GetServerRPC());
@@ -243,10 +294,12 @@ internal static class ResidentClient
         internal readonly Player Player;
         internal readonly int Generation;
         internal readonly float Expires;
+        internal readonly ResidentEncounterTrigger Trigger;
         internal IDisposable? Request;
         internal bool ReplySent;
-        internal PendingEncounter(ResidentTubClient tub, GreydwarfResidentBehaviour resident, Player player, int generation, float expires)
-        { Tub = tub; Resident = resident; Player = player; Generation = generation; Expires = expires; }
+        internal PendingEncounter(ResidentTubClient tub, GreydwarfResidentBehaviour resident, Player player, int generation,
+            float expires, ResidentEncounterTrigger trigger)
+        { Tub = tub; Resident = resident; Player = player; Generation = generation; Expires = expires; Trigger = trigger; }
     }
 }
 
