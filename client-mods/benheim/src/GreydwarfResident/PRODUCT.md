@@ -100,10 +100,12 @@ context.
 George offers a native Use prompt to Talk, with Thinking feedback while a
 reply is pending. The Lab hover and native interaction have developer proof;
 a physical Use-key press through to the displayed reply remains unconfirmed.
-Allow replies up to 400 characters with enough display time to read them.
-Let the model vary their length, including short remarks and longer rambling
-observations. Explore preparing messages ahead of interaction in the local
-sandbox; that is an option to compare, not a chosen architecture.
+Ship the agreed personality and account/current-character logging while
+retaining the existing 140-character reply limit. Let the model vary reply
+length naturally within that limit. Longer replies up to 400 characters,
+with enough display time to read them, remain a Lab experiment rather than
+part of this release. Explore preparing messages ahead of interaction in the
+local sandbox; that is an option to compare, not a chosen architecture.
 
 Ben's character direction is method acting from a compact seed, without
 overprompting scripted behavior. George has the demeanor of an old white guy
