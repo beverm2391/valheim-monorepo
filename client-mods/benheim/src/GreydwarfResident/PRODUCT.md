@@ -93,13 +93,32 @@ A private preferred-name map uses stable player account identity so George
 can recognize the same person across character changes. Unmapped players use
 their current character name. Start with Ben's mapping; other players can be
 added when their identities and preferred names are known.
+Ben permits native account IDs and current character names in private Axiom
+diagnostics. Account IDs remain excluded from public source and provider
+context.
 
-Add a native interact prompt on George to request more talking. Improve
-dialogue quality and the feeling of responsiveness, including useful loading
-feedback. Explore preparing messages ahead of interaction in the local
+George offers a native Use prompt to Talk, with Thinking feedback while a
+reply is pending. The Lab hover and native interaction have developer proof;
+a physical Use-key press through to the displayed reply remains unconfirmed.
+Allow replies up to 400 characters with enough display time to read them.
+Let the model vary their length, including short remarks and longer rambling
+observations. Explore preparing messages ahead of interaction in the local
 sandbox; that is an option to compare, not a chosen architecture.
-Pair with Ben on what better dialogue means before choosing its voice or
-content.
+
+Ben's character direction is method acting from a compact seed, without
+overprompting scripted behavior. George has the demeanor of an old white guy
+sitting naked in a hot tub who has long since stopped caring what anyone
+thinks. He is casually racist, sexist, and prone to unsolicited, inappropriate
+comments; these come out as ordinary conversation. His age, nudity, setting,
+and lack of embarrassment give him that particular flavor. He is his own
+character, with Pierce from Community as a reference rather than a complete
+personality to copy. He is omniscient as an in-game trope and inexplicably
+knows the players' business. Player-specific lore is authored with Ben.
+
+George can also message global chat while players are away from him. The mod
+owns when he speaks and whether delivery is a nearby bubble or server-wide
+chat; the personality prompt does not own routing. Pass the audience and
+delivery context to the model. Global-chat behavior remains unproven.
 
 Improve George's awareness of what is happening in game and give him more
 activities and states. Nighttime drowsiness, sitting in a throne, and walking
@@ -113,6 +132,4 @@ Further emote work is parked for the first release. Preserve the reusable
 native-player-emote experiments for later behavior composition; individual
 gestures and full-body poses require visual acceptance.
 
-George's personality/backstory and knowledge of Ben, Johnny, and Ozi are wanted,
-but additional character work is deferred to ship the current behavior first.
 Recent conversation and learned memories remain later possibilities.
