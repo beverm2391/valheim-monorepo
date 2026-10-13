@@ -106,10 +106,12 @@ system.
 George can address a visitor naturally without repeating their name in every
 remark. Authored relationships remain later choices.
 
-A private preferred-name map uses stable player account identity so George
-can recognize the same person across character changes. Unmapped players use
-their current character name. Start with Ben's mapping; other players can be
-added when their identities and preferred names are known.
+A private player-name and lore map uses stable account identity so George can
+recognize the same person across character changes. Preferred names, known
+gender/pronouns, and player lore belong to those profiles, authored with Ben,
+rather than George's personality seed. Ben's current group is all men.
+Unmapped players use their current character name. Start with Ben's mapping;
+other players can be added when their identities and preferred names are known.
 Ben permits native account IDs and current character names in private Axiom
 diagnostics. Account IDs remain excluded from public source and provider
 context. Developer evidence confirms receipt of the native account/name
@@ -126,7 +128,7 @@ part of this release. Explore preparing messages ahead of interaction in the
 local sandbox; that is an option to compare, not a chosen architecture.
 
 Ben's character direction is method acting from a compact seed, without
-overprompting scripted behavior. The current player group is all men.
+overprompting scripted behavior.
 George has the demeanor of an old white guy
 sitting naked in a hot tub who has long since stopped caring what anyone
 thinks. He is casually racist, sexist, and prone to unsolicited, inappropriate
@@ -134,7 +136,7 @@ comments; these come out as ordinary conversation. His age, nudity, setting,
 and lack of embarrassment give him that particular flavor. He is his own
 character, with Pierce from Community as a reference rather than a complete
 personality to copy. He is omniscient as an in-game trope and inexplicably
-knows the players' business. Player-specific lore is authored with Ben.
+knows the players' business.
 
 George can also message global chat while players are away from him. The mod
 owns when he speaks and whether delivery is a nearby bubble or server-wide
