@@ -90,11 +90,18 @@ more alive. Ben has authorized trying ideas freely in the disposable sandbox.
 Keep successful experiments recoverable in committed source and promote
 accepted behavior into the normal mod incrementally.
 
-LLM playtests need a local debug trace that explains what George was told,
-what the model returned, and whether the game displayed it or stayed silent.
-Correlate the trigger, prompt/context, response, timing, and final outcome;
-make failures and discarded replies distinguishable. Trace content remains
-local and excludes credentials.
+The server retains a private speech trace of what George was told, what the
+model returned, and whether clients displayed it or stayed silent. Correlate
+the trigger, full sanitized prompt/context, response, timing, and final
+outcome; distinguish failures and discarded replies. Client-local traces
+remain useful, but are not the only transcript. Credentials are excluded.
+
+George has one conversation history shared across players. Changing the
+visitor or the client making the model request must not give him a separate
+memory. Use the conversation context rather than only the last three remarks;
+compact older history when needed while retaining original turns in the
+server trace. This is conversation continuity, not a new long-term memory
+system.
 
 George can address a visitor naturally without repeating their name in every
 remark. Authored relationships remain later choices.
@@ -105,7 +112,8 @@ their current character name. Start with Ben's mapping; other players can be
 added when their identities and preferred names are known.
 Ben permits native account IDs and current character names in private Axiom
 diagnostics. Account IDs remain excluded from public source and provider
-context.
+context. Developer evidence confirms receipt of the native account/name
+records in Axiom.
 
 George offers a native Use prompt to Talk, with Thinking feedback while a
 reply is pending. Ship Talk with the agreed personality and
@@ -118,7 +126,8 @@ part of this release. Explore preparing messages ahead of interaction in the
 local sandbox; that is an option to compare, not a chosen architecture.
 
 Ben's character direction is method acting from a compact seed, without
-overprompting scripted behavior. George has the demeanor of an old white guy
+overprompting scripted behavior. The current player group is all men.
+George has the demeanor of an old white guy
 sitting naked in a hot tub who has long since stopped caring what anyone
 thinks. He is casually racist, sexist, and prone to unsolicited, inappropriate
 comments; these come out as ordinary conversation. His age, nudity, setting,
@@ -144,4 +153,4 @@ Further emote work is parked for the first release. Preserve the reusable
 native-player-emote experiments for later behavior composition; individual
 gestures and full-body poses require visual acceptance.
 
-Recent conversation and learned memories remain later possibilities.
+Learned memories beyond the shared conversation remain later possibilities.
