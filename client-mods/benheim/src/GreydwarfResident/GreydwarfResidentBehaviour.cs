@@ -163,7 +163,7 @@ internal sealed class GreydwarfResidentBehaviour : MonoBehaviour
     private void Update()
     {
         if (!configured) return;
-        if (!GreydwarfResidentRuntime.IsEnabled || !ResidentClient.Available || !seat || !tub || !head)
+        if (!GreydwarfResidentRuntime.IsEnabled || !ResidentClient.CanRender || !seat || !tub || !head)
         {
             GreydwarfResidentRuntime.Remove(gameObject);
             return;

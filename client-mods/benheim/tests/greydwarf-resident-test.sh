@@ -17,6 +17,14 @@ import sys
 
 native = pathlib.Path(sys.argv[1]).read_text()
 patch = pathlib.Path(sys.argv[2]).read_text().split('class ResidentSeatInteractPatch', 1)[1]
+# The fixture-backed tub test does not run the donor's Unity Update loop.
+# Guard all cosmetic owners here so Ready-only action admission cannot remove
+# or permanently block that same donor while another peer is authenticating.
+feature = pathlib.Path(sys.argv[2]).parent
+for name in ('GreydwarfResidentBehaviour.cs', 'GreydwarfResidentRuntime.cs', 'ResidentTubClient.cs'):
+    source = (feature / name).read_text()
+    assert 'ResidentClient.Available' not in source, f'{name} still uses action readiness for cosmetic lifetime'
+    assert 'ResidentClient.CanRender' in source, f'{name} missing cosmetic readiness gate'
 native_signature = re.search(r'public bool Interact\(([^)]*)\)', native)
 patch_signature = re.search(r'private static bool Prefix\(([^)]*)\)', patch)
 assert native_signature and patch_signature, 'Chair interaction signatures unavailable'

@@ -1,4 +1,5 @@
 using BenheimServerSupport;
+using Benheim.Resident;
 
 var confirmation = new ResidentPlacementConfirmation(
     expectedGeneration: 4,
@@ -75,6 +76,27 @@ Expect(
 Expect(cohort.Remove(joiningPeer) && cohort.Revision > compatibleRevision + 1,
     "disconnect cleanup advances the cohort revision again");
 
+var readiness = new ResidentPeerCohort<object>();
+var established = new object(); var newcomer = new object();
+readiness.Track(established); readiness.TryRecordVersion(established, 3, out _);
+readiness.Track(newcomer);
+bool authenticated = false;
+ResidentReadiness Evaluate(double now) => readiness.Evaluate(3, now,
+    peer => peer == established || authenticated, _ => true);
+Expect(Evaluate(0) == ResidentReadiness.Connecting, "raw connection is pending, not missing support");
+Expect(Evaluate(300) == ResidentReadiness.Connecting, "password entry does not consume the support deadline");
+authenticated = true;
+Expect(Evaluate(301) == ResidentReadiness.AwaitingSupport, "authenticated unknown peer has a bounded support window");
+Expect(Evaluate(330.999) == ResidentReadiness.AwaitingSupport, "announcement window remains pending before its boundary");
+Expect(Evaluate(331) == ResidentReadiness.MissingSupport, "unannounced authenticated peer becomes a real missing-support failure");
+readiness.TryRecordVersion(newcomer, 3, out _);
+Expect(Evaluate(332) == ResidentReadiness.Ready, "matching support recovers without reinviting George");
+readiness.TryRecordVersion(newcomer, 4, out _);
+Expect(Evaluate(333) == ResidentReadiness.Incompatible, "actual version mismatch is distinct from loading");
+Expect(!ResidentReadinessPolicy.CanRender(ResidentReadiness.MissingSupport) &&
+    !ResidentReadinessPolicy.CanRender(ResidentReadiness.Incompatible), "real compatibility failures cannot render");
+readiness.Remove(newcomer);
+Expect(Evaluate(334) == ResidentReadiness.Ready, "disconnect restores the compatible cohort");
 Console.WriteLine("Resident placement confirmation tests passed.");
 
 static void Expect(bool condition, string message)

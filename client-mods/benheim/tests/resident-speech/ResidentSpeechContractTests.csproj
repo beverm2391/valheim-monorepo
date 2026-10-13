@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/GreydwarfResident/ResidentSpeechContract.cs" Link="ResidentSpeechContract.cs" />
+    <Compile Include="../../../../shared/benheim-resident-protocol/ResidentConversationSnapshot.cs" Link="ResidentConversationSnapshot.cs" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>$(ValheimManagedDir)/Newtonsoft.Json.dll</HintPath>
       <Private>true</Private>

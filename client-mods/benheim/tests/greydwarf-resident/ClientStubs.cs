@@ -52,7 +52,7 @@ namespace BenheimQoL.GreydwarfResident
 {
     internal static class ResidentClient
     {
-        internal static bool Available = true;
+        internal static bool CanRender = true;
         internal static void Register(ResidentTubClient tub) { }
         internal static void Unregister(ResidentTubClient tub) { }
     }

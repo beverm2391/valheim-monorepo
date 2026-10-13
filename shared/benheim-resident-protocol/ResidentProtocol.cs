@@ -13,22 +13,24 @@ internal enum ResidentEncounterTrigger
 /// </summary>
 internal static class ResidentProtocol
 {
-    internal const int Version = 2;
+    internal const int Version = 3;
 
-    internal const string CapabilityRpc = "Benheim.Resident.v2.Capability";
-    internal const string PlacementRequestRpc = "Benheim.Resident.v2.PlacementRequest";
-    internal const string PlacementResultRpc = "Benheim.Resident.v2.PlacementResult";
-    internal const string EncounterRequestRpc = "Benheim.Resident.v2.EncounterRequest";
-    internal const string EncounterGrantRpc = "Benheim.Resident.v2.EncounterGrant";
-    internal const string SpeechReplyRpc = "Benheim.Resident.v2.SpeechReply";
-    internal const string SpeechResultRpc = "Benheim.Resident.v2.SpeechResult";
+    internal const string TraceRpc = "Benheim.Resident.v3.SpeechTrace";
+
+    internal const string CapabilityRpc = "Benheim.Resident.v3.Capability";
+    internal const string PlacementRequestRpc = "Benheim.Resident.v3.PlacementRequest";
+    internal const string PlacementResultRpc = "Benheim.Resident.v3.PlacementResult";
+    internal const string EncounterRequestRpc = "Benheim.Resident.v3.EncounterRequest";
+    internal const string EncounterGrantRpc = "Benheim.Resident.v3.EncounterGrant";
+    internal const string SpeechReplyRpc = "Benheim.Resident.v3.SpeechReply";
+    internal const string SpeechResultRpc = "Benheim.Resident.v3.SpeechResult";
 
     // This per-object RPC is routed by ZNetView to the native tub's current
     // owner. Its callback accepts a request only when the server issued it.
-    internal const string OwnerPlacementRpc = "Benheim.Resident.v2.OwnerPlacement";
+    internal const string OwnerPlacementRpc = "Benheim.Resident.v3.OwnerPlacement";
 
     // The owner sends the outcome back to the server's global ZRoutedRpc.
-    internal const string OwnerPlacementResultRpc = "Benheim.Resident.v2.OwnerPlacementResult";
+    internal const string OwnerPlacementResultRpc = "Benheim.Resident.v3.OwnerPlacementResult";
 
     // Invitation state persists on ordinary native tubs, so its saved keys do
     // not follow the transient RPC contract version.

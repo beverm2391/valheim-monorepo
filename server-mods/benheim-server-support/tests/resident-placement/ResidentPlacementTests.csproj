@@ -8,5 +8,6 @@
   <ItemGroup>
     <Compile Include="../../src/ResidentPlacementConfirmation.cs" Link="ResidentPlacementConfirmation.cs" />
     <Compile Include="../../src/ResidentPeerCohort.cs" Link="ResidentPeerCohort.cs" />
+    <Compile Include="../../../../shared/benheim-resident-protocol/ResidentReadiness.cs" Link="ResidentReadiness.cs" />
   </ItemGroup>
 </Project>

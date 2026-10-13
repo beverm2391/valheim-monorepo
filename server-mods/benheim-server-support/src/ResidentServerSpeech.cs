@@ -96,6 +96,20 @@ internal static partial class ResidentServer
             return;
         }
 
+        ResidentConversationSnapshot conversation;
+        string playerContextJson;
+        try
+        {
+            conversation = ConversationHistory.Snapshot();
+            playerContextJson = ResidentPlayerContext.ProviderContextFor(peer);
+        }
+        catch (Exception exception)
+        {
+            RejectEncounter(peer, operationId, tubId, currentGeneration, "conversation_context_unavailable");
+            Emit("speech_request_rejected", operationId, tubId, "conversation_context_unavailable", "encounter");
+            ResidentServerTrace.RecordRejected("server", exception.GetType().Name, operationId);
+            return;
+        }
         PendingEncounter pending = new(
             operationId,
             tubId,
@@ -104,7 +118,7 @@ internal static partial class ResidentServer
             peer.m_uid,
             character.m_uid,
             PeerCohort.Revision,
-            now + PendingTimeoutSeconds);
+            now + PendingTimeoutSeconds, conversation, TriggerName(trigger));
         PendingEncounters.Add(tubId, pending);
         if (!EncounterCadences.ContainsKey(tubId))
         {
@@ -112,13 +126,21 @@ internal static partial class ResidentServer
         }
         cadence.RecordGrant(trigger, now);
         Emit("speech_request_granted", operationId, tubId, TriggerName(trigger), "encounter");
-        SendEncounterGrant(peer, operationId, tubId, generation, character.m_uid, true, "granted");
+        ResidentServerTrace.Record("server", operationId, "encounter_granted",
+            Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                visitor = peer.m_playerName,
+                trigger = TriggerName(trigger),
+                conversation = Newtonsoft.Json.Linq.JObject.Parse(conversation.ToJson()),
+                playerContext = Newtonsoft.Json.Linq.JObject.Parse(playerContextJson)
+            }));
+        SendEncounterGrant(peer, operationId, tubId, generation, character.m_uid, true, "granted", conversation.ToJson(), playerContextJson);
     }
 
     private static void OnSpeechReply(ZNetPeer peer, ZRpc rpc, ZPackage package)
     {
         if (!TryReadSpeechReply(package, out string operationId, out ZDOID tubId,
-                out int generation, out bool speak, out string text, out string replyReason))
+                out int generation, out bool speak, out string text, out string replyReason, out string memory))
         {
             Emit("speech_reply_rejected", "invalid", ZDOID.None, "invalid_payload", "speech_reply");
             return;
@@ -180,6 +202,36 @@ internal static partial class ResidentServer
             text = string.Empty;
         }
 
+        // Only a validated current encounter can update shared memory. A
+        // stale compaction never overwrites another visitor's newer turn.
+        try
+        {
+            if (memory.Length > 0)
+            {
+                bool compacted = ConversationHistory.TryCompact(pending.Conversation.Revision,
+                    pending.Conversation.CompactCount, memory);
+                Emit("conversation_compaction", operationId, tubId,
+                    compacted ? "applied" : "stale_or_invalid", "conversation");
+                ResidentServerTrace.Record("server", operationId, "conversation_compaction",
+                    Newtonsoft.Json.JsonConvert.SerializeObject(new { compacted, memory }));
+            }
+            else if (pending.Conversation.CompactCount > 0 && speak)
+            {
+                speak = false; text = string.Empty; replyReason = "compaction_missing";
+            }
+            if (speak)
+            {
+                var recorded = ConversationHistory.RecordUtterance(operationId, peer.m_playerName,
+                    pending.EventName, text);
+                if (recorded != ResidentConversationRecordResult.Recorded)
+                { speak = false; text = string.Empty; replyReason = "conversation_record_failed"; }
+            }
+        }
+        catch (Exception exception)
+        {
+            speak = false; text = string.Empty; replyReason = "conversation_store_failed";
+            ResidentServerTrace.RecordRejected("server", exception.GetType().Name, operationId);
+        }
         CompleteEncounter(pending, speak, text, NormalizeReason(replyReason, "model_silence"));
     }
 
@@ -249,6 +301,8 @@ internal static partial class ResidentServer
         PendingEncounters.Remove(pending.Tub);
         if (!AllPeersReady() || pending.CohortRevision != PeerCohort.Revision)
         {
+            ResidentServerTrace.Record("server", pending.OperationId, "discarded",
+                "{\"reason\":\"peer_cohort_changed\"}");
             Emit("speech_cancelled", pending.OperationId, pending.Tub,
                 "peer_cohort_changed", "speech");
             return;
@@ -290,6 +344,9 @@ internal static partial class ResidentServer
             }
         }
 
+        ResidentServerTrace.Record("server", pending.OperationId, "shared_result",
+            Newtonsoft.Json.JsonConvert.SerializeObject(new { speak, text = safeText, reason,
+                visitor = pending.RequesterPeer.m_playerName, trigger = pending.EventName }));
         Emit(speak ? "speech_broadcast" : "speech_silence", pending.OperationId,
             pending.Tub, reason, "speech_result");
     }
@@ -302,6 +359,8 @@ internal static partial class ResidentServer
         }
 
         PendingEncounters.Remove(tub);
+        ResidentServerTrace.Record("server", pending.OperationId, "discarded",
+            Newtonsoft.Json.JsonConvert.SerializeObject(new { reason }));
         Emit("speech_cancelled", pending.OperationId, tub, reason, "speech");
     }
 

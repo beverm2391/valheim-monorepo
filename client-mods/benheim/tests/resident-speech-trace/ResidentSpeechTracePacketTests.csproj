@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ValheimGameDir Condition="'$(ValheimGameDir)' == ''">$(HOME)/Library/Application Support/Steam/steamapps/common/Valheim</ValheimGameDir>
+    <ValheimManagedDir>$(ValheimGameDir)/valheim.app/Contents/Resources/Data/Managed</ValheimManagedDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../../shared/benheim-resident-protocol/ResidentSpeechTracePacket.cs" Link="ResidentSpeechTracePacket.cs" />
+    <Compile Include="../../../../server-mods/benheim-server-support/src/ResidentServerTrace.cs" Link="ResidentServerTrace.cs" />
+    <Compile Include="../../src/Infrastructure/DiagnosticEvent.cs" Link="DiagnosticEvent.cs" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(ValheimManagedDir)/Newtonsoft.Json.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
