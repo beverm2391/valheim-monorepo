@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Benheim.Resident;
 using HarmonyLib;
+using UnityEngine;
 
 namespace BenheimServerSupport;
 
@@ -71,7 +72,7 @@ internal static partial class ResidentServer
         // Clients ask periodically while joining. Answer every heartbeat so a
         // lost response repairs itself, but only broadcast when cohort state
         // changed; otherwise one client would make all peers chat every second.
-        TrySendCapability(rpc, AllPeersReady());
+        TrySendCapability(rpc, CohortReadiness());
         PublishReadinessIfChanged(peer);
     }
 
@@ -112,6 +113,8 @@ internal static partial class ResidentServer
         {
             // Capture the authenticated connection in each direct callback.
             // A client cannot supply a peer ID to impersonate another user.
+            peer.m_rpc.Register<ZPackage>(ResidentProtocol.TraceRpc,
+                (rpc, package) => OnSpeechTrace(peer, rpc, package));
             peer.m_rpc.Register<int>(
                 ResidentProtocol.CapabilityRpc,
                 (rpc, version) => OnCapability(peer, rpc, version));
@@ -162,25 +165,13 @@ internal static partial class ResidentServer
         }
     }
 
-    private static bool AllPeersReady()
-    {
-        if (!IsServer() || ZNet.instance == null)
-        {
-            return false;
-        }
+    private static ResidentReadiness CohortReadiness() => !IsServer() || ZNet.instance == null
+        ? ResidentReadiness.MissingSupport
+        : PeerCohort.Evaluate(ResidentProtocol.Version, Time.realtimeSinceStartup,
+            peer => peer.IsReady(),
+            peer => peer.m_socket != null && peer.m_rpc != null && peer.m_rpc.IsConnected());
 
-        foreach (ZNetPeer peer in ZNet.instance.GetPeers())
-        {
-            if (!PeerCohort.TryGetVersion(peer, out int? version) ||
-                version != ResidentProtocol.Version ||
-                !peer.IsReady() || peer.m_socket == null || peer.m_rpc == null || !peer.m_rpc.IsConnected())
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
+    private static bool AllPeersReady() => CohortReadiness() == ResidentReadiness.Ready;
 
     private static void PublishReadinessIfChanged(ZNetPeer? excludePeer = null)
     {
@@ -189,16 +180,16 @@ internal static partial class ResidentServer
             return;
         }
 
-        bool allReady = AllPeersReady();
+        ResidentReadiness readiness = CohortReadiness();
         bool changed = publishedCohortRevision != PeerCohort.Revision ||
-            publishedReadiness != allReady;
+            publishedReadiness != readiness;
         if (!changed)
         {
             return;
         }
 
         publishedCohortRevision = PeerCohort.Revision;
-        publishedReadiness = allReady;
+        publishedReadiness = readiness;
         foreach (ZNetPeer peer in ZNet.instance.GetPeers())
         {
             // A capability request proves that this peer registered its response
@@ -213,19 +204,19 @@ internal static partial class ResidentServer
                 continue;
             }
 
-            TrySendCapability(peer.m_rpc, allReady);
+            TrySendCapability(peer.m_rpc, readiness);
         }
 
         Emit(
             "cohort_readiness",
             string.Empty,
             ZDOID.None,
-            allReady ? "all_peers_ready" : "peer_support_missing",
+            ResidentReadinessPolicy.Reason(readiness),
             "capability",
             ResidentProtocol.Version);
     }
 
-    private static bool TrySendCapability(ZRpc rpc, bool allReady)
+    private static bool TrySendCapability(ZRpc rpc, ResidentReadiness readiness)
     {
         try
         {
@@ -234,7 +225,7 @@ internal static partial class ResidentServer
                 return false;
             }
 
-            rpc.Invoke(ResidentProtocol.CapabilityRpc, ResidentProtocol.Version, allReady);
+            rpc.Invoke(ResidentProtocol.CapabilityRpc, ResidentProtocol.Version, (int)readiness);
             return true;
         }
         catch (Exception exception)
@@ -242,6 +233,29 @@ internal static partial class ResidentServer
             Emit("capability_delivery_failed", string.Empty, ZDOID.None,
                 exception.GetType().Name, "capability");
             return false;
+        }
+    }
+
+    private static void OnSpeechTrace(ZNetPeer peer, ZRpc rpc, ZPackage package)
+    {
+        string source = "client:" + peer.m_uid;
+        if (!IsCurrentPeer(peer, rpc) || !PeerCohort.TryGetVersion(peer, out int? version) ||
+            version != ResidentProtocol.Version) return;
+        string requestId = string.Empty;
+        try
+        {
+            if (package.Size() > ResidentSpeechTracePacket.MaximumPacketBytes)
+            { ResidentServerTrace.RecordRejected(source, "packet_too_large", requestId); return; }
+            requestId = package.ReadString();
+            string phase = package.ReadString();
+            string data = package.ReadString();
+            if (package.GetPos() != package.Size())
+            { ResidentServerTrace.RecordRejected(source, "trailing_data", requestId); return; }
+            ResidentServerTrace.Record(source, requestId, phase, data);
+        }
+        catch
+        {
+            ResidentServerTrace.RecordRejected(source, "malformed_packet", requestId);
         }
     }
 

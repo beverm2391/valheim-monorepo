@@ -79,7 +79,8 @@ internal static partial class ResidentServer
         out int generation,
         out bool speak,
         out string text,
-        out string reason)
+        out string reason,
+        out string memory)
     {
         operationId = string.Empty;
         tubId = ZDOID.None;
@@ -87,9 +88,10 @@ internal static partial class ResidentServer
         speak = false;
         text = string.Empty;
         reason = string.Empty;
+        memory = string.Empty;
         try
         {
-            if (package.Size() > MaximumRpcPackageBytes)
+            if (package.Size() > MaximumSpeechReplyPackageBytes)
             {
                 return false;
             }
@@ -100,8 +102,10 @@ internal static partial class ResidentServer
             speak = package.ReadBool();
             text = package.ReadString();
             reason = package.ReadString();
+            memory = package.ReadString();
             return IsOperationId(operationId) && !tubId.IsNone() && generation >= 0 &&
-                text != null && reason != null && package.GetPos() == package.Size();
+                text != null && reason != null && memory != null &&
+                ResidentConversationText.IsValidSummary(memory) && package.GetPos() == package.Size();
         }
         catch
         {
@@ -172,7 +176,8 @@ internal static partial class ResidentServer
         int generation,
         ZDOID characterId,
         bool accepted,
-        string reason)
+        string reason,
+        string conversationJson = "", string playerContextJson = "")
     {
         if (peer?.m_rpc == null)
         {
@@ -186,6 +191,7 @@ internal static partial class ResidentServer
         grant.Write(characterId);
         grant.Write(accepted);
         grant.Write(NormalizeReason(reason, accepted ? "granted" : "rejected"));
+        if (accepted) { grant.Write(conversationJson); grant.Write(playerContextJson); }
         try
         {
             if (peer.m_rpc.IsConnected())

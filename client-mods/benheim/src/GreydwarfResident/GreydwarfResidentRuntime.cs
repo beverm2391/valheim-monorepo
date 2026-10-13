@@ -35,7 +35,7 @@ public static class GreydwarfResidentRuntime
         if (!IsEnabled) return Reject("feature_unavailable");
         if (!IsWorldReady)
             return Reject("world_not_ready");
-        if (!ResidentClient.Available) return Reject("compatible_peers_required");
+        if (!ResidentClient.CanRender) return Reject("compatible_peers_required");
         Piece? tub = seat ? seat.GetComponentInParent<Piece>() : null;
         if (!seat || !seat.isActiveAndEnabled || !seat.m_attachPoint || !tub ||
             Utils.GetPrefabName(tub.gameObject) != "piece_bathtub")
@@ -118,7 +118,7 @@ public static class GreydwarfResidentRuntime
 
     internal static bool IsReserved(Chair seat)
     {
-        return IsEnabled && ResidentClient.Available && seat &&
+        return IsEnabled && ResidentClient.CanRender && seat &&
             ResidentTub.TryGet(seat.gameObject, out ZNetView view) &&
             ResidentTub.IsInvited(view.GetZDO()) && ResidentTub.FindSeat(view.gameObject) == seat;
     }

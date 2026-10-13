@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using Benheim.Resident;
 using Newtonsoft.Json.Linq;
 
 namespace BenheimQoL.GreydwarfResident;
@@ -22,11 +23,13 @@ internal sealed class ResidentSpeechContext
     internal bool Cold { get; set; }
     internal bool TubBurning { get; set; }
     internal bool PlayerSeated { get; set; }
-    internal string[] RecentRemarks { get; set; } = Array.Empty<string>();
+    internal ResidentConversationSnapshot Conversation { get; set; } = new(0, string.Empty, Array.Empty<ResidentConversationTurn>());
+    internal JObject PlayerContext { get; set; } = new();
 }
 
 internal sealed class ResidentSpeechRemark
 {
+    internal string Memory { get; set; } = string.Empty;
     internal bool Speak { get; set; }
     internal string Text { get; set; } = string.Empty;
 }
@@ -57,7 +60,7 @@ internal static class ResidentSpeechContract
     private static readonly string[] ContextFields =
     {
         "event", "visitorName", "dayPart", "weather", "biome", "wet", "cold",
-        "tubBurning", "playerSeated", "recentRemarks"
+        "tubBurning", "playerSeated", "conversation", "playerContext"
     };
 
     private static readonly string[] UsageFields =
@@ -74,8 +77,9 @@ internal static class ResidentSpeechContract
         bool cold,
         bool tubBurning,
         bool playerSeated,
-        string[]? recentRemarks,
-        string eventName = "approach")
+        ResidentConversationSnapshot conversation,
+        string eventName = "approach",
+        JObject? playerContext = null)
     {
         var context = new ResidentSpeechContext
         {
@@ -88,7 +92,8 @@ internal static class ResidentSpeechContract
             Cold = cold,
             TubBurning = tubBurning,
             PlayerSeated = playerSeated,
-            RecentRemarks = recentRemarks ?? Array.Empty<string>()
+            Conversation = conversation,
+            PlayerContext = playerContext ?? new JObject()
         };
         ValidateContext(context);
         return context;
@@ -108,7 +113,8 @@ internal static class ResidentSpeechContract
             ["cold"] = context.Cold,
             ["tubBurning"] = context.TubBurning,
             ["playerSeated"] = context.PlayerSeated,
-            ["recentRemarks"] = new JArray(context.RecentRemarks.Select(text => (JToken)text))
+            ["conversation"] = JObject.Parse(context.Conversation.ToJson()),
+            ["playerContext"] = context.PlayerContext.DeepClone()
         };
     }
 
@@ -128,15 +134,13 @@ internal static class ResidentSpeechContract
             !TryBoolean(value["cold"], out bool cold) ||
             !TryBoolean(value["tubBurning"], out bool tubBurning) ||
             !TryBoolean(value["playerSeated"], out bool playerSeated) ||
-            value["recentRemarks"] is not JArray remarks || remarks.Count > 3)
+            value["conversation"] is not JObject || value["playerContext"] is not JObject playerContext ||
+            playerContext.ToString(Formatting.None).Length > 16384)
             throw new ResidentSpeechContractException("invalid_context");
 
-        var recent = new string[remarks.Count];
-        for (int i = 0; i < remarks.Count; i++)
-        {
-            if (!TryString(remarks[i], out recent[i]) || !ValidContextString(recent[i], MaxRemarkCharacters))
-                throw new ResidentSpeechContractException("invalid_context");
-        }
+        ResidentConversationSnapshot conversation;
+        try { conversation = ResidentConversationSnapshot.FromJson(value["conversation"]!.ToString(Formatting.None)); }
+        catch { throw new ResidentSpeechContractException("invalid_context"); }
 
         return new ResidentSpeechContext
         {
@@ -149,7 +153,8 @@ internal static class ResidentSpeechContract
             Cold = cold,
             TubBurning = tubBurning,
             PlayerSeated = playerSeated,
-            RecentRemarks = recent
+            Conversation = conversation,
+            PlayerContext = (JObject)playerContext.DeepClone()
         };
     }
 
@@ -173,10 +178,39 @@ internal static class ResidentSpeechContract
             }
         };
 
+        bool compact = context.Conversation.CompactCount > 0;
+        if (compact)
+        {
+            ((JArray)schema["required"]!).Add("memory");
+            ((JObject)schema["properties"]!)["memory"] = new JObject { ["type"] = "string" };
+            prompt += "\nFor this reply also return memory: an out-of-character factual continuity summary of the existing memory and the first " +
+                context.Conversation.CompactCount + " prior conversation turns. Preserve concrete named facts and relationships; omit George's personality description. " +
+                "Summarize only exchanges before the compaction boundary marker below, not newer turns or the current scene. Memory may be at most " + ResidentConversationSnapshot.MaximumSummaryCharacters +
+                " characters; text still has its 140-character limit.";
+        }
+        var messages = new JArray { new JObject { ["role"] = "system", ["content"] = prompt } };
+        if (context.Conversation.Summary.Length > 0)
+            messages.Add(new JObject { ["role"] = "system", ["content"] = "George's earlier conversation memory:\n" + context.Conversation.Summary });
+        for (int index = 0; index < context.Conversation.Turns.Count; index++)
+        {
+            if (compact && index == context.Conversation.CompactCount)
+                messages.Add(new JObject { ["role"] = "system", ["content"] =
+                    "Compaction boundary: summarize only the older exchanges above into memory, preserving their concrete named facts. This is factual bookkeeping, not George's dialogue. Keep the following exchanges verbatim; exclude them and the current scene from memory." });
+            ResidentConversationTurn turn = context.Conversation.Turns[index];
+            messages.Add(new JObject { ["role"] = "user", ["content"] = new JObject
+                { ["visitorName"] = turn.VisitorName, ["event"] = turn.EventName }.ToString(Formatting.None) });
+            messages.Add(new JObject { ["role"] = "assistant", ["content"] = new JObject
+                { ["speak"] = true, ["text"] = turn.Text }.ToString(Formatting.None) });
+        }
+        // The history is already the conversation above, rather than a second
+        // copy inside the latest user message. The trace keeps the full snapshot.
+        contextJson.Remove("conversation");
+        messages.Add(new JObject { ["role"] = "user", ["content"] = contextJson.ToString(Formatting.None) });
+
         return new JObject
         {
             ["model"] = Model,
-            ["max_tokens"] = 120,
+            ["max_tokens"] = compact ? 768 : 120,
             ["temperature"] = 0.8,
             ["response_format"] = new JObject
             {
@@ -188,15 +222,11 @@ internal static class ResidentSpeechContract
                     ["schema"] = schema
                 }
             },
-            ["messages"] = new JArray
-            {
-                new JObject { ["role"] = "system", ["content"] = prompt },
-                new JObject { ["role"] = "user", ["content"] = contextJson.ToString(Formatting.None) }
-            }
+            ["messages"] = messages
         };
     }
 
-    internal static ResidentSpeechProviderResponse ParseProviderResponse(string body, string requestedModel)
+    internal static ResidentSpeechProviderResponse ParseProviderResponse(string body, string requestedModel, bool requireMemory = false)
     {
         var result = new ResidentSpeechProviderResponse { Model = SafeModel(requestedModel) ? requestedModel : Model };
         JObject response;
@@ -252,7 +282,7 @@ internal static class ResidentSpeechContract
 
         try
         {
-            result.Remark = ParseRemark(parsed);
+            result.Remark = ParseRemark(parsed, requireMemory);
         }
         catch (ResidentSpeechContractException exception)
         {
@@ -261,9 +291,9 @@ internal static class ResidentSpeechContract
         return result;
     }
 
-    internal static ResidentSpeechRemark ParseRemark(JToken? token)
+    internal static ResidentSpeechRemark ParseRemark(JToken? token, bool requireMemory = false)
     {
-        if (token is not JObject value || value.Properties().Count() != 2 ||
+        if (token is not JObject value || value.Properties().Count() != (requireMemory ? 3 : 2) ||
             value.Property("speak", StringComparison.Ordinal) is null ||
             value.Property("text", StringComparison.Ordinal) is null ||
             !TryBoolean(value["speak"], out bool speak) || !TryString(value["text"], out string rawText))
@@ -276,7 +306,11 @@ internal static class ResidentSpeechContract
             HasMarkupOrControl(text))
             throw new ResidentSpeechContractException("invalid_remark");
 
-        return new ResidentSpeechRemark { Speak = speak, Text = text };
+        string memory = string.Empty;
+        if (requireMemory && (!TryString(value["memory"], out memory) ||
+            string.IsNullOrWhiteSpace(memory) || !ResidentConversationText.IsValidSummary(memory)))
+            throw new ResidentSpeechContractException("invalid_memory");
+        return new ResidentSpeechRemark { Speak = speak, Text = text, Memory = memory };
     }
 
     private static void ValidateContext(ResidentSpeechContext context)
@@ -285,8 +319,8 @@ internal static class ResidentSpeechContract
             !ValidContextString(context.VisitorName, 64) ||
             !new[] { "morning", "day", "evening", "night" }.Contains(context.DayPart, StringComparer.Ordinal) ||
             !ValidContextString(context.Weather, 64) || !ValidContextString(context.Biome, 64) ||
-            context.RecentRemarks is null || context.RecentRemarks.Length > 3 ||
-            context.RecentRemarks.Any(text => !ValidContextString(text, MaxRemarkCharacters)))
+            context.Conversation is null || context.PlayerContext is null ||
+            context.PlayerContext.ToString(Formatting.None).Length > 16384)
             throw new ResidentSpeechContractException("invalid_context");
     }
 

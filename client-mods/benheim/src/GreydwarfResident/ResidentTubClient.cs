@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Benheim.Resident;
 using UnityEngine;
 
@@ -11,7 +10,6 @@ internal sealed class ResidentTubClient : MonoBehaviour
     internal Smelter Station = null!;
     internal ZNetView View = null!;
     internal GreydwarfResidentBehaviour? Resident;
-    internal readonly List<string> RecentRemarks = new();
     internal string LastSpeech = string.Empty;
     private float nextScan;
     private int generation = -1;
@@ -25,8 +23,8 @@ internal sealed class ResidentTubClient : MonoBehaviour
         if (!View || !View.IsValid()) { Remove(); return; }
         ZDO zdo = View.GetZDO();
         int current = ResidentTub.Generation(zdo);
-        if (generation != current) { Remove(); generation = current; creationFailed = waitingForWorld = false; RecentRemarks.Clear(); }
-        if (!ResidentClient.Available || !ResidentTub.IsInvited(zdo)) { Remove(); return; }
+        if (generation != current) { Remove(); generation = current; creationFailed = waitingForWorld = false; }
+        if (!ResidentClient.CanRender || !ResidentTub.IsInvited(zdo)) { Remove(); return; }
         if (!Resident && !creationFailed)
         {
             // Tub replicas can arrive before Game.SpawnPlayer assigns the local

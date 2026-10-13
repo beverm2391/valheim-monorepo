@@ -5,6 +5,8 @@ using Benheim.Resident;
 using BenheimQoL.Infrastructure;
 using HarmonyLib;
 using UnityEngine;
+using BepInEx;
+using System.IO;
 
 namespace BenheimServerSupport;
 
@@ -24,6 +26,9 @@ internal static partial class ResidentServer
     private const int MaximumSpeechLength = 140;
     private const int MaximumReasonLength = 64;
     private const int MaximumRpcPackageBytes = 2048;
+    // Replies also carry up to 1200 UTF-16 characters of continuity memory.
+    // Leave room for its UTF-8 representation without enlarging action requests.
+    private const int MaximumSpeechReplyPackageBytes = 8192;
     private static readonly int BathtubPrefabHash = "piece_bathtub".GetStableHashCode();
 
     private static readonly ResidentPeerCohort<ZNetPeer> PeerCohort = new();
@@ -33,7 +38,10 @@ internal static partial class ResidentServer
     private static readonly Dictionary<ZDOID, ResidentEncounterCadence> EncounterCadences = new();
     private static ZRoutedRpc? registeredRoutedRpc;
     private static long publishedCohortRevision = -1L;
-    private static bool? publishedReadiness;
+    private static ResidentReadiness? publishedReadiness;
+    private static ResidentConversationHistory? conversationHistory;
+    private static ResidentConversationHistory ConversationHistory => conversationHistory ??=
+        new ResidentConversationHistory(Path.Combine(Paths.ConfigPath, "Benheim", "GreydwarfResident", "conversation-state.json"));
 
     [HarmonyPatch(typeof(ZNet), "OnDestroy")]
     [HarmonyPrefix]
@@ -85,15 +93,7 @@ internal static partial class ResidentServer
                 "placement");
         }
 
-        foreach (PendingEncounter pending in PendingEncounters.Values)
-        {
-            Emit(
-                "speech_cancelled",
-                pending.OperationId,
-                pending.Tub,
-                "network_reset",
-                "speech");
-        }
+        CancelAllEncounters("network_reset");
 
         PeerCohort.Reset();
         RegisteredPeerHandlers.Clear();
@@ -103,6 +103,7 @@ internal static partial class ResidentServer
         registeredRoutedRpc = null;
         publishedCohortRevision = -1L;
         publishedReadiness = null;
+        conversationHistory = null;
     }
 
     private static bool IsServer() => ZNet.instance != null && ZNet.instance.IsServer();
@@ -194,6 +195,8 @@ internal static partial class ResidentServer
         internal readonly ZDOID RequesterCharacter;
         internal readonly long CohortRevision;
         internal readonly double ExpiresAt;
+        internal readonly ResidentConversationSnapshot Conversation;
+        internal readonly string EventName;
 
         internal PendingEncounter(
             string operationId,
@@ -203,7 +206,8 @@ internal static partial class ResidentServer
             long requesterUid,
             ZDOID requesterCharacter,
             long cohortRevision,
-            double expiresAt)
+            double expiresAt,
+            ResidentConversationSnapshot conversation, string eventName)
         {
             OperationId = operationId;
             Tub = tub;
@@ -213,6 +217,8 @@ internal static partial class ResidentServer
             RequesterCharacter = requesterCharacter;
             CohortRevision = cohortRevision;
             ExpiresAt = expiresAt;
+            Conversation = conversation;
+            EventName = eventName;
         }
     }
 }

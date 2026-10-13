@@ -1,7 +1,7 @@
 using Benheim.Resident;
 using BenheimServerSupport;
 
-Expect(ResidentProtocol.Version == 2, "the trigger field uses the v2 transient contract");
+Expect(ResidentProtocol.Version == 3, "the trigger field uses the v3 transient contract");
 Expect(ResidentProtocol.InvitedKey.EndsWith("_v1", StringComparison.Ordinal), "saved invitation keys retain their v1 identity");
 Expect(ResidentProtocol.TryParseEncounterTrigger(0, out var approach) && approach == ResidentEncounterTrigger.Approach,
     "wire value 0 is the approach trigger");

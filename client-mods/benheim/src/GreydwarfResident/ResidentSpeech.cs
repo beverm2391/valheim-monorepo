@@ -8,6 +8,7 @@ using System.Text;
 using BepInEx;
 using Benheim.Resident;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -31,14 +32,15 @@ internal static class ResidentSpeech
         string requestId,
         Player visitor,
         Smelter tub,
-        string[] recentRemarks,
+        ResidentConversationSnapshot conversation,
+        string playerContextJson,
         ResidentEncounterTrigger trigger,
         Func<bool> stillRelevant,
-        Action<bool, string, string> completed)
+        Action<bool, string, string, string> completed)
     {
         if (completed is null) throw new ArgumentNullException(nameof(completed));
         var operation = new RequestOperation(runner, requestId, visitor, tub,
-            recentRemarks, trigger, stillRelevant, completed);
+            conversation, playerContextJson, trigger, stillRelevant, completed);
         operation.Start();
         return operation;
     }
@@ -49,10 +51,12 @@ internal static class ResidentSpeech
         private readonly string requestId;
         private readonly Player visitor;
         private readonly Smelter tub;
-        private readonly string[] recentRemarks;
+        private readonly ResidentConversationSnapshot conversation;
+        private readonly string playerContextJson;
+        private string compactedSummary = string.Empty;
         private readonly ResidentEncounterTrigger trigger;
         private readonly Func<bool> stillRelevant;
-        private readonly Action<bool, string, string> completed;
+        private readonly Action<bool, string, string, string> completed;
         private readonly Stopwatch triggerTimer = Stopwatch.StartNew();
         private Coroutine? coroutine;
         private UnityWebRequest? request;
@@ -65,10 +69,11 @@ internal static class ResidentSpeech
             string requestId,
             Player visitor,
             Smelter tub,
-            string[] recentRemarks,
+            ResidentConversationSnapshot conversation,
+            string playerContextJson,
             ResidentEncounterTrigger trigger,
             Func<bool> stillRelevant,
-            Action<bool, string, string> completed)
+            Action<bool, string, string, string> completed)
         {
             this.runner = runner;
             this.requestId = string.IsNullOrWhiteSpace(requestId)
@@ -76,7 +81,8 @@ internal static class ResidentSpeech
                 : requestId;
             this.visitor = visitor;
             this.tub = tub;
-            this.recentRemarks = recentRemarks ?? Array.Empty<string>();
+            this.conversation = conversation;
+            this.playerContextJson = playerContextJson;
             this.trigger = trigger;
             this.stillRelevant = stillRelevant;
             this.completed = completed;
@@ -128,7 +134,7 @@ internal static class ResidentSpeech
             string body;
             try
             {
-                context = CaptureContext(visitor, tub, recentRemarks, trigger);
+                context = CaptureContext(visitor, tub, conversation, playerContextJson, trigger);
                 prompt = LoadPrompt();
                 body = ResidentSpeechContract.BuildRequest(context, prompt).ToString(Formatting.None);
             }
@@ -154,6 +160,15 @@ internal static class ResidentSpeech
                 FinishSilently(relevanceReason);
                 yield break;
             }
+
+            // Record the complete intended request before setup/send can fail.
+            // Headers and credentials are deliberately excluded.
+            ResidentSpeechTrace.Record(requestId, "provider_request", new
+            {
+                model = ResidentSpeechContract.Model,
+                prompt,
+                body
+            });
 
             string? apiKey = ResidentSpeechSettings.ApiKey;
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -201,15 +216,6 @@ internal static class ResidentSpeech
                 yield break;
             }
 
-            // Keep exactly the prompt and serialized body sent above. The trace
-            // intentionally omits headers and the API key.
-            ResidentSpeechTrace.Record(requestId, "provider_request", new
-            {
-                model = ResidentSpeechContract.Model,
-                prompt,
-                body
-            });
-
             if (sendOperation is null)
             {
                 DisposeRequest();
@@ -254,7 +260,7 @@ internal static class ResidentSpeech
                 try
                 {
                     parsedResponse = ResidentSpeechContract.ParseProviderResponse(
-                        request.downloadHandler.text, ResidentSpeechContract.Model);
+                        request.downloadHandler.text, ResidentSpeechContract.Model, conversation.CompactCount > 0);
                     failureReason = parsedResponse.FailureReason;
                 }
                 catch
@@ -263,6 +269,11 @@ internal static class ResidentSpeech
                 }
             }
 
+            // Keep the complete bounded response even when parsing fails. No
+            // headers or credentials are part of this private trace record.
+            if (request.downloadHandler is DownloadHandlerBuffer raw && raw.data is { Length: <= MaximumResponseBytes })
+                ResidentSpeechTrace.Record(requestId, "provider_raw_response", new
+                { durationMs, httpStatus = responseCode, body = raw.text });
             DisposeRequest();
             if (parsedResponse is not null)
             {
@@ -300,6 +311,7 @@ internal static class ResidentSpeech
             }
 
             ResidentSpeechRemark remark = parsedResponse.Remark;
+            compactedSummary = remark.Memory;
             if (!remark.Speak)
             {
                 FinishSilently("model_silence");
@@ -357,7 +369,7 @@ internal static class ResidentSpeech
             // Begin and every coroutine continuation run on Unity's main thread.
             try
             {
-                completed(speak, safeText, reason);
+                completed(speak, safeText, reason, compactedSummary);
             }
             catch
             {
@@ -388,7 +400,8 @@ internal static class ResidentSpeech
         _ => throw new ResidentSpeechContractException("invalid_context")
     };
 
-    private static ResidentSpeechContext CaptureContext(Player visitor, Smelter tub, string[] recentRemarks,
+    private static ResidentSpeechContext CaptureContext(Player visitor, Smelter tub, ResidentConversationSnapshot conversation,
+        string playerContextJson,
         ResidentEncounterTrigger trigger)
     {
         if (!visitor) throw new ResidentSpeechContractException("visitor_unavailable");
@@ -402,16 +415,10 @@ internal static class ResidentSpeech
             dayFraction < .4f ? "morning" : dayFraction > .6f ? "evening" : "day";
         string weather = environment != null ? environment.m_name : "unknown";
         string biome = visitor.GetCurrentBiome().ToString();
-        string[] recent = recentRemarks.Length <= 3
-            ? recentRemarks.ToArray()
-            : recentRemarks.Skip(recentRemarks.Length - 3).ToArray();
-
-        // Use the current addressee's displayed character name, preserving
-        // Valheim's name filtering before George can repeat it in shared speech.
         return ResidentSpeechContract.CreateContext(visitor.GetHoverName(), dayPart, weather, biome,
             effects.HaveStatusEffect(SEMan.s_statusEffectWet),
             effects.HaveStatusEffect(SEMan.s_statusEffectCold),
-            tub.IsActive(), visitor.IsSitting(), recent, EventName(trigger));
+            tub.IsActive(), visitor.IsSitting(), conversation, EventName(trigger), JObject.Parse(playerContextJson));
     }
 
     private static string LoadPrompt()

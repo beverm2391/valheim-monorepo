@@ -14,13 +14,17 @@ namespace BenheimQoL.GreydwarfResident;
 internal static class ResidentClient
 {
     private static ZRpc? connection;
-    private static bool compatible, cohortReady, warned;
+    private static bool compatible, warned;
+    private static ResidentReadiness readiness = ResidentReadiness.MissingSupport;
     private static float nextCapability, connectedAt;
     private static readonly Dictionary<ZDOID, ResidentTubClient> tubs = new();
     private static readonly Dictionary<string, PendingEncounter> encounters = new();
     private static readonly Dictionary<string, float> cancelledEncounters = new();
     internal static bool Available => GreydwarfResidentRuntime.IsEnabled &&
-        compatible && cohortReady && connection != null &&
+        compatible && readiness == ResidentReadiness.Ready && ConnectionCurrent;
+    internal static bool CanRender => GreydwarfResidentRuntime.IsEnabled && compatible &&
+        ResidentReadinessPolicy.CanRender(readiness) && ConnectionCurrent;
+    private static bool ConnectionCurrent => connection != null &&
          connection.IsConnected() && ReferenceEquals(connection, ZNet.instance?.GetServerRPC());
 
     [HarmonyPatch(typeof(ZNet), "OnNewConnection"), HarmonyPostfix]
@@ -30,10 +34,13 @@ internal static class ResidentClient
         ResetConnection();
         connection = peer.m_rpc;
         connectedAt = Time.realtimeSinceStartup;
-        connection.Register<int, bool>(ResidentProtocol.CapabilityRpc, OnCapability);
+        connection.Register<int, int>(ResidentProtocol.CapabilityRpc, OnCapability);
         connection.Register<ZPackage>(ResidentProtocol.PlacementResultRpc, OnPlacement);
         connection.Register<ZPackage>(ResidentProtocol.EncounterGrantRpc, OnGrant);
         connection.Register<ZPackage>(ResidentProtocol.SpeechResultRpc, OnSpeech);
+        // Announce on the raw connection, before password/PeerInfo completes.
+        // This is capability metadata, never authority for shared actions.
+        connection.Invoke(ResidentProtocol.CapabilityRpc, ResidentProtocol.Version);
     }
 
     [HarmonyPatch(typeof(ZNet), "OnDestroy"), HarmonyPrefix]
@@ -60,21 +67,35 @@ internal static class ResidentClient
         foreach (var pair in cancelledEncounters.Where(p => now >= p.Value).ToArray()) cancelledEncounters.Remove(pair.Key);
     }
 
-    private static void OnCapability(ZRpc rpc, int version, bool ready)
+    private static void OnCapability(ZRpc rpc, int version, int state)
     {
         if (!Current(rpc)) return;
         bool wasAvailable = Available;
+        ResidentReadiness previous = readiness;
         compatible = version == ResidentProtocol.Version;
-        cohortReady = compatible && ready;
-        if (wasAvailable != Available)
+        readiness = compatible && ResidentReadinessPolicy.TryParse(state, out ResidentReadiness parsed)
+            ? parsed : ResidentReadiness.Incompatible;
+        if (previous != readiness || wasAvailable != Available)
         {
-            ResidentDiagnostics.Emit("capability_changed", Available ? "all_peers_ready" : "peer_support_missing");
+            string reason = ResidentReadinessPolicy.Reason(readiness);
+            ResidentDiagnostics.Emit("capability_changed", reason);
             if (!Available)
             {
-                Message("George is waiting for compatible Benheim players and Server Support.");
-                foreach (string id in encounters.Keys.ToArray()) Cancel(id, "peer_support_missing");
+                // Pending joins pause shared actions but keep the invited
+                // native visual. Only actual failures merit a join-time warning.
+                if (!ResidentReadinessPolicy.CanRender(readiness))
+                    Message("George needs matching Benheim players and Server Support.");
+                foreach (string id in encounters.Keys.ToArray()) Cancel(id, reason);
             }
         }
+    }
+
+    internal static void SendTrace(string requestId, string phase, string jsonData)
+    {
+        if (!compatible || !ConnectionCurrent) return;
+        ZPackage package = new();
+        package.Write(requestId); package.Write(phase); package.Write(jsonData);
+        connection!.Invoke(ResidentProtocol.TraceRpc, package);
     }
 
     internal static void Register(ResidentTubClient tub)
@@ -147,7 +168,9 @@ internal static class ResidentClient
         }
         if (!Available)
         {
-            if (manual) Message("George needs matching Benheim clients and Server Support.");
+            if (manual) Message(ResidentReadinessPolicy.CanRender(readiness)
+                ? "A player is joining. Try Talk again in a moment."
+                : "George needs matching Benheim clients and Server Support.");
             ResidentDiagnostics.Emit("encounter_rejected", "support_unavailable");
             return false;
         }
@@ -189,6 +212,9 @@ internal static class ResidentClient
             if (!accepted || !Relevant(pending) || pending.Tub.View.GetZDO().m_uid != tub ||
                 pending.Generation != generation || pending.Player.GetZDOID() != visitor)
             { Cancel(id, accepted ? "stale_grant" : reason); return; }
+            pending.Conversation = ResidentConversationSnapshot.FromJson(package.ReadString());
+            pending.PlayerContextJson = package.ReadString();
+            if (package.GetPos() != package.Size()) throw new FormatException("grant_trailing_data");
             if (pending.Request != null) return;
             // Acknowledge only a granted manual request. This uses the resident's
             // existing head writer and never starts another ambient encounter.
@@ -201,11 +227,11 @@ internal static class ResidentClient
     private static void Begin(string id, PendingEncounter pending)
     {
         pending.Request = ResidentSpeech.Begin(pending.Resident, id, pending.Player, pending.Tub.Station,
-            pending.Tub.RecentRemarks.ToArray(), pending.Trigger, () => encounters.ContainsKey(id) && Relevant(pending),
-            (speak, text, reason) => Complete(id, pending, speak, text, reason));
+            pending.Conversation!, pending.PlayerContextJson, pending.Trigger, () => encounters.ContainsKey(id) && Relevant(pending),
+            (speak, text, reason, memory) => Complete(id, pending, speak, text, reason, memory));
     }
 
-    private static void Complete(string id, PendingEncounter pending, bool speak, string text, string reason)
+    private static void Complete(string id, PendingEncounter pending, bool speak, string text, string reason, string memory)
     {
         if (!encounters.ContainsKey(id) || pending.ReplySent) return;
         if (!Relevant(pending)) { Cancel(id, "stale_reply"); return; }
@@ -214,7 +240,7 @@ internal static class ResidentClient
         pending.ReplySent = true;
         ZDOID tub = pending.Tub.View.GetZDO().m_uid;
         ZPackage reply = new(); reply.Write(id); reply.Write(tub); reply.Write(pending.Generation);
-        reply.Write(speak); reply.Write(text); reply.Write(reason);
+        reply.Write(speak); reply.Write(text); reply.Write(reason); reply.Write(memory);
         connection!.Invoke(ResidentProtocol.SpeechReplyRpc, reply);
     }
 
@@ -250,7 +276,6 @@ internal static class ResidentClient
         if (tub.LastSpeech == id) return;
         tub.LastSpeech = id;
         tub.Resident.ShowSpeech(visitor, text);
-        tub.RecentRemarks.Add(text); if (tub.RecentRemarks.Count > 3) tub.RecentRemarks.RemoveAt(0);
         ResidentSpeechTrace.Record(id, "native_speech_submitted", new { text });
         ResidentDiagnostics.Operation("speech_displayed", "shared_result", id, tubId, generation);
     }
@@ -271,6 +296,7 @@ internal static class ResidentClient
             Message(reason switch
             {
                 "encounter_in_progress" => "George is still thinking. Give him a moment.",
+                "peer_connecting" or "peer_support_pending" => "A player is joining. Try Talk again in a moment.",
                 "resident_cooldown" => "Give George a moment before asking again.",
                 "peer_protocol_unavailable" or "peer_support_missing" => "George needs matching Benheim clients and Server Support.",
                 _ => "George can't talk right now. Try again in a moment."
@@ -282,7 +308,7 @@ internal static class ResidentClient
     private static void ResetConnection()
     {
         foreach (string id in encounters.Keys.ToArray()) Cancel(id, "connection_reset");
-        connection = null; compatible = cohortReady = warned = false; nextCapability = 0;
+        connection = null; compatible = warned = false; readiness = ResidentReadiness.MissingSupport; nextCapability = 0;
         cancelledEncounters.Clear();
     }
     internal static void Reset() { ResetConnection(); tubs.Clear(); }
@@ -295,6 +321,8 @@ internal static class ResidentClient
         internal readonly int Generation;
         internal readonly float Expires;
         internal readonly ResidentEncounterTrigger Trigger;
+        internal ResidentConversationSnapshot? Conversation;
+        internal string PlayerContextJson = "{}";
         internal IDisposable? Request;
         internal bool ReplySent;
         internal PendingEncounter(ResidentTubClient tub, GreydwarfResidentBehaviour resident, Player player, int generation,

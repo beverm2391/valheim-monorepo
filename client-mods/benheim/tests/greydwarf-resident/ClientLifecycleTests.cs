@@ -41,13 +41,31 @@ internal static class ClientLifecycleTests
         tub.View.Data.Generation++;
         Tick(tub, 3);
         Expect(tub.Resident && GreydwarfResidentRuntime.Attempts == 2, "new invitation can recover from an asset failure");
+        tub = NewTub();
+        GreydwarfResidentRuntime.IsWorldReady = true;
+        Tick(tub, 1);
+        var original = tub.Resident;
+        // The production visual predicate remains true while actions pause.
+        ResidentClient.CanRender = Benheim.Resident.ResidentReadinessPolicy.CanRender(
+            Benheim.Resident.ResidentReadiness.Connecting);
+        Tick(tub, 2);
+        Expect(ReferenceEquals(original, tub.Resident), "joining peer does not replace or remove George");
+        ResidentClient.CanRender = Benheim.Resident.ResidentReadinessPolicy.CanRender(
+            Benheim.Resident.ResidentReadiness.Ready);
+        Tick(tub, 3);
+        Expect(ReferenceEquals(original, tub.Resident) && GreydwarfResidentRuntime.Attempts == 1,
+            "readiness recovery reuses the same native visual");
+        ResidentClient.CanRender = Benheim.Resident.ResidentReadinessPolicy.CanRender(
+            Benheim.Resident.ResidentReadiness.Incompatible);
+        Tick(tub, 4);
+        Expect(!tub.Resident, "confirmed incompatible support still removes the resident");
         Console.WriteLine("George client late-join deferral, recovery, dismissal, and failure checks passed");
     }
 
     private static ResidentTubClient NewTub()
     {
         Time.time = 0;
-        ResidentClient.Available = true;
+        ResidentClient.CanRender = true;
         GreydwarfResidentRuntime.IsWorldReady = GreydwarfResidentRuntime.FailCreation = false;
         GreydwarfResidentRuntime.Attempts = 0;
         ResidentDiagnostics.Events.Clear();
