@@ -37,6 +37,14 @@ not see the resident until they repeated the invitation, and that George
 disappeared from Ben's view around respawn. Recovery after joining and respawn
 remains unresolved in live play.
 
+Ben reports that George disappears for Johnny when Ben joins, with a large
+"waiting for compatible players" warning. Developer logs show matching
+clients temporarily lose readiness while another player loads, removing the
+resident until that player's capability handshake completes. Correct this
+ordinary-join behavior without conflating pending support with confirmed
+incompatibility. Shared speech has developer evidence of one result displayed
+on both live clients; player acceptance remains open.
+
 The resident reserves his occupied tub seat without offering a sit prompt;
 the other seats remain usable. Approach with a clear sightline can trigger
 brief native overhead speech. Prove the trigger and display with a fixed line
