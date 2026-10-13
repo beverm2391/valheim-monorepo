@@ -4,7 +4,8 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.118**.
+Installed on Ben's Mac: **0.1.119**, paired with Server Support **0.1.9**.
+Other players need the matching 0.1.119 client for George.
 
 ## Next play session
 
@@ -12,9 +13,14 @@ Installed on Ben's Mac: **0.1.118**.
   Expect Talk hover, Thinking while a reply is pending, then a short native
   remark or a notice if George has nothing to add. Judge his blunt, profane sauna character; replies retain the
   140-character ceiling. Shared-server Talk still needs this play check.
-  Joining a real server session also lets us verify automatic account and
-  current-character capture in private diagnostics; actual identity receipt
-  remains unproven.
+- **George shared memory and player context:** Talk with George, switch
+  visitors, and continue the same conversation. He should carry useful earlier
+  remarks across visitors and a longer conversation instead of restarting or
+  endlessly repeating one line. Judge whether his current-character addressing
+  and known gender/pronouns feel right. Preferred names and player lore remain
+  unauthored. During this real exchange, the operator should also confirm
+  compaction, account-free player context, and full request/response/display
+  receipt in the private server trace; those live paths remain unproven.
 - **George placement:** Hold Shift over a hot-tub seat and Use **Invite George**.
   Expect one lounging George, no Sit prompt on his reserved seat, and usable
   neighboring seats. Dismiss him, then invite him to another tub; the first
@@ -83,7 +89,9 @@ Installed on Ben's Mac: **0.1.118**.
 ## When a compatible peer is available
 
 - **George recovery:** With George already invited, have an updated player
-  join later. Both players should see him without dismissing or reinviting.
+  join later. George should stay visible through the join without a false
+  compatibility warning, and both players should see him without dismissing
+  or reinviting. Talk may briefly say a player is joining, then recover.
   After a player dies and respawns, George should return to that player's view
   when they return to the tub.
 - **George shared speech:** With both players updated to the paired Talk
