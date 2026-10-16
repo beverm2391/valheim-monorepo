@@ -99,12 +99,21 @@ Useful operator commands are:
 scripts/status.sh
 scripts/logs.sh
 scripts/restart.sh
+scripts/update-server.sh --check
+scripts/update-server.sh --restart-approved
 scripts/switch-world.sh WORLD_NAME
 scripts/download-backups.sh
 scripts/apply-server-config.sh
 scripts/install-server-mods.sh
 scripts/set-server-mods.sh disable
 ```
+
+`scripts/update-server.sh` owns routine native-server updates and recovery.
+Use `--check` for read-only readiness and `--restart-approved` only with
+approved downtime. `--install-only` deploys its operator helpers without
+updating or restarting the game. Run `tests/native-server-update-test.sh`
+for its fixture-backed failure and recovery checks; those do not prove a
+live update or rollback.
 
 `server/valheim-start` owns vanilla and modded launch paths. Set
 `VALHEIM_MODDED=0` for recovery: it bypasses BepInEx without deleting installed
