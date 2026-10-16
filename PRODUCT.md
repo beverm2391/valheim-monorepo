@@ -13,6 +13,11 @@ recovery, not as a multiplayer compatibility promise.
 ## Product Boundaries
 
 - The world must remain recoverable through tested local and off-box backups.
+- Routine native-server updates use one operator workflow for graceful stop,
+  verified recovery backups, the SteamCMD update, preservation of the supported
+  mods and private configuration, and readiness checks on the new server
+  invocation. The operator controls downtime; this is not an automatic-update
+  policy.
 - Operator secrets must stay out of local configuration. Deployment may create
   restricted runtime files on the server, but those files are never sources of
   truth.
