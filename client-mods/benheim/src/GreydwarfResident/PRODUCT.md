@@ -22,8 +22,9 @@ establish all of them in multiplayer.
 ## In Development
 
 Live multiplayer visibility remains unresolved. Ben reports that he could not
-see George at all during his latest play session. In an earlier session after
-a corrected Windows installation, Johnny invited George with both players
+see George at all during his latest play session, while the tub's Shift
+interaction offered Dismiss George. In an earlier session after a corrected
+Windows installation, Johnny invited George with both players
 present and both could see him. That earlier success does not establish
 reliable visibility, the full invitation lifecycle, or persistence.
 
