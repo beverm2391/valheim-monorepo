@@ -169,8 +169,10 @@ BENHEIM_AXIOM_DATASET=
 VALHEIM_DIAGNOSTICS_SERVER_ID=
 ```
 
-Inject the dataset-scoped `BENHEIM_AXIOM_INGEST_TOKEN` and rerun
-`scripts/install-server.sh`. Verify `valheim-diagnostics.service` is active.
+Inject the dataset-scoped `BENHEIM_AXIOM_INGEST_TOKEN` and run
+`scripts/apply-diagnostics-config.sh`. It deploys only the diagnostics unit,
+forwarder, and restricted runtime config. Verify `valheim-diagnostics.service`
+is active.
 The forwarder is independent of `valheim.service`; a forwarding failure cannot
 restart or stop the game. The systemd journal remains the raw fallback.
 
