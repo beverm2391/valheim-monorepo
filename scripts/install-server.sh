@@ -39,13 +39,19 @@ if diagnostics_config_requested; then
   diagnostics_configured=1
 fi
 
+# Bootstrap can also configure a stopped existing installation. Refuse a live
+# rerun before staging or replacing any runtime configuration or launcher.
+remote_ssh 'if systemctl is-active --quiet valheim.service || [[ $(systemctl show valheim.service --property=MainPID --value 2>/dev/null || true) =~ ^[1-9][0-9]*$ ]]; then echo "Stop Valheim before bootstrap; use scripts/update-server.sh for routine updates." >&2; exit 1; fi'
 remote_ssh "install -d -m 0700 /tmp/valheim-server"
 remote_stage_created=1
 remote_scp "$root/systemd/valheim.service" "/tmp/valheim-server/valheim.service"
 remote_scp "$root/systemd/valheim-diagnostics.service" "/tmp/valheim-server/valheim-diagnostics.service"
 remote_scp "$root/server/valheim-start" "/tmp/valheim-server/valheim-start"
 remote_scp "$root/server/forward-valheim-failures.py" "/tmp/valheim-server/forward-valheim-failures.py"
+remote_scp "$root/server/valheim_failure_events.py" "/tmp/valheim-server/valheim_failure_events.py"
 remote_scp "$root/server/wait-for-valheim" "/tmp/valheim-server/wait-for-valheim"
+remote_scp "$root/server/update-valheim-installation" "/tmp/valheim-server/valheim-update"
+remote_scp "$root/server/backup-valheim-worlds" "/tmp/valheim-server/valheim-backup"
 remote_scp "$tmp_env" "/tmp/valheim-server/server.env"
 if (( r2_configured == 1 )); then
   remote_scp "$tmp_r2" "/tmp/valheim-server/r2.env"
@@ -95,26 +101,12 @@ install -m 0644 "$work/valheim.service" /etc/systemd/system/valheim.service
 install -m 0644 "$work/valheim-diagnostics.service" /etc/systemd/system/valheim-diagnostics.service
 install -m 0755 "$work/valheim-start" /usr/local/bin/valheim-start
 install -m 0755 "$work/forward-valheim-failures.py" /usr/local/bin/valheim-forward-failures
+install -m 0644 "$work/valheim_failure_events.py" /usr/local/bin/valheim_failure_events.py
 install -m 0755 "$work/wait-for-valheim" /usr/local/bin/valheim-wait-ready
 
-cat > /usr/local/bin/valheim-update <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-sudo -u valheim /usr/games/steamcmd +force_install_dir /opt/valheim/server +login anonymous +app_update 896660 validate +quit
-EOF
-chmod 0755 /usr/local/bin/valheim-update
+install -m 0755 "$work/valheim-update" /usr/local/bin/valheim-update
 
-cat > /usr/local/bin/valheim-backup <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-src=/var/lib/valheim/worlds_local
-dest=/var/backups/valheim/worlds-$stamp.tar.gz
-tar -C "$src" -czf "$dest" .
-find /var/backups/valheim -name 'worlds-*.tar.gz' -type f -mtime +14 -delete
-echo "$dest"
-EOF
-chmod 0755 /usr/local/bin/valheim-backup
+install -m 0755 "$work/valheim-backup" /usr/local/bin/valheim-backup
 
 cat > /usr/local/bin/valheim-r2-upload <<'EOF'
 #!/usr/bin/env bash
@@ -188,7 +180,18 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-/usr/local/bin/valheim-update
+# Provision native files only for a first installation. Configuring R2 or
+# diagnostics on a stopped existing server must not silently update its game.
+if [[ ! -e /opt/valheim/server/steamapps/appmanifest_896660.acf &&
+      ! -e /opt/valheim/server/valheim_server.x86_64 ]]; then
+  /usr/local/bin/valheim-update
+elif [[ ! -s /opt/valheim/server/steamapps/appmanifest_896660.acf ||
+        ! -x /opt/valheim/server/valheim_server.x86_64 ]]; then
+  echo 'Incomplete existing native installation; recover it before rerunning bootstrap.' >&2
+  exit 1
+else
+  echo 'Existing native installation retained; use scripts/update-server.sh for game updates.'
+fi
 chown -R valheim:valheim /opt/valheim /var/lib/valheim
 systemctl daemon-reload
 systemctl enable valheim.service valheim-backup.timer valheim-diagnostics.service

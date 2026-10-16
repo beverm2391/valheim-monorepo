@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+root=${VALHEIM_BACKUP_ROOT:-}
+source_dir="$root/var/lib/valheim/worlds_local"
+destination="$root/var/backups/valheim"
+stamp=$(date -u +%Y%m%dT%H%M%SZ)
+
+# The timer and an operator may back up simultaneously. Each writer owns a
+# private temporary file and publishes a unique complete archive, so neither
+# can overwrite an archive being validated or uploaded by the other.
+temporary=$(mktemp "$destination/.worlds-$stamp.XXXXXXXX")
+trap 'rm -f "$temporary"' EXIT
+archive="$destination/worlds-$stamp-${temporary##*.}.tar.gz"
+tar -C "$source_dir" -czf "$temporary" .
+tar -tzf "$temporary" >/dev/null
+mv "$temporary" "$archive"
+trap - EXIT
+find "$destination" -name 'worlds-*.tar.gz' -type f -mtime +14 -delete
+printf '%s\n' "$archive"

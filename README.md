@@ -293,12 +293,11 @@ VALHEIM_R2_PREFIX=my-server
 `VALHEIM_R2_CONFIGURE=0` leaves any existing server runtime file unchanged. It
 does not disable an R2 target that is already configured.
 
-Supply `VALHEIM_R2_ACCESS_KEY_ID` and `VALHEIM_R2_SECRET_ACCESS_KEY` through
-your secret manager when you install the server. The installer fails before
-contacting the server if either credential or a required routing setting is
-missing.
+Supply `VALHEIM_R2_ACCESS_KEY_ID` and `VALHEIM_R2_SECRET_ACCESS_KEY` through your
+secret manager. Missing credentials or routing settings fail before remote contact.
 
-Run the installer again:
+Stop Valheim during agreed downtime before rerunning bootstrap. Active-service
+reruns are refused; existing native installations are retained:
 
 ```bash
 your-secret-manager run -- scripts/install-server.sh
@@ -309,7 +308,7 @@ does not use a local credential file. The nightly backup timer uploads tarballs
 to:
 
 ```text
-s3://<bucket>/<prefix>/worlds-YYYYMMDDTHHMMSSZ.tar.gz
+s3://<bucket>/<prefix>/worlds-YYYYMMDDTHHMMSSZ-<unique>.tar.gz
 ```
 
 Run a manual backup and upload:
@@ -323,17 +322,24 @@ not need bucket-management permission.
 
 ## Updating Valheim
 
-When your client updates and the server needs to match, SSH to the server and
-run:
+For native updates, install tools without restarting, then run read-only
+preflight for the world, native version, plugins and UDP listeners. R2 is required:
 
 ```bash
-sudo systemctl stop valheim
-sudo valheim-update
-sudo systemctl start valheim
+scripts/update-server.sh --install-only
+scripts/update-server.sh --check
 ```
 
-Automatic updates are intentionally not enabled. Surprise restarts during a
-session are worse than a manual update before game night.
+Once downtime is approved, run the update; there is no automatic schedule:
+
+```bash
+scripts/update-server.sh --restart-approved
+```
+
+The workflow stops gracefully, validates and uploads world/installation
+archives, updates via SteamCMD, preserves private/mod state, and checks readiness.
+Failure restores the old installation and any world changed by the new startup.
+Recovery artifacts and private records remain; unverified recovery leaves the game stopped.
 
 ## Server Mods
 
