@@ -17,6 +17,8 @@ internal static class ResidentClient
     private static bool compatible, warned;
     private static ResidentReadiness readiness = ResidentReadiness.MissingSupport;
     private static float nextCapability, connectedAt;
+    private static readonly ResidentCapabilityNotice capabilityNotice = new();
+    private const string CapabilityUnavailableMessage = "George needs matching Benheim players and Server Support.";
     private static readonly Dictionary<ZDOID, ResidentTubClient> tubs = new();
     private static readonly Dictionary<string, PendingEncounter> encounters = new();
     private static readonly Dictionary<string, float> cancelledEncounters = new();
@@ -48,6 +50,7 @@ internal static class ResidentClient
 
     internal static void Update()
     {
+        FlushCapabilityNotice();
         if (connection == null || !ReferenceEquals(connection, ZNet.instance?.GetServerRPC())) return;
         float now = Time.realtimeSinceStartup;
         if (now >= nextCapability && connection.IsConnected())
@@ -60,6 +63,7 @@ internal static class ResidentClient
             warned = true;
             Plugin.Log.LogWarning("George requires matching Benheim Server Support and compatible players.");
             ResidentDiagnostics.Emit("capability_unavailable", "server_timeout");
+            RequestCapabilityUnavailableNotice();
         }
         foreach (var pair in encounters.ToArray())
             if (!Relevant(pair.Value) || now >= pair.Value.Expires)
@@ -75,7 +79,11 @@ internal static class ResidentClient
         compatible = version == ResidentProtocol.Version;
         readiness = compatible && ResidentReadinessPolicy.TryParse(state, out ResidentReadiness parsed)
             ? parsed : ResidentReadiness.Incompatible;
-        if (previous != readiness || wasAvailable != Available)
+        bool changed = capabilityNotice.ObserveCapability(
+            previous != readiness || wasAvailable != Available,
+            ResidentReadinessPolicy.CanRender(readiness));
+        FlushCapabilityNotice();
+        if (changed)
         {
             string reason = ResidentReadinessPolicy.Reason(readiness);
             ResidentDiagnostics.Emit("capability_changed", reason);
@@ -83,10 +91,27 @@ internal static class ResidentClient
             {
                 // Pending joins pause shared actions but keep the invited
                 // native visual. Only actual failures merit a join-time warning.
-                if (!ResidentReadinessPolicy.CanRender(readiness))
-                    Message("George needs matching Benheim players and Server Support.");
                 foreach (string id in encounters.Keys.ToArray()) Cancel(id, reason);
             }
+        }
+    }
+
+    private static void RequestCapabilityUnavailableNotice()
+    {
+        capabilityNotice.Request();
+        FlushCapabilityNotice();
+    }
+
+    private static void FlushCapabilityNotice()
+    {
+        // Player.Message silently returns without a valid owned view or HUD.
+        // Do not consume feedback until the native recipient can accept it.
+        Player player = Player.m_localPlayer;
+        bool canDisplay = player && player.IsOwner() && MessageHud.instance;
+        if (capabilityNotice.TryTake(canDisplay))
+        {
+            Message(CapabilityUnavailableMessage);
+            ResidentDiagnostics.Emit("capability_notice_submitted", "support_unavailable");
         }
     }
 
@@ -309,6 +334,7 @@ internal static class ResidentClient
     {
         foreach (string id in encounters.Keys.ToArray()) Cancel(id, "connection_reset");
         connection = null; compatible = warned = false; readiness = ResidentReadiness.MissingSupport; nextCapability = 0;
+        capabilityNotice.Reset();
         cancelledEncounters.Clear();
     }
     internal static void Reset() { ResetConnection(); tubs.Clear(); }

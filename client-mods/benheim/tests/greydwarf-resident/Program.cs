@@ -44,6 +44,7 @@ Expect(ResidentVisit.IsOutside(6.01f, 0), "horizontal wider boundary");
 Expect(ResidentVisit.IsOutside(0, -3.01f), "vertical distance uses absolute value");
 
 ClientLifecycleTests.Run();
+ResidentCapabilityNoticeTests.Run();
 DrowsinessTests.Run();
 
 Console.WriteLine("Greydwarf resident visit, drowsiness, and lifecycle checks passed");
