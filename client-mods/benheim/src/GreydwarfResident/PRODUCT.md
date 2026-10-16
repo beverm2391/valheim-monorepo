@@ -9,11 +9,6 @@ system or a worker.
 
 ## Current Behavior
 
-Ben reports that George works in live Benheim multiplayer after a clean
-corrected Windows installation. When Johnny invites George with both players
-present, both can see him. Shared speech, the full invitation lifecycle, and
-persistence remain unproven.
-
 Ben confirms that live George remarks use his current character's name.
 Ben reports that Talk worked in the Lab and wants it shipped. This accepts
 the Lab interaction; shared-server Talk remains unproven.
@@ -25,6 +20,12 @@ acceptance of these behaviors comes from the Lab; the live report does not
 establish all of them in multiplayer.
 
 ## In Development
+
+Live multiplayer visibility remains unresolved. Ben reports that he could not
+see George at all during his latest play session. In an earlier session after
+a corrected Windows installation, Johnny invited George with both players
+present and both could see him. That earlier success does not establish
+reliable visibility, the full invitation lifecycle, or persistence.
 
 Complete the remaining player checks on Ben's shared server. Preserve the
 accepted appearance, seating, idle variation, and restrained awareness: notice an approaching
