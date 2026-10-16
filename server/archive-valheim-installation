@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# The installed mods can contain private configuration and conversation state.
+# Protect the temporary archive throughout compression, before the final chmod.
+umask 077
+
 root=${VALHEIM_ARCHIVE_ROOT:-}
 archive_root=${root:-/}
 destination=${VALHEIM_ARCHIVE_DEST_DIR:-$root/var/backups/valheim}

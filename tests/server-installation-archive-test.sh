@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 helper="$repo_root/server/archive-valheim-installation"
+real_tar=$(command -v tar)
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/valheim-server-archive-test.XXXXXX")
 trap 'rm -R "$test_root"' EXIT
 
@@ -43,13 +44,25 @@ EOF
 #!/usr/bin/env bash
 printf '20260908T190000Z\n'
 EOF
-  chmod 0755 "$fixture_root/usr/local/bin/valheim-r2-upload" "$fixture_bin/systemctl" "$fixture_bin/date"
+  cat > "$fixture_bin/tar" <<'EOF'
+#!/usr/bin/env bash
+"$ARCHIVE_TEST_TAR_BIN" "$@" || exit $?
+if [[ ${1:-} == -C && ${3:-} == -czf ]]; then
+  # Observe the archive before returning control to the helper's final chmod.
+  { stat -f '%Lp' "$4" 2>/dev/null || stat -c '%a' "$4"; } > "$ARCHIVE_TEST_TEMP_MODE"
+fi
+EOF
+  chmod 0755 "$fixture_root/usr/local/bin/valheim-r2-upload" "$fixture_bin/systemctl" "$fixture_bin/date" "$fixture_bin/tar"
 }
 
 run_helper() {
-  ARCHIVE_TEST_STATE="$fixture_state" ARCHIVE_TEST_UPLOAD="$fixture_upload" \
-  ARCHIVE_TEST_UPLOAD_STATUS="${1:-0}" VALHEIM_ARCHIVE_ROOT="$fixture_root" \
-  VALHEIM_ARCHIVE_DEST_DIR="$fixture_dest" PATH="$fixture_bin:$PATH" "$helper"
+  (
+    umask 022
+    ARCHIVE_TEST_STATE="$fixture_state" ARCHIVE_TEST_UPLOAD="$fixture_upload" \
+    ARCHIVE_TEST_TAR_BIN="$real_tar" ARCHIVE_TEST_TEMP_MODE="$fixture/temporary-mode" \
+    ARCHIVE_TEST_UPLOAD_STATUS="${1:-0}" VALHEIM_ARCHIVE_ROOT="$fixture_root" \
+    VALHEIM_ARCHIVE_DEST_DIR="$fixture_dest" PATH="$fixture_bin:$PATH" "$helper"
+  )
 }
 
 make_fixture running active
@@ -71,6 +84,7 @@ if grep -Fq 'etc/valheim/server.env' <<<"$actual_members"; then fail "archive ex
 pass "archive excludes the runtime secret file"
 mode=$(stat -f '%Lp' "$archive" 2>/dev/null || stat -c '%a' "$archive")
 expect "archive is mode 0600" test "$mode" = 600
+expect "temporary archive is private before the final chmod" grep -Fxq 600 "$fixture/temporary-mode"
 expect "successful archive is sent to the uploader" grep -Fxq "$archive" "$fixture_upload"
 expected_sha=$(shasum -a 256 "$archive" | awk '{print $1}')
 expect "reported hash matches the archive" grep -Fq "SHA-256: $expected_sha" "$fixture/out"
