@@ -175,7 +175,10 @@ Keep runtime startup and gameplay proof as separate gates.
 ## Test environments
 
 Use an isolated local single-player world for ordinary Benheim gameplay
-development and QA. Production is for normal play, not experiments. Provision
+development and QA. Reuse existing disposable test worlds as much as possible;
+a new feature does not by itself need a new world.
+
+Production is for normal play, not experiments. Provision
 a disposable dedicated QA host only when multiplayer ownership or protocol,
 dedicated-server behavior, or a major migration cannot be proved locally.
 Destroy that host when the bounded test ends; there is no standing cloud QA
