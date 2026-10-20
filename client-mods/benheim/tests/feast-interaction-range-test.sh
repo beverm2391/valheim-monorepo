@@ -7,19 +7,34 @@ ranges="$root/src/Interaction/InteractionRanges.cs"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native="$source_tree/Feast.cs"
 
-# Installed Valheim 1.0.17 uses the same private distance gate for hover text
+# Installed Valheim 1.0.20 uses the same private distance gate for hover text
 # and interaction, before it reaches native food eligibility and owner RPCs.
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$source_tree/Version.cs"
-grep -Fq 'public float m_useDistance = 2f;' "$native"
-grep -Fq 'private bool InUseDistance(Humanoid human)' "$native"
-grep -Fq 'return Vector3.Distance(human.transform.position, base.transform.position) < m_useDistance;' "$native"
-grep -Fq 'if (!InUseDistance(Player.m_localPlayer))' "$native"
-grep -Fq 'if (!player || !InUseDistance(player))' "$native"
-grep -Fq 'if (!player.CanConsumeItem(m_foodItem.m_itemData, checkWorldLevel: true))' "$native"
-grep -Fq 'm_nview.InvokeRPC("RPC_TryEat");' "$native"
-grep -Fq 'if (!m_nview.IsOwner())' "$native"
-grep -Fq 'm_nview.InvokeRPC(ZNetView.Everybody, "RPC_OnEat");' "$native"
-grep -Fq 'm_nview.InvokeRPC(sender, "RPC_EatConfirmation");' "$native"
+if ! grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 20);' "$source_tree/Version.cs"; then
+  printf 'Valheim source version mismatch: this native integration check is qualified for 1.0.20\n' >&2
+  exit 1
+fi
+
+assert_native() {
+  local expected="$1"
+  if ! grep -Fq "$expected" "$native"; then
+    printf 'Valheim 1.0.20 Feast contract changed: expected "%s" in Feast.cs\n' \
+      "$expected" >&2
+    exit 1
+  fi
+}
+
+assert_native 'private void Start()'
+assert_native 'public float m_useDistance = 2f;'
+assert_native 'private bool InUseDistance(Humanoid human)'
+assert_native 'return Vector3.Distance(human.transform.position, base.transform.position) < m_useDistance;'
+assert_native 'if (!InUseDistance(Player.m_localPlayer))'
+assert_native 'public bool Interact(Humanoid human, bool hold, bool alt)'
+assert_native 'if (!player || !InUseDistance(player))'
+assert_native 'if (!player.CanConsumeItem(m_foodItem.m_itemData, checkWorldLevel: true))'
+assert_native 'm_nview.InvokeRPC("RPC_TryEat");'
+assert_native 'if (!m_nview.IsOwner())'
+assert_native 'm_nview.InvokeRPC(ZNetView.Everybody, "RPC_OnEat");'
+assert_native 'm_nview.InvokeRPC(sender, "RPC_EatConfirmation");'
 
 # Benheim raises only Feast.m_useDistance after native initialization. The
 # shared 8-meter targeting range and every unrelated range remain unchanged.

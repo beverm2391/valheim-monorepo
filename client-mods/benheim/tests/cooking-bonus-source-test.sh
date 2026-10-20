@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'status=$?; printf "cooking bonus assertion failed at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2; exit "$status"' ERR
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_file="$root/src/Production/CookingBonusPatches.cs"
@@ -7,7 +8,12 @@ source_tree="$($root/scripts/ensure-valheim-source.sh)"
 native_inventory="$source_tree/InventoryGui.cs"
 native_station="$source_tree/CookingStation.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$source_tree/Version.cs"
+if ! grep -Fq 'public static GameVersion CurrentVersion { get; } = new GameVersion(1, 0, 20);' "$source_tree/Version.cs"; then
+  printf 'cooking bonus checks require Valheim 1.0.20 source; recheck InventoryGui.DoCrafting and CookingStation.OnInteract before updating this guard\n' >&2
+  exit 1
+fi
+grep -Fq 'private void DoCrafting(Player player)' "$native_inventory"
+grep -Fq 'private bool OnInteract(Humanoid user)' "$native_station"
 grep -Fq 'public float m_craftBonusChance = 0.25f;' "$native_inventory"
 grep -Fq 'public int m_craftBonusAmount = 1;' "$native_inventory"
 grep -Fq 'currentCraftingStation.m_craftingSkill != Skills.SkillType.None' "$native_inventory"

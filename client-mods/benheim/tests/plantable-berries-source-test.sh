@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'printf "plantable berries source check failed at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
@@ -7,7 +8,13 @@ registration="$root/src/Farming/PlantableBerries.cs"
 mass_planting="$root/src/Farming/MassPlanting.cs"
 behavior="$root/tests/plantable-berries/Program.cs"
 
-# UnityPy 1.25.3 resolves the installed Valheim 1.0.17
+# Qualification covers the installed source and its serialized Cultivator gate.
+if ! grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 20);' "$source_tree/Version.cs"; then
+  printf 'plantable berries: native contracts are qualified for Valheim 1.0.20; inspect the installed source and prefab before updating this gate\n' >&2
+  exit 1
+fi
+
+# UnityPy 1.25.3 resolves the installed Valheim 1.0.20
 # _CultivatorPieceTable.prefab and verifies the native removal gate that the
 # behavioral fixture models. Inspect the serialized contract directly so an
 # unrelated bundle rebuild does not invalidate the test.
@@ -41,13 +48,11 @@ for component in root_tree["m_Component"]:
     if "m_canRemovePieces" in component_tree:
         piece_tables.append(component_tree)
 
-assert len(piece_tables) == 1
-assert piece_tables[0]["m_canRemovePieces"] == 0
+assert len(piece_tables) == 1, f"expected one native Cultivator PieceTable, found {len(piece_tables)}"
+assert piece_tables[0]["m_canRemovePieces"] == 0, "native Cultivator now permits piece removal; requalify berry removal"
 PY
 grep -Fq 'var pieceTable = new PieceTable { m_canRemovePieces = false };' "$behavior"
 grep -Fq '!toolPieces.m_canRemovePieces' "$behavior"
-
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$source_tree/Version.cs"
 
 # The feature modifies only the three native berry prefabs. It adds build
 # metadata to their existing network/pickable/destructible lifecycle.
@@ -136,6 +141,10 @@ done
 # Installed Valheim owns the persistent/network path: ZNetScene resolves the
 # native prefab hash, Player clones that prefab and sets its creator, and
 # Pickable stores picked time and state in the native ZDO.
+grep -Fq 'public void SetCreator(long uid, PlatformUserID platformUserID)' "$source_tree/Piece.cs"
+grep -Fq 'public bool CanBeRemoved()' "$source_tree/Piece.cs"
+grep -Fq 'private bool ShouldRespawn()' "$source_tree/Pickable.cs"
+grep -Fq 'public void SetPicked(bool picked)' "$source_tree/Pickable.cs"
 grep -Fq 'm_namedPrefabs.Add(prefab.name.GetStableHashCode(), prefab);' "$source_tree/ZNetScene.cs"
 grep -Fq 'return GetPrefab(name.GetStableHashCode());' "$source_tree/ZNetScene.cs"
 grep -Fq 'GameObject gameObject = UnityEngine.Object.Instantiate(original, pos, rot);' "$source_tree/Player.cs"
@@ -145,7 +154,8 @@ grep -Fq 'm_pickedTime = m_nview.GetZDO().GetLong(ZDOVars.s_pickedTime, 0L);' "$
 grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_picked, m_picked);' "$source_tree/Pickable.cs"
 grep -Fq 'DateTime time = ZNet.instance.GetTime();' "$source_tree/Pickable.cs"
 grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_pickedTime, time.Ticks);' "$source_tree/Pickable.cs"
-grep -Fq 'timeSpan.TotalMinutes <= (double)m_respawnTimeMinutes' "$source_tree/Pickable.cs"
+grep -Fq 'if (num > 1 && timeSpan.TotalMinutes <= (double)m_respawnTimeMinutes)' "$source_tree/Pickable.cs"
+grep -Fq 'if (!m_nview.IsValid() || !m_nview.IsOwner() || !m_picked)' "$source_tree/Pickable.cs"
 grep -Fq 'm_nview.InvokeRPC(ZNetView.Everybody, "RPC_SetPicked", false);' "$source_tree/Pickable.cs"
 grep -Fq 'if (!(m_nview == null) && m_nview.IsOwner() && GetCreator() == 0L)' "$source_tree/Piece.cs"
 grep -Fq 'm_nview.GetZDO().Set(ZDOVars.s_creator, uid);' "$source_tree/Piece.cs"
