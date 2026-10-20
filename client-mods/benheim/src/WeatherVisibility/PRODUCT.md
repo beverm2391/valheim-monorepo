@@ -20,8 +20,3 @@ The [Blizzard Clear Textures mod](https://www.nexusmods.com/valheim/mods/1788)
 is a behavior reference: it hides blizzard snow by replacing a texture and
 leaves misty gusts. It was last updated in 2022; its current-game behavior is
 unproven. Benheim will own its own client-side control and visual treatment.
-
-## Status
-
-The desired behavior is agreed. No Benheim implementation or gameplay proof
-has landed yet.
