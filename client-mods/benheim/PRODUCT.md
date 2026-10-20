@@ -158,6 +158,7 @@ technical cost.
 | [World Labels](src/WorldLabels/PRODUCT.md) | Make existing sign text and portal destinations readable at a glance. |
 | [Mining](src/Mining/PRODUCT.md) | Skill-based mining damage, crits, and AOE. |
 | [Woodcutting](src/Woodcutting/PRODUCT.md) | Skill-based cleave for trees and logs. |
+| [Grappling](src/Grappling/PRODUCT.md) | Reward successful traversal with a skill that increases grapple reach and shortens reload time. |
 | [Player Combat](src/PlayerCombat/PRODUCT.md) | Reward skilled and bold play with adrenaline and earned combat states. |
 | [Adrenaline](src/Adrenaline/PRODUCT.md) | Adrenaline gain, perfect-defense feedback, and decay timing. |
 | [Archery](src/Archery/PRODUCT.md) | Global arrow headshots and collision-time feedback. |

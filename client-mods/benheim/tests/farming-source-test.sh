@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'printf "farming source check failed at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
@@ -58,12 +59,32 @@ assert_source 'Left Shift \+ interact' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'Left Shift \+ plant' 'src/Shortcuts/ShortcutOverlayCatalog.cs'
 assert_source 'MassFarming v1\.12' 'THIRD_PARTY_NOTICES.md'
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$native_version"
+# Qualified against the installed 1.0.20 source. A new game version needs the
+# placement-cost and terrain-protocol seams below inspected again.
+if ! grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 20);' "$native_version"; then
+  printf 'farming: native contracts are qualified for Valheim 1.0.20; inspect the installed source before updating this gate\n' >&2
+  exit 1
+fi
+grep -Fq 'private void UpdatePlacement(bool takeInput, float dt)' "$native_player"
+grep -Fq 'public bool TryPlacePiece(Piece piece)' "$native_player"
+grep -Fq 'public void PlacePiece(Piece piece, Vector3 pos, Quaternion rot, bool doAttack = true, bool cheated = false)' "$native_player"
 grep -Fq 'if (TryPlacePiece(selectedPiece))' "$native_player"
 grep -Fq 'UseStamina(GetBuildStamina());' "$native_player"
 grep -Fq 'private float GetBuildStamina()' "$native_player"
+grep -Fq 'private float GetPlaceDurability(ItemDrop.ItemData tool)' "$native_player"
+grep -Fq 'attackStamina *= 1f + GetEquipmentHomeItemModifier();' "$native_player"
+grep -Fq 'm_seman.ModifyHomeItemStaminaUsage(attackStamina, ref attackStamina);' "$native_player"
+grep -Fq 'attackStamina -= attackStamina * 0.5f * skillFactor;' "$native_player"
+grep -Fq 'public void Serialize(ZPackage pkg, GameObject prefab)' "$native_terrain_op"
+grep -Fq 'public static Settings Deserialize(ZPackage pkg)' "$native_terrain_op"
 grep -Fq 'pkg.Write(prefabName.GetStableHashCode());' "$native_terrain_op"
+grep -Fq 'return prefab.m_settings;' "$native_terrain_op"
 grep -Fq 'modifier.m_settings.Serialize(zPackage, modifier.gameObject);' "$source_tree/TerrainComp.cs"
+grep -Fq 'private void DoOperation(Vector3 pos, Vector3 rot, TerrainOp.Settings modifier)' "$source_tree/TerrainComp.cs"
+grep -Fq 'private void UpdatePlacementGhost(bool flashGuardStone)' "$native_player"
+grep -Fq 'public BuildUi m_buildUi;' "$source_tree/Hud.cs"
+grep -Fq 'public static void CloseBuildUi()' "$source_tree/Hud.cs"
+grep -Fq 'private RectTransform m_pieceView;' "$source_tree/BuildUi.cs"
 placement_block="$(sed -n '/Piece selectedPiece = m_buildPieces.GetSelectedPiece()/,/if (TryPlacePiece(selectedPiece))/p' "$native_player")"
 grep -Fq 'HaveStamina(rightItem.m_shared.m_attack.m_attackStamina)' <<<"$placement_block"
 grep -Fq 'Each successful ordinary or grid plant placement costs 25% of the native planting stamina cost that Valheim has already resolved' "$root/src/Shortcuts/ShortcutOverlayCatalog.cs"

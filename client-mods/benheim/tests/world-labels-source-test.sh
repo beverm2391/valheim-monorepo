@@ -10,14 +10,31 @@ native_version="$native_tree/Version.cs"
 native_sign="$native_tree/Sign.cs"
 native_portal="$native_tree/TeleportWorld.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$native_version"
-grep -Fq 'public TextMeshProUGUI m_textWidget;' "$native_sign"
-grep -Fq 'm_textWidget.text = m_currentText;' "$native_sign"
-grep -Fq 'public string GetText()' "$native_portal"
-grep -Fq 'return GetTagInfo().text;' "$native_portal"
-grep -Fq 'string text2 = zDO.GetString(ZDOVars.s_tag);' "$native_portal"
-grep -Fq 'text = CensorShittyWords.FilterUGC(text2, UGCType.Text, userId, 0L),' "$native_portal"
-grep -Fq 'InvokeRepeating("UpdatePortal", 0.5f, 0.5f);' "$native_portal"
+if ! grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 20);' "$native_version"; then
+  printf 'Valheim source version mismatch: this native integration check is qualified for 1.0.20\n' >&2
+  exit 1
+fi
+
+assert_native() {
+  local source_file="$1"
+  local expected="$2"
+  if ! grep -Fq "$expected" "$source_file"; then
+    printf 'Valheim 1.0.20 native contract changed: expected "%s" in %s\n' \
+      "$expected" "${source_file##*/}" >&2
+    exit 1
+  fi
+}
+
+assert_native "$native_sign" 'public TextMeshProUGUI m_textWidget;'
+assert_native "$native_sign" 'private void Awake()'
+assert_native "$native_sign" 'UpdateText();'
+assert_native "$native_sign" 'm_textWidget.text = m_currentText;'
+assert_native "$native_portal" 'private void Awake()'
+assert_native "$native_portal" 'InvokeRepeating("UpdatePortal", 0.5f, 0.5f);'
+assert_native "$native_portal" 'public string GetText()'
+assert_native "$native_portal" 'return GetTagInfo().text;'
+assert_native "$native_portal" 'string text2 = zDO.GetString(ZDOVars.s_tag);'
+assert_native "$native_portal" 'text = CensorShittyWords.FilterUGC(text2, UGCType.Text, userId, 0L),'
 
 grep -Fq '[HarmonyPatch(typeof(Sign), "Awake")]' "$module/WorldLabelPatches.cs"
 grep -Fq '[HarmonyPatch(typeof(TeleportWorld), "Awake")]' "$module/WorldLabelPatches.cs"

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'status=$?; printf "crafting batch assertion failed at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2; exit "$status"' ERR
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_tree="$($root/scripts/ensure-valheim-source.sh)"
@@ -10,7 +11,13 @@ diagnostics="$root/src/Crafting/CraftingBatchDiagnostics.cs"
 patches="$root/src/Crafting/CraftingPatches.cs"
 overlay="$root/src/Shortcuts/ShortcutOverlayCatalog.cs"
 
-grep -Fq 'CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$source_tree/Version.cs"
+if ! grep -Fq 'public static GameVersion CurrentVersion { get; } = new GameVersion(1, 0, 20);' "$source_tree/Version.cs"; then
+  printf 'crafting batch checks require Valheim 1.0.20 source; recheck InventoryGui.cs methods before updating this guard\n' >&2
+  exit 1
+fi
+grep -Fq 'private void UpdateRecipe(Player player, float dt)' "$native_inventory"
+grep -Fq 'private void OnCraftPressed()' "$native_inventory"
+grep -Fq 'private void DoCrafting(Player player)' "$native_inventory"
 grep -Fq 'public int m_multiCraftAmount = 5;' "$native_inventory"
 grep -Fq 'public float m_craftDuration = 2f;' "$native_inventory"
 grep -Fq 'public float m_multiCraftDuration = 6f;' "$native_inventory"

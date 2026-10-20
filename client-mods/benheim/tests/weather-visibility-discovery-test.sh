@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'status=$?; printf "weather visibility assertion failed at line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2; exit "$status"' ERR
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 discovery="$root/src/WeatherVisibility/BlizzardVisibilityDiscovery.cs"
@@ -16,7 +17,11 @@ native_version="$source_tree/Version.cs"
 
 # Installed Valheim 1.0 owns weather through these runtime objects. The probe
 # must discover their loaded children instead of encoding an old mod's paths.
-grep -Fq 'public static GameVersion CurrentVersion { get; } = new GameVersion(1, 0, 17);' "$native_version"
+if ! grep -Fq 'public static GameVersion CurrentVersion { get; } = new GameVersion(1, 0, 20);' "$native_version"; then
+  printf 'weather visibility checks require Valheim 1.0.20 source; recheck EnvMan.SetEnv and its callers before updating this guard\n' >&2
+  exit 1
+fi
+grep -Fq 'private void SetEnv(EnvSetup env, float dayInt, float nightInt, float morningInt, float eveningInt, float dt)' "$native_env"
 grep -Fq 'private void SetParticleArrayEnabled(GameObject[] psystems, bool enabled)' "$native_env"
 grep -Fq 'if (env.m_envObject != m_currentEnvObject)' "$native_env"
 grep -Fq 'RenderSettings.fogDensity += env.m_fogDensityDay * dayInt;' "$native_env"
