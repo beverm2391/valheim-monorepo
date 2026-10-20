@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="persistence/**/*.cs" />
+    <Compile Include="../../src/Grappling/GrapplingRules.cs" Link="GrapplingRules.cs" />
+    <Compile Include="../../src/Grappling/GrapplingRuntime.cs" Link="GrapplingRuntime.cs" />
+    <Compile Include="../../src/Grappling/GrapplingSkill.cs" Link="GrapplingSkill.cs" />
+  </ItemGroup>
+</Project>
