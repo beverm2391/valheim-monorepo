@@ -5,6 +5,10 @@ pieces and construction tools. We will build our own version and borrow what
 works from community mods. The ideas below are not a settled feature list or
 implementation plan.
 
+## Wanted Pieces
+
+Crystal floors using the existing crystal appearance.
+
 ## Ideas to Explore
 
 - Snapping and rotation that make angled layouts and awkward connections easy
