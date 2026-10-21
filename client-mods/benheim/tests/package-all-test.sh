@@ -136,4 +136,16 @@ done
 grep -Fq 'stage=archive_check platform=Windows status=failed' "$test_root/failure.log"
 test "$(wc -l < "$verify_log" | tr -d ' ')" = 4
 
+# mv accepts a directory as its destination. That must never produce a ready
+# marker pointing at a directory instead of the promised archive file.
+mv "$mac" "$test_root/prior-mac.zip"
+mkdir "$mac"
+if package_fixture > "$test_root/publish-failure.log" 2>&1; then
+  echo 'group packaging accepted a directory as its final archive path' >&2
+  exit 1
+fi
+grep -Fq 'stage=publish platform=macOS status=failed' "$test_root/publish-failure.log"
+! grep -Fq 'stage=complete' "$test_root/publish-failure.log"
+test -z "$(find "$speech_tmp" -mindepth 1 -print -quit)"
+
 echo "private group packages verify one committed snapshot and reject mismatched archive bytes"

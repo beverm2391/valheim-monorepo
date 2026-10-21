@@ -124,7 +124,7 @@ done
 mkdir -p "$dist"
 for platform in macOS Windows; do
   package_name="Benheim-$platform-$version.zip"
-  if ! mv -f "$package_dist/$package_name" "$dist/$package_name"; then
+  if ! mv -f "$package_dist/$package_name" "$dist/$package_name" || [[ ! -f "$dist/$package_name" ]]; then
     printf 'package: stage=publish platform=%s status=failed\n' "$platform" >&2
     exit 1
   fi
