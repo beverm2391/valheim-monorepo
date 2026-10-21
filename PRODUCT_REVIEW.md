@@ -4,10 +4,14 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.113**.
+Installed on Ben's Mac: **0.1.121**, paired with Server Support **0.1.9**.
 
 ## Next play session
 
+- **Grappling:** Traverse gaps and climb with the native hook. Check that
+  Grappling appears in Skills and gains progress from useful travel; misses,
+  nearby shots, and stationary hanging should not train it. Judge XP pacing
+  and whether higher-level reach and shorter reload feel right.
 - **George placement:** Hold Shift over a hot-tub seat and Use **Invite George**.
   Expect one lounging George, no Sit prompt on his reserved seat, and usable
   neighboring seats. Dismiss him, then invite him to another tub; the first
@@ -75,6 +79,9 @@ Installed on Ben's Mac: **0.1.113**.
 
 ## When a compatible peer is available
 
+- **Grappling:** Traverse on the shared server, reconnect, and check that
+  Grappling progress remains with the character and other players see normal
+  hook movement.
 - **George shared speech:** With both players updated, approach him with a
   clear sightline. An occasional short remark should be the same for both
   players, with George looking toward its visitor before relaxing again.
