@@ -4,11 +4,14 @@ Only player-visible behavior that still needs Ben's hands belongs here.
 Automated contracts, diagnostics, and exhaustive edge cases stay with the
 feature that owns them.
 
-Installed on Ben's Mac: **0.1.119**, paired with Server Support **0.1.9**.
-Other players need the matching 0.1.119 client for George.
+Installed on Ben's Mac: **0.1.121**, paired with Server Support **0.1.9**.
 
 ## Next play session
 
+- **Grappling:** Traverse gaps and climb with the native hook. Check that
+  Grappling appears in Skills and gains progress from useful travel; misses,
+  nearby shots, and stationary hanging should not train it. Judge XP pacing
+  and whether higher-level reach and shorter reload feel right.
 - **George Talk and personality:** Aim at George's head and press Use (E).
   Expect Talk hover, Thinking while a reply is pending, then a short native
   remark or a notice if George has nothing to add. Judge his blunt, profane sauna character; replies retain the
@@ -88,6 +91,9 @@ Other players need the matching 0.1.119 client for George.
 
 ## When a compatible peer is available
 
+- **Grappling:** Traverse on the shared server, reconnect, and check that
+  Grappling progress remains with the character and other players see normal
+  hook movement.
 - **George recovery:** With George already invited, have an updated player
   join later. George should stay visible through the join without a false
   compatibility warning, and both players should see him without dismissing
