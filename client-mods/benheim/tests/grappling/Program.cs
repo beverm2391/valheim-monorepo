@@ -77,15 +77,21 @@ Near(0.65f, GrapplingRules.Experience(10f, 10f, 10f, -5f), "downhill gets no uph
 Near(GrapplingRules.MaximumExperience,
     GrapplingRules.Experience(1000f, 1000f, 1000f, 1000f), "per-grapple award is capped");
 
-// Multipliers are clamped and improve both reach and reload at the level endpoints.
-Near(1f, GrapplingRules.ReachMultiplier(0f), "level-zero reach");
-Near(1.5f, GrapplingRules.ReachMultiplier(50f), "mid-level reach");
-Near(2f, GrapplingRules.ReachMultiplier(100f), "max-level reach");
-Near(2f, GrapplingRules.ReachMultiplier(150f), "reach clamps above max level");
-Near(1f, GrapplingRules.ReloadMultiplier(0f), "level-zero reload");
-Near(0.75f, GrapplingRules.ReloadMultiplier(50f), "mid-level reload");
-Near(0.5f, GrapplingRules.ReloadMultiplier(100f), "max-level reload");
-Near(1f, GrapplingRules.ReachMultiplier(float.NaN), "invalid level fails to base reach");
+// The tuning table caps usable rope distance independently of ballistic flight time.
+float[] levels = { 0f, 25f, 50f, 75f, 100f };
+float[] reaches = { 40f, 55f, 70f, 85f, 100f };
+float[] reloads = { 2f, 1.55f, 1.1f, 0.65f, 0.2f };
+for (int i = 0; i < levels.Length; i++)
+{
+    Near(reaches[i], GrapplingRules.ReachMeters(levels[i]), "usable reach at level " + levels[i]);
+    Near(reloads[i], GrapplingRules.ReloadSeconds(levels[i]), "hook reload at level " + levels[i]);
+}
+Near(100f, GrapplingRules.ReachMeters(150f), "reach clamps above max level");
+Near(40f, GrapplingRules.ReachMeters(-1f), "reach clamps below zero");
+Near(40f, GrapplingRules.ReachMeters(float.NaN), "invalid level fails to base reach");
+Near(1.25f, GrapplingRules.FlightMultiplier(0f), "base-level ballistic flight allowance");
+Near(3f, GrapplingRules.FlightMultiplier(100f), "max-level ballistic flight allowance");
+Near(0.2f, GrapplingRules.ReloadSeconds(150f), "reload clamps above max level");
 
 var definitionSkills = new Skills();
 GrapplingSkill.Register(definitionSkills);
@@ -100,7 +106,7 @@ Require(GrapplingSkill.LocalizationKey == "skill_" + customSkillId, "native skil
 var hook = Hook();
 var missPlayer = new Player { SkillLevel = 50f };
 var miss = Fire(missPlayer, hook);
-Near(6f, miss.m_ttl, "flight TTL is extended at level 50");
+Near(8.5f, miss.m_ttl, "flight TTL is extended at level 50");
 miss.m_ttl = 0f;
 GrapplingRuntime.FlightUpdated(miss, didHit: false);
 Require(missPlayer.RaisedExperience.Count == 0, "expired miss raises no skill");
@@ -129,11 +135,14 @@ GrapplingRuntime.Fired(negativeTtlFlight, negativeTtlPlayer, hook);
 GrapplingRuntime.FlightUpdated(negativeTtlFlight, didHit: false);
 Require(EventCount("traversal_finished") == finishedBeforeUnlimitedFlights,
     "nonpositive native TTLs do not fabricate an immediate miss");
+Near(0f, unlimitedFlight.m_ttl, "zero native TTL stays unlimited");
+Near(-1f, negativeTtlFlight.m_ttl, "negative native TTL stays unlimited");
+Player.m_localPlayer = unlimitedPlayer;
 var unlimitedScope = GrapplingRuntime.EnterHit(unlimitedFlight);
 var unlimitedPoint = Point(10f, 0f, 0f);
 GrapplingRuntime.Activate(unlimitedPoint, unlimitedPlayer);
 GrapplingRuntime.RestoreScope(unlimitedScope);
-Require(unlimitedPoint.m_maxLength == 50f, "native unlimited flight TTL remains eligible for later attachment");
+Require(unlimitedPoint.m_maxLength == 40f, "native unlimited flight TTL remains eligible for later attachment");
 
 var localForRemoteShot = new Player();
 Player.m_localPlayer = localForRemoteShot;
@@ -185,7 +194,7 @@ var pullPoint = Point(10f, 2f, 0f, nativeLength: 20f);
 var priorScope = GrapplingRuntime.EnterHit(traversalProjectile);
 GrapplingRuntime.Activate(pullPoint, traversalPlayer);
 GrapplingRuntime.RestoreScope(priorScope);
-Near(30f, pullPoint.m_maxLength, "pull rope break distance follows reach progression");
+Near(70f, pullPoint.m_maxLength, "pull rope break distance follows reach progression");
 var hangPoint = Point(11f, 2f, 0f, nativeLength: 8f);
 var outerView = new ZNetView();
 GrapplingRuntime.BreakScope outerScope = GrapplingRuntime.EnterBreak(pullPoint, outerView, traversalPlayer);
@@ -197,7 +206,7 @@ GrapplingRuntime.RestoreScope(recursiveScope.Previous);
 outerView.Owner = false; // Outer Break completes after the recursive break has already removed its rope.
 GrapplingRuntime.Released(pullPoint, early: false, outerScope.Accepted);
 GrapplingRuntime.RestoreScope(outerScope.Previous);
-Near(12f, hangPoint.m_maxLength, "hanging rope inherits the same reach progression");
+Near(70f, hangPoint.m_maxLength, "hanging rope inherits the same reach progression");
 DiagnosticEvent[] attachEvents = Diagnostics.Events.FindAll(value => value.Name == "rope_attached").ToArray();
 string pullOperation = (string)attachEvents[attachEvents.Length - 2].Fields["operation_id"]!;
 string hangOperation = (string)attachEvents[attachEvents.Length - 1].Fields["operation_id"]!;
@@ -216,13 +225,15 @@ Require(EventCount("traversal_finished") == eventCountBeforeRelease + 1,
 var remotePlayer = new Player { SkillLevel = 100f };
 var levelledHook = Hook();
 var flight = Fire(remotePlayer, levelledHook);
-Near(8f, flight.m_ttl, "level 100 doubles fired hook time");
+Near(12f, flight.m_ttl, "level 100 gives ballistic flight time to reach its meter cap");
 var rope = Point(10f, 0f, 0f, nativeLength: 25f);
 priorScope = GrapplingRuntime.EnterHit(flight);
 GrapplingRuntime.Activate(rope, remotePlayer);
 GrapplingRuntime.RestoreScope(priorScope);
-Near(50f, rope.m_maxLength, "level 100 doubles usable rope break distance");
-Near(10f, GrapplingRuntime.Reload(levelledHook, 20f), "level 100 halves hook reload");
+Near(100f, rope.m_maxLength, "level 100 sets the usable rope cap in meters");
+Near(0.2f, GrapplingRuntime.Reload(levelledHook, 2f), "level 100 has a 0.2 second hook reload");
+Near(0.2f, GrapplingRuntime.Reload(levelledHook, 1f),
+    "a duration already shortened by native weapon skill does not shorten Grappling reload again");
 Near(20f, GrapplingRuntime.Reload(Hook(requiresReload: false), 20f), "no-reload hook keeps native duration");
 var ordinaryItem = new ItemDrop.ItemData();
 Near(20f, GrapplingRuntime.Reload(ordinaryItem, 20f), "non-hook item keeps native duration");

@@ -55,10 +55,10 @@ internal static class GrapplingRuntime
         // Flight and attached-rope limits are independent in native Valheim.
         // Extend the fired instance only; keep projectile physics and the
         // shared prefab untouched. Nonpositive TTL means native has no timer.
-        if (before > 0f) projectile.m_ttl = before * GrapplingRules.ReachMultiplier(traversal.Level);
+        if (before > 0f) projectile.m_ttl = before * GrapplingRules.FlightMultiplier(traversal.Level);
         Diagnostics.Emit(Event(traversal, "shot_fired")
             .Number("native_flight_seconds", before).Number("flight_seconds", projectile.m_ttl)
-            .Number("reach_multiplier", GrapplingRules.ReachMultiplier(traversal.Level)));
+            .Number("reach_meters", GrapplingRules.ReachMeters(traversal.Level)));
     }
 
     internal static Traversal? EnterHit(Projectile projectile)
@@ -106,7 +106,7 @@ internal static class GrapplingRuntime
         Ropes.Add(point, traversal);
         traversal.ActivePoint = point;
         float before = point.m_maxLength;
-        point.m_maxLength = before * GrapplingRules.ReachMultiplier(traversal.Level);
+        point.m_maxLength = GrapplingRules.ReachMeters(traversal.Level);
         if (!traversal.Attached)
         {
             traversal.Attached = true;
@@ -177,7 +177,10 @@ internal static class GrapplingRuntime
         Player player = Player.m_localPlayer;
         if (!player || !IsHook(item) || !item.m_shared.m_attack.m_requiresReload) return nativeDuration;
         float level = player.GetSkillLevel(GrapplingSkill.Type);
-        return nativeDuration * GrapplingRules.ReloadMultiplier(level);
+        // Native GetWeaponLoadingTime already scales by the item's weapon
+        // skill. Grappling owns this hook's explicit seconds table, so another
+        // skill must not silently shorten it a second time.
+        return GrapplingRules.ReloadSeconds(level);
     }
 
     internal static void ObserveReload(Player player, int previousCount,
