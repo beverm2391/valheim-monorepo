@@ -15,8 +15,20 @@ not earn XP. Height lost does not receive the uphill bonus. Low health does
 not increase XP.
 
 Reach increases must work as usable grappling distance, including the rope's
-break distance. Exact XP amounts, leveling pace, reach, and reload values are
-first-pass tuning to feel in play.
+break distance. The starting tuning scales linearly from 40 to 100 meters of
+usable reach and from 2 to 0.2 seconds of reload time across skill levels 0
+to 100:
+
+| Skill level | Reach | Reload time |
+| --- | ---: | ---: |
+| 0 | 40 m | 2.00 s |
+| 25 | 55 m | 1.55 s |
+| 50 | 70 m | 1.10 s |
+| 75 | 85 m | 0.65 s |
+| 100 | 100 m | 0.20 s |
+
+These values, exact XP amounts, and leveling pace are first-pass tuning to
+feel in play.
 
 The first pass uses distance and uphill gain. More elaborate skillful-use
 scoring is not part of this pass. Gameplay and multiplayer behavior have no
