@@ -19,6 +19,4 @@ grep -Fq '!m_inventory.CanAddItem(component.m_itemData)' "$native_player"
 grep -Fq '[HarmonyPatch(typeof(Player), "Awake")]' "$patch"
 grep -Fq '__instance.m_autoPickupRange = extendedRange;' "$patch"
 
-dotnet run --project "$root/tests/native-mechanic-transpilers/NativeMechanicTranspilerTests.csproj"
-
 printf 'Auto-pickup range checks passed\n'

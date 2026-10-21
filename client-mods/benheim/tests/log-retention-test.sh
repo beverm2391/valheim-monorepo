@@ -216,7 +216,8 @@ printf '%s\n' \
   'dataset=benheim-diagnostics' \
   'token=fixture' \
   "build_id=sha256:$fixture_hash" > "$fixture_config"
-source_commit="$(git -C "$root" rev-parse HEAD)"
+# Committed package exports carry their provenance without a .git directory.
+source_commit="${BENHEIM_QOL_SOURCE_COMMIT:-$(git -C "$root" rev-parse HEAD)}"
 version="$(sed -n 's/.*PluginVersion = "\([^"]*\)".*/\1/p' "$root/src/Plugin.cs")"
 mac_dist="$test_root/mac-dist"
 windows_dist="$test_root/windows-dist"

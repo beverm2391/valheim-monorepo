@@ -4,6 +4,13 @@ set -euo pipefail
 tests_dir="$(dirname "${BASH_SOURCE[0]}")"
 root="$tests_dir/.."
 feature="$root/src/Grappling"
+
+# Run the managed lifecycle and persistence fixtures before checking the
+# installed native seams they exercise. This keeps fixture failures distinct
+# from source-contract drift.
+dotnet run --project "$tests_dir/grappling/GrapplingTests.csproj"
+dotnet run --project "$tests_dir/grappling/persistence/SkillPersistenceTests.csproj"
+
 native_tree="$("$root/scripts/ensure-valheim-source.sh")"
 
 # Keep the focused lifecycle fixture tied to native contracts that determine
@@ -39,6 +46,4 @@ rg -Fq 'if (type == GrapplingSkill.Type) __result = true;' "$feature/GrapplingSk
 rg -Fq '[HarmonyPatch(typeof(Skills), nameof(Skills.Load))]' "$feature/GrapplingSkill.cs"
 rg -Fq 'private static void Prefix(Skills __instance) => GrapplingSkill.Register(__instance);' "$feature/GrapplingSkill.cs"
 
-dotnet run --project "$tests_dir/grappling/GrapplingTests.csproj"
-dotnet run --project "$tests_dir/grappling/persistence/SkillPersistenceTests.csproj"
 printf 'Grappling fixtures and installed-native source seams passed; gameplay runtime remains unproven\n'
