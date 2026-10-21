@@ -31,28 +31,9 @@ ID when source, compiler output, runtime detail, or later warnings and errors
 matter. Log entries are associated by time; they do not prove that the run
 caused a message.
 
-## Bind Helper And Preparation Identity
-
-Keep the `operation_id` returned by `install_change` in subsequent commands'
-structured `inputs`, along with its `change_id`. Inside `run_once`, resolve the
-installed helper through its active registry identity:
-
-```csharp
-Type helper = ValheimDev.ValheimDevManagedChanges.ResolveType(
-    input.changeId, input.installOperationId, input.helperType);
-```
-
-Invoke the helper's intended method on that returned type. Searching loaded
-assemblies for a first or last matching type can select a cleaned or replaced
-helper; cleanup does not unload its assembly.
-
-When a shot or other action depends on preparation, pass the preparation run's
-`operation_id` as the action's `requires_operation_id`. The prerequisite must
-have succeeded in the same authorization and build; otherwise the action
-records `prerequisite_failed` without compiling or executing. Preparation must
-throw when it cannot establish its required conditions. A returned JSON
-`ok: false` field is not interpreted as a failed operation. Inspect the ledger
-failure and prepare again before issuing a dependent action.
+Read [Installed Helper Commands](HELPER_COMMANDS.md) when a command calls an
+installed helper or an action depends on separate fixture preparation. It owns
+the exact helper binding and prerequisite usage.
 
 ## Manage A Disposable Lab
 
