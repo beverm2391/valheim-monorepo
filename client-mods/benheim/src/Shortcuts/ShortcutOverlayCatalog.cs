@@ -126,7 +126,7 @@ internal static partial class ShortcutOverlay
             {
                 new Entry("Rockbreaker", "Pickaxes adds scaling damage; crits and AOE unlock at level 25"),
                 new Entry("Cleave", "After level 25, axe hits can add one half-damage hit to the same tree or log"),
-                new Entry("Grappling", "Successful grappling-hook traversal earns skill XP, with more for distance and uphill travel. Level 0–100 extends native hook reach up to 2× and reduces reload time up to 50%. Misses, nearby shots, and stationary hanging earn no XP"),
+                new Entry("Grappling", "Successful grappling-hook traversal earns skill XP, with more for distance and uphill travel. Level 0–100 increases reach from 40 to 100 meters and shortens native hook reload from 2 to 0.2 seconds. Misses, nearby shots, and stationary hanging earn no XP"),
                 new Entry(
                     "Finewood",
                     "Native Birch and Oak logs convert each final ordinary Wood drop to Finewood; native Pine logs convert it to Core Wood. Each log keeps its native item count and Valheim's spawn path"),

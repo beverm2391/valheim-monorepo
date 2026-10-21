@@ -10,8 +10,11 @@ internal static class GrapplingRules
     internal const float UphillExperiencePerMeter = 0.02f;
     internal const float MaximumExperience = 3f;
 
-    internal static float ReachMultiplier(float level) => 1f + Progress(level);
-    internal static float ReloadMultiplier(float level) => 1f - 0.5f * Progress(level);
+    internal static float ReachMeters(float level) => 40f + 60f * Progress(level);
+    // Ballistic shots need more than distance / launch speed. Leave time for
+    // a native arc at both endpoints; the rope enforces the actual meter cap.
+    internal static float FlightMultiplier(float level) => 1.25f + 1.75f * Progress(level);
+    internal static float ReloadSeconds(float level) => 2f - 1.8f * Progress(level);
 
     internal static float Experience(float attachmentDistance, float movementSinceAttachment,
         float displacement, float heightGained)
