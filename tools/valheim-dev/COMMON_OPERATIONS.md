@@ -31,6 +31,29 @@ ID when source, compiler output, runtime detail, or later warnings and errors
 matter. Log entries are associated by time; they do not prove that the run
 caused a message.
 
+## Bind Helper And Preparation Identity
+
+Keep the `operation_id` returned by `install_change` in subsequent commands'
+structured `inputs`, along with its `change_id`. Inside `run_once`, resolve the
+installed helper through its active registry identity:
+
+```csharp
+Type helper = ValheimDev.ValheimDevManagedChanges.ResolveType(
+    input.changeId, input.installOperationId, input.helperType);
+```
+
+Invoke the helper's intended method on that returned type. Searching loaded
+assemblies for a first or last matching type can select a cleaned or replaced
+helper; cleanup does not unload its assembly.
+
+When a shot or other action depends on preparation, pass the preparation run's
+`operation_id` as the action's `requires_operation_id`. The prerequisite must
+have succeeded in the same authorization and build; otherwise the action
+records `prerequisite_failed` without compiling or executing. Preparation must
+throw when it cannot establish its required conditions. A returned JSON
+`ok: false` field is not interpreted as a failed operation. Inspect the ledger
+failure and prepare again before issuing a dependent action.
+
 ## Manage A Disposable Lab
 
 Start with `session_status({})`. It is a read-only process/menu/world check
@@ -41,10 +64,11 @@ When stopped, `open_lab({})` launches the existing managed profile and confirms
 the menu. Use its returned `app_id` for subsequent mutations. At that menu:
 
 1. `list_saves({})` lists native worlds/characters and their save sources.
-2. Create a new pair with
+2. Choose existing disposable local `Lab-` saves. If the test needs a new pair,
+   create it with
    `create_lab_world({app_id, name: "Lab-Test", seed: "test"})` and
-   `create_lab_character({app_id, name: "Lab-Tester"})`, or choose existing
-   disposable local `Lab-` saves. Creation never overwrites existing names.
+   `create_lab_character({app_id, name: "Lab-Tester"})`.
+   Creation never overwrites existing names.
 3. `open_lab({app_id, world: "Lab-Test", character: "Lab-Tester"})` selects the
    pair through the native menu and waits for the matching local world and Lab.
 4. Verify the visible game with Computer Use before the experiment. General

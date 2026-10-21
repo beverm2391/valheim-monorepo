@@ -61,10 +61,13 @@ input validation, and result envelopes. Valheim Dev retains seven code tools:
 1. `lab_status({})`
    - Reports connection and authorization state, exact build identity,
      `restart_required`, and installed code.
-2. `run_once({label, source, targets?, inputs?, evidence_events?, evidence_timeout_ms?})`
+2. `run_once({label, source, targets?, inputs?, requires_operation_id?, evidence_events?, evidence_timeout_ms?})`
    - Compiles `public static ValheimDevCommand.Run(string inputJson): string`.
    - Runs once for observation or action.
    - Uses `cleanup_state: not_applicable` and never claims to reverse effects.
+   - An optional `requires_operation_id` must identify a terminal `succeeded`
+     ledger operation from the current authorization and build. Otherwise this
+     run records `prerequisite_failed` before compilation or dispatch.
 3. `install_change({label, change_id, source, targets?, inputs?, evidence_events?, evidence_timeout_ms?})`
    - Compiles `public static ValheimDevChange.Run(string inputJson): string` and
      `public static ValheimDevChange.Cleanup(): void`.
@@ -112,6 +115,10 @@ or array. The runtime rejects a plain-text or malformed result. The MCP server
 parses the result back into structured JSON for the normal response. This lets
 one run feed the next without source rewriting or prose parsing. `run_recipes`
 passes the selected preset or ad hoc inputs through this same contract.
+
+Prerequisites use ledger state, not arbitrary fields in returned JSON.
+Preparation code throws when required conditions are unmet; returning
+`{"ok": false}` alone does not make an operation fail.
 
 `evidence_events` selects up to 64 Developer Diagnostics events by
 `Domain:event`. An operation can wait up to 120 seconds for selected evidence.
@@ -194,6 +201,12 @@ use owner-only directories and are deleted after each operation.
 Each `change_id` owns at most one installed version. The bridge records the
 operation ID, source and assembly hashes, install time, result, and cleanup
 state with its loaded entrypoints.
+
+During `run_once`, command code can resolve a helper type with
+`ValheimDev.ValheimDevManagedChanges.ResolveType(change_id, install_operation_id, type_name)`.
+Resolution uses the exact active registry entry and rejects replaced or removed
+install identities. A cleaned assembly remaining loaded is not an active
+helper. Calls outside a `run_once` command are rejected.
 
 Each install or removal request includes the observed operation ID of the prior
 version. It includes explicit `null` when no prior version existed. The runtime
