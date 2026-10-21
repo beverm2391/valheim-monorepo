@@ -1,6 +1,7 @@
 using System;
 using BenheimQoL.Infrastructure;
 using HarmonyLib;
+using UnityEngine;
 
 namespace BenheimQoL.Grappling;
 
@@ -21,19 +22,33 @@ internal static class GrapplingSkill
         {
             throw new InvalidOperationException("Grappling skill ID collides with a native skill.");
         }
-        if (skills.m_skills.Exists(definition => definition.m_skill == Type)) return;
+        GameObject? prefab = ObjectDB.instance ? ObjectDB.instance.GetItemPrefab("GrapplingHook") : null;
+        ItemDrop? hook = prefab ? prefab.GetComponent<ItemDrop>() : null;
+        Sprite? icon = hook ? hook.m_itemData.GetIcon() : null;
+        Skills.SkillDef? existing = skills.m_skills.Find(definition => definition.m_skill == Type);
+        if (existing != null)
+        {
+            // Skills can awaken before ObjectDB's item sprites are ready.
+            // Load calls Register again; refresh the same definition so saved
+            // skill data and the native Skills UI keep one shared identity.
+            if (icon && existing.m_icon != icon)
+            {
+                existing.m_icon = icon;
+                Diagnostics.Emit(DiagnosticEvent.Create("Grappling", "skill_icon_ready")
+                    .Integer("skill_id", (int)Type));
+            }
+            return;
+        }
 
-        // Reuse a registered native skill icon, without loading a separate UI
-        // asset or changing the grappling item's own combat skill.
-        Skills.SkillDef? jump = skills.m_skills.Find(definition => definition.m_skill == Skills.SkillType.Jump);
         skills.m_skills.Add(new Skills.SkillDef
         {
             m_skill = Type,
             m_description = Description,
-            m_icon = jump?.m_icon,
+            m_icon = icon,
             m_increseStep = 1f
         });
-        Diagnostics.Emit(DiagnosticEvent.Create("Grappling", "skill_registered").Integer("skill_id", (int)Type));
+        Diagnostics.Emit(DiagnosticEvent.Create("Grappling", "skill_registered")
+            .Integer("skill_id", (int)Type).Boolean("icon_ready", icon));
     }
 
     internal static void ObservePersistence(Skills skills, string action)

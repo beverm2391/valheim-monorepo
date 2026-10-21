@@ -101,6 +101,19 @@ Require(definitionSkills.m_skills.Count == 1, "registration adds one skill defin
 GrapplingSkill.Register(definitionSkills);
 Require(definitionSkills.m_skills.Count == 1, "registration is idempotent");
 Require(GrapplingSkill.LocalizationKey == "skill_" + customSkillId, "native skill token follows its persisted ID");
+var registeredDefinition = definitionSkills.m_skills[0];
+Require(registeredDefinition.m_icon == null, "early registration can precede native item readiness");
+var iconPrefab = new GameObject("GrapplingHook");
+var nativeIcon = new Sprite();
+iconPrefab.AddComponent(new ItemDrop { m_itemData = new ItemDrop.ItemData { Icon = nativeIcon } });
+ObjectDB.instance = new ObjectDB { HookPrefab = iconPrefab };
+GrapplingSkill.Register(definitionSkills);
+Require(definitionSkills.m_skills.Count == 1 && ReferenceEquals(registeredDefinition, definitionSkills.m_skills[0]),
+    "late icon readiness refreshes the existing saved-skill definition");
+Require(ReferenceEquals(nativeIcon, registeredDefinition.m_icon), "skill uses the native grappling item sprite");
+var readySkills = new Skills();
+GrapplingSkill.Register(readySkills);
+Require(ReferenceEquals(nativeIcon, readySkills.m_skills[0].m_icon), "ready registration uses the item icon immediately");
 
 // Hook flight expiration and nearby/motionless attachment all exercise the linked production runtime.
 var hook = Hook();

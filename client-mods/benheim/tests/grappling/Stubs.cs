@@ -124,11 +124,21 @@ public sealed class ZNetView : UnityEngine.MonoBehaviour
     public bool IsOwner() => Owner;
 }
 
-public sealed class ItemDrop
+public sealed class ObjectDB : UnityEngine.Object
 {
+    public static ObjectDB instance = null!;
+    public UnityEngine.GameObject? HookPrefab;
+    public UnityEngine.GameObject? GetItemPrefab(string name) => name == "GrapplingHook" ? HookPrefab : null;
+}
+
+public sealed class ItemDrop : UnityEngine.MonoBehaviour
+{
+    public ItemData m_itemData = new ItemData();
     public sealed class ItemData
     {
         public SharedData m_shared = new SharedData();
+        public UnityEngine.Sprite? Icon;
+        public UnityEngine.Sprite? GetIcon() => Icon;
 
         public sealed class SharedData
         {
