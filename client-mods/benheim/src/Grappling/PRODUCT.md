@@ -2,6 +2,7 @@
 
 Make the native grappling hook a practiced traversal skill. As the skill
 levels, grapples reach farther and reload time shortens.
+The skill uses the native grappling-hook item's icon in the Skills menu.
 
 ## In Development
 
