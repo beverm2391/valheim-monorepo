@@ -11,8 +11,9 @@ import {
   DEFAULT_EVIDENCE_TIMEOUT_MS, EVENT_PATTERN, IDENTIFIER_PATTERN,
   MAX_ASSEMBLY_BYTES, MAX_EVIDENCE_EVENTS,
   MAX_EVIDENCE_TIMEOUT_MS, MAX_RUN_LABEL_BYTES, MAX_SOURCE_BYTES,
+  OPERATION_PATTERN,
 } from "./constants.mjs";
-import { captureLogCursor, optionalArtifactHash, readLedger, writeLedger } from "./ledger.mjs";
+import { captureLogCursor, optionalArtifactHash, readLedger, readOperationRecord, writeLedger } from "./ledger.mjs";
 import { createRecipeRunner } from "./recipes.mjs";
 import { validateOperationResponse, validateStatusResponse } from "./response-validation.mjs";
 import { APP_TOOLS, createAppManagement } from "./app-management.mjs";
@@ -59,7 +60,12 @@ function validateEvidence(args, allowed) {
 function validateCodeArguments(args, action) {
   const allowed = new Set(["label", "source", "targets", "inputs", "evidence_events", "evidence_timeout_ms"]);
   if (action === "install_change") allowed.add("change_id");
+  if (action === "run_once") allowed.add("requires_operation_id");
   const input = validateEvidence(args, allowed);
+  if (args.requires_operation_id !== undefined
+      && (typeof args.requires_operation_id !== "string" || !OPERATION_PATTERN.test(args.requires_operation_id))) {
+    throw new Error("requires_operation_id must be an operation UUID");
+  }
   if (typeof args.source !== "string" || args.source.length === 0) throw new Error("source must be a non-empty string");
   if (Buffer.byteLength(args.source, "utf8") > MAX_SOURCE_BYTES) throw new Error("source exceeds size limit");
   if (action === "install_change") validateIdentifier(args.change_id, "change_id");
@@ -68,6 +74,7 @@ function validateCodeArguments(args, action) {
     label: validateLabel(args.label ?? action.replaceAll("_", " ")),
     source: args.source,
     change_id: args.change_id ?? null,
+    requires_operation_id: args.requires_operation_id ?? null,
   };
 }
 
@@ -104,6 +111,7 @@ function baseRecord(descriptor, operationId, action, input, previous, logCursor)
     session_id: descriptor.session_id, operation_id: operationId,
     data_root: descriptor.data_root, log_path: descriptor.log_path,
     change_id: input.change_id ?? null, source, source_sha256: source === null ? null : sha256(source),
+    requires_operation_id: input.requires_operation_id ?? null,
     artifact_sha256: null, ...buildIdentity(descriptor), targets: input.targets ?? null, inputs: input.inputs ?? null,
     previous_active_change: previous ?? null, previous_change_preserved: previous ? null : false,
     requested_evidence_events: input.evidence_events ?? [], evidence_timeout_ms: input.evidence_timeout_ms ?? 0,
@@ -118,6 +126,23 @@ function baseRecord(descriptor, operationId, action, input, previous, logCursor)
     evidence_unavailable_reason: (input.evidence_events ?? []).length > 0 ? "operation_not_started" : null,
     evidence_truncated: false, dropped_evidence_events: 0,
   };
+}
+
+async function prerequisiteError(ledgerRoot, operationId, descriptor) {
+  try {
+    const prior = await readOperationRecord(ledgerRoot, operationId);
+    if (prior === null) return `required operation ${operationId} was not found`;
+    if (prior.operation_id !== operationId || prior.session_id !== descriptor.session_id
+        || Object.entries(buildIdentity(descriptor)).some(([key, value]) => prior[key] !== value)) {
+      return `required operation ${operationId} does not belong to the current Lab authorization and build`;
+    }
+    if (prior.state !== "succeeded" || prior.terminal !== true || prior.restart_required === true) {
+      return `required operation ${operationId} did not complete successfully (state: ${prior.state})`;
+    }
+    return null;
+  } catch (error) {
+    return `required operation ${operationId} could not be verified: ${error.message}`;
+  }
 }
 
 function compilerLedgerOutcome(outcome) {
@@ -220,6 +245,18 @@ export function createService({
     const logCursor = await captureLogCursor(operationLogPath);
     let record = baseRecord(descriptor, operationId, action, input, previous, logCursor);
     await writeLedger(ledgerRoot, record);
+    // A preparation exception must block the next separately issued command,
+    // even when its old helper or fixture objects still exist in the runtime.
+    if (input.requires_operation_id !== null) {
+      const error = await prerequisiteError(ledgerRoot, input.requires_operation_id, descriptor);
+      if (error !== null) {
+        record = terminalRecord(record, "prerequisite_failed", {
+          error, compiler: { outcome: "not_run" }, active_changes: status.active_changes,
+        });
+        await writeLedger(ledgerRoot, record);
+        return record;
+      }
+    }
     const workRoot = await mkdtemp(join(tmpdir(), "valheim-dev-"));
     const stem = `${operationId}-${record.source_sha256.slice(0, 16)}`;
     const sourcePath = join(workRoot, `${stem}.cs`);

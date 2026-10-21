@@ -154,6 +154,17 @@ internal static partial class Program
             "replacement cleans the prior version and keeps the new variant active");
 
         StaleChangeState(fixtures[0]);
+        HelperResolutionRequiresCommand();
+
+        JsonElement helper = ReadManagedHelper(fixtures[0], "replace-b");
+        string installedHelperInstance = Parse(replaced.GetProperty("result").GetString()!)
+            .GetProperty("helper").GetProperty("instance").GetString()!;
+        Require(helper.GetProperty("ok").GetBoolean()
+            && Parse(helper.GetProperty("result").GetString()!).GetProperty("variant").GetString() == "pulse-b"
+            && Parse(helper.GetProperty("result").GetString()!).GetProperty("instance").GetString() == installedHelperInstance,
+            "command resolves the actual installed assembly despite old and newer byte-loaded copies of the same helper");
+        RequireHelperFailure(ReadManagedHelper(fixtures[0], "install-a"), "stale_change_state");
+        RequireHelperFailure(ReadManagedHelper(fixtures[0], "replace-b", "MissingHelper"), "public helper type not found");
 
         JsonElement failedReplacement = Install("replace-throws", "affinity.weapon-icon", fixtures[2]);
         Require(failedReplacement.GetProperty("error").GetString() == "entrypoint_exception"
@@ -168,12 +179,18 @@ internal static partial class Program
             && ValheimDevTestSurface.Visible && ValheimDevTestSurface.Variant == "pulse-b",
             "invalid candidate is rejected before touching the working version");
 
+        Require(Parse(ReadManagedHelper(fixtures[0], "replace-b").GetProperty("result").GetString()!)
+                .GetProperty("instance").GetString() == installedHelperInstance,
+            "failed replacement resolves the restored helper by its original install operation");
+
         JsonElement removed = Remove("remove-icon", "affinity.weapon-icon");
         Require(removed.GetProperty("ok").GetBoolean()
             && removed.GetProperty("cleanup_state").GetString() == "cleaned"
             && removed.GetProperty("active_changes").GetArrayLength() == 0
             && !ValheimDevTestSurface.Visible,
             "remove cleans the visible change and forgets it only after cleanup succeeds");
+
+        RequireHelperFailure(ReadManagedHelper(fixtures[0], "replace-b"), "change_not_active");
 
         EvidenceBoundaries(fixtures[0]);
 

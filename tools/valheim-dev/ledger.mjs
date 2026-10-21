@@ -142,6 +142,15 @@ export async function writeLedger(ledgerRoot, record) {
   await atomicJsonWrite(ledgerPath(ledgerRoot, record.operation_id), record);
 }
 
+export async function readOperationRecord(ledgerRoot, operationId) {
+  try {
+    return await readSmallJson(ledgerPath(ledgerRoot, operationId), MAX_LEDGER_RESPONSE_BYTES);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
 export async function optionalArtifactHash(path) {
   try {
     const info = await stat(path);
@@ -158,17 +167,15 @@ export async function readLedger(ledgerRoot, args, logPath) {
     if (typeof args.operation_id !== "string" || !OPERATION_PATTERN.test(args.operation_id)) {
       throw new Error("operation_id is invalid");
     }
-    try {
-      const record = await readSmallJson(ledgerPath(ledgerRoot, args.operation_id), MAX_LEDGER_RESPONSE_BYTES);
+    const record = await readOperationRecord(ledgerRoot, args.operation_id);
+    if (record !== null) {
       return {
         run: runSummary(record),
         details: record,
         logs_since_run: await logsSinceRun(logPath ?? record.log_path, record.log_cursor),
       };
-    } catch (error) {
-      if (error?.code === "ENOENT") return { run: null, details: null, logs_since_run: null };
-      throw error;
     }
+    return { run: null, details: null, logs_since_run: null };
   }
   const limit = args.limit ?? 20;
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LEDGER_LIST) {

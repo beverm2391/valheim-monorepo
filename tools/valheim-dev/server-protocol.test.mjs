@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -7,7 +8,8 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 import { createService, operationSummary, runCompiler } from "./server.mjs";
-import { SOURCE, bridgeIdentity, managedChange, temporaryRoot, writeDescriptor } from "./test-helpers.mjs";
+import { writeLedger } from "./ledger.mjs";
+import { SOURCE, bridgeIdentity, managedChange, startBridge, temporaryRoot, writeDescriptor } from "./test-helpers.mjs";
 
 const SERVER_PATH = resolve(import.meta.dirname, "launch.sh");
 
@@ -39,6 +41,7 @@ test("official MCP client crosses spawned stdio boundary and exposes workbench a
     "session_status", "list_saves", "create_lab_world", "create_lab_character", "open_lab", "close_lab",
   ]);
   assert.deepEqual(listed.tools[1].inputSchema.required, ["label", "source"]);
+  assert.equal(listed.tools[1].inputSchema.properties.requires_operation_id.type, "string");
   assert.deepEqual(listed.tools[2].inputSchema.required, ["label", "change_id", "source"]);
   assert.deepEqual(listed.tools[3].inputSchema.required, ["label", "change_id"]);
   assert.deepEqual(listed.tools[4].inputSchema.required, undefined);
@@ -64,6 +67,29 @@ test("official MCP client crosses spawned stdio boundary and exposes workbench a
   assert.equal(recipes.isError, true);
   assert.equal(recipes.structuredContent.recipes[0].recipe_id, "infinite-food");
   assert.equal(recipes.structuredContent.recipes[0].error.includes(join(root, "registry", "infinite-food", "code.cs")), true);
+});
+
+test("official MCP transport blocks a dependent shot after failed preparation", async (t) => {
+  const fixture = await temporaryRoot();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  let descriptor;
+  const bridge = await startBridge(async () => bridgeIdentity(descriptor));
+  t.after(() => bridge.close());
+  descriptor = await writeDescriptor(fixture.root, fixture.reference, bridge.port);
+  const failedPreparation = randomUUID();
+  await writeLedger(join(fixture.root, "ledger"), {
+    ...descriptor, operation_id: failedPreparation, state: "runtime_failed", terminal: true,
+  });
+  const { client } = await connectClient(fixture.root);
+  t.after(() => client.close());
+  const shot = await client.callTool({ name: "run_once", arguments: {
+    label: "Fire after preparation", source: SOURCE, requires_operation_id: failedPreparation,
+  } });
+  assert.equal(shot.isError, true);
+  assert.equal(shot.structuredContent.state, "prerequisite_failed");
+  assert.equal(shot.structuredContent.requires_operation_id, failedPreparation);
+  assert.match(shot.structuredContent.error, /runtime_failed/);
+  assert.equal(bridge.requests.every((request) => request.kind === "status"), true);
 });
 
 test("official SDK validates tool input before the service callback", async (t) => {

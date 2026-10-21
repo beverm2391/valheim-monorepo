@@ -1,10 +1,37 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 namespace ValheimDev;
 
 internal static partial class ValheimDevRuntime
 {
+    internal static Type ResolveManagedType(string changeId, string operationId, string typeName)
+    {
+        if (string.IsNullOrEmpty(changeId) || string.IsNullOrEmpty(operationId) || string.IsNullOrEmpty(typeName))
+            throw new ArgumentException("change ID, install operation ID, and helper type name are required");
+        if (Thread.CurrentThread.ManagedThreadId != mainThreadId || activeOperation == null
+            || activeOperation.Pending.Request.Kind != "run_once")
+            throw new InvalidOperationException("managed helpers must be resolved inside a Lab command on the main thread");
+        ValheimDevSession? current = session;
+        if (current == null || !ReferenceEquals(current, activeOperation.Pending.Session)
+            || restartRequired || ValheimDevEligibility.CheckOperation(current.Capture, Snapshot()) != "eligible")
+            throw new InvalidOperationException("managed helper access is unavailable for this Lab authorization");
+
+        ValheimDevManagedChange? change = GetManagedChange(changeId);
+        if (change == null) throw new InvalidOperationException("change_not_active: " + changeId);
+        if (!string.Equals(change.Summary.OperationId, operationId, StringComparison.Ordinal))
+            throw new InvalidOperationException("stale_change_state: " + changeId);
+
+        // Cleanup cannot unload a byte-loaded assembly. The registry entry's
+        // actual Run method owns the installed version; load order and matching
+        // assembly/type names cannot establish that ownership.
+        Type? type = change.Code.Run.Module.Assembly.GetType(typeName, throwOnError: false, ignoreCase: false);
+        if (type == null || !type.IsVisible)
+            throw new InvalidOperationException("public helper type not found in active change: " + typeName);
+        return type;
+    }
+
     private static void InstallChange(ValheimDevLoadedCode newCode, ValheimDevRequest request)
     {
         ValheimDevManagedChange? previous = GetManagedChange(request.ChangeId);
@@ -335,4 +362,12 @@ internal static partial class ValheimDevRuntime
         if (string.IsNullOrEmpty(second)) return first;
         return first + "\nRESTORE/CLEANUP: " + second;
     }
+}
+
+public static class ValheimDevManagedChanges
+{
+    // Resolve afresh at the start of each command using the operation ID from
+    // install_change/lab_status. Never cache a Type across replace/remove.
+    public static Type ResolveType(string changeId, string operationId, string typeName)
+        => ValheimDevRuntime.ResolveManagedType(changeId, operationId, typeName);
 }

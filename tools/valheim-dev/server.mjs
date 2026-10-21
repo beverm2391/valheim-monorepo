@@ -59,6 +59,9 @@ const TOOL_DEFINITIONS = Object.freeze([
     description: "Compile and run one trusted C# command against the authorized live runtime. The command may observe or change the disposable world.",
     inputSchema: z.strictObject({
       label: runLabel,
+      requires_operation_id: z.string().regex(/^[a-f0-9-]{36}$/).optional().describe(
+        "Require this earlier operation to have succeeded in the same Lab authorization before compiling or running this command. Use for actions that depend on fixture preparation; entrypoints must throw when preparation fails.",
+      ),
       source: z.string().min(1).describe(
         "Exact trusted C# source defining public static ValheimDevCommand.Run(string inputJson): string. Return a JSON object or array string.",
       ),
@@ -144,6 +147,7 @@ export function operationSummary(record) {
     result: record.result === null ? null : JSON.parse(record.result),
     error: record.error,
   };
+  if (record.requires_operation_id) summary.requires_operation_id = record.requires_operation_id;
   if (record.action === "install_change" || record.action === "remove_change") {
     summary.change_id = record.change_id;
     summary.cleanup_state = record.cleanup_state;
