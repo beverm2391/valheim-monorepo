@@ -203,11 +203,6 @@ fi
 grep -Fq 'HarmonyPatch(typeof(Inventory), nameof(Inventory.StackAll)' "$patches"
 grep -Fq 'PocketItems.IsPocketed(scope.Player, item)' "$quick_stack"
 
-dotnet run --project "$repo_root/tests/put-away-owner-routing/PutAwayOwnerRoutingTests.csproj"
-dotnet run --project "$repo_root/tests/inventory-transaction-receipts/InventoryTransactionReceiptTests.csproj"
-dotnet run --project "$repo_root/tests/put-away-receipt-ack/PutAwayReceiptAckTests.csproj"
-dotnet run --project "$repo_root/tests/put-away-protocol-compatibility/PutAwayProtocolCompatibilityTests.csproj"
-dotnet run --project "$repo_root/tests/inventory-transaction-diagnostics/InventoryTransactionDiagnosticTests.csproj"
 dotnet run --project "$repo_root/tests/put-away-batch-scheduler/PutAwayBatchSchedulerTests.csproj"
 
 printf 'owner-authoritative Put Away source and conservation checks passed\n'

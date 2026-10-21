@@ -37,7 +37,7 @@ Project Lead updates the owning product document.
 
 ## Build and release
 
-Use the canonical verification entrypoint for every client change:
+For source-only development, use the canonical verification entrypoint:
 
 ```bash
 client-mods/benheim/scripts/verify.sh
@@ -49,6 +49,19 @@ install files, touch a Valheim game directory, create a platform package, or
 publish a release. The Release DLL build and Quick Stack summary checks may
 write ignored `bin/` and `obj/` outputs. Use `verify.sh` instead of running its
 checks separately.
+
+For a distributable candidate, commit the intended source, then invoke
+`scripts/package-private-test.sh` (or its `scripts/package-all.sh` alias) once
+with scoped credentials. That coordinator owns the full canonical pass and
+Release build on a temporary export of the exact committed source, then
+packages that export's verified DLL and scripts. Do not run a separate full
+`verify.sh` immediately before it for the same unchanged candidate. The
+coordinator validates the staged ZIPs' DLL, version, source commit, and build
+identity before replacing output archives.
+
+The platform packagers are coordinator and fixture building blocks, not
+separate candidate-verification entrypoints. Installation, packaged startup,
+and fresh Axiom receipt still have their separate gates below.
 
 A `System.Net.Http` version conflict warning from Valheim assembly references
 is acceptable if the build exits successfully.
@@ -70,15 +83,13 @@ type. It writes decompiled source to standard output. It writes the resolved
 assembly path, SHA-256, requested type, and whether the cache was hit or missed
 to standard error.
 
-Build, install locally on Mac, and package both platforms with:
+Build or install locally on Mac with:
 
 ```bash
 client-mods/benheim/scripts/build.sh
 client-mods/benheim/scripts/check-valheim-stopped.sh
 client-mods/benheim/scripts/install-local.sh
 client-mods/benheim/scripts/install-local.sh --package /path/to/Benheim-macOS-X.Y.Z.zip
-client-mods/benheim/scripts/package-macos.sh
-client-mods/benheim/scripts/package-windows.sh
 ```
 
 `check-valheim-stopped.sh` owns the exact Mac client process identities used by

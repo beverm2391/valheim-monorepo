@@ -117,7 +117,6 @@ place_line="$(grep -nF 'player.PlacePiece(' "$mass_planting" | cut -d: -f1)"
 stamina_line="$(grep -nF 'player.UseStamina(staminaCost);' "$mass_planting" | cut -d: -f1)"
 test "$stamina_line" -gt "$place_line"
 
-dotnet run --project "$root/tests/native-mechanic-transpilers/NativeMechanicTranspilerTests.csproj"
 dotnet run --project "$root/tests/farming-grid-selection/FarmingGridSelectionTests.csproj"
 dotnet run --project "$root/tests/hoe-radius/HoeRadiusTests.csproj"
 

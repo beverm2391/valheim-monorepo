@@ -123,6 +123,4 @@ grep -Fq '"Player.AutoPickup"' "$patches"
 grep -Fq '[HarmonyPatch(typeof(Player), "AutoPickup", new[] { typeof(float) })]' "$patches"
 grep -Fq 'LiquidItemRecovery.ShouldBlockItemDrop' "$patches"
 
-dotnet run --project "$root/tests/native-mechanic-transpilers/NativeMechanicTranspilerTests.csproj"
-
 printf 'Liquid item recovery source checks passed\n'
